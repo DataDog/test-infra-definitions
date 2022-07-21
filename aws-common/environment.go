@@ -9,6 +9,7 @@ import (
 )
 
 type Environment interface {
+	Region() string
 	ECSExecKMSKeyID() string
 	VPCID() string
 }

@@ -1,4 +1,4 @@
-module pulumi-definitions
+module "github.com/vboulineau/pulumi-definitions"
 
 go 1.17
 

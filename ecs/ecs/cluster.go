@@ -1,18 +1,14 @@
-package main
+package ecs
 
 import (
-	awscommon "pulumi-definitions/aws-common"
+	awscommon "github.com/vboulineau/pulumi-definitions/aws-common"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
-func main() {
-	pulumi.Run(pulumiRun)
-}
-
-func pulumiRun(ctx *pulumi.Context) error {
+func Run(ctx *pulumi.Context) error {
 	resourcesPrefix := config.Require(ctx, "PREFIX")
 	environment, err := awscommon.GetEnvironmentFromConfig(ctx)
 	if err != nil {

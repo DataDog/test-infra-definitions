@@ -29,14 +29,14 @@ func Run(ctx *pulumi.Context, env config.Environment) error {
 		return err
 	}
 
-	taskSvc, err := FargateService(ctx, awsEnv, ctx.Stack(), ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+	_, err = FargateService(ctx, awsEnv, ctx.Stack(), ecsCluster.Arn, taskDef.TaskDefinition.Arn())
 	if err != nil {
 		return err
 	}
 
 	ctx.Export("ecs-cluster-name", ecsCluster.Name)
 	ctx.Export("ecs-cluster-arn", ecsCluster.Arn)
-	ctx.Export("ecs-service-family", taskSvc.TaskDefinition.Family())
+	ctx.Export("ecs-service-family", taskDef.TaskDefinition.Family())
 
 	return nil
 }

@@ -32,6 +32,7 @@ func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environ
 		containersMap[reflect.ValueOf(c.Name).Elem().String()] = *c
 	}
 	containersMap["datadog-agent"] = *FargateAgentContainerDefinition(ctx, environment)
+	containersMap["log_router"] = *FargateFirelensContainerDefinition(ctx, environment)
 
 	return ecs.NewFargateTaskDefinition(ctx, name, &ecs.FargateTaskDefinitionArgs{
 		Containers: containersMap,
@@ -99,6 +100,20 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 			Command: pulumi.ToStringArray([]string{"CMD-SHELL", "/probe.sh"}),
 		},
 		LogConfiguration: getFirelensLogConfiguration("datadog-agent", "datadog-agent", environment.APIKeySSMParamName()),
+	}
+}
+
+func FargateFirelensContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
+	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Name:      pulumi.StringPtr("log_router"),
+		Image:     pulumi.StringPtr("amazon/aws-for-fluent-bit:latest"),
+		Essential: pulumi.BoolPtr(true),
+		FirelensConfiguration: ecs.TaskDefinitionFirelensConfigurationArgs{
+			Type: pulumi.String("fluentbit"),
+			Options: pulumi.StringMap{
+				"enable-ecs-log-metadata": pulumi.String("true"),
+			},
+		},
 	}
 }
 

@@ -44,6 +44,11 @@ func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environ
 			RoleArn: pulumi.StringPtr(environment.ECSTaskRole()),
 		},
 		Family: pulumi.StringPtr(family),
+		Volumes: classicECS.TaskDefinitionVolumeArray{
+			classicECS.TaskDefinitionVolumeArgs{
+				Name: pulumi.String("dd-sockets"),
+			},
+		},
 	})
 }
 

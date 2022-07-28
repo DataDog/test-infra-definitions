@@ -36,7 +36,9 @@ func Run(ctx *pulumi.Context, env config.Environment) error {
 
 	ctx.Export("ecs-cluster-name", ecsCluster.Name)
 	ctx.Export("ecs-cluster-arn", ecsCluster.Arn)
-	ctx.Export("ecs-service-family", taskDef.TaskDefinition.Family())
+	ctx.Export("ecs-task-arn", taskDef.TaskDefinition.Arn())
+	ctx.Export("ecs-task-family", taskDef.TaskDefinition.Family())
+	ctx.Export("ecs-task-version", taskDef.TaskDefinition.Revision())
 
 	return nil
 }

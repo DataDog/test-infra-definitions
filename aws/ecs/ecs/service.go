@@ -28,9 +28,8 @@ func FargateService(ctx *pulumi.Context, environment aws.Environment, name strin
 func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environment, family, name string, containers []*ecs.TaskDefinitionContainerDefinitionArgs) (*ecs.FargateTaskDefinition, error) {
 	containersMap := make(map[string]ecs.TaskDefinitionContainerDefinitionArgs)
 	for _, c := range containers {
-		var s string
 		// Ugly hack as the implementation of pulumi.StringPtrInput is just `type stringPtr string`
-		containersMap[reflect.ValueOf(c.Name).Convert(reflect.PtrTo(s)).String()] = *c
+		containersMap[reflect.ValueOf(c.Name).Elem().String()] = *c
 	}
 	containersMap["datadog-agent"] = *FargateAgentContainerDefinition(ctx, environment)
 

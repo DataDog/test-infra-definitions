@@ -21,7 +21,8 @@ func FargateService(ctx *pulumi.Context, environment aws.Environment, name strin
 			SecurityGroups: pulumi.ToStringArray(environment.DefaultSecurityGroups()),
 			Subnets:        pulumi.ToStringArray([]string{environment.DefaultSubnet()}),
 		},
-		TaskDefinition: taskDefArn,
+		TaskDefinition:       taskDefArn,
+		EnableExecuteCommand: pulumi.BoolPtr(true),
 	})
 }
 
@@ -96,8 +97,9 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 			},
 		},
 		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
-			Retries: pulumi.IntPtr(2),
-			Command: pulumi.ToStringArray([]string{"CMD-SHELL", "/probe.sh"}),
+			Retries:     pulumi.IntPtr(2),
+			Command:     pulumi.ToStringArray([]string{"CMD-SHELL", "/probe.sh"}),
+			StartPeriod: pulumi.IntPtr(10),
 		},
 		LogConfiguration: getFirelensLogConfiguration("datadog-agent", "datadog-agent", environment.APIKeySSMParamName()),
 	}

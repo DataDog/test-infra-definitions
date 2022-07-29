@@ -21,8 +21,9 @@ func FargateService(ctx *pulumi.Context, environment aws.Environment, name strin
 			SecurityGroups: pulumi.ToStringArray(environment.DefaultSecurityGroups()),
 			Subnets:        pulumi.ToStringArray([]string{environment.DefaultSubnet()}),
 		},
-		TaskDefinition:       taskDefArn,
-		EnableExecuteCommand: pulumi.BoolPtr(true),
+		TaskDefinition:            taskDefArn,
+		EnableExecuteCommand:      pulumi.BoolPtr(true),
+		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
 	})
 }
 
@@ -118,6 +119,7 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 func FargateFirelensContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
+		User:      pulumi.StringPtr("0"),
 		Name:      pulumi.StringPtr("log_router"),
 		Image:     pulumi.StringPtr("amazon/aws-for-fluent-bit:latest"),
 		Essential: pulumi.BoolPtr(true),

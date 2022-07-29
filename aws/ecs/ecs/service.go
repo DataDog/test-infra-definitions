@@ -76,12 +76,12 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 		Essential: pulumi.BoolPtr(true),
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("ECS_FARGATE"),
-				Value: pulumi.StringPtr("true"),
-			},
-			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
 				Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("ECS_FARGATE"),
+				Value: pulumi.StringPtr("true"),
 			},
 		},
 		Secrets: ecs.TaskDefinitionSecretArray{

@@ -56,6 +56,7 @@ func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environ
 
 func FargateRedisContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("redis"),
 		Image:     pulumi.StringPtr("redis:latest"),
 		Essential: pulumi.BoolPtr(true),
@@ -66,11 +67,16 @@ func FargateRedisContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 			},
 		},
 		LogConfiguration: getFirelensLogConfiguration("redis", "redis", environment.APIKeySSMParamName()),
+		MountPoints:      ecs.TaskDefinitionMountPointArray{},
+		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
+		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
+		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
 	}
 }
 
 func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("datadog-agent"),
 		Image:     pulumi.StringPtr("public.ecr.aws/datadog/agent:latest"),
 		Essential: pulumi.BoolPtr(true),
@@ -100,13 +106,18 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 			Retries:     pulumi.IntPtr(2),
 			Command:     pulumi.ToStringArray([]string{"CMD-SHELL", "/probe.sh"}),
 			StartPeriod: pulumi.IntPtr(10),
+			Interval:    pulumi.IntPtr(30),
+			Timeout:     pulumi.IntPtr(5),
 		},
 		LogConfiguration: getFirelensLogConfiguration("datadog-agent", "datadog-agent", environment.APIKeySSMParamName()),
+		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
+		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
 	}
 }
 
 func FargateFirelensContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("log_router"),
 		Image:     pulumi.StringPtr("amazon/aws-for-fluent-bit:latest"),
 		Essential: pulumi.BoolPtr(true),
@@ -116,6 +127,10 @@ func FargateFirelensContainerDefinition(ctx *pulumi.Context, environment aws.Env
 				"enable-ecs-log-metadata": pulumi.String("true"),
 			},
 		},
+		MountPoints:  ecs.TaskDefinitionMountPointArray{},
+		Environment:  ecs.TaskDefinitionKeyValuePairArray{},
+		PortMappings: ecs.TaskDefinitionPortMappingArray{},
+		VolumesFrom:  ecs.TaskDefinitionVolumeFromArray{},
 	}
 }
 

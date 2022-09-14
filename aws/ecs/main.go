@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/vboulineau/pulumi-definitions/aws/ecs/ecs"
-	"github.com/vboulineau/pulumi-definitions/common"
+	"github.com/DataDog/test-infra-definitions/aws/ecs/ecs"
+	"github.com/DataDog/test-infra-definitions/common"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )

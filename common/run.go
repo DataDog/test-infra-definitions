@@ -1,7 +1,7 @@
 package common
 
 import (
-	"github.com/vboulineau/pulumi-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/config"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )

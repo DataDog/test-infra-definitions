@@ -1,4 +1,4 @@
-module github.com/vboulineau/pulumi-definitions
+module github.com/DataDog/test-infra-definitions
 
 go 1.17
 

@@ -3,8 +3,8 @@ package ec2
 import (
 	"errors"
 
-	"github.com/vboulineau/pulumi-definitions/aws"
-	"github.com/vboulineau/pulumi-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/common/config"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"

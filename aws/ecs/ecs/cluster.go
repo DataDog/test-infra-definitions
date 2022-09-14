@@ -1,7 +1,7 @@
 package ecs
 
 import (
-	"github.com/vboulineau/pulumi-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"

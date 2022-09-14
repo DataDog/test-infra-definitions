@@ -4,8 +4,8 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/vboulineau/pulumi-definitions/aws"
-	"github.com/vboulineau/pulumi-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/common/config"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"

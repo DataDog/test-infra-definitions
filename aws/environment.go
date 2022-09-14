@@ -1,7 +1,7 @@
 package aws
 
 import (
-	config "github.com/vboulineau/pulumi-definitions/common/config"
+	config "github.com/DataDog/test-infra-definitions/common/config"
 )
 
 type Environment interface {

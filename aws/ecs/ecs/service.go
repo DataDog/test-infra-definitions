@@ -3,7 +3,7 @@ package ecs
 import (
 	"reflect"
 
-	"github.com/vboulineau/pulumi-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"

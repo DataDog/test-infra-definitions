@@ -17,9 +17,9 @@ func FargateService(ctx *pulumi.Context, environment aws.Environment, name strin
 		Name:         pulumi.StringPtr(name),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
-			AssignPublicIp: pulumi.BoolPtr(environment.AssignPublicIP()),
+			AssignPublicIp: pulumi.BoolPtr(environment.ECSServicePublicIP()),
 			SecurityGroups: pulumi.ToStringArray(environment.DefaultSecurityGroups()),
-			Subnets:        pulumi.ToStringArray([]string{environment.DefaultSubnet()}),
+			Subnets:        pulumi.ToStringArray(environment.DefaultSubnets()),
 		},
 		TaskDefinition:            taskDefArn,
 		EnableExecuteCommand:      pulumi.BoolPtr(true),
@@ -27,13 +27,13 @@ func FargateService(ctx *pulumi.Context, environment aws.Environment, name strin
 	})
 }
 
-func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environment, family, name string, containers []*ecs.TaskDefinitionContainerDefinitionArgs) (*ecs.FargateTaskDefinition, error) {
+func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environment, family, name string, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput) (*ecs.FargateTaskDefinition, error) {
 	containersMap := make(map[string]ecs.TaskDefinitionContainerDefinitionArgs)
 	for _, c := range containers {
 		// Ugly hack as the implementation of pulumi.StringPtrInput is just `type stringPtr string`
 		containersMap[reflect.ValueOf(c.Name).Elem().String()] = *c
 	}
-	containersMap["datadog-agent"] = *FargateAgentContainerDefinition(ctx, environment)
+	containersMap["datadog-agent"] = *FargateAgentContainerDefinition(ctx, environment, apiKeySSMParamName)
 	containersMap["log_router"] = *FargateFirelensContainerDefinition(ctx, environment)
 
 	return ecs.NewFargateTaskDefinition(ctx, name, &ecs.FargateTaskDefinitionArgs{
@@ -55,7 +55,7 @@ func FargateTaskDefinitionWithAgent(ctx *pulumi.Context, environment aws.Environ
 	})
 }
 
-func FargateRedisContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
+func FargateRedisContainerDefinition(ctx *pulumi.Context, environment aws.Environment, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("redis"),
@@ -67,7 +67,7 @@ func FargateRedisContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 				Condition:     pulumi.String("HEALTHY"),
 			},
 		},
-		LogConfiguration: getFirelensLogConfiguration("redis", "redis", environment.APIKeySSMParamName()),
+		LogConfiguration: getFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 		MountPoints:      ecs.TaskDefinitionMountPointArray{},
 		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
@@ -75,7 +75,7 @@ func FargateRedisContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 	}
 }
 
-func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
+func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Environment, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("datadog-agent"),
@@ -94,7 +94,7 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
 				Name:      pulumi.String("DD_API_KEY"),
-				ValueFrom: pulumi.String(environment.APIKeySSMParamName()),
+				ValueFrom: apiKeySSMParamName,
 			},
 		},
 		MountPoints: ecs.TaskDefinitionMountPointArray{
@@ -110,7 +110,7 @@ func FargateAgentContainerDefinition(ctx *pulumi.Context, environment aws.Enviro
 			Interval:    pulumi.IntPtr(30),
 			Timeout:     pulumi.IntPtr(5),
 		},
-		LogConfiguration: getFirelensLogConfiguration("datadog-agent", "datadog-agent", environment.APIKeySSMParamName()),
+		LogConfiguration: getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName),
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
 		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
 	}
@@ -136,14 +136,14 @@ func FargateFirelensContainerDefinition(ctx *pulumi.Context, environment aws.Env
 	}
 }
 
-func getFirelensLogConfiguration(source, service, apiKeyParamName string) ecs.TaskDefinitionLogConfigurationPtrInput {
+func getFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringInput) ecs.TaskDefinitionLogConfigurationPtrInput {
 	return ecs.TaskDefinitionLogConfigurationArgs{
 		LogDriver: pulumi.String("awsfirelens"),
 		Options: pulumi.StringMap{
 			"Name":           pulumi.String("datadog"),
 			"Host":           pulumi.String("http-intake.logs.datadoghq.com"),
-			"dd_service":     pulumi.String(service),
-			"dd_source":      pulumi.String(source),
+			"dd_service":     service,
+			"dd_source":      source,
 			"dd_message_key": pulumi.String("log"),
 			"TLS":            pulumi.String("on"),
 			"provider":       pulumi.String("ecs"),
@@ -151,7 +151,7 @@ func getFirelensLogConfiguration(source, service, apiKeyParamName string) ecs.Ta
 		SecretOptions: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
 				Name:      pulumi.String("apikey"),
-				ValueFrom: pulumi.String(apiKeyParamName),
+				ValueFrom: apiKeyParamName,
 			},
 		},
 	}

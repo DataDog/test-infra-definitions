@@ -14,7 +14,7 @@ const (
 
 // Latest 22.04 (jammy)
 func LatestUbuntuAMI(ctx *pulumi.Context, arch string) (string, error) {
-	return SearchAMI(ctx, "099720109477", "ubuntu/images/hvm-ssd/ubuntu-jammy-*", AMD64Arch)
+	return SearchAMI(ctx, "099720109477", "ubuntu/images/hvm-ssd/ubuntu-jammy-*", arch)
 }
 
 func SearchAMI(ctx *pulumi.Context, owner, name, arch string) (string, error) {

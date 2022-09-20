@@ -6,6 +6,7 @@ require (
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.9
 	github.com/pulumi/pulumi/sdk/v3 v3.36.0
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
 
 require (

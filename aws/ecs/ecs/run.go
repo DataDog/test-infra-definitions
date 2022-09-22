@@ -9,16 +9,25 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	awsEnv := aws.AWSEnvironment(ctx)
+	awsEnv, err := aws.AWSEnvironment(ctx)
+	if err != nil {
+		return err
+	}
 
-	capacityProviders := pulumi.StringArray{}
+	// Create cluster
+	ecsCluster, err := CreateEcsCluster(awsEnv, ctx.Stack())
+	if err != nil {
+		return err
+	}
+
 	// Handle capacity providers
+	capacityProviders := pulumi.StringArray{}
 	if awsEnv.ECSFargateCapacityProvider() {
 		capacityProviders = append(capacityProviders, pulumi.String("FARGATE"))
 	}
 
 	if awsEnv.ECSLinuxECSOptimizedNodeGroup() {
-		cpName, err := NewECSOptimizedNodeGroup(ctx, awsEnv)
+		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name)
 		if err != nil {
 			return err
 		}
@@ -26,15 +35,33 @@ func Run(ctx *pulumi.Context) error {
 		capacityProviders = append(capacityProviders, cpName)
 	}
 
-	// Create cluster
-	ecsCluster, err := CreateEcsCluster(ctx, awsEnv, capacityProviders)
+	if awsEnv.ECSLinuxBottlerocketNodeGroup() {
+		cpName, err := NewBottlerocketNodeGroup(awsEnv, ecsCluster.Name)
+		if err != nil {
+			return err
+		}
+
+		capacityProviders = append(capacityProviders, cpName)
+	}
+
+	if awsEnv.ECSWindowsNodeGroup() {
+		cpName, err := NewWindowsNodeGroup(awsEnv, ecsCluster.Name)
+		if err != nil {
+			return err
+		}
+
+		capacityProviders = append(capacityProviders, cpName)
+	}
+
+	// Associate capacity providers
+	_, err = NewClusterCapacityProvider(awsEnv, ctx.Stack(), ecsCluster.Name, capacityProviders)
 	if err != nil {
 		return err
 	}
 
 	// Create task and service
-	if awsEnv.DeployAgent() {
-		apiKeyParam, err := ssm.NewParameter(ctx, "agent-api-key", &ssm.ParameterArgs{
+	if awsEnv.AgentDeploy() {
+		apiKeyParam, err := ssm.NewParameter(ctx, "agent.ci.api.key."+ctx.Stack(), &ssm.ParameterArgs{
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
 		})
@@ -42,13 +69,13 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		testContainer := FargateRedisContainerDefinition(ctx, awsEnv, apiKeyParam.Arn)
-		taskDef, err := FargateTaskDefinitionWithAgent(ctx, awsEnv, "ci-tasks", ctx.Stack(), []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
+		testContainer := FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
+		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, ctx.Stack()+"-fg-dd-agent", ctx.Stack()+"-fg-dd-agent", []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
 		if err != nil {
 			return err
 		}
 
-		_, err = FargateService(ctx, awsEnv, ctx.Stack(), ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+		_, err = FargateService(awsEnv, ctx.Stack()+"-fg-dd-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
 		if err != nil {
 			return err
 		}

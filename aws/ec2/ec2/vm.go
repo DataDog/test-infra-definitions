@@ -9,7 +9,10 @@ import (
 
 func CreateEC2Instance(ctx *pulumi.Context, name, ami, arch, instanceType, keyPair, userData string) (*ec2.Instance, error) {
 	var err error
-	awsEnv := aws.AWSEnvironment(ctx)
+	awsEnv, err := aws.AWSEnvironment(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	if ami == "" {
 		ami, err = LatestUbuntuAMI(ctx, arch)

@@ -12,6 +12,9 @@ const (
 	ddInfraConfigNamespace = "ddinfra"
 	ddAgentConfigNamespace = "ddagent"
 
+	// Infra namespace
+	ddInfraEnvironment = "env"
+
 	// Agent Namespace
 	ddAgentDeployParamName = "deploy"
 	ddAgentAPIKeyParamName = "apiKey"
@@ -25,12 +28,19 @@ type CommonEnvironment struct {
 
 func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 	return CommonEnvironment{
+		Ctx:         ctx,
 		InfraConfig: sdkconfig.New(ctx, ddInfraConfigNamespace),
 		AgentConfig: sdkconfig.New(ctx, ddAgentConfigNamespace),
 	}
 }
 
-func (e *CommonEnvironment) DeployAgent() bool {
+// Infra namespace
+func (e *CommonEnvironment) InfraEnvironmentName() string {
+	return e.InfraConfig.Require(ddInfraEnvironment)
+}
+
+// Agent Namespace
+func (e *CommonEnvironment) AgentDeploy() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, ddAgentDeployParamName, true)
 }
 
@@ -42,6 +52,32 @@ func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramNa
 	val, err := config.TryBool(paramName)
 	if err == nil {
 		return val
+	}
+
+	if !errors.Is(err, sdkconfig.ErrMissingVar) {
+		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+	}
+
+	return defaultValue
+}
+
+func (e *CommonEnvironment) GetStringWithDefault(config *sdkconfig.Config, paramName string, defaultValue string) string {
+	val, err := config.Try(paramName)
+	if err == nil {
+		return val
+	}
+
+	if !errors.Is(err, sdkconfig.ErrMissingVar) {
+		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+	}
+
+	return defaultValue
+}
+
+func (e *CommonEnvironment) GetObjectWithDefault(config *sdkconfig.Config, paramName string, outputValue, defaultValue interface{}) interface{} {
+	err := config.TryObject(paramName, outputValue)
+	if err == nil {
+		return outputValue
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {

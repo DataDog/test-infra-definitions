@@ -7,21 +7,28 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func CreateLaunchTemplate(ctx *pulumi.Context, environment aws.Environment, name, ami, instanceType, keyPair, userData string) (*ec2.LaunchTemplate, error) {
-	launchTemplate, err := ec2.NewLaunchTemplate(ctx, name, &ec2.LaunchTemplateArgs{
-		ImageId:      pulumi.StringPtr(ami),
-		Name:         pulumi.StringPtr(name),
-		InstanceType: pulumi.StringPtr(instanceType),
+func CreateLaunchTemplate(e aws.Environment, name string, ami, instanceType, iamProfileArn, keyPair, userData pulumi.StringInput) (*ec2.LaunchTemplate, error) {
+	launchTemplate, err := ec2.NewLaunchTemplate(e.Ctx, name, &ec2.LaunchTemplateArgs{
+		ImageId:      ami,
+		NamePrefix:   pulumi.StringPtr(name),
+		InstanceType: instanceType,
+		IamInstanceProfile: ec2.LaunchTemplateIamInstanceProfileArgs{
+			Arn: iamProfileArn,
+		},
 		NetworkInterfaces: ec2.LaunchTemplateNetworkInterfaceArray{
 			ec2.LaunchTemplateNetworkInterfaceArgs{
-				SubnetId:                 pulumi.StringPtr(environment.DefaultSubnets()[0]),
+				SubnetId:                 pulumi.StringPtr(e.DefaultSubnets()[0]),
 				DeleteOnTermination:      pulumi.StringPtr("true"),
 				AssociatePublicIpAddress: pulumi.StringPtr("false"),
-				SecurityGroups:           pulumi.ToStringArray(environment.DefaultSecurityGroups()),
+				SecurityGroups:           pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			},
 		},
-		KeyName:  pulumi.StringPtr(keyPair),
-		UserData: pulumi.StringPtr(userData),
+		BlockDeviceMappings: ec2.LaunchTemplateBlockDeviceMappingArray{
+			ec2.LaunchTemplateBlockDeviceMappingArgs{},
+		},
+		KeyName:              keyPair,
+		UserData:             userData,
+		UpdateDefaultVersion: pulumi.BoolPtr(true),
 	})
 	return launchTemplate, err
 }

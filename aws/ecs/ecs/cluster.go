@@ -7,22 +7,18 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func CreateEcsCluster(ctx *pulumi.Context, environment aws.Environment, capacityProviders pulumi.StringArray) (*ecs.Cluster, error) {
-	cluster, err := ecs.NewCluster(ctx, ctx.Stack(), &ecs.ClusterArgs{
+func CreateEcsCluster(e aws.Environment, name string) (*ecs.Cluster, error) {
+	cluster, err := ecs.NewCluster(e.Ctx, name, &ecs.ClusterArgs{
+		Name: pulumi.StringPtr(name),
 		Configuration: &ecs.ClusterConfigurationArgs{
 			ExecuteCommandConfiguration: &ecs.ClusterConfigurationExecuteCommandConfigurationArgs{
-				KmsKeyId: pulumi.StringPtr(environment.ECSExecKMSKeyID()),
+				KmsKeyId: pulumi.StringPtr(e.ECSExecKMSKeyID()),
 			},
 		},
 	})
 	if err != nil {
 		return nil, err
 	}
-
-	ecs.NewClusterCapacityProviders(ctx, ctx.Stack()+"-cp", &ecs.ClusterCapacityProvidersArgs{
-		ClusterName:       cluster.Name,
-		CapacityProviders: capacityProviders,
-	})
 
 	return cluster, nil
 }

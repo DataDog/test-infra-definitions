@@ -7,14 +7,21 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewCapacityProvider(ctx *pulumi.Context, environment aws.Environment, name string, asgArn pulumi.StringInput) (*ecs.CapacityProvider, error) {
-	return ecs.NewCapacityProvider(ctx, name, &ecs.CapacityProviderArgs{
+func NewCapacityProvider(e aws.Environment, name string, asgArn pulumi.StringInput) (*ecs.CapacityProvider, error) {
+	return ecs.NewCapacityProvider(e.Ctx, name, &ecs.CapacityProviderArgs{
 		AutoScalingGroupProvider: &ecs.CapacityProviderAutoScalingGroupProviderArgs{
 			AutoScalingGroupArn: asgArn,
 			ManagedScaling: &ecs.CapacityProviderAutoScalingGroupProviderManagedScalingArgs{
 				Status: aws.DisabledString,
 			},
-			ManagedTerminationProtection: aws.EnabledString,
+			ManagedTerminationProtection: aws.DisabledString,
 		},
+	})
+}
+
+func NewClusterCapacityProvider(e aws.Environment, name string, clusterName pulumi.StringInput, capacityProviders pulumi.StringArray) (*ecs.ClusterCapacityProviders, error) {
+	return ecs.NewClusterCapacityProviders(e.Ctx, name, &ecs.ClusterCapacityProvidersArgs{
+		ClusterName:       clusterName,
+		CapacityProviders: capacityProviders,
 	})
 }

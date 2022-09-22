@@ -1,24 +1,33 @@
 package ec2
 
 import (
+	"strconv"
+
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/autoscaling"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewAutoscalingGroup(ctx *pulumi.Context, environment aws.Environment, name string,
-	launchTemplateARN pulumi.StringInput,
+func NewAutoscalingGroup(e aws.Environment, name string,
+	launchTemplateID pulumi.StringInput,
+	launchTemplateVersion pulumi.IntInput,
 	desired, min, max int,
 ) (*autoscaling.Group, error) {
-	return autoscaling.NewGroup(ctx, name, &autoscaling.GroupArgs{
-		Name:            pulumi.String(name),
+	return autoscaling.NewGroup(e.Ctx, name, &autoscaling.GroupArgs{
+		NamePrefix:      pulumi.StringPtr(name),
 		DesiredCapacity: pulumi.Int(desired),
 		MinSize:         pulumi.Int(min),
 		MaxSize:         pulumi.Int(max),
 		LaunchTemplate: autoscaling.GroupLaunchTemplateArgs{
-			Id:      launchTemplateARN,
-			Version: pulumi.String("$Latest"),
+			Id:      launchTemplateID,
+			Version: launchTemplateVersion.ToIntOutput().ApplyT(func(v int) pulumi.String { return pulumi.String(strconv.Itoa(v)) }).(pulumi.StringInput),
 		},
 		CapacityRebalance: pulumi.Bool(true),
+		InstanceRefresh: autoscaling.GroupInstanceRefreshArgs{
+			Strategy: pulumi.String("Rolling"),
+			Preferences: autoscaling.GroupInstanceRefreshPreferencesArgs{
+				MinHealthyPercentage: pulumi.Int(0),
+			},
+		},
 	})
 }

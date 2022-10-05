@@ -12,10 +12,10 @@ import (
 )
 
 const (
-	ECS_LINUX_INIT_USER_DATA = `#!/bin/bash
+	linuxInitUserData = `#!/bin/bash
 echo "ECS_CLUSTER=%s" >> /etc/ecs/ecs.config`
 
-	ECS_LINUX_BOTTLEROCKET_USER_DATA = `[settings]
+	linuxBottlerocketInitUserData = `[settings]
   [settings.host-containers]
     [settings.host-containers.admin]
       enabled = true
@@ -24,20 +24,29 @@ echo "ECS_CLUSTER=%s" >> /etc/ecs/ecs.config`
     cluster = "%s"
 `
 
-	ECS_WINDOWS_INIT_USER_DATA = `<powershell>
+	windowsInitUserData = `<powershell>
 Initialize-ECSAgent -Cluster %s -EnableTaskIAMRole -LoggingDrivers '["json-file","awslogs"]' -EnableTaskENI
 </powershell>`
 )
 
-func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
+func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput, armInstance bool) (pulumi.StringOutput, error) {
+	amiParamName := "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id"
+	instanceType := e.DefaultInstanceType()
+	ngSuffix := "-ecs-optimized-ng"
+	if armInstance {
+		amiParamName = "/aws/service/ecs/optimized-ami/amazon-linux-2/arm64/recommended/image_id"
+		instanceType = e.DefaultARMInstanceType()
+		ngSuffix = "-ecs-optimized-arm-ng"
+	}
+
 	ecsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
-		Name: "/aws/service/ecs/optimized-ami/amazon-linux-2/recommended/image_id",
+		Name: amiParamName,
 	})
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "-ecs-optimized-ng", clusterName, pulumi.String(ecsAmi.Value), getUserData(ECS_LINUX_INIT_USER_DATA, clusterName))
+	return newNodeGroup(e, ngSuffix, clusterName, pulumi.String(ecsAmi.Value), pulumi.String(instanceType), getUserData(linuxInitUserData, clusterName))
 }
 
 func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
@@ -48,7 +57,7 @@ func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput)
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "-bottlerocket-ng", clusterName, pulumi.String(bottlerocketAmi.Value), getUserData(ECS_LINUX_BOTTLEROCKET_USER_DATA, clusterName))
+	return newNodeGroup(e, "-bottlerocket-ng", clusterName, pulumi.String(bottlerocketAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(linuxBottlerocketInitUserData, clusterName))
 }
 
 func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
@@ -59,13 +68,13 @@ func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pul
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "-win2022-ng", clusterName, pulumi.String(winAmi.Value), getUserData(ECS_WINDOWS_INIT_USER_DATA, clusterName))
+	return newNodeGroup(e, "-win2022-ng", clusterName, pulumi.String(winAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(windowsInitUserData, clusterName))
 }
 
-func newNodeGroup(e aws.Environment, suffix string, clusterName, ami, userData pulumi.StringInput) (pulumi.StringOutput, error) {
+func newNodeGroup(e aws.Environment, suffix string, clusterName, ami, instanceType, userData pulumi.StringInput) (pulumi.StringOutput, error) {
 	lt, err := ec2.CreateLaunchTemplate(e, e.Ctx.Stack()+suffix,
 		ami,
-		pulumi.String(e.DefaultInstanceType()),
+		instanceType,
 		pulumi.String(e.ECSInstanceProfile()),
 		pulumi.String(e.DefaultKeyPairName()),
 		userData)

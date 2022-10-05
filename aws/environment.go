@@ -13,25 +13,32 @@ const (
 	awsRegionParamName = "region"
 
 	// AWS Infra
-	ddinfraDefaultVPCIDParamName          = "aws/defaultVPCID"
-	ddinfraDefaultSubnetsParamName        = "aws/defaultSubnets"
-	ddinfraDefaultSecurityGroupsParamName = "aws/defaultSecurityGroups"
-	ddinfraDefaultInstanceTypeParamName   = "aws/defaultInstanceType"
-	ddinfraDefaultKeyPairParamName        = "aws/defaultKeyPairName"
+	ddinfraDefaultVPCIDParamName           = "aws/defaultVPCID"
+	ddinfraDefaultSubnetsParamName         = "aws/defaultSubnets"
+	ddinfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
+	ddinfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
+	ddinfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
+	ddinfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
 
 	// AWS ECS
-	ddInfraEcsExecKMSKeyID               = "aws/ecs/execKMSKeyID"
-	ddInfraEcsTaskExecutionRole          = "aws/ecs/taskExecutionRole"
-	ddInfraEcsTaskRole                   = "aws/ecs/taskRole"
-	ddInfraEcsInstanceProfile            = "aws/ecs/instanceProfile"
-	ddInfraEcsServiceAllocatePublicIP    = "aws/ecs/serviceAllocatePublicIP"
-	ddInfraEcsFargateCapacityProvider    = "aws/ecs/fargateCapacityProvider"
-	ddInfraEcsLinuxECSOptimizedNodeGroup = "aws/ecs/linuxECSOptimizedNodeGroup"
-	ddInfraEcsLinuxBottlerocketNodeGroup = "aws/ecs/linuxBottlerocketNodeGroup"
-	ddInfraEcsWindowsLTSCNodeGroup       = "aws/ecs/windowsLTSCNodeGroup"
+	ddInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
+	ddInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
+	ddInfraEcsTaskRole                      = "aws/ecs/taskRole"
+	ddInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
+	ddInfraEcsServiceAllocatePublicIP       = "aws/ecs/serviceAllocatePublicIP"
+	ddInfraEcsFargateCapacityProvider       = "aws/ecs/fargateCapacityProvider"
+	ddInfraEcsLinuxECSOptimizedNodeGroup    = "aws/ecs/linuxECSOptimizedNodeGroup"
+	ddInfraEcsLinuxECSOptimizedARMNodeGroup = "aws/ecs/linuxECSOptimizedARMNodeGroup"
+	ddInfraEcsLinuxBottlerocketNodeGroup    = "aws/ecs/linuxBottlerocketNodeGroup"
+	ddInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
 
 	// AWS EKS
 	ddInfraEksAllowedInboundSecurityGroups = "aws/eks/clusterSecurityGroups"
+	ddInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
+	ddInfraEksLinuxNodeGroup               = "aws/eks/linuxNodeGroup"
+	ddInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
+	ddInfraEksLinuxBottlerocketNodeGroup   = "aws/eks/linuxBottlerocketNodeGroup"
+	ddInfraEksWindowsNodeGroup             = "aws/eks/windowsNodeGroup"
 )
 
 type Environment struct {
@@ -90,6 +97,10 @@ func (e *Environment) DefaultInstanceType() string {
 	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
 }
 
+func (e *Environment) DefaultARMInstanceType() string {
+	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultARMInstanceTypeParamName, e.envDefault.ddInfra.defaultARMInstanceType)
+}
+
 func (e *Environment) DefaultKeyPairName() string {
 	// No default value for keyPair
 	return e.InfraConfig.Require(ddinfraDefaultKeyPairParamName)
@@ -124,6 +135,10 @@ func (e *Environment) ECSLinuxECSOptimizedNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsLinuxECSOptimizedNodeGroup, e.envDefault.ddInfra.ecs.linuxECSOptimizedNodeGroup)
 }
 
+func (e *Environment) ECSLinuxECSOptimizedARMNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsLinuxECSOptimizedARMNodeGroup, e.envDefault.ddInfra.ecs.linuxECSOptimizedARMNodeGroup)
+}
+
 func (e *Environment) ECSLinuxBottlerocketNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsLinuxBottlerocketNodeGroup, e.envDefault.ddInfra.ecs.linuxBottlerocketNodeGroup)
 }
@@ -136,4 +151,24 @@ func (e *Environment) EKSAllowedInboundSecurityGroups() []string {
 	var arr []string
 	resInt := e.GetObjectWithDefault(e.InfraConfig, ddInfraEksAllowedInboundSecurityGroups, arr, e.envDefault.ddInfra.eks.allowedInboundSecurityGroups)
 	return resInt.([]string)
+}
+
+func (e *Environment) EKSFargateNamespace() string {
+	return e.GetStringWithDefault(e.InfraConfig, ddInfraEksFargateNamespace, e.envDefault.ddInfra.eks.fargateNamespace)
+}
+
+func (e *Environment) EKSLinuxNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksLinuxNodeGroup, e.envDefault.ddInfra.eks.linuxNodeGroup)
+}
+
+func (e *Environment) EKSLinuxARMNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksLinuxARMNodeGroup, e.envDefault.ddInfra.eks.linuxARMNodeGroup)
+}
+
+func (e *Environment) EKSBottlerocketNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksLinuxBottlerocketNodeGroup, e.envDefault.ddInfra.eks.linuxBottlerocketNodeGroup)
+}
+
+func (e *Environment) EKSWindowsNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
 }

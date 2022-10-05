@@ -27,7 +27,16 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if awsEnv.ECSLinuxECSOptimizedNodeGroup() {
-		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name)
+		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, false)
+		if err != nil {
+			return err
+		}
+
+		capacityProviders = append(capacityProviders, cpName)
+	}
+
+	if awsEnv.ECSLinuxECSOptimizedARMNodeGroup() {
+		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, true)
 		if err != nil {
 			return err
 		}

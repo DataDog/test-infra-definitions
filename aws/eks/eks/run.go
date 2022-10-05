@@ -2,17 +2,12 @@ package eks
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/iam"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-)
-
-const (
-	eksFargateNamespace = "fargate-workload"
 )
 
 func Run(ctx *pulumi.Context) error {
@@ -46,72 +41,88 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// IAM Node role
-	assumeRolePolicy, err := iam.GetAWSPrincipalAssumeRole(awsEnv)
+	linuxNodeRole, err := GetNodeRole(awsEnv, "linux-node-role")
 	if err != nil {
 		return err
 	}
 
-	nodeRole, err := awsIam.NewRole(ctx, ctx.Stack()+"-node-role", &awsIam.RoleArgs{
-		NamePrefix:          pulumi.StringPtr(ctx.Stack() + "-node-role"),
-		Description:         pulumi.StringPtr("Node role for EKS Cluster: " + ctx.Stack()),
-		ForceDetachPolicies: pulumi.BoolPtr(true),
-		ManagedPolicyArns: pulumi.ToStringArray([]string{
-			"arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
-			"arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
-			"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
-		}),
-		AssumeRolePolicy: pulumi.String(assumeRolePolicy.Json),
-	})
+	windowsNodeRole, err := GetNodeRole(awsEnv, "windows-node-role")
 	if err != nil {
 		return err
+	}
+
+	// Fargate Configuration
+	var fargateProfile pulumi.Input
+	if fargateNamespace := awsEnv.EKSFargateNamespace(); fargateNamespace != "" {
+		fargateProfile = pulumi.Any(
+			eks.FargateProfile{
+				Selectors: []awsEks.FargateProfileSelector{
+					{
+						Namespace: fargateNamespace,
+					},
+				},
+			},
+		)
 	}
 
 	// Create an EKS cluster with the default configuration.
 	cluster, err := eks.NewCluster(ctx, ctx.Stack(), &eks.ClusterArgs{
-		Name:                  pulumi.StringPtr(ctx.Stack()),
-		EndpointPrivateAccess: pulumi.BoolPtr(true),
-		EndpointPublicAccess:  pulumi.BoolPtr(false),
-		Fargate: pulumi.Any(
-			eks.FargateProfile{
-				Selectors: []awsEks.FargateProfileSelector{
-					{
-						Namespace: eksFargateNamespace,
-					},
-				},
-			},
-		),
+		Name:                         pulumi.StringPtr(ctx.Stack()),
+		Version:                      pulumi.StringPtr(awsEnv.KubernetesVersion()),
+		EndpointPrivateAccess:        pulumi.BoolPtr(true),
+		EndpointPublicAccess:         pulumi.BoolPtr(false),
+		Fargate:                      fargateProfile,
 		ClusterSecurityGroup:         clusterSG,
 		NodeAssociatePublicIpAddress: pulumi.BoolPtr(false),
 		PrivateSubnetIds:             pulumi.ToStringArray(awsEnv.DefaultSubnets()),
 		VpcId:                        pulumi.StringPtr(awsEnv.DefaultVPCID()),
 		SkipDefaultNodeGroup:         pulumi.BoolPtr(true),
-		InstanceRole:                 nodeRole,
+		// The content of the aws-auth map is the merge of `InstanceRoles` and `RoleMappings`.
+		// For managed node groups, we push the value in `InstanceRoles`.
+		// For unmanaged node groups, we push the value in `RoleMappings`
+		RoleMappings: eks.RoleMappingArray{
+			eks.RoleMappingArgs{
+				Groups:   pulumi.ToStringArray([]string{"system:bootstrappers", "system:nodes", "eks:kube-proxy-windows"}),
+				Username: pulumi.String("system:node:{{EC2PrivateDNSName}}"),
+				RoleArn:  windowsNodeRole.Arn,
+			},
+		},
+		InstanceRoles: awsIam.RoleArray{
+			linuxNodeRole,
+		},
 	})
 	if err != nil {
 		return err
 	}
 
-	// Creating managed node group: only for AL2 Nodes
-	_, err = eks.NewManagedNodeGroup(ctx, ctx.Stack()+"-linux-ng", &eks.ManagedNodeGroupArgs{
-		AmiType:             pulumi.String("AL2_x86_64"),
-		Cluster:             cluster.Core,
-		DiskSize:            pulumi.Int(50),
-		InstanceTypes:       pulumi.ToStringArray([]string{awsEnv.DefaultInstanceType()}),
-		ForceUpdateVersion:  pulumi.BoolPtr(true),
-		NodeGroupNamePrefix: pulumi.String(ctx.Stack() + "-linux-ng"),
-		ScalingConfig: awsEks.NodeGroupScalingConfigArgs{
-			DesiredSize: pulumi.Int(2),
-			MaxSize:     pulumi.Int(2),
-			MinSize:     pulumi.Int(0),
-		},
-		NodeRole: nodeRole,
-		RemoteAccess: awsEks.NodeGroupRemoteAccessArgs{
-			Ec2SshKey:              pulumi.String(awsEnv.DefaultKeyPairName()),
-			SourceSecurityGroupIds: pulumi.ToStringArray(awsEnv.EKSAllowedInboundSecurityGroups()),
-		},
-	})
-	if err != nil {
-		return err
+	// Create managed node groups
+	if awsEnv.EKSLinuxNodeGroup() {
+		_, err := NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	if awsEnv.EKSLinuxARMNodeGroup() {
+		_, err := NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	if awsEnv.EKSBottlerocketNodeGroup() {
+		_, err := NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Create unmanaged node groups
+	if awsEnv.EKSWindowsNodeGroup() {
+		_, err := NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
+		if err != nil {
+			return err
+		}
 	}
 
 	// Export the cluster's kubeconfig.

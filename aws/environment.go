@@ -61,8 +61,7 @@ func AWSEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	var err error
 	env.Provider, err = sdkaws.NewProvider(ctx, "aws", &sdkaws.ProviderArgs{
-		Region:                 pulumi.String(env.Region()),
-		SharedCredentialsFiles: pulumi.StringArray{pulumi.String("~/.aws/credentials")},
+		Region: pulumi.String(env.Region()),
 	})
 
 	if err != nil {

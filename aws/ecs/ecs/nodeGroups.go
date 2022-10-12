@@ -41,7 +41,7 @@ func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput,
 
 	ecsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: amiParamName,
-	})
+	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

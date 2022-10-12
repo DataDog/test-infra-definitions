@@ -15,7 +15,7 @@ func CreateEcsCluster(e aws.Environment, name string) (*ecs.Cluster, error) {
 				KmsKeyId: pulumi.StringPtr(e.ECSExecKMSKeyID()),
 			},
 		},
-	})
+	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, err
 	}

@@ -15,7 +15,7 @@ func CreateEC2Instance(ctx *pulumi.Context, name, ami, arch, instanceType, keyPa
 	}
 
 	if ami == "" {
-		ami, err = LatestUbuntuAMI(ctx, arch)
+		ami, err = LatestUbuntuAMI(awsEnv, arch)
 		if err != nil {
 			return nil, err
 		}
@@ -28,6 +28,6 @@ func CreateEC2Instance(ctx *pulumi.Context, name, ami, arch, instanceType, keyPa
 		VpcSecurityGroupIds: pulumi.ToStringArray(awsEnv.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),
 		UserData:            pulumi.StringPtr(userData),
-	})
+	}, pulumi.Provider(awsEnv.Provider))
 	return instance, err
 }

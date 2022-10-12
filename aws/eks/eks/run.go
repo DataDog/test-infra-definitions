@@ -2,11 +2,14 @@ package eks
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/datadog/agent"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -35,7 +38,7 @@ func Run(ctx *pulumi.Context) error {
 			},
 		},
 		VpcId: pulumi.StringPtr(awsEnv.DefaultVPCID()),
-	})
+	}, pulumi.Provider(awsEnv.Provider))
 	if err != nil {
 		return err
 	}
@@ -90,31 +93,39 @@ func Run(ctx *pulumi.Context) error {
 		InstanceRoles: awsIam.RoleArray{
 			linuxNodeRole,
 		},
-	})
+	}, pulumi.Timeouts(&pulumi.CustomTimeouts{
+		Create: "30m",
+		Update: "30m",
+		Delete: "30m",
+	}))
 	if err != nil {
 		return err
 	}
 
+	nodeGroups := make([]pulumi.Resource, 0)
 	// Create managed node groups
 	if awsEnv.EKSLinuxNodeGroup() {
-		_, err := NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
+		ng, err := NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
 		if err != nil {
 			return err
 		}
+		nodeGroups = append(nodeGroups, ng)
 	}
 
 	if awsEnv.EKSLinuxARMNodeGroup() {
-		_, err := NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
+		ng, err := NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
 		if err != nil {
 			return err
 		}
+		nodeGroups = append(nodeGroups, ng)
 	}
 
 	if awsEnv.EKSBottlerocketNodeGroup() {
-		_, err := NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
+		ng, err := NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
 		if err != nil {
 			return err
 		}
+		nodeGroups = append(nodeGroups, ng)
 	}
 
 	// Create unmanaged node groups
@@ -127,5 +138,26 @@ func Run(ctx *pulumi.Context) error {
 
 	// Export the cluster's kubeconfig.
 	ctx.Export("kubeconfig", cluster.Kubeconfig)
+
+	// Building Kubernetes provider
+	eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, "k8s-provider-"+ctx.Stack(), &kubernetes.ProviderArgs{
+		EnableServerSideApply: pulumi.BoolPtr(true),
+		Kubeconfig:            utils.KubeconfigToJSON(cluster.Kubeconfig),
+	}, pulumi.Provider(awsEnv.Provider), pulumi.DependsOn(nodeGroups))
+	if err != nil {
+		return err
+	}
+
+	// Deploy the Agent
+	if awsEnv.AgentDeploy() {
+		helmRelease, err := agent.NewDatadogAgentInstallation(*awsEnv.CommonEnvironment, eksKubeProvider, "datadog", nil)
+		if err != nil {
+			return err
+		}
+
+		ctx.Export("agent-helm-install-name", helmRelease.Name)
+		ctx.Export("agent-helm-install-status", helmRelease.Status)
+	}
+
 	return nil
 }

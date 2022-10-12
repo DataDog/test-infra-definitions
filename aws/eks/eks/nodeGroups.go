@@ -56,14 +56,14 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 			Ec2SshKey:              pulumi.String(e.DefaultKeyPairName()),
 			SourceSecurityGroupIds: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 		},
-	})
+	}, pulumi.Provider(e.Provider))
 }
 
 func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.NodeGroup, error) {
 	// Currently only Windows 2019 is supported on EKS (as opposed to ECS)
 	windowsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-2019-English-Core-EKS_Optimized-%s/image_id", e.KubernetesVersion()),
-	})
+	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +74,7 @@ func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeR
 func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, ami, instanceType, userData pulumi.StringInput) (*eks.NodeGroup, error) {
 	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Ctx.Stack()+"-windows-ng", &awsIam.InstanceProfileArgs{
 		Role: nodeRole.Name,
-	})
+	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster,
 		NodeRootVolumeSize:           pulumi.Int(80),
 		NodeAssociatePublicIpAddress: pulumi.BoolPtr(false),
 		InstanceProfile:              instanceProfile,
-	})
+	}, pulumi.Provider(e.Provider))
 }
 
 func getUserData(userData string, clusterName pulumi.StringInput) pulumi.StringInput {

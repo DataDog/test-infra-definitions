@@ -19,6 +19,7 @@ const (
 	// Agent Namespace
 	ddAgentDeployParamName = "deploy"
 	ddAgentAPIKeyParamName = "apiKey"
+	ddAgentAPPKeyParamName = "appKey"
 )
 
 type CommonEnvironment struct {
@@ -51,6 +52,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {
 	return e.AgentConfig.RequireSecret(ddAgentAPIKeyParamName)
+}
+
+func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
+	return e.AgentConfig.RequireSecret(ddAgentAPPKeyParamName)
 }
 
 func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {

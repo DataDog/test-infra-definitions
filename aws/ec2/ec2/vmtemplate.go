@@ -29,6 +29,6 @@ func CreateLaunchTemplate(e aws.Environment, name string, ami, instanceType, iam
 		KeyName:              keyPair,
 		UserData:             userData,
 		UpdateDefaultVersion: pulumi.BoolPtr(true),
-	})
+	}, pulumi.Provider(e.Provider))
 	return launchTemplate, err
 }

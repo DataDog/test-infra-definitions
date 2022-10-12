@@ -3,6 +3,7 @@ package iam
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func GetAWSPrincipalAssumeRole(e aws.Environment) (*iam.GetPolicyDocumentResult, error) {
@@ -22,5 +23,5 @@ func GetAWSPrincipalAssumeRole(e aws.Environment) (*iam.GetPolicyDocumentResult,
 				},
 			},
 		},
-	}, nil)
+	}, nil, pulumi.Provider(e.Provider))
 }

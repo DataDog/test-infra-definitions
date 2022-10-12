@@ -73,7 +73,7 @@ func Run(ctx *pulumi.Context) error {
 		apiKeyParam, err := ssm.NewParameter(ctx, "agent.ci.api.key."+ctx.Stack(), &ssm.ParameterArgs{
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
-		})
+		}, pulumi.Provider(awsEnv.Provider))
 		if err != nil {
 			return err
 		}

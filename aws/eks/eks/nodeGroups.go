@@ -38,7 +38,6 @@ func NewBottlerocketNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole 
 }
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string) (*eks.ManagedNodeGroup, error) {
-	eks.NewNodeGroup(e.Ctx, "", &eks.NodeGroupArgs{})
 	return eks.NewManagedNodeGroup(e.Ctx, e.Ctx.Stack()+"-"+name, &eks.ManagedNodeGroupArgs{
 		AmiType:             pulumi.StringPtr(amiType),
 		Cluster:             cluster.Core,
@@ -72,7 +71,7 @@ func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeR
 }
 
 func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, ami, instanceType, userData pulumi.StringInput) (*eks.NodeGroup, error) {
-	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Ctx.Stack()+"-windows-ng", &awsIam.InstanceProfileArgs{
+	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Ctx.Stack()+"-"+name, &awsIam.InstanceProfileArgs{
 		Role: nodeRole.Name,
 	}, pulumi.Provider(e.Provider))
 	if err != nil {

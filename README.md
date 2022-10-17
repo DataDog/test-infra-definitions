@@ -50,3 +50,26 @@ In this example, we're going to create an ECS Cluster:
 # You need to have a DD APIKey in variable DD_API_KEY
 aws-vault exec sandbox-account-admin -- pulumi up -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -C ./aws/ecs -s <your_name>-ecs-test
 ```
+
+In case of failure, you may update some parameters or configuration and run the command again.
+Note that all `-c` parameters have been set in your `Pulumi.<stack_name>.yaml` file.
+
+**NOTE:** Do not commit your Stack file.
+
+### Destroying a stack
+
+Once you're finished with the test environment you've created, you can safely delete it.
+To do this, we'll use the `destroy` operation referecing our `Stack` file:
+
+```
+# You need to have a DD APIKey in variable DD_API_KEY
+aws-vault exec sandbox-account-admin -- pulumi destroy -C ./aws/ecs -s <your_name>-ecs-test
+```
+
+Note that we don't need to use `-c` again as the configuration values were put into the `Stack` file.
+This will destroy all cloud resources associated to the Stack, but the state itself (mostly empty) will still be there.
+To remove the stack state:
+
+```
+pulumi stack rm <your_name>-ecs-test
+```

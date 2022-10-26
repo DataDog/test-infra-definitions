@@ -150,7 +150,7 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy the Agent
 	if awsEnv.AgentDeploy() {
-		helmRelease, err := agent.NewDatadogAgentInstallation(*awsEnv.CommonEnvironment, eksKubeProvider, "datadog", nil)
+		helmRelease, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, eksKubeProvider, "datadog", nil)
 		if err != nil {
 			return err
 		}

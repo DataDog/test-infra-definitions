@@ -5,6 +5,7 @@ go 1.19
 require (
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11
+	github.com/pulumi/pulumi-command/sdk v0.5.2
 	github.com/pulumi/pulumi-eks/sdk v0.42.3
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.21.4
 	github.com/pulumi/pulumi/sdk/v3 v3.40.1

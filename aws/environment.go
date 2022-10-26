@@ -19,6 +19,8 @@ const (
 	ddinfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
 	ddinfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
 	ddinfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
+	ddinfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
+	ddinfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 
 	// AWS ECS
 	ddInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -103,6 +105,14 @@ func (e *Environment) DefaultARMInstanceType() string {
 func (e *Environment) DefaultKeyPairName() string {
 	// No default value for keyPair
 	return e.InfraConfig.Require(ddinfraDefaultKeyPairParamName)
+}
+
+func (e *Environment) DefaultPrivateKeyPath() string {
+	return e.InfraConfig.Require(ddinfraDefaultPrivateKeyPath)
+}
+
+func (e *Environment) DefaultPrivateKeyPassword() string {
+	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPassword)
 }
 
 // ECS

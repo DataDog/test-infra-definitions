@@ -8,60 +8,49 @@ import (
 )
 
 type PackageManager interface {
-	Ensure(packageRef string, updateDB bool)
+	Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 type AptManager struct {
-	ctx           *pulumi.Context
-	connection    remote.ConnectionInput
-	connName      string
-	updateCommand *remote.Command
-	environment   pulumi.StringMapInput
+	ctx             *pulumi.Context
+	updateDBCommand *remote.Command
+	runner          *Runner
 }
 
-func NewAptManager(ctx *pulumi.Context, name string, connection remote.ConnectionInput) *AptManager {
-	return &AptManager{
-		ctx:        ctx,
-		connection: connection,
-		connName:   name,
+func NewAptManager(ctx *pulumi.Context, runner *Runner) *AptManager {
+	apt := &AptManager{
+		ctx:    ctx,
+		runner: runner,
 	}
+
+	if apt.runner.defaultEnv == nil {
+		apt.runner.defaultEnv = pulumi.StringMap{}
+	}
+	apt.runner.defaultEnv["DEBIAN_FRONTEND"] = pulumi.String("noninteractive")
+
+	return apt
 }
 
-func (m *AptManager) Ensure(packageRef string) (*remote.Command, error) {
+func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	updateDB, err := m.updateDB()
 	if err != nil {
 		return nil, err
 	}
-	create := fmt.Sprintf("apt install -y %s", packageRef)
-	return m.command(create, "", "", pulumi.DependsOn([]pulumi.Resource{updateDB}))
+
+	opts = append(opts, pulumi.DependsOn([]pulumi.Resource{updateDB}))
+	installCmd := fmt.Sprintf("apt install -y %s", packageRef)
+	return m.runner.Command(m.ctx, UniqueCommandName("apt-install", installCmd, "", ""), pulumi.String(installCmd), nil, nil, nil, true, opts...)
 }
 
 func (m *AptManager) updateDB() (*remote.Command, error) {
-	var err error
-	if m.updateCommand == nil {
-		m.updateCommand, err = m.command("apt update", "", "")
-	}
-	return m.updateCommand, err
-}
-
-func (m *AptManager) command(createCmd, updateCmd, deleteCmd string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	if len(createCmd) > 0 {
-		createCmd = "DEBIAN_FRONTEND=noninteractive " + createCmd
-	}
-	if len(updateCmd) > 0 {
-		updateCmd = "DEBIAN_FRONTEND=noninteractive " + updateCmd
-	}
-	if len(deleteCmd) > 0 {
-		deleteCmd = "DEBIAN_FRONTEND=noninteractive " + deleteCmd
+	if m.updateDBCommand != nil {
+		return m.updateDBCommand, nil
 	}
 
-	return remote.NewCommand(m.ctx,
-		UniqueCommandName(m.connName, createCmd, updateCmd, deleteCmd),
-		&remote.CommandArgs{
-			Connection:  m.connection,
-			Create:      pulumi.String(createCmd),
-			Update:      pulumi.String(updateCmd),
-			Delete:      pulumi.String(deleteCmd),
-			Environment: m.environment,
-		}, opts...)
+	c, err := m.runner.Command(m.ctx, "updatedb", pulumi.String("apt update"), nil, nil, nil, true)
+	if err == nil {
+		m.updateDBCommand = c
+	}
+
+	return c, err
 }

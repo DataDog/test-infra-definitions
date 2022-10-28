@@ -23,6 +23,13 @@ func FileHash(filePath string) (string, error) {
 	return string(h.Sum(nil)), nil
 }
 
+func StrHash(s string) string {
+	h := sha256.New()
+	io.WriteString(h, s)
+
+	return string(h.Sum(nil))
+}
+
 func ReadSecretFile(filePath string) (pulumi.StringPtrOutput, error) {
 	b, err := os.ReadFile(filePath)
 	if err != nil {
@@ -32,4 +39,10 @@ func ReadSecretFile(filePath string) (pulumi.StringPtrOutput, error) {
 	s := pulumi.ToSecret(pulumi.StringPtr(string(b))).(pulumi.StringPtrOutput)
 
 	return s, nil
+}
+
+func WriteStringCommand(content pulumi.StringInput, filePath string) pulumi.StringInput {
+	return pulumi.Sprintf(`cat <<EOF > %s
+%s
+EOF`, filePath, content)
 }

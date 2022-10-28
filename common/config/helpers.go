@@ -1,6 +1,9 @@
 package config
 
-import "github.com/pulumi/pulumi/sdk/v3/go/auto"
+import (
+	"github.com/Masterminds/semver"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto"
+)
 
 func SetConfigDefaultValue(config auto.ConfigMap, key, value string) {
 	if _, found := config[key]; !found {
@@ -8,4 +11,13 @@ func SetConfigDefaultValue(config auto.ConfigMap, key, value string) {
 			Value: value,
 		}
 	}
+}
+
+func AgentSemverVersion(e CommonEnvironment) (*semver.Version, error) {
+	version := e.AgentVersion()
+	if version != "" {
+		return nil, nil
+	}
+
+	return semver.NewVersion(version)
 }

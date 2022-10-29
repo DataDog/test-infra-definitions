@@ -13,21 +13,34 @@ import (
 type Runner struct {
 	connectionName string
 	connection     remote.ConnectionInput
-	defaultEnv     pulumi.StringMap
+	waitCommand    *remote.Command
 }
 
-func NewRunner(connName string, conn remote.ConnectionInput, defaultEnv pulumi.StringMap) *Runner {
-	return &Runner{
+func NewRunner(connName string, conn remote.ConnectionInput, readyFunc func(*Runner) (*remote.Command, error)) (*Runner, error) {
+	runner := &Runner{
 		connectionName: connName,
 		connection:     conn,
-		defaultEnv:     defaultEnv,
 	}
+
+	if readyFunc != nil {
+		var err error
+		runner.waitCommand, err = readyFunc(runner)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return runner, nil
 }
 
 func (r *Runner) Command(ctx *pulumi.Context, name string, create, update, delete pulumi.StringInput, env pulumi.StringMap, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	create = r.buildCommandInput(create, env, sudo)
 	update = r.buildCommandInput(update, env, sudo)
 	delete = r.buildCommandInput(delete, env, sudo)
+
+	if r.waitCommand != nil {
+		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{r.waitCommand}))
+	}
 
 	return remote.NewCommand(ctx, r.connectionName+"-"+name,
 		&remote.CommandArgs{
@@ -44,9 +57,6 @@ func (r *Runner) buildCommandInput(command pulumi.StringInput, env pulumi.String
 	}
 
 	var envVars pulumi.StringArray
-	for varName, varValue := range r.defaultEnv {
-		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
-	}
 	for varName, varValue := range env {
 		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
 	}

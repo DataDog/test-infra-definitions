@@ -20,11 +20,13 @@ func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.I
 		return nil, remote.ConnectionOutput{}, err
 	}
 
-	return awsInstance, remote.ConnectionArgs{
+	connection := remote.ConnectionArgs{
 		Host:       awsInstance.PrivateIp,
 		PrivateKey: privateKey,
 		User:       pulumi.StringPtr("ubuntu"),
-	}.ToConnectionOutput(), nil
+	}
+
+	return awsInstance, connection.ToConnectionOutput(), nil
 }
 
 func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData string) (*ec2.Instance, error) {

@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
 
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -22,10 +23,16 @@ func main() {
 		}
 
 		if e.AgentDeploy() {
-			runner := command.NewRunner(ctx.Stack()+"-conn", conn, nil)
+			runner, err := command.NewRunner(ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+				return command.WaitForCloudInit(ctx, r)
+			})
+			if err != nil {
+				return err
+			}
+
 			aptManager := command.NewAptManager(e.Ctx, runner)
 			dockerManager := command.NewDockerManager(e.Ctx, runner, aptManager)
-			_, err := agent.NewDockerInstallation(*e.CommonEnvironment, dockerManager)
+			_, err = agent.NewDockerInstallation(*e.CommonEnvironment, dockerManager)
 			if err != nil {
 				return err
 			}

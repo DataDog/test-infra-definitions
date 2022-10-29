@@ -73,3 +73,31 @@ To remove the stack state:
 ```
 pulumi stack rm <your_name>-ecs-test
 ```
+
+## Quick start: A VM with Agent deployed (Host install)
+
+```
+# You need to have a DD APIKey in variable DD_API_KEY
+aws-vault exec sandbox-account-admin -- pulumi up -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa  -C ./aws/scenarios/vm -s <your_name>
+```
+
+## Quick start: A VM with Docker(/Compose) with Agent deployed
+
+```
+# You need to have a DD APIKey in variable DD_API_KEY
+aws-vault exec sandbox-account-admin -- pulumi up -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa  -C ./aws/scenarios/docker-vm -s <your_name>-docker
+```
+
+## Quick start: Create an ECS EC2 (Windows/Linux) + Fargate (Linux) Cluster
+
+```
+# You need to have a DD APIKey in variable DD_API_KEY
+aws-vault exec sandbox-account-admin -- pulumi up -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -C ./aws/ecs -s <your_name>-ecs
+```
+
+## Quick start: Create an EKS (Linux/Windows) + Fargate (Linux) Cluster + Agent (Helm)
+
+```
+# You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
+pulumi up -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -C ./aws/eks -s <your_name>-eks
+```

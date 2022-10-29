@@ -9,7 +9,6 @@ import (
 
 const (
 	awsConfigNamespace = "aws"
-
 	awsRegionParamName = "region"
 
 	// AWS Infra
@@ -64,6 +63,9 @@ func AWSEnvironment(ctx *pulumi.Context) (Environment, error) {
 	var err error
 	env.Provider, err = sdkaws.NewProvider(ctx, "aws", &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
+		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
+			Tags: commonEnv.ResourcesTags(),
+		},
 	})
 
 	if err != nil {

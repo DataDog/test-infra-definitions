@@ -18,7 +18,7 @@ func NewHostInstallation(e config.CommonEnvironment, name string, conn remote.Co
 	var extraParameters string
 	agentVersion, err := config.AgentSemverVersion(e)
 	if err != nil {
-		return nil, err
+		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
 	}
 
 	if agentVersion == nil {

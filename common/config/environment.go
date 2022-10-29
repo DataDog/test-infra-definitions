@@ -3,6 +3,9 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
+	"os/user"
+	"strings"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
@@ -44,6 +47,29 @@ func (e *CommonEnvironment) InfraEnvironmentName() string {
 
 func (e *CommonEnvironment) KubernetesVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, ddInfraKubernetesVersion, "1.23")
+}
+
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+	defaultTags := pulumi.StringMap{
+		"managed-by": pulumi.String("pulumi"),
+	}
+
+	// Add user tag
+	user, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	defaultTags["username"] = pulumi.String(user.Username)
+
+	// Map environment variables
+	lookupVars := []string{"DD_TEAM"}
+	for _, varName := range lookupVars {
+		if val := os.Getenv(varName); val != "" {
+			defaultTags[strings.ToLower(varName)] = pulumi.String(val)
+		}
+	}
+
+	return defaultTags
 }
 
 // Agent Namespace

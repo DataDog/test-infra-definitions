@@ -15,18 +15,17 @@ type AptManager struct {
 	ctx             *pulumi.Context
 	updateDBCommand *remote.Command
 	runner          *Runner
+	env             pulumi.StringMap
 }
 
 func NewAptManager(ctx *pulumi.Context, runner *Runner) *AptManager {
 	apt := &AptManager{
 		ctx:    ctx,
 		runner: runner,
+		env: pulumi.StringMap{
+			"DEBIAN_FRONTEND": pulumi.String("noninteractive"),
+		},
 	}
-
-	if apt.runner.defaultEnv == nil {
-		apt.runner.defaultEnv = pulumi.StringMap{}
-	}
-	apt.runner.defaultEnv["DEBIAN_FRONTEND"] = pulumi.String("noninteractive")
 
 	return apt
 }
@@ -38,8 +37,8 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 	}
 
 	opts = append(opts, pulumi.DependsOn([]pulumi.Resource{updateDB}))
-	installCmd := fmt.Sprintf("apt install -y %s", packageRef)
-	return m.runner.Command(m.ctx, UniqueCommandName("apt-install", installCmd, "", ""), pulumi.String(installCmd), nil, nil, nil, true, opts...)
+	installCmd := fmt.Sprintf("apt-get install -y %s", packageRef)
+	return m.runner.Command(m.ctx, UniqueCommandName("apt-install", installCmd, "", ""), pulumi.String(installCmd), nil, nil, m.env, true, opts...)
 }
 
 func (m *AptManager) updateDB() (*remote.Command, error) {
@@ -47,7 +46,7 @@ func (m *AptManager) updateDB() (*remote.Command, error) {
 		return m.updateDBCommand, nil
 	}
 
-	c, err := m.runner.Command(m.ctx, "updatedb", pulumi.String("apt update"), nil, nil, nil, true)
+	c, err := m.runner.Command(m.ctx, "updatedb", pulumi.String("apt-get update -y"), nil, nil, m.env, true)
 	if err == nil {
 		m.updateDBCommand = c
 	}

@@ -1,14 +1,16 @@
 package ecs
 
 import (
+	"fmt"
 	"reflect"
 
-	"github.com/DataDog/test-infra-definitions/aws"
-
+	"github.com/Masterminds/semver"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/aws"
 )
 
 func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput) (*ecs.FargateService, error) {
@@ -76,10 +78,20 @@ func FargateRedisContainerDefinition(e aws.Environment, apiKeySSMParamName pulum
 }
 
 func FargateAgentContainerDefinition(e aws.Environment, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
+	agentImageTag := "latest"
+	//agentVersion, err := config.AgentSemverVersion(*e.CommonEnvironment)
+	// for some reason the above is returning "nil, nil", but the below works.
+	agentVersion, err := semver.NewVersion(e.CommonEnvironment.AgentVersion())
+	if err == nil && agentVersion != nil {
+		agentImageTag = agentVersion.String()
+	} else {
+		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
+	}
+
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("datadog-agent"),
-		Image:     pulumi.StringPtr("public.ecr.aws/datadog/agent:latest"),
+		Image:     pulumi.StringPtr(fmt.Sprintf("public.ecr.aws/datadog/agent:%s", agentImageTag)),
 		Essential: pulumi.BoolPtr(true),
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{

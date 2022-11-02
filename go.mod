@@ -3,6 +3,7 @@ module github.com/DataDog/test-infra-definitions
 go 1.19
 
 require (
+	github.com/Masterminds/semver v1.5.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11
 	github.com/pulumi/pulumi-command/sdk v0.5.2
@@ -12,7 +13,6 @@ require (
 )
 
 require (
-	github.com/Masterminds/semver v1.5.0 // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20210428141323-04723f9f07d7 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect

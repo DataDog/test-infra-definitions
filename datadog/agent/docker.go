@@ -23,7 +23,7 @@ services:
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
 )
 
-func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager) (*remote.Command, error) {
+func DockerImageTag(e config.CommonEnvironment) string {
 	agentImageTag := "latest"
 	agentVersion, err := config.AgentSemverVersion(e)
 	if err == nil {
@@ -32,5 +32,9 @@ func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.Do
 		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
 	}
 
-	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, agentImageTag, e.AgentAPIKey()))
+	return agentImageTag
+}
+
+func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager) (*remote.Command, error) {
+	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, DockerImageTag(e), e.AgentAPIKey()))
 }

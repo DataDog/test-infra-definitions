@@ -4,6 +4,7 @@ import (
 	"reflect"
 
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/datadog/agent"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
@@ -79,7 +80,7 @@ func FargateAgentContainerDefinition(e aws.Environment, apiKeySSMParamName pulum
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("datadog-agent"),
-		Image:     pulumi.StringPtr("public.ecr.aws/datadog/agent:latest"),
+		Image:     pulumi.Sprintf("public.ecr.aws/datadog/agent:%s", agent.DockerImageTag(*e.CommonEnvironment)),
 		Essential: pulumi.BoolPtr(true),
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{

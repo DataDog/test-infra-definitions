@@ -1,3 +1,0 @@
-name: eks
-runtime: go
-description: EKS Cluster for testing purposes

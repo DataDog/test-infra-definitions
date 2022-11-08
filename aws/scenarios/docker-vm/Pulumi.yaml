@@ -1,3 +1,0 @@
-name: docker-vm
-runtime: go
-description: Agent VM with Docker

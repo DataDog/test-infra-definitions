@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
 
@@ -24,12 +26,24 @@ services:
 )
 
 func DockerImage(e config.CommonEnvironment) string {
-	agentImage := "gcr.io/datadoghq/agent:latest"
+	// return agent image path if defined
 	if e.AgentImagePath() != "" {
-		agentImage = e.AgentImagePath()
+		return e.AgentImagePath()
 	}
 
-	return agentImage
+	// default repo
+	agentImage := "gcr.io/datadoghq/agent"
+	// default tag
+	agentImageTag := "latest"
+
+	// try parse agent version
+	agentVersion, err := config.AgentSemverVersion(e)
+	if err == nil {
+		agentImageTag = agentVersion.String()
+	}
+	e.Ctx.Log.Debug("Unable to parse Agent version, using latest", nil)
+
+	return fmt.Sprintf("%s:%s", agentImage, agentImageTag)
 }
 
 func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager) (*remote.Command, error) {

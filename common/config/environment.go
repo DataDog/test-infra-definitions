@@ -20,10 +20,11 @@ const (
 	ddInfraKubernetesVersion = "kubernetesVersion"
 
 	// Agent Namespace
-	ddAgentDeployParamName  = "deploy"
-	ddAgentVersionParamName = "version"
-	ddAgentAPIKeyParamName  = "apiKey"
-	ddAgentAPPKeyParamName  = "appKey"
+	ddAgentDeployParamName    = "deploy"
+	ddAgentVersionParamName   = "version"
+	ddAgentImagePathParamName = "imagePath"
+	ddAgentAPIKeyParamName    = "apiKey"
+	ddAgentAPPKeyParamName    = "appKey"
 )
 
 type CommonEnvironment struct {
@@ -79,6 +80,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(ddAgentVersionParamName)
+}
+
+func (e *CommonEnvironment) AgentImagePath() string {
+	return e.AgentConfig.Get(ddAgentImagePathParamName)
 }
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {

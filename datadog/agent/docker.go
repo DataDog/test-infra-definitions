@@ -12,7 +12,7 @@ const (
 	agentComposeDefinition = `version: "3.9"
 services:
   agent:
-    image: gcr.io/datadoghq/agent:%s
+    image: %s
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "/proc/:/host/proc"
@@ -23,18 +23,15 @@ services:
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
 )
 
-func DockerImageTag(e config.CommonEnvironment) string {
-	agentImageTag := "latest"
-	agentVersion, err := config.AgentSemverVersion(e)
-	if err == nil {
-		agentImageTag = agentVersion.String()
-	} else {
-		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
+func DockerImage(e config.CommonEnvironment) string {
+	agentImage := "gcr.io/datadoghq/agent:latest"
+	if e.AgentImagePath() != "" {
+		agentImage = e.AgentImagePath()
 	}
 
-	return agentImageTag
+	return agentImage
 }
 
 func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager) (*remote.Command, error) {
-	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, DockerImageTag(e), e.AgentAPIKey()))
+	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, DockerImage(e), e.AgentAPIKey()))
 }

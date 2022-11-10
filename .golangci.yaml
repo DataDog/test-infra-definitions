@@ -53,3 +53,51 @@ run:
   # Mainly related to generics support since go1.18.
   # Default: use Go version from the go.mod file, fallback on the env var `GOVERSION`, fallback on 1.18
   # go: '1.19'
+  linters:
+  disable-all: true
+  enable:
+    - deadcode    # Finds unused code
+    - unconvert   # Remove unnecessary type conversions
+    - unused      # Checks Go code for unused constants, variables, functions and types
+    - ineffassign # Detects when assignments to existing variables are not used
+    - misspell    # Finds commonly misspelled English words in comments
+    - gofmt       # Gofmt checks whether code was gofmt-ed
+    - revive      # Revive is a replacement for golint, a coding style checker
+    - errcheck    # errcheck is a program for checking for unchecked errors in go programs.
+    - staticcheck # staticcheck is a go vet on steroids, applying a ton of static analysis checks
+    - govet       # Vet examines Go source code and reports suspicious constructs, such as Printf calls whose arguments do not align with the format string
+    - depguard    # Depguard is useful for preventing specific packages from being used
+    - bodyclose   # checks whether HTTP response body is closed successfully
+
+linters-settings:
+  depguard:
+    include-go-root: true
+    packages-with-error-message:
+      - sync/atomic: "Use go.uber.org/atomic instead; see docs/dev/atomics.md"
+  errcheck:
+    # Disable warnings for `fmt` and `log` packages. Also ignore `Write` functions from `net/http` package.
+    exclude-functions:
+    - fmt.Errorf
+    - fmt.Print
+    - fmt.Printf
+    - fmt.Println
+    - (github.com/pulumi/pulumi/sdk/v3/go/pulumi.Log).Debug
+    - (github.com/pulumi/pulumi/sdk/v3/go/pulumi.Log).Info
+    - (github.com/pulumi/pulumi/sdk/v3/go/pulumi.Log).Warn
+    - (github.com/pulumi/pulumi/sdk/v3/go/pulumi.Log).Error
+    - (net/http).Write
+    - io.WriteString
+  staticcheck:
+    go: "1.17"
+    checks: ["all",
+             "-ST1000", "-ST1003", "-ST1016", "-ST1020", "-ST1021", "-ST1022", # These ones are disabled by default on staticcheck
+             "-ST1013", # Use HTTP code enums instead of integers
+             # Actual issues that should be fixed eventually
+             "-SA6002", # TODO: Fix sync.Pools
+             "-SA4025", # TODO: Fix trace unit test
+             "-SA1019", "-SA4011", "-SA4031" # Disabling these to re-enable golanci-lint default tests
+            ]
+  revive:
+    rules:
+      - name: package-comments
+        disabled: true

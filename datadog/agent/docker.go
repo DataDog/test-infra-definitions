@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
 
@@ -12,7 +14,7 @@ const (
 	agentComposeDefinition = `version: "3.9"
 services:
   agent:
-    image: gcr.io/datadoghq/agent:%s
+    image: %s
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "/proc/:/host/proc"
@@ -21,20 +23,33 @@ services:
       DD_API_KEY: %s
       DD_PROCESS_AGENT_ENABLED: true
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
+	defaultAgentImageRepo = "gcr.io/datadoghq/agent"
+	defaultAgentImageTag  = "latest"
 )
 
+func DockerFullImagePath(e config.CommonEnvironment) string {
+	// return agent image path if defined
+	if e.AgentFullImagePath() != "" {
+		return e.AgentFullImagePath()
+	}
+
+	return fmt.Sprintf("%s:%s", defaultAgentImageRepo, DockerImageTag(e))
+}
+
 func DockerImageTag(e config.CommonEnvironment) string {
-	agentImageTag := "latest"
+	// default tag
+	agentImageTag := defaultAgentImageTag
+
+	// try parse agent version
 	agentVersion, err := config.AgentSemverVersion(e)
 	if err == nil {
 		agentImageTag = agentVersion.String()
-	} else {
-		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
 	}
+	e.Ctx.Log.Debug("Unable to parse Agent version, using latest", nil)
 
 	return agentImageTag
 }
 
 func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager) (*remote.Command, error) {
-	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, DockerImageTag(e), e.AgentAPIKey()))
+	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, DockerFullImagePath(e), e.AgentAPIKey()))
 }

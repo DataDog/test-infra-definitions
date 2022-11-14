@@ -42,14 +42,25 @@ func DockerImageTag(e config.CommonEnvironment) string {
 
 	// try parse agent version
 	agentVersion, err := config.AgentSemverVersion(e)
-	if err == nil {
+	if agentVersion != nil && err == nil {
 		agentImageTag = agentVersion.String()
+	} else {
+		e.Ctx.Log.Debug("Unable to parse Agent version, using latest", nil)
 	}
-	e.Ctx.Log.Debug("Unable to parse Agent version, using latest", nil)
 
 	return agentImageTag
 }
 
-func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager) (*remote.Command, error) {
-	return dockerManager.ComposeStrUp("agent", pulumi.Sprintf(agentComposeDefinition, DockerFullImagePath(e), e.AgentAPIKey()))
+func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration pulumi.StringInput) (*remote.Command, error) {
+	composeContents := []command.DockerComposeInlineManifest{
+		{
+			Name:    "agent",
+			Content: pulumi.Sprintf(agentComposeDefinition, DockerFullImagePath(e), e.AgentAPIKey()),
+		},
+	}
+	if extraConfiguration != nil {
+		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: extraConfiguration})
+	}
+
+	return dockerManager.ComposeStrUp("agent", composeContents)
 }

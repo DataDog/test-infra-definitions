@@ -15,15 +15,11 @@ func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.I
 		return nil, remote.ConnectionOutput{}, err
 	}
 
-	privateKey, err := utils.ReadSecretFile(e.DefaultPrivateKeyPath())
-	if err != nil {
-		return nil, remote.ConnectionOutput{}, err
-	}
-
 	connection := remote.ConnectionArgs{
-		Host:       awsInstance.PrivateIp,
-		PrivateKey: privateKey,
-		User:       pulumi.StringPtr("ubuntu"),
+		Host: awsInstance.PrivateIp,
+	}
+	if err := utils.ConfigureRemoteSSH("ubuntu", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "", &connection); err != nil {
+		return nil, remote.ConnectionOutput{}, err
 	}
 
 	return awsInstance, connection.ToConnectionOutput(), nil

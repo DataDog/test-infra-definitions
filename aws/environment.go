@@ -110,7 +110,7 @@ func (e *Environment) DefaultKeyPairName() string {
 }
 
 func (e *Environment) DefaultPrivateKeyPath() string {
-	return e.InfraConfig.Require(ddinfraDefaultPrivateKeyPath)
+	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPath)
 }
 
 func (e *Environment) DefaultPrivateKeyPassword() string {

@@ -203,8 +203,8 @@ github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2 h1:NhHvO+pjyy91UjKjna7uZLnupePqYu13JN
 github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2/go.mod h1:7B4fC5Nd/aOi0OsUneH+96v2xp7hk1OmQ3rAbDcu0Ww=
 github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11 h1:WwcXSUiqs3ZHZDNqmhF849Gt70AJuW/EOW4CTR1cdWU=
 github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11/go.mod h1:sf1iASa+6i6APeHKigYeyoHl6hbNIOOdQL9awmMNWqo=
-github.com/pulumi/pulumi-command/sdk v0.5.2 h1:HfS/Zdt/hPkhQJGBIrB0OmvwBpIgc5hXdK7J842bO+g=
-github.com/pulumi/pulumi-command/sdk v0.5.2/go.mod h1:AJfy/5pzH1YV/W2B3/UxsVFQJkJFNFNErp+lXjX748k=
+github.com/pulumi/pulumi-command/sdk v0.6.0 h1:+w3Mn0DMLaYiAAX5Ch2TZlcr6iBJ1lerX4aGHob0g+0=
+github.com/pulumi/pulumi-command/sdk v0.6.0/go.mod h1:aGkjsu71lOw7bE3F+y2wjNh7eB+i0o+m4CqiodDotiw=
 github.com/pulumi/pulumi-docker/sdk/v3 v3.2.0 h1:7liqzpMLCmk7BIO7w6f6JCh9IdtwCp0a//jA12i6eyo=
 github.com/pulumi/pulumi-docker/sdk/v3 v3.2.0/go.mod h1:TACDfD6SWGyaHmWLrtHAuGiZ+pTBD4OYYFb5kTyxdtQ=
 github.com/pulumi/pulumi-eks/sdk v0.42.3 h1:VBpT5DHDswg2xF0ZItfbgsSNHxVzC1O477W6TcDFVXI=
@@ -216,8 +216,9 @@ github.com/pulumi/pulumi/sdk/v3 v3.16.0/go.mod h1:252ou/zAU1g6E8iTwe2Y9ht7pb5BDl
 github.com/pulumi/pulumi/sdk/v3 v3.25.0/go.mod h1:VsxW+TGv2VBLe/MeqsAr9r0zKzK/gbAhFT9QxYr24cY=
 github.com/pulumi/pulumi/sdk/v3 v3.27.0/go.mod h1:VsxW+TGv2VBLe/MeqsAr9r0zKzK/gbAhFT9QxYr24cY=
 github.com/pulumi/pulumi/sdk/v3 v3.36.0/go.mod h1:e1xuPnh9aKzCesrFf96DEzcybLdRWRMhKeKVBmb2lm0=
-github.com/pulumi/pulumi/sdk/v3 v3.40.1 h1:PLKYHyRffrO9nNfidDGGr2xkf8G0wjtSZx1Zj7OwyyA=
 github.com/pulumi/pulumi/sdk/v3 v3.40.1/go.mod h1:tSNA8Z+GnEjMxH+qtrfcwpmOQj7mTPTAmJUhwvuox5I=
+github.com/pulumi/pulumi/sdk/v3 v3.44.2 h1:hBHR4J6kBLJSXFBEa41OPGkyOkJKiMGxewjsaESwnlg=
+github.com/pulumi/pulumi/sdk/v3 v3.44.2/go.mod h1:N5jL+cw5KiOeMn9bwvRuPQEAhbE3KPq2wSb/Kw+6HuY=
 github.com/rivo/uniseg v0.2.0 h1:S1pD9weZBuJdFmowNwbpi7BJ8TNftyUImj/0WQi72jY=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rogpeppe/fastuuid v0.0.0-20150106093220-6724a57986af/go.mod h1:XWv6SoW27p1b0cqNHllgS5HIMJraePCO15w5zCzIWYg=

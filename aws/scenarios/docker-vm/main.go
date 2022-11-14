@@ -32,7 +32,7 @@ func main() {
 
 			aptManager := command.NewAptManager(e.Ctx, runner)
 			dockerManager := command.NewDockerManager(e.Ctx, runner, aptManager)
-			_, err = agent.NewDockerInstallation(*e.CommonEnvironment, dockerManager)
+			_, err = agent.NewDockerInstallation(*e.CommonEnvironment, dockerManager, nil)
 			if err != nil {
 				return err
 			}

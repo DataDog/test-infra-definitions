@@ -1,7 +1,9 @@
 package command
 
 import (
+	"fmt"
 	"path"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
@@ -12,6 +14,11 @@ import (
 const (
 	composeVersion = "v2.12.2"
 )
+
+type DockerComposeInlineManifest struct {
+	Name    string
+	Content pulumi.StringInput
+}
 
 type DockerManager struct {
 	ctx    *pulumi.Context
@@ -62,7 +69,7 @@ func (d *DockerManager) ComposeFileUp(name, composeFilePath string, opts ...pulu
 		pulumi.DependsOn([]pulumi.Resource{installCommand, composeCopy}))
 }
 
-func (d *DockerManager) ComposeStrUp(name string, composeFileContent pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	installCommand, err := d.install()
 	if err != nil {
 		return nil, err
@@ -72,20 +79,29 @@ func (d *DockerManager) ComposeStrUp(name string, composeFileContent pulumi.Stri
 	if err != nil {
 		return nil, err
 	}
-	remoteComposePath := path.Join(tempDirPath, "docker-compose.yml")
 
-	writeCmd, err := d.runner.Command(d.ctx, name+"-compose-write", utils.WriteStringCommand(composeFileContent, remoteComposePath), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{tempCmd}))
-	if err != nil {
-		return nil, err
+	var remoteComposePaths []string
+	var writeCommands []pulumi.Resource
+	for _, manifest := range composeManifests {
+		remoteComposePath := path.Join(tempDirPath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
+		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
+
+		writeCommand, err := d.runner.Command(d.ctx, name+"-compose-write-"+manifest.Name, utils.WriteStringCommand(manifest.Content, remoteComposePath), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{tempCmd}))
+		if err != nil {
+			return nil, err
+		}
+		writeCommands = append(writeCommands, writeCommand)
 	}
+
+	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 
 	return d.runner.Command(d.ctx,
 		name+"-compose-run",
-		pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout 300", remoteComposePath),
+		pulumi.Sprintf("docker-compose %s up --detach --wait --timeout 300", composeFileArgs),
 		nil,
-		pulumi.Sprintf("docker-compose -f %s down -t 300", remoteComposePath),
+		pulumi.Sprintf("docker-compose %s down -t 300", composeFileArgs),
 		nil, true,
-		pulumi.DependsOn([]pulumi.Resource{installCommand, writeCmd}))
+		pulumi.DependsOn(append(writeCommands, installCommand)))
 }
 
 func (d *DockerManager) install() (*remote.Command, error) {

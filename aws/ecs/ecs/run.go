@@ -2,6 +2,7 @@ package ecs
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/datadog/agent"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
@@ -26,6 +27,7 @@ func Run(ctx *pulumi.Context) error {
 		capacityProviders = append(capacityProviders, pulumi.String("FARGATE"))
 	}
 
+	linuxNodeGroupPresent := false
 	if awsEnv.ECSLinuxECSOptimizedNodeGroup() {
 		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, false)
 		if err != nil {
@@ -33,6 +35,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		capacityProviders = append(capacityProviders, cpName)
+		linuxNodeGroupPresent = true
 	}
 
 	if awsEnv.ECSLinuxECSOptimizedARMNodeGroup() {
@@ -42,6 +45,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		capacityProviders = append(capacityProviders, cpName)
+		linuxNodeGroupPresent = true
 	}
 
 	if awsEnv.ECSLinuxBottlerocketNodeGroup() {
@@ -51,6 +55,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		capacityProviders = append(capacityProviders, cpName)
+		linuxNodeGroupPresent = true
 	}
 
 	if awsEnv.ECSWindowsNodeGroup() {
@@ -78,6 +83,7 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
+		// Deploy Fargate Agent
 		testContainer := FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
 		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, ctx.Stack()+"-fg-dd-agent", ctx.Stack()+"-fg-dd-agent", []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
 		if err != nil {
@@ -89,9 +95,21 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		ctx.Export("ecs-task-arn", taskDef.TaskDefinition.Arn())
-		ctx.Export("ecs-task-family", taskDef.TaskDefinition.Family())
-		ctx.Export("ecs-task-version", taskDef.TaskDefinition.Revision())
+		ctx.Export("agent-fargate-task-arn", taskDef.TaskDefinition.Arn())
+		ctx.Export("agent-fargate-task-family", taskDef.TaskDefinition.Family())
+		ctx.Export("agent-fargate-task-version", taskDef.TaskDefinition.Revision())
+
+		// Deploy EC2 Agent
+		if linuxNodeGroupPresent {
+			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, ctx.Stack()+"ec2-linux-dd-agent", apiKeyParam.Name, ecsCluster.Arn)
+			if err != nil {
+				return err
+			}
+
+			ctx.Export("agent-ec2-linux-task-arn", agentDaemon.TaskDefinition.Arn())
+			ctx.Export("agent-ec2-linux-task-family", agentDaemon.TaskDefinition.Family())
+			ctx.Export("agent-ec2-linux-task-version", agentDaemon.TaskDefinition.Revision())
+		}
 	}
 
 	ctx.Export("ecs-cluster-name", ecsCluster.Name)

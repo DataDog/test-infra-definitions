@@ -34,7 +34,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, family, name string, cont
 		// Ugly hack as the implementation of pulumi.StringPtrInput is just `type stringPtr string`
 		containersMap[reflect.ValueOf(c.Name).Elem().String()] = *c
 	}
-	containersMap["datadog-agent"] = *FargateAgentContainerDefinition(e, apiKeySSMParamName)
+	containersMap["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containersMap["log_router"] = *FargateFirelensContainerDefinition(e)
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, name, &ecs.FargateTaskDefinitionArgs{
@@ -71,47 +71,6 @@ func FargateRedisContainerDefinition(e aws.Environment, apiKeySSMParamName pulum
 		LogConfiguration: getFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 		MountPoints:      ecs.TaskDefinitionMountPointArray{},
 		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
-		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
-		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
-	}
-}
-
-func FargateAgentContainerDefinition(e aws.Environment, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
-	return &ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:       pulumi.IntPtr(0),
-		Name:      pulumi.StringPtr("datadog-agent"),
-		Image:     pulumi.Sprintf("public.ecr.aws/datadog/agent:%s", agent.DockerImageTag(*e.CommonEnvironment)),
-		Essential: pulumi.BoolPtr(true),
-		Environment: ecs.TaskDefinitionKeyValuePairArray{
-			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
-				Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),
-			},
-			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("ECS_FARGATE"),
-				Value: pulumi.StringPtr("true"),
-			},
-		},
-		Secrets: ecs.TaskDefinitionSecretArray{
-			ecs.TaskDefinitionSecretArgs{
-				Name:      pulumi.String("DD_API_KEY"),
-				ValueFrom: apiKeySSMParamName,
-			},
-		},
-		MountPoints: ecs.TaskDefinitionMountPointArray{
-			ecs.TaskDefinitionMountPointArgs{
-				ContainerPath: pulumi.StringPtr("/var/run/datadog"),
-				SourceVolume:  pulumi.StringPtr("dd-sockets"),
-			},
-		},
-		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
-			Retries:     pulumi.IntPtr(2),
-			Command:     pulumi.ToStringArray([]string{"CMD-SHELL", "/probe.sh"}),
-			StartPeriod: pulumi.IntPtr(10),
-			Interval:    pulumi.IntPtr(30),
-			Timeout:     pulumi.IntPtr(5),
-		},
-		LogConfiguration: getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName),
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
 		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
 	}

@@ -17,21 +17,21 @@ func main() {
 			return err
 		}
 
-		instance, conn, err := ec2.NewDefaultEC2Instance(e, ctx.Stack(), e.DefaultInstanceType())
+		instance, conn, err := ec2.NewDefaultEC2Instance(e, "docker-vm", e.DefaultInstanceType())
 		if err != nil {
 			return err
 		}
 
 		if e.AgentDeploy() {
-			runner, err := command.NewRunner(ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+			runner, err := command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("docker-vm"), conn, func(r *command.Runner) (*remote.Command, error) {
 				return command.WaitForCloudInit(ctx, r)
 			})
 			if err != nil {
 				return err
 			}
 
-			aptManager := command.NewAptManager(e.Ctx, runner)
-			dockerManager := command.NewDockerManager(e.Ctx, runner, aptManager)
+			aptManager := command.NewAptManager(runner)
+			dockerManager := command.NewDockerManager(runner, aptManager)
 			_, err = agent.NewDockerInstallation(*e.CommonEnvironment, dockerManager, nil)
 			if err != nil {
 				return err

@@ -16,7 +16,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Create cluster
-	ecsCluster, err := CreateEcsCluster(awsEnv, ctx.Stack())
+	ecsCluster, err := CreateEcsCluster(awsEnv, "ecs")
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,8 @@ func Run(ctx *pulumi.Context) error {
 
 	// Create task and service
 	if awsEnv.AgentDeploy() {
-		apiKeyParam, err := ssm.NewParameter(ctx, ctx.Stack()+"-agent-apikey", &ssm.ParameterArgs{
+		apiKeyParam, err := ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
+			Name:  awsEnv.Namer.DisplayName(pulumi.String("agent-apikey")),
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
 		}, pulumi.Provider(awsEnv.Provider))
@@ -85,12 +86,12 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy Fargate Agent
 		testContainer := FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
-		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, ctx.Stack()+"-fg-dd-agent", ctx.Stack()+"-fg-dd-agent", []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
+		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, "fg-dd-agent", awsEnv.Namer.DisplayName(pulumi.String("-fg-dd-agent")), []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
 		if err != nil {
 			return err
 		}
 
-		_, err = FargateService(awsEnv, ctx.Stack()+"-fg-dd-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+		_, err = FargateService(awsEnv, "fg-dd-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
 		if err != nil {
 			return err
 		}
@@ -101,7 +102,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy EC2 Agent
 		if linuxNodeGroupPresent {
-			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, ctx.Stack()+"ec2-linux-dd-agent", apiKeyParam.Name, ecsCluster.Arn)
+			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, ecsCluster.Arn)
 			if err != nil {
 				return err
 			}

@@ -3,8 +3,10 @@ package main
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
 
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -21,7 +23,14 @@ func main() {
 		}
 
 		if e.AgentDeploy() {
-			_, err := agent.NewHostInstallation(*e.CommonEnvironment, ctx.Stack(), conn)
+			runner, err := command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("docker-vm"), conn, func(r *command.Runner) (*remote.Command, error) {
+				return command.WaitForCloudInit(ctx, r)
+			})
+			if err != nil {
+				return err
+			}
+
+			_, err = agent.NewHostInstallation(*e.CommonEnvironment, "vm", runner)
 			if err != nil {
 				return err
 			}

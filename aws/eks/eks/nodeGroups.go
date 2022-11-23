@@ -38,7 +38,7 @@ func NewBottlerocketNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole 
 }
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string) (*eks.ManagedNodeGroup, error) {
-	return eks.NewManagedNodeGroup(e.Ctx, e.Ctx.Stack()+"-"+name, &eks.ManagedNodeGroupArgs{
+	return eks.NewManagedNodeGroup(e.Ctx, e.Namer.ResourceName(name), &eks.ManagedNodeGroupArgs{
 		AmiType:             pulumi.StringPtr(amiType),
 		Cluster:             cluster.Core,
 		DiskSize:            pulumi.Int(80),
@@ -71,14 +71,15 @@ func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeR
 }
 
 func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, ami, instanceType, userData pulumi.StringInput) (*eks.NodeGroup, error) {
-	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Ctx.Stack()+"-"+name, &awsIam.InstanceProfileArgs{
+	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Namer.ResourceName(name), &awsIam.InstanceProfileArgs{
+		Name: e.Namer.DisplayName(pulumi.String(name)),
 		Role: nodeRole.Name,
 	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, err
 	}
 
-	return eks.NewNodeGroup(e.Ctx, e.Ctx.Stack()+"-"+name, &eks.NodeGroupArgs{
+	return eks.NewNodeGroup(e.Ctx, e.Namer.ResourceName(name), &eks.NodeGroupArgs{
 		NodeUserDataOverride: userData,
 		Cluster:              cluster.Core,
 		DesiredCapacity:      pulumi.Int(1),

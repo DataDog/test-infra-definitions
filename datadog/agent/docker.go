@@ -64,3 +64,19 @@ func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.Do
 
 	return dockerManager.ComposeStrUp("agent", composeContents)
 }
+
+func NewDockerInstallationWithAgentImage(e config.CommonEnvironment, dockerManager *command.DockerManager, agentImagePath, extraConfiguration string) (*remote.Command, error) {
+	fmt.Printf("NewDockerInstallationWithAgentImage with agent %s and extraCompose: %s\n", agentImagePath, extraConfiguration)
+	composeContents := []command.DockerComposeInlineManifest{
+		{
+			Name:    "agent",
+			Content: pulumi.Sprintf(agentComposeDefinition, agentImagePath, e.AgentAPIKey()),
+		},
+	}
+	if len(extraConfiguration) > 0 {
+		fmt.Printf("With extraCompose: %v\n", extraConfiguration)
+		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: pulumi.String(extraConfiguration)})
+	}
+
+	return dockerManager.ComposeStrUp("agent", composeContents)
+}

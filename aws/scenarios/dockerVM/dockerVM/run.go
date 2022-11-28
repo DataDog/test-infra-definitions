@@ -31,7 +31,7 @@ func Run(ctx *pulumi.Context) error {
 
 		aptManager := command.NewAptManager(e.Ctx, runner)
 		dockerManager := command.NewDockerManager(e.Ctx, runner, aptManager)
-		_, err = agent.NewDockerInstallation(*e.CommonEnvironment, dockerManager, nil)
+		_, err = agent.NewDockerAgentInstallation(e.CommonEnvironment, dockerManager, "", "")
 		if err != nil {
 			return err
 		}

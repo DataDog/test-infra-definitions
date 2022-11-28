@@ -13,7 +13,7 @@ func SetConfigDefaultValue(config auto.ConfigMap, key, value string) {
 	}
 }
 
-func AgentSemverVersion(e CommonEnvironment) (*semver.Version, error) {
+func AgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
 	version := e.AgentVersion()
 	if version == "" {
 		return nil, nil

@@ -1,0 +1,3 @@
+name: pulumi-libvirt-ubuntu
+description: Creates a Ubuntu 20.04 VM via libvirt
+runtime: go

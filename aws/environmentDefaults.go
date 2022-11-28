@@ -5,7 +5,8 @@ import (
 )
 
 const (
-	sandboxEnv = "aws/sandbox"
+	sandboxEnv      = "aws/sandbox"
+	sandboxMetalEnv = "aws/metal/sandbox"
 )
 
 type environmentDefault struct {
@@ -54,8 +55,25 @@ func getEnvironmentDefault(envName string) environmentDefault {
 	switch envName {
 	case sandboxEnv:
 		return sandboxDefault()
+	case sandboxMetalEnv:
+		return sandboxMetalDefault()
 	default:
 		panic("Unknown environment: " + envName)
+	}
+}
+
+func sandboxMetalDefault() environmentDefault {
+	return environmentDefault{
+		aws: awsProvider{
+			region: string(aws.RegionUSEast1),
+		},
+		ddInfra: ddInfra{
+			defaultVPCID:           "vpc-d1aac1a8",
+			defaultSubnets:         []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
+			defaultSecurityGroups:  []string{"sg-46506837", "sg-7fedd80a"},
+			defaultInstanceType:    "z1d.metal",
+			defaultARMInstanceType: "c6g.metal",
+		},
 	}
 }
 

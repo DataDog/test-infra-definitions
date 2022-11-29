@@ -13,9 +13,9 @@ import (
 )
 
 func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput) (*ecs.FargateService, error) {
-	return ecs.NewFargateService(e.Ctx, name, &ecs.FargateServiceArgs{
+	return ecs.NewFargateService(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         pulumi.StringPtr(name),
+		Name:         e.Namer.DisplayName(),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
@@ -28,7 +28,7 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 	}, pulumi.Provider(e.Provider))
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, family, name string, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput) (*ecs.FargateTaskDefinition, error) {
+func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput) (*ecs.FargateTaskDefinition, error) {
 	containersMap := make(map[string]ecs.TaskDefinitionContainerDefinitionArgs)
 	for _, c := range containers {
 		// Ugly hack as the implementation of pulumi.StringPtrInput is just `type stringPtr string`
@@ -37,7 +37,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, family, name string, cont
 	containersMap["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containersMap["log_router"] = *FargateFirelensContainerDefinition(e)
 
-	return ecs.NewFargateTaskDefinition(e.Ctx, name, &ecs.FargateTaskDefinitionArgs{
+	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containersMap,
 		Cpu:        pulumi.StringPtr("1024"),
 		Memory:     pulumi.StringPtr("2048"),
@@ -47,7 +47,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, family, name string, cont
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family: pulumi.StringPtr(family),
+		Family: family,
 		Volumes: classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),

@@ -34,13 +34,16 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 		}
 	}
 
-	instance, err := ec2.NewInstance(e.Ctx, name, &ec2.InstanceArgs{
+	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
 		Ami:                 pulumi.StringPtr(ami),
 		SubnetId:            pulumi.StringPtr(e.DefaultSubnets()[0]),
 		InstanceType:        pulumi.StringPtr(instanceType),
 		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),
 		UserData:            pulumi.StringPtr(userData),
+		Tags: pulumi.StringMap{
+			"Name": e.Namer.DisplayName(pulumi.String(name)),
+		},
 	}, pulumi.Provider(e.Provider))
 	return instance, err
 }

@@ -1,7 +1,16 @@
 package main
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/tls"
+	"crypto/x509"
+	"crypto/x509/pkix"
+	"encoding/pem"
+	"math/big"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
@@ -12,6 +21,118 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+func createClientCerts(pkipath string, caCertLoc string, caKeyLoc string) error {
+	chain, err := tls.LoadX509KeyPair(caCertLoc, caKeyLoc)
+	if err != nil {
+		return err
+	}
+
+	ca, err := x509.ParseCertificate(chain.Certificate[0])
+	if err != nil {
+		return err
+	}
+
+	clientTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(42),
+		Subject: pkix.Name{
+			Organization: []string{"Avocado"},
+		},
+		NotBefore:   time.Now(),
+		NotAfter:    time.Now().Add(365 * 24 * time.Hour),
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+		KeyUsage:    x509.KeyUsageDigitalSignature,
+	}
+	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	pub := &priv.PublicKey
+
+	clientCert, err := x509.CreateCertificate(rand.Reader, clientTemplate, ca, pub, chain.PrivateKey)
+	if err != nil {
+		return err
+	}
+
+	clientCertLoc := filepath.Join(pkipath, "clientcert.pem")
+	clientKeyLoc := filepath.Join(pkipath, "clientkey.pem")
+
+	certOut, err := os.Create(clientCertLoc)
+	if err != nil {
+		return err
+	}
+
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: clientCert}); err != nil {
+		return err
+	}
+
+	if err := certOut.Close(); err != nil {
+		return err
+	}
+
+	keyOut, err := os.OpenFile(clientKeyLoc, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+
+	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
+		return err
+	}
+
+	if err := keyOut.Close(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func createCACerts(pkipath string) error {
+	caTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(42),
+		Subject: pkix.Name{
+			Organization: []string{"Avocado"},
+		},
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().Add(365 * 24 * time.Hour),
+		IsCA:      true,
+		KeyUsage:  x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+	}
+
+	priv, _ := rsa.GenerateKey(rand.Reader, 2048)
+	pub := &priv.PublicKey
+	ca, err := x509.CreateCertificate(rand.Reader, caTemplate, caTemplate, pub, priv)
+	if err != nil {
+		return err
+	}
+
+	caCertLoc := filepath.Join(pkipath, "cacert.pem")
+	caKeyLoc := filepath.Join(pkipath, "cakey.pem")
+
+	certOut, err := os.Create(caCertLoc)
+	if err != nil {
+		return err
+	}
+
+	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: ca}); err != nil {
+		return err
+	}
+
+	err = certOut.Close()
+	if err != nil {
+		return err
+	}
+
+	keyOut, err := os.OpenFile(caKeyLoc, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		return err
+	}
+
+	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
+		return err
+	}
+
+	if err := keyOut.Close(); err != nil {
+		return err
+	}
+
+	return createClientCerts(pkipath, caCertLoc, caKeyLoc)
+}
 func setupLibvirtVM(ctx *pulumi.Context, libvirtUri string) error {
 	// create a provider, this isn't required, but will make it easier to configure
 	// a libvirt_uri, which we'll discuss in a bit
@@ -162,8 +283,15 @@ func main() {
 			return err
 		}
 
+		// create certs
+		pkipath := os.TempDir()
+		err = createCACerts(pkipath)
+		if err != nil {
+			return err
+		}
+
 		// explicitly set dependency?
-		if err := setupLibvirtVM(e.Ctx, "172.29.188.86"); err != nil {
+		if err := setupLibvirtVM(e.Ctx, "qemu+ssh://ubuntu@172.29.188.86/system?sshauth=privkey&keyfile=/tmp/test_rsa&known_hosts=/home/ubuntu/.ssh/known_hosts"); err != nil {
 			return err
 		}
 

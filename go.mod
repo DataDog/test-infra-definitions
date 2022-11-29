@@ -1,6 +1,6 @@
 module github.com/DataDog/test-infra-definitions
 
-go 1.19
+go 1.18
 
 require (
 	github.com/Masterminds/semver v1.5.0
@@ -9,6 +9,7 @@ require (
 	github.com/pulumi/pulumi-command/sdk v0.6.0
 	github.com/pulumi/pulumi-eks/sdk v0.42.3
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.21.4
+	github.com/pulumi/pulumi-libvirt/sdk v0.3.0
 	github.com/pulumi/pulumi/sdk/v3 v3.44.2
 )
 

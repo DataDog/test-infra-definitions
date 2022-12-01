@@ -51,22 +51,20 @@ func DockerImageTag(e *config.CommonEnvironment) string {
 	return agentImageTag
 }
 
-// NewDockerAgentInstallation deploys a docker Datadog agent
-// using a docker manager
-// e: contains Pulumi's environment parameters configured
+// NewDockerAgentInstallation installs docker if needed and deploys a docker Datadog agent
+// given a DockerManager
+// e: contains Pulumi's environment configuration parameters
 // dockerManager: a docker manager from a provisioned instance
 // agentImagePath: optional path to a docker agent image. Use an empty string to use  latest agent release by default
-// extraConfiguration: optional extra docker compose. Use an empty string to default to no extra compose.
-func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *command.DockerManager, agentImagePath, extraConfiguration string) (*remote.Command, error) {
-	if len(agentImagePath) == 0 {
-		agentImagePath = DockerFullImagePath(e)
-	}
+// extraConfiguration: optional extra docker compose. Use an empty string to default to use only the agent compose.
+func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration string) (*remote.Command, error) {
 	composeContents := []command.DockerComposeInlineManifest{
 		{
 			Name:    "agent",
-			Content: pulumi.Sprintf(agentComposeDefinition, agentImagePath, e.AgentAPIKey()),
+			Content: pulumi.Sprintf(agentComposeDefinition, DockerFullImagePath(e), e.AgentAPIKey()),
 		},
 	}
+
 	if len(extraConfiguration) > 0 {
 		fmt.Printf("With extraCompose: %v\n", extraConfiguration)
 		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: pulumi.String(extraConfiguration)})

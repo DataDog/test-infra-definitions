@@ -11,7 +11,7 @@ import (
 )
 
 func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName, clusterArn pulumi.StringInput) (*ecs.EC2Service, error) {
-	return ecs.NewEC2Service(e.Ctx, name, &ecs.EC2ServiceArgs{
+	return ecs.NewEC2Service(e.Ctx, e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
 		Cluster:            clusterArn,
 		SchedulingStrategy: pulumi.StringPtr("DAEMON"),
 		PlacementConstraints: classicECS.ServicePlacementConstraintArray{

@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"github.com/DataDog/test-infra-definitions/common"
 	config "github.com/DataDog/test-infra-definitions/common/config"
+
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
@@ -46,6 +48,7 @@ type Environment struct {
 	*config.CommonEnvironment
 
 	Provider *sdkaws.Provider
+	Namer    common.Namer
 
 	awsConfig  *sdkconfig.Config
 	envDefault environmentDefault
@@ -56,6 +59,7 @@ func AWSEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	env := Environment{
 		CommonEnvironment: &commonEnv,
+		Namer:             common.NewNamer(ctx, awsConfigNamespace),
 		awsConfig:         sdkconfig.New(ctx, awsConfigNamespace),
 		envDefault:        getEnvironmentDefault(commonEnv.InfraEnvironmentName()),
 	}

@@ -8,17 +8,12 @@ import (
 )
 
 func CreateEcsCluster(e aws.Environment, name string) (*ecs.Cluster, error) {
-	cluster, err := ecs.NewCluster(e.Ctx, name, &ecs.ClusterArgs{
-		Name: pulumi.StringPtr(name),
+	return ecs.NewCluster(e.Ctx, e.Namer.ResourceName(name), &ecs.ClusterArgs{
+		Name: e.Namer.DisplayName(pulumi.String(name)),
 		Configuration: &ecs.ClusterConfigurationArgs{
 			ExecuteCommandConfiguration: &ecs.ClusterConfigurationExecuteCommandConfigurationArgs{
 				KmsKeyId: pulumi.StringPtr(e.ECSExecKMSKeyID()),
 			},
 		},
 	}, pulumi.Provider(e.Provider))
-	if err != nil {
-		return nil, err
-	}
-
-	return cluster, nil
 }

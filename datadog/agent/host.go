@@ -14,7 +14,7 @@ const (
 	agentInstallCommand = `DD_API_KEY=%s %s bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"`
 )
 
-func NewHostInstallation(e config.CommonEnvironment, name string, conn remote.ConnectionOutput) (*remote.Command, error) {
+func NewHostInstallation(e config.CommonEnvironment, name string, runner *command.Runner, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	var extraParameters string
 	agentVersion, err := config.AgentSemverVersion(&e)
 	if err != nil {
@@ -27,9 +27,5 @@ func NewHostInstallation(e config.CommonEnvironment, name string, conn remote.Co
 		extraParameters += fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%d DD_AGENT_MINOR_VERSION=%d", agentVersion.Major(), agentVersion.Minor())
 	}
 
-	return remote.NewCommand(e.Ctx, command.UniqueCommandName(name, agentInstallCommand, "", ""),
-		&remote.CommandArgs{
-			Connection: conn,
-			Create:     pulumi.Sprintf(agentInstallCommand, e.AgentAPIKey(), extraParameters),
-		})
+	return runner.Command(e.CommonNamer.ResourceName(name, "agent-install"), pulumi.Sprintf(agentInstallCommand, e.AgentAPIKey(), extraParameters), nil, nil, nil, false, opts...)
 }

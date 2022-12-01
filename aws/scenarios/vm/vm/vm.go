@@ -35,14 +35,14 @@ func NewVM(ctx *pulumi.Context) (*VM, error) {
 		return nil, err
 	}
 
-	runner, err := command.NewRunner(ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+	runner, err := command.NewRunner(*e.CommonEnvironment, ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(ctx, r)
 	})
 	if err != nil {
 		return nil, err
 	}
-	aptManager := command.NewAptManager(ctx, runner)
-	dockerManager := command.NewDockerManager(ctx, runner, aptManager)
+	aptManager := command.NewAptManager(runner)
+	dockerManager := command.NewDockerManager(runner, aptManager)
 
 	e.Ctx.Export("instance-ip", instance.PrivateIp)
 	e.Ctx.Export("connection", conn)

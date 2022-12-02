@@ -27,7 +27,7 @@ services:
 	defaultAgentImageTag  = "latest"
 )
 
-func DockerFullImagePath(e config.CommonEnvironment) string {
+func DockerFullImagePath(e *config.CommonEnvironment) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
@@ -36,7 +36,7 @@ func DockerFullImagePath(e config.CommonEnvironment) string {
 	return fmt.Sprintf("%s:%s", defaultAgentImageRepo, DockerImageTag(e))
 }
 
-func DockerImageTag(e config.CommonEnvironment) string {
+func DockerImageTag(e *config.CommonEnvironment) string {
 	// default tag
 	agentImageTag := defaultAgentImageTag
 
@@ -51,15 +51,22 @@ func DockerImageTag(e config.CommonEnvironment) string {
 	return agentImageTag
 }
 
-func NewDockerInstallation(e config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration pulumi.StringInput) (*remote.Command, error) {
+// NewDockerAgentInstallation installs docker if needed and deploys a docker Datadog agent
+// given a DockerManager
+// e: contains Pulumi's environment configuration parameters
+// dockerManager: a docker manager from a provisioned instance
+// agentImagePath: optional path to a docker agent image. Use an empty string to use  latest agent release by default
+// extraConfiguration: optional extra docker compose. Use an empty string to default to use only the agent compose.
+func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration string) (*remote.Command, error) {
 	composeContents := []command.DockerComposeInlineManifest{
 		{
 			Name:    "agent",
 			Content: pulumi.Sprintf(agentComposeDefinition, DockerFullImagePath(e), e.AgentAPIKey()),
 		},
 	}
-	if extraConfiguration != nil {
-		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: extraConfiguration})
+
+	if len(extraConfiguration) > 0 {
+		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: pulumi.String(extraConfiguration)})
 	}
 
 	return dockerManager.ComposeStrUp("agent", composeContents)

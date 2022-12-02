@@ -16,7 +16,7 @@ const (
 
 func NewHostInstallation(e config.CommonEnvironment, name string, runner *command.Runner, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	var extraParameters string
-	agentVersion, err := config.AgentSemverVersion(e)
+	agentVersion, err := config.AgentSemverVersion(&e)
 	if err != nil {
 		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
 	}

@@ -2,12 +2,54 @@ package ec2
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
+
+type VM struct {
+	context    *pulumi.Context
+	runner     *command.Runner
+	aptManager *command.AptManager
+
+	CommonEnvironment *config.CommonEnvironment
+	FileManager       *command.FileManager
+	DockerManager     *command.DockerManager
+}
+
+func NewVM(ctx *pulumi.Context) (vm *VM, err error) {
+	vm.context = ctx
+	e, err := aws.AWSEnvironment(ctx)
+	if err != nil {
+		return nil, err
+	}
+	vm.CommonEnvironment = e.CommonEnvironment
+
+	instance, conn, err := NewDefaultEC2Instance(e, ctx.Stack(), e.DefaultInstanceType())
+	if err != nil {
+		return nil, err
+	}
+
+	vm.runner, err = command.NewRunner(*e.CommonEnvironment, ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+		return command.WaitForCloudInit(ctx, r)
+	})
+	if err != nil {
+		return nil, err
+	}
+	vm.aptManager = command.NewAptManager(vm.runner)
+	vm.DockerManager = command.NewDockerManager(vm.runner, vm.aptManager)
+
+	vm.FileManager = command.NewFileManager(vm.runner)
+
+	e.Ctx.Export("instance-ip", instance.PrivateIp)
+	e.Ctx.Export("connection", conn)
+
+	return vm, nil
+}
 
 func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.Instance, remote.ConnectionOutput, error) {
 	awsInstance, err := NewEC2Instance(e, name, "", AMD64Arch, instanceType, e.DefaultKeyPairName(), "")

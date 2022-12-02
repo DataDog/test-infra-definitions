@@ -29,13 +29,13 @@ type Params struct {
 func createEc2InstanceParams(options ...func(*Params)) *Params {
 	params := &Params{
 		//name: "TODO", // ctx.Stack()
-		ami: "ami-07bc9656188ad303b", // arm64 ubuntu
-		//arch:         ec2.AMD64Arch,
-		arch: awsEc2.ARM64Arch,
-		//instanceType: "t3.large",
-		instanceType: "m6g.medium",
-		keyPair:      "agent-ci-sandbox",
-		userData:     "",
+		//ami: "ami-07bc9656188ad303b", // arm64 ubuntu
+		//	arch: ec2.AMD64Arch,
+		//		arch: awsEc2.ARM64Arch,
+		instanceType: "t3.large",
+		//	instanceType: "m6g.medium",
+		keyPair:  "agent-ci-sandbox",
+		userData: "",
 	}
 	for _, o := range options {
 		o(params)

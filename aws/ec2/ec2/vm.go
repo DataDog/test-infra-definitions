@@ -29,12 +29,12 @@ func NewVM(ctx *pulumi.Context) (vm *VM, err error) {
 	}
 	vm.CommonEnvironment = e.CommonEnvironment
 
-	instance, conn, err := NewDefaultEC2Instance(e, ctx.Stack(), e.DefaultInstanceType())
+	instance, conn, err := NewDefaultEC2Instance(e, "vm", e.DefaultInstanceType())
 	if err != nil {
 		return nil, err
 	}
 
-	vm.runner, err = command.NewRunner(*e.CommonEnvironment, ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+	vm.runner, err = command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("vm"), conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(ctx, r)
 	})
 	if err != nil {

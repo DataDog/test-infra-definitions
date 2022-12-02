@@ -26,7 +26,7 @@ type Params struct {
 	userData     string
 }
 
-func createEc2InstanceParams(options ...func(*Params)) *Params {
+func CreateEc2InstanceParams(options ...func(*Params)) *Params {
 	params := &Params{
 		//name: "TODO", // ctx.Stack()
 		//ami: "ami-07bc9656188ad303b", // arm64 ubuntu

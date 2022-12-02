@@ -12,11 +12,11 @@ import (
 )
 
 type VM struct {
-	context    *pulumi.Context
-	runner     *command.Runner
-	aptManager *command.AptManager
+	context *pulumi.Context
+	runner  *command.Runner
 
 	CommonEnvironment *config.CommonEnvironment
+	PackageManager    *command.AptManager
 	FileManager       *command.FileManager
 	DockerManager     *command.DockerManager
 }
@@ -40,8 +40,8 @@ func NewVM(ctx *pulumi.Context) (vm *VM, err error) {
 	if err != nil {
 		return nil, err
 	}
-	vm.aptManager = command.NewAptManager(vm.runner)
-	vm.DockerManager = command.NewDockerManager(vm.runner, vm.aptManager)
+	vm.PackageManager = command.NewAptManager(vm.runner)
+	vm.DockerManager = command.NewDockerManager(vm.runner, vm.PackageManager)
 
 	vm.FileManager = command.NewFileManager(vm.runner)
 

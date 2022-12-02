@@ -6,7 +6,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	awsEc2 "github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -15,64 +14,25 @@ import (
 
 type VirtualMachine struct {
 	runner *command.Runner
-	params Params
 }
 
-type Params struct {
-	ami          string
-	arch         string
-	instanceType string
-	keyPair      string
-	userData     string
-}
-
-func CreateEc2InstanceParams(options ...func(*Params)) *Params {
-	params := &Params{
-		//name: "TODO", // ctx.Stack()
-		//ami: "ami-07bc9656188ad303b", // arm64 ubuntu
-		arch: awsEc2.AMD64Arch,
-		//		arch: awsEc2.ARM64Arch,
-		instanceType: "t3.large",
-		//	instanceType: "m6g.medium",
-		keyPair:  "agent-ci-sandbox",
-		userData: "",
-	}
-	for _, o := range options {
-		o(params)
-	}
-	return params
-}
-
-//func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData string) (*ec2.Instance, error) {
-
-// type VM struct {
-// 	Context     *pulumi.Context
-// 	Runner      *command.Runner
-// 	Environment *config.CommonEnvironment
-// 	// TODO add file manager as soon as https://github.com/DataDog/test-infra-definitions/pull/9 is merged
-// 	// FileManager   *command.FileManager
-// 	DockerManager *command.DockerManager
-// }
-
-func NewVirtualMachine(ctx *pulumi.Context, params Params) (*VirtualMachine, error) {
+func NewVirtualMachine(ctx *pulumi.Context, options ...func(*Params) error) (*VirtualMachine, error) {
 	e, err := aws.AWSEnvironment(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	instance, err := awsEc2.NewEC2Instance(e, ctx.Stack(), params.ami, params.arch, params.instanceType, params.keyPair, params.userData)
+	params, err := createParams(e, options...)
+	if err != nil {
+		return nil, err
+	}
+	instance, err := awsEc2.NewEC2Instance(e, ctx.Stack(), params.ami, string(params.arch), params.instanceType, params.keyPair, params.userData)
+
 	if err != nil {
 		return nil, err
 	}
 
-	connection, err := createConnection(instance, "ubuntu", e)
-	if err != nil {
-		return nil, err
-	}
-
-	runner, err := command.NewRunner(*e.CommonEnvironment, ctx.Stack()+"-conn", connection, func(r *command.Runner) (*remote.Command, error) {
-		return command.WaitForCloudInit(ctx, r)
-	})
+	connection, runner, err := createRunner(ctx, e, instance, params.os)
 	if err != nil {
 		return nil, err
 	}
@@ -83,24 +43,44 @@ func NewVirtualMachine(ctx *pulumi.Context, params Params) (*VirtualMachine, err
 	return &VirtualMachine{runner: runner}, nil
 }
 
-const (
-	agentInstallCommand = `DD_API_KEY=%s %s bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"`
-)
+func createParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
+	params := &Params{
+		instanceType: "t3.large",
+		keyPair:      "agent-ci-sandbox",
+		env:          env,
+	}
+	options = append([]func(*Params) error{WithOS(LinuxOS, AMD64Arch)}, options...)
+	for _, o := range options {
+		if err := o(params); err != nil {
+			return nil, err
+		}
+	}
+	return params, nil
+}
 
-func NewHostInstallation(e config.CommonEnvironment, name string, runner *command.Runner, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	var extraParameters string
-	agentVersion, err := config.AgentSemverVersion(&e)
+func createRunner(ctx *pulumi.Context, env aws.Environment, instance *ec2.Instance, os OS) (remote.ConnectionOutput, *command.Runner, error) {
+	sshUser := ""
+	switch os {
+	case LinuxOS:
+		sshUser = "ubuntu"
+	case MacOS:
+		sshUser = "ec2-user"
+	case WindowsOS:
+		return remote.ConnectionOutput{}, nil, fmt.Errorf("%v is not yet supported", os)
+	}
+
+	connection, err := createConnection(instance, sshUser, env)
 	if err != nil {
-		e.Ctx.Log.Info("Unable to parse Agent version, using latest", nil)
+		return remote.ConnectionOutput{}, nil, err
 	}
 
-	if agentVersion == nil {
-		extraParameters += "DD_AGENT_MAJOR_VERSION=7"
-	} else {
-		extraParameters += fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%d DD_AGENT_MINOR_VERSION=%d", agentVersion.Major(), agentVersion.Minor())
+	runner, err := command.NewRunner(*env.CommonEnvironment, ctx.Stack()+"-conn", connection, func(r *command.Runner) (*remote.Command, error) {
+		return command.WaitForCloudInit(ctx, r)
+	})
+	if err != nil {
+		return remote.ConnectionOutput{}, nil, err
 	}
-
-	return runner.Command(e.CommonNamer.ResourceName(name, "agent-install"), pulumi.Sprintf(agentInstallCommand, e.AgentAPIKey(), extraParameters), nil, nil, nil, false, opts...)
+	return connection, runner, nil
 }
 
 func createConnection(instance *ec2.Instance, user string, e aws.Environment) (remote.ConnectionOutput, error) {

@@ -66,7 +66,6 @@ func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *comm
 	}
 
 	if len(extraConfiguration) > 0 {
-		fmt.Printf("With extraCompose: %v\n", extraConfiguration)
 		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: pulumi.String(extraConfiguration)})
 	}
 

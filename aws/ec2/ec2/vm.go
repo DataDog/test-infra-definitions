@@ -16,7 +16,7 @@ type VM struct {
 	runner  *command.Runner
 
 	CommonEnvironment *config.CommonEnvironment
-	PackageManager    *command.AptManager
+	PackageManager    command.PackageManager
 	FileManager       *command.FileManager
 	DockerManager     *command.DockerManager
 }

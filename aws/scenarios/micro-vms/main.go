@@ -1,0 +1,332 @@
+package main
+
+import (
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"fmt"
+	"os"
+
+	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/command"
+	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"golang.org/x/crypto/ssh"
+)
+
+var libvirtPrivateKey string
+
+func generateSSHKeyPair() (privateKey []byte, publicKey []byte, err error) {
+	priv, err := generatePrivateKey()
+	if err != nil {
+		return
+	}
+
+	publicKey, err = generatePublicKey(&priv.PublicKey)
+	if err != nil {
+		return
+	}
+
+	privateKey = encodePrivateKeyToPEM(priv)
+
+	return
+}
+
+func encodePrivateKeyToPEM(privateKey *rsa.PrivateKey) []byte {
+	privDER := x509.MarshalPKCS1PrivateKey(privateKey)
+
+	privBlock := pem.Block{
+		Type:    "RSA PRIVATE KEY",
+		Headers: nil,
+		Bytes:   privDER,
+	}
+
+	privatePEM := pem.EncodeToMemory(&privBlock)
+
+	return privatePEM
+}
+
+func generatePrivateKey() (*rsa.PrivateKey, error) {
+	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	if err != nil {
+		return nil, err
+	}
+
+	err = privateKey.Validate()
+	if err != nil {
+		return nil, err
+	}
+
+	return privateKey, nil
+}
+
+func generatePublicKey(privatekey *rsa.PublicKey) ([]byte, error) {
+	publicRsaKey, err := ssh.NewPublicKey(privatekey)
+	if err != nil {
+		return nil, err
+	}
+
+	pubKeyBytes := ssh.MarshalAuthorizedKey(publicRsaKey)
+
+	return pubKeyBytes, nil
+}
+
+func writeKeyToTempFile(keyBytes []byte, targetFile string) (string, error) {
+	f, err := os.CreateTemp("", targetFile)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+
+	_, err = f.Write(keyBytes)
+	if err != nil {
+		return "", err
+	}
+
+	return f.Name(), nil
+}
+
+func newMetalInstance(e aws.Environment, name string) (*awsEc2.Instance, remote.ConnectionOutput, error) {
+	fmt.Printf("instance: %v\n", e.DefaultInstanceType())
+	awsInstance, conn, err := ec2.NewDefaultEC2Instance(e, name, e.DefaultInstanceType())
+	if err != nil {
+		return nil, remote.ConnectionOutput{}, err
+	}
+
+	return awsInstance, conn, err
+}
+
+func transferFiles(srcPath, dstPath string) error {
+	key, err := os.ReadFile("/home/usama.saqib/.ssh/usama-saqib-datadog-aws-2.pem")
+	if err != nil {
+		return err
+	}
+
+	// Create the Signer for this private key.
+	signer, err := ssh.ParsePrivateKeyWithPassphrase(key, []byte{e.DefaultPrivateKeyPassword})
+	if err != nil {
+		return err
+	}
+
+	config := &ssh.ClientConfig{
+		User: "ubuntu",
+		Auth: []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	client, _ := ssh.Dial("tcp", "remotehost:22", config)
+	defer client.Close()
+
+	// open an SFTP session over an existing ssh connection.
+	sftp, err := sftp.NewClient(client)
+	if err != nil {
+		return err
+	}
+	defer sftp.Close()
+
+	// Open the source file
+	srcFile, err := os.Open(srcPath)
+	if err != nil {
+		return err
+	}
+	defer srcFile.Close()
+
+	// Create the destination file
+	dstFile, err := sftp.Create(dstPath)
+	if err != nil {
+		return err
+	}
+	defer dstFile.Close()
+
+	// write to file
+	if _, err := dstFile.ReadFrom(srcFile); err != nil {
+		return err
+	}
+}
+
+func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) ([]pulumi.Resource, error) {
+	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+		return command.WaitForCloudInit(e.Ctx, r)
+	})
+
+	downloadFiles(e)
+
+	aptManager := command.NewAptManager(runner)
+	installQemu, err := aptManager.Ensure("qemu-kvm")
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	installLibVirt, err := aptManager.Ensure("libvirt-daemon-system", pulumi.DependsOn([]pulumi.Resource{installQemu}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	libvirtGroup, err := runner.Command("libvirt-group", pulumi.String("sudo adduser $USER libvirt"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{installLibVirt}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	disableSELinux, err := runner.Command("disable-selinux-qemu", pulumi.String("sudo sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{libvirtGroup}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	libvirtReady, err := runner.Command("restart-libvirtd", pulumi.String("sudo systemctl restart libvirtd"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{disableSELinux}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	privKey, pubKey, err := generateSSHKeyPair()
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	libvirtPrivateKey, err = writeKeyToTempFile(privKey, "libvirt_rsa")
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	sshWrite, err := runner.Command("write-ssh-key", pulumi.String(fmt.Sprintf("sudo echo \"%s\" >> ~/.ssh/authorized_keys", string(pubKey))), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{vm}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return []pulumi.Resource{sshWrite, libvirtReady}, nil
+
+}
+
+var xlst = `
+<xsl:stylesheet version="1.0"
+ xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+ <xsl:output omit-xml-declaration="yes"/>
+    <xsl:template match="node()|@*">
+      <xsl:copy>
+         <xsl:apply-templates select="node()|@*"/>
+      </xsl:copy>
+    </xsl:template>
+    <xsl:template match="/domain/devices/controller[@type='usb']">
+            <xsl:attribute name="model">
+                    <xsl:value-of select="'none'"/>
+            </xsl:attribute>
+    </xsl:template>
+    <xsl:template match="domain/devices/graphics"/>
+    <xsl:template match="domain/devices/audio"/>
+    <xsl:template match="domain/devices/video"/>
+</xsl:stylesheet>
+`
+
+func setupLibvirtVM(ctx *pulumi.Context, libvirtUri pulumi.StringOutput, waitForList []pulumi.Resource) error {
+	// create a provider, this isn't required, but will make it easier to configure
+	// a libvirt_uri, which we'll discuss in a bit
+	provider, err := libvirt.NewProvider(ctx, "provider", &libvirt.ProviderArgs{
+		Uri: libvirtUri,
+	}, pulumi.DependsOn(waitForList))
+	if err != nil {
+		return err
+	}
+
+	// `pool` is a storage pool that can be used to create volumes
+	// the `dir` type uses a directory to manage files
+	// `Path` maps to a directory on the host filesystem, so we'll be able to
+	// volume contents in `/pool/cluster_storage/`
+	pool, err := libvirt.NewPool(ctx, "cluster", &libvirt.PoolArgs{
+		Type: pulumi.String("dir"),
+		Path: pulumi.String("/pool/cluster_storage"),
+	}, pulumi.Provider(provider))
+	if err != nil {
+		return err
+	}
+
+	// create a filesystem volume for our VM
+	// This filesystem will be based on the `ubuntu` volume above
+	// we'll use a size of 10GB
+	filesystem, err := libvirt.NewVolume(ctx, "filesystem", &libvirt.VolumeArgs{
+		Pool:   pool.Name,
+		Source: pulumi.String("/tmp/bullseye.qcow2"),
+		Format: pulumi.String("qcow2"),
+	}, pulumi.Provider(provider))
+	if err != nil {
+		return err
+	}
+
+	// create NAT network using 192.168.10/24 CIDR
+	network, err := libvirt.NewNetwork(ctx, "network", &libvirt.NetworkArgs{
+		Addresses: pulumi.StringArray{pulumi.String("169.254.0.2/24")},
+		Mode:      pulumi.String("nat"),
+	}, pulumi.Provider(provider))
+	if err != nil {
+		return err
+	}
+
+	// create a VM that has a name starting with ubuntu
+	_, err = libvirt.NewDomain(ctx, "ubuntu", &libvirt.DomainArgs{
+		//	Cloudinit: cloud_init.ID(),
+		Consoles: libvirt.DomainConsoleArray{
+			// enables using `virsh console ...`
+			libvirt.DomainConsoleArgs{
+				Type:       pulumi.String("pty"),
+				TargetPort: pulumi.String("0"),
+				TargetType: pulumi.String("serial"),
+			},
+		},
+		Disks: libvirt.DomainDiskArray{
+			libvirt.DomainDiskArgs{
+				VolumeId: filesystem.ID(),
+			},
+		},
+		NetworkInterfaces: libvirt.DomainNetworkInterfaceArray{
+			libvirt.DomainNetworkInterfaceArgs{
+				NetworkId:    network.ID(),
+				WaitForLease: pulumi.Bool(false),
+			},
+		},
+		Kernel: pulumi.String("/tmp/bzImage"),
+		Cmdlines: pulumi.MapArray{
+			pulumi.Map{"console": pulumi.String("ttyS0")},
+			pulumi.Map{"acpi": pulumi.String("off")},
+			pulumi.Map{"panic": pulumi.String("-1")},
+			pulumi.Map{"root": pulumi.String("/dev/sda")},
+			pulumi.Map{"net.ifnames": pulumi.String("0")},
+			pulumi.Map{"_": pulumi.String("rw")},
+		},
+		Xml: libvirt.DomainXmlArgs{
+			Xslt: pulumi.String(xlst),
+		},
+		// delete existing VM before creating replacement to avoid two VMs trying to use the same volume
+	}, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func main() {
+	pulumi.Run(func(ctx *pulumi.Context) error {
+		e, err := aws.AWSEnvironment(ctx)
+		if err != nil {
+			return err
+		}
+
+		instance, conn, err := newMetalInstance(e, ctx.Stack())
+		waitFor, err := provisionInstance(instance, conn, e)
+		if err != nil {
+			return nil
+		}
+
+		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.PrivateIp, libvirtPrivateKey)
+		setupLibvirtVM(ctx, url, waitFor)
+
+		e.Ctx.Export("instance-ip", instance.PrivateIp)
+		e.Ctx.Export("connection", conn)
+
+		return nil
+	})
+}

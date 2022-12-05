@@ -11,6 +11,6 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-	_, err = agent.NewDockerAgentInstallation(vm.CommonEnvironment, vm.DockerManager, "")
+	_, err = agent.NewDockerAgentInstallation(vm.CommonEnvironment, vm.DockerManager, "", nil)
 	return err
 }

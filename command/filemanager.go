@@ -23,7 +23,12 @@ func NewFileManager(runner *Runner) *FileManager {
 }
 
 func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInput, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.runner.Command(name, pulumi.Sprintf("mkdir -p %s", remotePath), nil, pulumi.Sprintf("rm -rf %s", remotePath), nil, useSudo, opts...)
+	return fm.runner.Command(name,
+		&CommandArgs{
+			Create: pulumi.Sprintf("mkdir -p %s", remotePath),
+			Delete: pulumi.Sprintf("rm -rf %s", remotePath),
+			Sudo:   useSudo,
+		}, opts...)
 }
 
 func (fm *FileManager) TempDirectory(name string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
@@ -41,5 +46,9 @@ func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.Res
 }
 
 func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.runner.Command(name, utils.WriteStringCommand(fileContent, remotePath), nil, nil, nil, useSudo, opts...)
+	return fm.runner.Command(name,
+		&CommandArgs{
+			Create: utils.WriteStringCommand(fileContent, remotePath),
+			Sudo:   useSudo,
+		}, opts...)
 }

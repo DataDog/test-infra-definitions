@@ -76,10 +76,10 @@ func Run(ctx *pulumi.Context) error {
 		EndpointPublicAccess:         pulumi.BoolPtr(false),
 		Fargate:                      fargateProfile,
 		ClusterSecurityGroup:         clusterSG,
-		NodeAssociatePublicIpAddress: pulumi.BoolPtr(false),
+		NodeAssociatePublicIpAddress: pulumi.BoolRef(false),
 		PrivateSubnetIds:             pulumi.ToStringArray(awsEnv.DefaultSubnets()),
 		VpcId:                        pulumi.StringPtr(awsEnv.DefaultVPCID()),
-		SkipDefaultNodeGroup:         pulumi.BoolPtr(true),
+		SkipDefaultNodeGroup:         pulumi.BoolRef(true),
 		// The content of the aws-auth map is the merge of `InstanceRoles` and `RoleMappings`.
 		// For managed node groups, we push the value in `InstanceRoles`.
 		// For unmanaged node groups, we push the value in `RoleMappings`

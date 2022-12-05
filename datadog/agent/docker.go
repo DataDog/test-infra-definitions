@@ -57,7 +57,7 @@ func DockerImageTag(e *config.CommonEnvironment) string {
 // dockerManager: a docker manager from a provisioned instance
 // agentImagePath: optional path to a docker agent image. Use an empty string to use  latest agent release by default
 // extraConfiguration: optional extra docker compose. Use an empty string to default to use only the agent compose.
-func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration string) (*remote.Command, error) {
+func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration string, envVars pulumi.StringMap) (*remote.Command, error) {
 	composeContents := []command.DockerComposeInlineManifest{
 		{
 			Name:    "agent",
@@ -69,5 +69,5 @@ func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *comm
 		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: pulumi.String(extraConfiguration)})
 	}
 
-	return dockerManager.ComposeStrUp("agent", composeContents)
+	return dockerManager.ComposeStrUp("agent", composeContents, envVars)
 }

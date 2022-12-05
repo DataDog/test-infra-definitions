@@ -12,11 +12,11 @@ import (
 )
 
 type VM struct {
-	context    *pulumi.Context
-	runner     *command.Runner
-	aptManager *command.AptManager
+	context *pulumi.Context
+	runner  *command.Runner
 
 	CommonEnvironment *config.CommonEnvironment
+	PackageManager    command.PackageManager
 	FileManager       *command.FileManager
 	DockerManager     *command.DockerManager
 }
@@ -29,19 +29,19 @@ func NewVM(ctx *pulumi.Context) (vm *VM, err error) {
 	}
 	vm.CommonEnvironment = e.CommonEnvironment
 
-	instance, conn, err := NewDefaultEC2Instance(e, ctx.Stack(), e.DefaultInstanceType())
+	instance, conn, err := NewDefaultEC2Instance(e, "vm", e.DefaultInstanceType())
 	if err != nil {
 		return nil, err
 	}
 
-	vm.runner, err = command.NewRunner(*e.CommonEnvironment, ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+	vm.runner, err = command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("vm"), conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(ctx, r)
 	})
 	if err != nil {
 		return nil, err
 	}
-	vm.aptManager = command.NewAptManager(vm.runner)
-	vm.DockerManager = command.NewDockerManager(vm.runner, vm.aptManager)
+	vm.PackageManager = command.NewAptManager(vm.runner)
+	vm.DockerManager = command.NewDockerManager(vm.runner, vm.PackageManager)
 
 	vm.FileManager = command.NewFileManager(vm.runner)
 

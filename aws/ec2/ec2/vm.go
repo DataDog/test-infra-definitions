@@ -21,8 +21,11 @@ type VM struct {
 	DockerManager     *command.DockerManager
 }
 
-func NewVM(ctx *pulumi.Context) (vm *VM, err error) {
-	vm.context = ctx
+func NewVM(ctx *pulumi.Context) (*VM, error) {
+	vm := &VM{
+		context: ctx,
+	}
+
 	e, err := aws.AWSEnvironment(ctx)
 	if err != nil {
 		return nil, err

@@ -27,5 +27,10 @@ func NewHostInstallation(e config.CommonEnvironment, name string, runner *comman
 		extraParameters += fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%d DD_AGENT_MINOR_VERSION=%d", agentVersion.Major(), agentVersion.Minor())
 	}
 
-	return runner.Command(e.CommonNamer.ResourceName(name, "agent-install"), pulumi.Sprintf(agentInstallCommand, e.AgentAPIKey(), extraParameters), nil, nil, nil, false, opts...)
+	return runner.Command(
+		e.CommonNamer.ResourceName(name, "agent-install"),
+		&command.CommandArgs{
+			Create: pulumi.Sprintf(agentInstallCommand, e.AgentAPIKey(), extraParameters),
+		},
+		opts...)
 }

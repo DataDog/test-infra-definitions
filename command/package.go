@@ -40,7 +40,14 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 
 	opts = append(opts, pulumi.DependsOn([]pulumi.Resource{updateDB}))
 	installCmd := fmt.Sprintf("apt-get install -y %s", packageRef)
-	return m.runner.Command(m.namer.ResourceName("install", utils.StrHash(installCmd)), pulumi.String(installCmd), nil, nil, m.env, true, opts...)
+	return m.runner.Command(
+		m.namer.ResourceName("install", utils.StrHash(installCmd)),
+		&CommandArgs{
+			Create:      pulumi.String(installCmd),
+			Environment: m.env,
+			Sudo:        true,
+		},
+		opts...)
 }
 
 func (m *AptManager) updateDB() (*remote.Command, error) {
@@ -48,7 +55,13 @@ func (m *AptManager) updateDB() (*remote.Command, error) {
 		return m.updateDBCommand, nil
 	}
 
-	c, err := m.runner.Command(m.namer.ResourceName("update"), pulumi.String("apt-get update -y"), nil, nil, m.env, true)
+	c, err := m.runner.Command(
+		m.namer.ResourceName("update"),
+		&CommandArgs{
+			Create:      pulumi.String("apt-get update -y"),
+			Sudo:        true,
+			Environment: m.env,
+		})
 	if err == nil {
 		m.updateDBCommand = c
 	}

@@ -14,6 +14,7 @@ import (
 
 const (
 	composeVersion = "v2.12.2"
+	defaultTimeout = 300
 )
 
 type DockerComposeInlineManifest struct {
@@ -61,14 +62,14 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 
 	return d.runner.Command(
 		d.namer.ResourceName("run", composeFilePath),
-		pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout 300", remoteComposePath),
-		nil,
-		pulumi.Sprintf("docker-compose -f %s down -t 300", remoteComposePath),
-		nil, true,
+		&CommandArgs{
+			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout %d", remoteComposePath, defaultTimeout),
+			Delete: pulumi.Sprintf("docker-compose -f %s down -t %d", remoteComposePath, defaultTimeout),
+		},
 		pulumi.DependsOn([]pulumi.Resource{installCommand, copyCmd}))
 }
 
-func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	installCommand, err := d.install()
 	if err != nil {
 		return nil, err
@@ -80,27 +81,37 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 	}
 
 	var remoteComposePaths []string
-	var writeCommands []pulumi.Resource
+	runCommandTriggers := pulumi.Array{envVars}
+	runCommandDeps := []pulumi.Resource{installCommand}
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(tempDirPath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
-		writeCommand, err := d.runner.Command(d.namer.ResourceName("write", manifest.Name), utils.WriteStringCommand(manifest.Content, remoteComposePath), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{tempCmd}))
+		writeCommand, err := d.runner.Command(
+			d.namer.ResourceName("write", manifest.Name),
+			&CommandArgs{
+				Create: utils.WriteStringCommand(manifest.Content, remoteComposePath),
+			},
+			pulumi.DependsOn([]pulumi.Resource{tempCmd}))
 		if err != nil {
 			return nil, err
 		}
-		writeCommands = append(writeCommands, writeCommand)
+
+		runCommandDeps = append(runCommandDeps, writeCommand)
+		runCommandTriggers = append(runCommandTriggers, manifest.Content)
 	}
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 
 	return d.runner.Command(
 		d.namer.ResourceName("run", name),
-		pulumi.Sprintf("docker-compose %s up --detach --wait --timeout 300", composeFileArgs),
-		nil,
-		pulumi.Sprintf("docker-compose %s down -t 300", composeFileArgs),
-		nil, true,
-		pulumi.DependsOn(append(writeCommands, installCommand)))
+		&CommandArgs{
+			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
+			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
+			Environment: envVars,
+			Triggers:    runCommandTriggers,
+		},
+		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
 }
 
 func (d *DockerManager) install() (*remote.Command, error) {
@@ -109,11 +120,23 @@ func (d *DockerManager) install() (*remote.Command, error) {
 		return nil, err
 	}
 
-	usermod, err := d.runner.Command(d.namer.ResourceName("group"), pulumi.String("usermod -a -G docker $(whoami)"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
+	usermod, err := d.runner.Command(
+		d.namer.ResourceName("group"),
+		&CommandArgs{
+			Create: pulumi.String("usermod -a -G docker $(whoami)"),
+			Sudo:   true,
+		},
+		pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
 	if err != nil {
 		return nil, err
 	}
 
 	composeInstallCmd := pulumi.Sprintf("curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose", composeVersion)
-	return d.runner.Command(d.namer.ResourceName("install"), composeInstallCmd, nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{usermod}))
+	return d.runner.Command(
+		d.namer.ResourceName("install"),
+		&CommandArgs{
+			Create: composeInstallCmd,
+			Sudo:   true,
+		},
+		pulumi.DependsOn([]pulumi.Resource{usermod}))
 }

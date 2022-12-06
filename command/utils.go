@@ -6,5 +6,9 @@ import (
 )
 
 func WaitForCloudInit(ctx *pulumi.Context, runner *Runner) (*remote.Command, error) {
-	return runner.Command("wait-cloud-init", pulumi.String("cloud-init status --wait"), nil, nil, nil, false)
+	return runner.Command(
+		"wait-cloud-init",
+		&CommandArgs{
+			Create: pulumi.String("cloud-init status --wait"),
+		})
 }

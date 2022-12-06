@@ -89,7 +89,7 @@ func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster,
 		AmiId:                        ami,
 		InstanceType:                 instanceType,
 		NodeRootVolumeSize:           pulumi.Int(80),
-		NodeAssociatePublicIpAddress: pulumi.BoolPtr(false),
+		NodeAssociatePublicIpAddress: pulumi.BoolRef(false),
 		InstanceProfile:              instanceProfile,
 	}, pulumi.Provider(e.Provider))
 }

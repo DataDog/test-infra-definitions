@@ -63,8 +63,8 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 	return d.runner.Command(
 		d.namer.ResourceName("run", composeFilePath),
 		&CommandArgs{
-			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout 300", remoteComposePath),
-			Delete: pulumi.Sprintf("docker-compose -f %s down -t 300", remoteComposePath),
+			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout %d", remoteComposePath, defaultTimeout),
+			Delete: pulumi.Sprintf("docker-compose -f %s down -t %d", remoteComposePath, defaultTimeout),
 		},
 		pulumi.DependsOn([]pulumi.Resource{installCommand, copyCmd}))
 }

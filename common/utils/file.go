@@ -18,7 +18,7 @@ func ReadSecretFile(filePath string) (pulumi.StringPtrOutput, error) {
 }
 
 func WriteStringCommand(content pulumi.StringInput, filePath string) pulumi.StringInput {
-	return pulumi.Sprintf(`cat <<EOF > %s
+	return pulumi.Sprintf(`sh -c 'cat <<EOF > %s
 %s
-EOF`, filePath, content)
+EOF'`, filePath, content)
 }

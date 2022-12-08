@@ -6,10 +6,14 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11
+	github.com/pulumi/pulumi-azure-native-sdk v1.88.1
+	github.com/pulumi/pulumi-azure-native-sdk/compute v1.88.1
+	github.com/pulumi/pulumi-azure-native-sdk/network v1.88.1
 	github.com/pulumi/pulumi-command/sdk v0.6.0
 	github.com/pulumi/pulumi-eks/sdk v1.0.0
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.21.4
-	github.com/pulumi/pulumi/sdk/v3 v3.44.2
+	github.com/pulumi/pulumi-random/sdk/v4 v4.8.2
+	github.com/pulumi/pulumi/sdk/v3 v3.48.0
 )
 
 require (
@@ -21,6 +25,7 @@ require (
 	github.com/cheggaaa/pb v1.0.18 // indirect
 	github.com/djherbis/times v1.2.0 // indirect
 	github.com/emirpasic/gods v1.12.0 // indirect
+	github.com/fatih/color v1.10.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-git/go-billy/v5 v5.3.1 // indirect
@@ -36,6 +41,7 @@ require (
 	github.com/inconshreveable/mousetrap v1.0.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/kevinburke/ssh_config v0.0.0-20201106050909-4977a11b4351 // indirect
+	github.com/mattn/go-colorable v0.1.8 // indirect
 	github.com/mattn/go-runewidth v0.0.8 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/mitchellh/go-ps v1.0.0 // indirect
@@ -70,6 +76,7 @@ require (
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
 	lukechampine.com/frand v1.4.2 // indirect
 	sourcegraph.com/sourcegraph/appdash v0.0.0-20190731080439-ebfcffb1b5c0 // indirect
 )

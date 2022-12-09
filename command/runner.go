@@ -14,6 +14,7 @@ type CommandArgs struct {
 	Update      pulumi.StringInput
 	Delete      pulumi.StringInput
 	Triggers    pulumi.ArrayInput
+	Stdin       pulumi.StringPtrInput
 	Environment pulumi.StringMap
 	Sudo        bool
 }
@@ -25,6 +26,7 @@ func (args *CommandArgs) toRemoteCommandArgs(c remote.ConnectionInput) *remote.C
 		Update:     args.buildCommandInput(args.Update, args.Environment, args.Sudo),
 		Delete:     args.buildCommandInput(args.Delete, args.Environment, args.Sudo),
 		Triggers:   args.Triggers,
+		Stdin:      args.Stdin,
 	}
 }
 

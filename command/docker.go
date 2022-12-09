@@ -87,12 +87,13 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		remoteComposePath := path.Join(tempDirPath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
-		writeCommand, err := d.runner.Command(
+		writeCommand, err := d.fileManager.CopyInlineFile(
 			d.namer.ResourceName("write", manifest.Name),
-			&CommandArgs{
-				Create: utils.WriteStringCommand(manifest.Content, remoteComposePath),
-			},
-			pulumi.DependsOn([]pulumi.Resource{tempCmd}))
+			manifest.Content,
+			remoteComposePath,
+			false,
+			pulumi.DependsOn([]pulumi.Resource{tempCmd}),
+		)
 		if err != nil {
 			return nil, err
 		}

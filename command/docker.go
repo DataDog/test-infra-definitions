@@ -39,7 +39,7 @@ func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerMana
 }
 
 func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installCommand, err := d.install()
+	installCommand, err := d.Install()
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +70,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 }
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installCommand, err := d.install()
+	installCommand, err := d.Install()
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +115,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
 }
 
-func (d *DockerManager) install() (*remote.Command, error) {
+func (d *DockerManager) Install() (*remote.Command, error) {
 	dockerInstall, err := d.pm.Ensure("docker.io")
 	if err != nil {
 		return nil, err

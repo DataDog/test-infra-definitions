@@ -17,8 +17,6 @@ func ReadSecretFile(filePath string) (pulumi.StringPtrOutput, error) {
 	return s, nil
 }
 
-func WriteStringCommand(content pulumi.StringInput, filePath string) pulumi.StringInput {
-	return pulumi.Sprintf(`cat <<EOF > %s
-%s
-EOF`, filePath, content)
+func WriteStringCommand(filePath string) pulumi.StringInput {
+	return pulumi.Sprintf(`cat - > %s`, filePath)
 }

@@ -100,62 +100,10 @@ func newMetalInstance(e aws.Environment, name string) (*awsEc2.Instance, remote.
 	return awsInstance, conn, err
 }
 
-func transferFiles(srcPath, dstPath string) error {
-	key, err := os.ReadFile("/home/usama.saqib/.ssh/usama-saqib-datadog-aws-2.pem")
-	if err != nil {
-		return err
-	}
-
-	// Create the Signer for this private key.
-	signer, err := ssh.ParsePrivateKeyWithPassphrase(key, []byte{e.DefaultPrivateKeyPassword})
-	if err != nil {
-		return err
-	}
-
-	config := &ssh.ClientConfig{
-		User: "ubuntu",
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	client, _ := ssh.Dial("tcp", "remotehost:22", config)
-	defer client.Close()
-
-	// open an SFTP session over an existing ssh connection.
-	sftp, err := sftp.NewClient(client)
-	if err != nil {
-		return err
-	}
-	defer sftp.Close()
-
-	// Open the source file
-	srcFile, err := os.Open(srcPath)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-
-	// Create the destination file
-	dstFile, err := sftp.Create(dstPath)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	// write to file
-	if _, err := dstFile.ReadFrom(srcFile); err != nil {
-		return err
-	}
-}
-
 func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) ([]pulumi.Resource, error) {
 	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(e.Ctx, r)
 	})
-
-	downloadFiles(e)
 
 	aptManager := command.NewAptManager(runner)
 	installQemu, err := aptManager.Ensure("qemu-kvm")
@@ -249,7 +197,7 @@ func setupLibvirtVM(ctx *pulumi.Context, libvirtUri pulumi.StringOutput, waitFor
 	// we'll use a size of 10GB
 	filesystem, err := libvirt.NewVolume(ctx, "filesystem", &libvirt.VolumeArgs{
 		Pool:   pool.Name,
-		Source: pulumi.String("/tmp/bullseye.qcow2"),
+		Source: pulumi.String("https://dd-agent-omnibus.s3.amazonaws.com/bullseye.qcow2.test"),
 		Format: pulumi.String("qcow2"),
 	}, pulumi.Provider(provider))
 	if err != nil {

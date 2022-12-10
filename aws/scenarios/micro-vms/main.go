@@ -100,62 +100,10 @@ func newMetalInstance(e aws.Environment, name string) (*awsEc2.Instance, remote.
 	return awsInstance, conn, err
 }
 
-func transferFiles(srcPath, dstPath string) error {
-	key, err := os.ReadFile("/home/usama.saqib/.ssh/usama-saqib-datadog-aws-2.pem")
-	if err != nil {
-		return err
-	}
-
-	// Create the Signer for this private key.
-	signer, err := ssh.ParsePrivateKeyWithPassphrase(key, []byte{e.DefaultPrivateKeyPassword})
-	if err != nil {
-		return err
-	}
-
-	config := &ssh.ClientConfig{
-		User: "ubuntu",
-		Auth: []ssh.AuthMethod{
-			ssh.PublicKeys(signer),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	client, _ := ssh.Dial("tcp", "remotehost:22", config)
-	defer client.Close()
-
-	// open an SFTP session over an existing ssh connection.
-	sftp, err := sftp.NewClient(client)
-	if err != nil {
-		return err
-	}
-	defer sftp.Close()
-
-	// Open the source file
-	srcFile, err := os.Open(srcPath)
-	if err != nil {
-		return err
-	}
-	defer srcFile.Close()
-
-	// Create the destination file
-	dstFile, err := sftp.Create(dstPath)
-	if err != nil {
-		return err
-	}
-	defer dstFile.Close()
-
-	// write to file
-	if _, err := dstFile.ReadFrom(srcFile); err != nil {
-		return err
-	}
-}
-
 func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) ([]pulumi.Resource, error) {
 	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(e.Ctx, r)
 	})
-
-	downloadFiles(e)
 
 	aptManager := command.NewAptManager(runner)
 	installQemu, err := aptManager.Ensure("qemu-kvm")
@@ -163,22 +111,50 @@ func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.
 		return []pulumi.Resource{}, err
 	}
 
+	downloadKernel, err := runner.Command("download-kernel-image", pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/bzImage -O /tmp/bzImage"), nil, nil, nil, false)
+	downloadRootfs, err := runner.Command("download-rootfs", pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/rootfs.tar.gz -O /tmp/rootfs.tar.gz"), nil, nil, nil, false)
+	extractRootfs, err := runner.Command("extract-rootfs", pulumi.String("tar xzOf /tmp/rootfs.tar.gz > /tmp/bullseye.qcow2"), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{downloadRootfs}))
+
 	installLibVirt, err := aptManager.Ensure("libvirt-daemon-system", pulumi.DependsOn([]pulumi.Resource{installQemu}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	libvirtGroup, err := runner.Command("libvirt-group", pulumi.String("sudo adduser $USER libvirt"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{installLibVirt}))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	disableSELinux, err := runner.Command("disable-selinux-qemu", pulumi.String("sudo sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{libvirtGroup}))
+	disableSELinux, err := runner.Command("disable-selinux-qemu", pulumi.String("sudo sed --in-place 's/#security_drivercd  = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{installLibVirt}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
 	libvirtReady, err := runner.Command("restart-libvirtd", pulumi.String("sudo systemctl restart libvirtd"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{disableSELinux}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	// build volume
+	poolDefineReady, err := runner.Command("define-libvirt-pool", pulumi.String("virsh pool-define-as cluster_storage dir - - - - \"/pool/cluster_storage\""), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{libvirtReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	poolBuildReady, err := runner.Command("build-libvirt-pool", pulumi.String("virsh pool-build cluster_storage"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolDefineReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	poolStartReady, err := runner.Command("start-libvirt-pool", pulumi.String("virsh pool-start cluster_storage"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	fixPermission, err := runner.Command("fix-pool-permissions", pulumi.String("chmod -R 0766 /pool"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	baseVolumeReady, err := runner.Command("build-libvirt-basevolume", pulumi.String("virsh vol-create-as cluster_storage bullseye-base 10000000000"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{fixPermission, extractRootfs}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	uploadImageToVolumeReady, err := runner.Command("upload-libvirt-volume", pulumi.String("virsh vol-upload /pool/cluster_storage/bullseye-base /tmp/bullseye.qcow2 --pool cluster_storage"), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{baseVolumeReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -198,9 +174,12 @@ func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.
 		return []pulumi.Resource{}, err
 	}
 
-	return []pulumi.Resource{sshWrite, libvirtReady}, nil
+	return []pulumi.Resource{sshWrite, uploadImageToVolumeReady, downloadKernel}, nil
 
 }
+
+//func setupBaseVolume() {
+//}
 
 var xlst = `
 <xsl:stylesheet version="1.0"
@@ -236,22 +215,30 @@ func setupLibvirtVM(ctx *pulumi.Context, libvirtUri pulumi.StringOutput, waitFor
 	// the `dir` type uses a directory to manage files
 	// `Path` maps to a directory on the host filesystem, so we'll be able to
 	// volume contents in `/pool/cluster_storage/`
-	pool, err := libvirt.NewPool(ctx, "cluster", &libvirt.PoolArgs{
-		Type: pulumi.String("dir"),
-		Path: pulumi.String("/pool/cluster_storage"),
-	}, pulumi.Provider(provider))
-	if err != nil {
-		return err
-	}
+	//	pool, err := libvirt.NewPool(ctx, "cluster", &libvirt.PoolArgs{
+	//		Type: pulumi.String("dir"),
+	//		Path: pulumi.String("/pool/cluster_storage"),
+	//	}, pulumi.Provider(provider))
+	//	if err != nil {
+	//		return err
+	//	}
 
 	// create a filesystem volume for our VM
 	// This filesystem will be based on the `ubuntu` volume above
 	// we'll use a size of 10GB
+	//	filesystem, err := libvirt.NewVolume(ctx, "filesystem", &libvirt.VolumeArgs{
+	//		Pool:   pool.Name,
+	//		Source: pulumi.String("https://dd-agent-omnibus.s3.amazonaws.com/bullseye.qcow2.test"),
+	//		Format: pulumi.String("qcow2"),
+	//	}, pulumi.Provider(provider))
+	//	if err != nil {
+	//		return err
+	//	}
+
 	filesystem, err := libvirt.NewVolume(ctx, "filesystem", &libvirt.VolumeArgs{
-		Pool:   pool.Name,
-		Source: pulumi.String("/tmp/bullseye.qcow2"),
-		Format: pulumi.String("qcow2"),
-	}, pulumi.Provider(provider))
+		BaseVolumeId: pulumi.String("/pool/cluster_storage/bullseye-base"),
+		Pool:         pulumi.String("cluster_storage"),
+	}, pulumi.Provider(provider), pulumi.DependsOn(waitForList))
 	if err != nil {
 		return err
 	}
@@ -317,6 +304,7 @@ func main() {
 
 		instance, conn, err := newMetalInstance(e, ctx.Stack())
 		waitFor, err := provisionInstance(instance, conn, e)
+		//_, err = provisionInstance(instance, conn, e)
 		if err != nil {
 			return nil
 		}

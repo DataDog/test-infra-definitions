@@ -4,6 +4,7 @@ go 1.19
 
 require (
 	github.com/Masterminds/semver v1.5.0
+	github.com/mitchellh/mapstructure v1.1.2
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11
 	github.com/pulumi/pulumi-azure-native-sdk v1.88.1
@@ -51,6 +52,7 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pulumi/pulumi-docker/sdk/v3 v3.2.0 // indirect
+	github.com/pulumi/pulumi-libvirt/sdk v0.3.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 // indirect

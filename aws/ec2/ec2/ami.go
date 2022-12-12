@@ -1,6 +1,7 @@
 package ec2
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/aws"
@@ -13,9 +14,15 @@ const (
 	ARM64Arch = "arm64"
 )
 
+var errAmiRootDeviceNotFound = errors.New("error Root device for the given AMI not found")
+
 // Latest 22.04 (jammy)
 func LatestUbuntuAMI(e aws.Environment, arch string) (string, error) {
-	return SearchAMI(e, "099720109477", "ubuntu/images/hvm-ssd/ubuntu-jammy-*", arch)
+	img, err := SearchAMI(e, "099720109477", "ubuntu/images/hvm-ssd/ubuntu-jammy-*", arch)
+	if err != nil {
+		return "", err
+	}
+	return img.Id, nil
 }
 
 func LatestUbuntuAMIRootDevice(e aws.Environment, arch string) (ec2.GetAmiBlockDeviceMapping, error) {
@@ -33,7 +40,7 @@ func LatestUbuntuAMIRootDevice(e aws.Environment, arch string) (ec2.GetAmiBlockD
 	return ec2.GetAmiBlockDeviceMapping{}, errAmiRootDeviceNotFound
 }
 
-func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
+func SearchAMI(e aws.Environment, owner, name, arch string) (*ec2.LookupAmiResult, error) {
 	image, err := ec2.LookupAmi(e.Ctx, &ec2.LookupAmiArgs{
 		MostRecent: pulumi.BoolRef(true),
 		Filters: []ec2.GetAmiFilter{
@@ -61,12 +68,12 @@ func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
 		},
 	}, pulumi.Provider(e.Provider))
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	if image == nil {
-		return "", fmt.Errorf("unable to find AMI with owner: %s, name: %s, arch: %s", owner, name, arch)
+		return nil, fmt.Errorf("unable to find AMI with owner: %s, name: %s, arch: %s", owner, name, arch)
 	}
 
-	return image.Id, nil
+	return image, nil
 }

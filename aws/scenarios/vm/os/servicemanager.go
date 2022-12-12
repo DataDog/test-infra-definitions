@@ -1,7 +1,7 @@
 package os
 
-type serviceManager struct{ startCmd string }
+type serviceManager struct{ restartCmd []string }
 
-func (s *serviceManager) StartAgentCmd() string {
-	return s.startCmd
+func (s *serviceManager) RestartAgentCmd() []string {
+	return s.restartCmd
 }

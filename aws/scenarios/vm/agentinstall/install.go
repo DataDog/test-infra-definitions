@@ -35,13 +35,14 @@ func Install(runner *command.Runner, env aws.Environment, params *Params, os os.
 
 	// When the file content has changed, make sure the Agent is restarted.
 	serviceManager := os.GetServiceManager()
-	startAgentRes := env.CommonNamer.ResourceName("start-agent", utils.StrHash(serviceManager.StartAgentCmd(), agentConfig))
-	_, err = runner.Command(
-		startAgentRes,
-		&command.CommandArgs{
-			Create: pulumi.String(serviceManager.StartAgentCmd()),
-		}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
-
+	for _, cmd := range serviceManager.RestartAgentCmd() {
+		restartAgentRes := env.CommonNamer.ResourceName("restart-agent", utils.StrHash(cmd, agentConfig))
+		_, err = runner.Command(
+			restartAgentRes,
+			&command.CommandArgs{
+				Create: pulumi.String(cmd),
+			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+	}
 	return err
 }
 

@@ -38,7 +38,7 @@ func (macOS) GetDefaultInstanceType(arch Architecture) string {
 func (macOS) GetTenancy() string { return "host" }
 
 func (macOS) GetServiceManager() *serviceManager {
-	return &serviceManager{startCmd: "launchctl start com.datadoghq.agent"}
+	return &serviceManager{restartCmd: []string{"launchctl stop com.datadoghq.agent", "launchctl start com.datadoghq.agent"}}
 }
 
 func (macOS) GetConfigPath() string { return "~/.datadog-agent/datadog.yaml" }

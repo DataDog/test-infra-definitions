@@ -4,11 +4,13 @@ go 1.19
 
 require (
 	github.com/Masterminds/semver v1.5.0
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11
 	github.com/pulumi/pulumi-command/sdk v0.6.0
 	github.com/pulumi/pulumi-eks/sdk v0.42.3
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.21.4
+	github.com/pulumi/pulumi-libvirt/sdk v0.3.0
 	github.com/pulumi/pulumi/sdk/v3 v3.44.2
 	golang.org/x/crypto v0.0.0-20220824171710-5757bc0c5503
 )
@@ -46,7 +48,6 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.1.0 // indirect
 	github.com/pulumi/pulumi-docker/sdk/v3 v3.2.0 // indirect
-	github.com/pulumi/pulumi-libvirt/sdk v0.3.0 // indirect
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.8.1 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20180611051255-d3107576ba94 // indirect

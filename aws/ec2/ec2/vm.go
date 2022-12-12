@@ -80,6 +80,10 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 	if err != nil {
 		return nil, err
 	}
+	rootBlockDevice, err := createNewRootDeviceMapping(device, e.DefaultInstanceStorageSize())
+	if err != nil {
+		return nil, err
+	}
 
 	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
 		Ami:                 pulumi.StringPtr(ami),
@@ -88,7 +92,7 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),
 		UserData:            pulumi.StringPtr(userData),
-		EbsBlockDevices:     ec2.InstanceEbsBlockDeviceArray{createNewRootDeviceMapping(device, e.DefaultInstanceStorageSize())},
+		EbsBlockDevices:     ec2.InstanceEbsBlockDeviceArray{rootBlockDevice},
 		Tags: pulumi.StringMap{
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},

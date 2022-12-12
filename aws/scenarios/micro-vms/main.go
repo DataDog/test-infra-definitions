@@ -100,6 +100,25 @@ func newMetalInstance(e aws.Environment, name string) (*awsEc2.Instance, remote.
 	return awsInstance, conn, err
 }
 
+var poolXml = `
+<pool type='dir'>
+  <name>cluster_storage</name>
+  <capacity unit='bytes'>0</capacity>
+  <allocation unit='bytes'>0</allocation>
+  <available unit='bytes'>0</available>
+  <source>
+  </source>
+  <target>
+    <path>/pool/cluster_storage</path>
+	<permissions>
+      <owner>1000</owner>
+      <group>1000</group>
+      <mode>0766</mode>
+    </permissions>
+  </target>
+</pool>
+`
+
 func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) ([]pulumi.Resource, error) {
 	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(e.Ctx, r)
@@ -131,7 +150,12 @@ func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.
 	}
 
 	// build volume
-	poolDefineReady, err := runner.Command("define-libvirt-pool", pulumi.String("virsh pool-define-as cluster_storage dir - - - - \"/pool/cluster_storage\""), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{libvirtReady}))
+	poolXmlWritten, err := runner.Command("write-pool-xml", pulumi.String(fmt.Sprintf("echo \"%s\" > /tmp/pool.xml", poolXml)), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{libvirtReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	poolDefineReady, err := runner.Command("define-libvirt-pool", pulumi.String("virsh pool-define /tmp/pool.xml"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolXmlWritten}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -140,16 +164,16 @@ func provisionInstance(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
-	poolStartReady, err := runner.Command("start-libvirt-pool", pulumi.String("virsh pool-start cluster_storage"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
+	poolStartReady, err := runner.Command("start-libvirt-pool", pulumi.String("virsh pool-start cluster_storage"), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	fixPermission, err := runner.Command("fix-pool-permissions", pulumi.String("chmod -R 0766 /pool"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-	baseVolumeReady, err := runner.Command("build-libvirt-basevolume", pulumi.String("virsh vol-create-as cluster_storage bullseye-base 10000000000"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{fixPermission, extractRootfs}))
+	//	fixPermission, err := runner.Command("fix-pool-permissions", pulumi.String("chmod -R 0766 /pool"), nil, nil, nil, true, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
+	//	if err != nil {
+	//		return []pulumi.Resource{}, err
+	//	}
+	baseVolumeReady, err := runner.Command("build-libvirt-basevolume", pulumi.String("virsh vol-create-as cluster_storage bullseye-base 10000000000"), nil, nil, nil, false, pulumi.DependsOn([]pulumi.Resource{poolStartReady, extractRootfs}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

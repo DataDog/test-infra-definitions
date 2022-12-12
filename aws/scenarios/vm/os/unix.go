@@ -2,7 +2,6 @@ package os
 
 type unix struct{}
 
-func (unix) Visit(v Visitor)                     { v.VisitUnix() }
 func (unix) GetAMIArch(arch Architecture) string { return string(arch) }
 func (unix) GetDefaultInstanceType(arch Architecture) string {
 	return getDefaultInstanceType(arch)

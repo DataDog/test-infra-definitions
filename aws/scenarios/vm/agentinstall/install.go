@@ -11,9 +11,7 @@ import (
 )
 
 func Install(runner *command.Runner, env aws.Environment, params *Params, os os.OS) error {
-	agentCommand := &agentCommand{version: params.version}
-	os.Visit(agentCommand)
-	cmd := agentCommand.cmd
+	cmd := getInstallFormatString(os.GetOSType(), params.version)
 	lastCommand, err := runner.Command(
 		env.CommonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
 		&command.CommandArgs{
@@ -47,16 +45,18 @@ func Install(runner *command.Runner, env aws.Environment, params *Params, os os.
 	return err
 }
 
-type agentCommand struct {
-	version version
-	cmd     string
+func getInstallFormatString(osType os.OSType, version version) string {
+	switch osType {
+	case os.UbuntuOS:
+		return getUnixInstallFormatString("install_script.sh", version)
+	case os.MacOS:
+		return getUnixInstallFormatString("install_mac_os.sh", version)
+	default:
+		panic("Not implemented")
+	}
 }
 
-func (a *agentCommand) VisitUnix()    { a.cmd = getInstallFormalString("install_script.sh", a.version) }
-func (a *agentCommand) VisitMacOS()   { a.cmd = getInstallFormalString("install_mac_os.sh", a.version) }
-func (a *agentCommand) VisitWindows() { panic("Not implemented") }
-
-func getInstallFormalString(scriptName string, version version) string {
+func getUnixInstallFormatString(scriptName string, version version) string {
 	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.major)
 
 	if version.minor != "" {

@@ -7,7 +7,6 @@ import (
 
 type macOS struct{}
 
-func (macOS) Visit(v Visitor)    { v.VisitMacOS() }
 func (macOS) GetSSHUser() string { return "ec2-user" }
 
 func (m macOS) GetAMI(env aws.Environment, arch Architecture) (string, error) {
@@ -43,3 +42,5 @@ func (macOS) GetServiceManager() *serviceManager {
 }
 
 func (macOS) GetConfigPath() string { return "~/.datadog-agent/datadog.yaml" }
+
+func (macOS) GetOSType() OSType { return MacOS }

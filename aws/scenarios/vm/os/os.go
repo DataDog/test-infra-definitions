@@ -19,21 +19,15 @@ const (
 	MacOS            = iota
 )
 
-type Visitor interface {
-	VisitUnix()
-	VisitMacOS()
-	VisitWindows()
-}
-
 type OS interface {
 	GetSSHUser() string
-	Visit(Visitor)
 	GetAMI(aws.Environment, Architecture) (string, error)
 	GetAMIArch(arch Architecture) string
 	GetDefaultInstanceType(arch Architecture) string
 	GetServiceManager() *serviceManager
 	GetTenancy() string
 	GetConfigPath() string
+	GetOSType() OSType
 }
 
 func GetOS(os OSType) OS {

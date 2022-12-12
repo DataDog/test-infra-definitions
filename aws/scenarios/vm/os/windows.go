@@ -7,7 +7,6 @@ import (
 
 type windows struct{}
 
-func (windows) Visit(v Visitor) { v.VisitWindows() }
 func (windows) GetSSHUser() string { panic("Not Yet supported") }
 
 func (windows) GetAMI(env aws.Environment, arch Architecture) (string, error) {
@@ -26,3 +25,5 @@ func (windows) GetServiceManager() *serviceManager {
 }
 
 func (windows) GetConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
+
+func (windows) GetOSType() OSType { return WindowsOS }

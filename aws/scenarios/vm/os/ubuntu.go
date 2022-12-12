@@ -16,3 +16,5 @@ func (ubuntu) GetAMI(env aws.Environment, arch Architecture) (string, error) {
 func (ubuntu) GetServiceManager() *serviceManager {
 	return &serviceManager{startCmd: "sudo service datadog-agent start"}
 }
+
+func (ubuntu) GetOSType() OSType { return UbuntuOS }

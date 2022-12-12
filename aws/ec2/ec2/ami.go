@@ -18,6 +18,21 @@ func LatestUbuntuAMI(e aws.Environment, arch string) (string, error) {
 	return SearchAMI(e, "099720109477", "ubuntu/images/hvm-ssd/ubuntu-jammy-*", arch)
 }
 
+func LatestUbuntuAMIRootDevice(e aws.Environment, arch string) (ec2.GetAmiBlockDeviceMapping, error) {
+	img, err := SearchAMI(e, "099720109477", "ubuntu/images/hvm-ssd/ubuntu-jammy-*", arch)
+	if err != nil {
+		return ec2.GetAmiBlockDeviceMapping{}, err
+	}
+
+	for _, blockDevice := range img.BlockDeviceMappings {
+		if blockDevice.DeviceName == img.RootDeviceName {
+			return blockDevice, nil
+		}
+	}
+
+	return ec2.GetAmiBlockDeviceMapping{}, errAmiRootDeviceNotFound
+}
+
 func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
 	image, err := ec2.LookupAmi(e.Ctx, &ec2.LookupAmiArgs{
 		MostRecent: pulumi.BoolRef(true),

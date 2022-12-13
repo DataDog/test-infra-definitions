@@ -6,13 +6,17 @@ require (
 	github.com/Masterminds/semver v1.5.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.7.2
 	github.com/pulumi/pulumi-awsx/sdk v1.0.0-beta.11
-	github.com/pulumi/pulumi-azure-native-sdk v1.88.1
+	github.com/pulumi/pulumi-azure-native-sdk v1.89.1
 	github.com/pulumi/pulumi-azure-native-sdk/compute v1.88.1
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice v1.89.1
 	github.com/pulumi/pulumi-azure-native-sdk/network v1.88.1
+	github.com/pulumi/pulumi-azure-native-sdk/resources v1.89.1
+	github.com/pulumi/pulumi-azuread/sdk/v4 v4.3.0
 	github.com/pulumi/pulumi-command/sdk v0.6.0
 	github.com/pulumi/pulumi-eks/sdk v1.0.0
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.21.4
 	github.com/pulumi/pulumi-random/sdk/v4 v4.8.2
+	github.com/pulumi/pulumi-tls/sdk/v4 v4.6.1
 	github.com/pulumi/pulumi/sdk/v3 v3.48.0
 )
 

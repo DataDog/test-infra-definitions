@@ -6,13 +6,13 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func ReadSecretFile(filePath string) (pulumi.StringPtrOutput, error) {
+func ReadSecretFile(filePath string) (pulumi.StringOutput, error) {
 	b, err := os.ReadFile(filePath)
 	if err != nil {
-		return pulumi.StringPtrOutput{}, err
+		return pulumi.StringOutput{}, err
 	}
 
-	s := pulumi.ToSecret(pulumi.StringPtr(string(b))).(pulumi.StringPtrOutput)
+	s := pulumi.ToSecret(pulumi.String(string(b))).(pulumi.StringOutput)
 
 	return s, nil
 }

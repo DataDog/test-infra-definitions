@@ -72,33 +72,36 @@ func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.I
 
 func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData string) (*ec2.Instance, error) {
 	var err error
-	if ami == "" {
-		ami, err = LatestUbuntuAMI(e, arch)
-		if err != nil {
-			return nil, err
-		}
-	}
 
-	device, err := LatestUbuntuAMIRootDevice(e, arch)
-	if err != nil {
-		return nil, err
-	}
-	rootBlockDevice, err := createNewRootDeviceMapping(device, e.DefaultInstanceStorageSize())
-	if err != nil {
-		return nil, err
-	}
-
-	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
+	instanceArgs := ec2.InstanceArgs{
 		Ami:                 pulumi.StringPtr(ami),
 		SubnetId:            pulumi.StringPtr(e.DefaultSubnets()[0]),
 		InstanceType:        pulumi.StringPtr(instanceType),
 		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),
-		EbsBlockDevices:     ec2.InstanceEbsBlockDeviceArray{rootBlockDevice},
 		UserData:            pulumi.StringPtr(userData),
 		Tags: pulumi.StringMap{
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},
-	}, pulumi.Provider(e.Provider))
+	}
+
+	if ami == "" {
+		ami, err = LatestUbuntuAMI(e, arch)
+		if err != nil {
+			return nil, err
+		}
+		device, err := LatestUbuntuAMIRootDevice(e, arch)
+		if err != nil {
+			return nil, err
+		}
+		rootBlockDevice, err := createNewRootDeviceMapping(device, e.DefaultInstanceStorageSize())
+		if err != nil {
+			return nil, err
+		}
+
+		instanceArgs.EbsBlockDevices = ec2.InstanceEbsBlockDeviceArray{rootBlockDevice}
+	}
+
+	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &instanceArgs, pulumi.Provider(e.Provider))
 	return instance, err
 }

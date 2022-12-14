@@ -5,11 +5,11 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
-	"log"
 	"os"
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/config"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
@@ -17,6 +17,10 @@ import (
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"golang.org/x/crypto/ssh"
+)
+
+const (
+	ddMicroVMConfigFile = "microVMConfigFile"
 )
 
 func generateSSHKeyPair() (privateKey []byte, publicKey []byte, err error) {
@@ -179,13 +183,14 @@ func setupLibvirtVM(ctx *pulumi.Context, libvirtUri pulumi.StringOutput, vmset v
 }
 
 func main() {
-	cfg, err := vmconfig.LoadFile("test.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		e, err := aws.AWSEnvironment(ctx)
+		if err != nil {
+			return err
+		}
+
+		m := config.NewMicroVMConfig(ctx)
+		cfg, err := vmconfig.LoadFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
 		if err != nil {
 			return err
 		}

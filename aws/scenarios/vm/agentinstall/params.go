@@ -54,10 +54,7 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-// WithAgentConfig sets the configuration of the Agent. The configuration must contain `%v“ to set the API key.
-// Example:
-// `api_key: %v
-// log_level: debug`
+// WithAgentConfig sets the configuration of the Agent.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.agentConfig = config

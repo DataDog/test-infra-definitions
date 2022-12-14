@@ -24,9 +24,8 @@ func Install(runner *command.Runner, env aws.Environment, params *Params, os os.
 	agentConfig := ""
 	if params.agentConfig != "" {
 		fileManager := command.NewFileManager(runner)
-		agentConfig = fmt.Sprintf(params.agentConfig, params.apiKey)
 		remotePath := os.GetConfigPath()
-		lastCommand, err = fileManager.CopyInlineFile("agent-config", pulumi.String(agentConfig), remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+		lastCommand, err = fileManager.CopyInlineFile("agent-config", pulumi.String(params.agentConfig), remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 		if err != nil {
 			return err
 		}

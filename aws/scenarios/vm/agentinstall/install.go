@@ -21,7 +21,6 @@ func Install(runner *command.Runner, env aws.Environment, params *Params, os os.
 		return err
 	}
 
-	agentConfig := ""
 	if params.agentConfig != "" {
 		fileManager := command.NewFileManager(runner)
 		remotePath := os.GetConfigPath()
@@ -35,7 +34,7 @@ func Install(runner *command.Runner, env aws.Environment, params *Params, os os.
 	// When the file content has changed, make sure the Agent is restarted.
 	serviceManager := os.GetServiceManager()
 	for _, cmd := range serviceManager.RestartAgentCmd() {
-		restartAgentRes := env.CommonNamer.ResourceName("restart-agent", utils.StrHash(cmd, agentConfig))
+		restartAgentRes := env.CommonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig))
 		_, err = runner.Command(
 			restartAgentRes,
 			&command.CommandArgs{

@@ -15,7 +15,7 @@ import (
 func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput) (*ecs.FargateService, error) {
 	return ecs.NewFargateService(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         e.Namer.DisplayName(),
+		Name:         e.CommonNamer.DisplayName(pulumi.String(name)),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
@@ -47,7 +47,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family: family,
+		Family: e.CommonNamer.DisplayName(family),
 		Volumes: classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),

@@ -86,12 +86,12 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy Fargate Agent
 		testContainer := FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
-		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, "fg-dd-agent", awsEnv.Namer.DisplayName(pulumi.String("-fg-dd-agent")), []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
+		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
 		if err != nil {
 			return err
 		}
 
-		_, err = FargateService(awsEnv, "fg-dd-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+		_, err = FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
 		if err != nil {
 			return err
 		}

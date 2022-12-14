@@ -1,0 +1,16 @@
+{
+    "vmsets": [
+        {
+            "name": "custom-kernels",
+            "kernels": [
+                {
+                    "dir": "/tmp",
+                    "tag": "4.x"
+                }
+            ],
+            "vcpu": [4],
+            "memory": [4096],
+            "image": "/tmp/bullseye.qcow"
+        }
+    ]
+}

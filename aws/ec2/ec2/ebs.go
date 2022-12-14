@@ -64,25 +64,18 @@ func decodeHook(f reflect.Kind, t reflect.Kind, data interface{}) (interface{}, 
 func createNewRootDeviceMapping(root ec2.GetAmiBlockDeviceMapping, newSize int) (ec2.InstanceEbsBlockDeviceArgs, error) {
 	var arg BlockDeviceArgs
 
-	fmt.Printf("%v\n", root.Ebs)
-
 	dc := &mapstructure.DecoderConfig{Result: &arg, DecodeHook: decodeHook}
 	ms, err := mapstructure.NewDecoder(dc)
 	if err != nil {
 		return ec2.InstanceEbsBlockDeviceArgs{}, err
 	}
-	fmt.Printf("here1\n")
 	if err := ms.Decode(root.Ebs); err != nil {
-		fmt.Printf("%v\n", err)
 		return ec2.InstanceEbsBlockDeviceArgs{}, err
 	}
-	fmt.Printf("here2\n")
 
 	result := ec2.InstanceEbsBlockDeviceArgs(arg)
 	result.DeviceName = pulumi.String(root.DeviceName)
 	result.VolumeSize = pulumi.Int(newSize)
-
-	fmt.Printf("Result: %v\n", result)
 
 	return result, nil
 }

@@ -13,8 +13,8 @@ import (
 
 type VM struct {
 	context *pulumi.Context
-	runner  *command.Runner
 
+	Runner            *command.Runner
 	CommonEnvironment *config.CommonEnvironment
 	PackageManager    command.PackageManager
 	FileManager       *command.FileManager
@@ -37,16 +37,16 @@ func NewVM(ctx *pulumi.Context) (*VM, error) {
 		return nil, err
 	}
 
-	vm.runner, err = command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("vm"), conn, func(r *command.Runner) (*remote.Command, error) {
+	vm.Runner, err = command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("vm"), conn, func(r *command.Runner) (*remote.Command, error) {
 		return command.WaitForCloudInit(ctx, r)
 	})
 	if err != nil {
 		return nil, err
 	}
-	vm.PackageManager = command.NewAptManager(vm.runner)
-	vm.DockerManager = command.NewDockerManager(vm.runner, vm.PackageManager)
+	vm.PackageManager = command.NewAptManager(vm.Runner)
+	vm.DockerManager = command.NewDockerManager(vm.Runner, vm.PackageManager)
 
-	vm.FileManager = command.NewFileManager(vm.runner)
+	vm.FileManager = command.NewFileManager(vm.Runner)
 
 	e.Ctx.Export("instance-ip", instance.PrivateIp)
 	e.Ctx.Export("connection", conn)

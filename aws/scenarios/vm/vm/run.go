@@ -10,5 +10,6 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }

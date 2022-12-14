@@ -22,7 +22,7 @@ type Params struct {
 
 func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
 	params := &Params{
-		keyPair: "agent-ci-sandbox",
+		keyPair: env.DefaultKeyPairName(),
 		env:     env,
 	}
 
@@ -34,12 +34,12 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 func WithOS(osType os.OSType, arch os.Architecture) func(*Params) error {
 	return func(p *Params) error {
 		var err error
-		var os = os.GetOS(osType)
+		var os = os.GetOS(p.env, osType)
 
 		p.instanceType = os.GetDefaultInstanceType(arch)
 		p.arch = arch
 		p.os = os
-		p.ami, err = os.GetAMI(p.env, arch)
+		p.ami, err = os.GetAMI(arch)
 		if err != nil {
 			return fmt.Errorf("cannot find AMI for %v (%v): %v", osType, arch, err)
 		}
@@ -52,7 +52,7 @@ func WithOS(osType os.OSType, arch os.Architecture) func(*Params) error {
 func WithAMI(ami string, arch os.Architecture, osType os.OSType) func(*Params) error {
 	return func(p *Params) error {
 		p.ami = ami
-		p.os = os.GetOS(osType)
+		p.os = os.GetOS(p.env, osType)
 		p.arch = arch
 		return nil
 	}

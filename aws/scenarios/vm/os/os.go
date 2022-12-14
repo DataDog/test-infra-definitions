@@ -21,23 +21,23 @@ const (
 
 type OS interface {
 	GetSSHUser() string
-	GetAMI(aws.Environment, Architecture) (string, error)
+	GetAMI(Architecture) (string, error)
 	GetAMIArch(arch Architecture) string
-	GetDefaultInstanceType(arch Architecture) string
+	GetDefaultInstanceType(Architecture) string
 	GetServiceManager() *serviceManager
 	GetTenancy() string
 	GetConfigPath() string
 	GetOSType() OSType
 }
 
-func GetOS(os OSType) OS {
+func GetOS(env aws.Environment, os OSType) OS {
 	switch os {
 	case WindowsOS:
-		return windows{}
+		return &windows{env: env}
 	case UbuntuOS:
-		return ubuntu{}
+		return &ubuntu{unix: unix{env: env}}
 	case MacOS:
-		return macOS{}
+		return &macOS{}
 	default:
 		panic("OS not supported")
 	}

@@ -14,7 +14,7 @@ import (
 
 const (
 	namerNamespace         = "common"
-	ddInfraConfigNamespace = "ddinfra"
+	DDInfraConfigNamespace = "ddinfra"
 	ddAgentConfigNamespace = "ddagent"
 
 	// Infra namespace
@@ -39,7 +39,7 @@ type CommonEnvironment struct {
 func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 	return CommonEnvironment{
 		Ctx:         ctx,
-		InfraConfig: sdkconfig.New(ctx, ddInfraConfigNamespace),
+		InfraConfig: sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig: sdkconfig.New(ctx, ddAgentConfigNamespace),
 		CommonNamer: common.NewNamer(ctx, ""),
 	}

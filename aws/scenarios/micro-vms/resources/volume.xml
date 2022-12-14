@@ -9,8 +9,8 @@
     <format type='qcow2'/>
     <permissions>
       <mode>0666</mode>
-      <owner>64055</owner>
-      <group>109</group>
+      <owner>$(cat /etc/passwd | grep libvirt-qemu | cut -d ':' -f 3)</owner>
+      <group>$(cat /etc/group | grep kvm | cut -d ':' -f 3)</group>
     </permissions>
     <compat>1.1</compat>
     <clusterSize unit='B'>65536</clusterSize>

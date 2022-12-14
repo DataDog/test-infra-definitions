@@ -17,11 +17,21 @@ const basefsName = "custom-fsbase"
 var LibvirtPrivateKey string
 
 var (
-	downloadKernelArgs  = command.CommandArgs{Create: pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/bzImage -O /tmp/bzImage")}
-	disableSELinuxArgs  = command.CommandArgs{Create: pulumi.String("sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"), Sudo: true}
-	libvirtReadyArgs    = command.CommandArgs{Create: pulumi.String("systemctl restart libvirtd"), Sudo: true}
-	downloadRootfsArgs  = command.CommandArgs{Create: pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/rootfs.tar.gz -O /tmp/rootfs.tar.gz")}
-	poolDefineReadyArgs = command.CommandArgs{Create: pulumi.String("virsh pool-define /tmp/pool.xml"), Sudo: true}
+	downloadKernelArgs = command.CommandArgs{
+		Create: pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/bzImage -O /tmp/bzImage"),
+	}
+	disableSELinuxArgs = command.CommandArgs{
+		Create: pulumi.String("sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"),
+		Sudo:   true,
+	}
+	libvirtReadyArgs = command.CommandArgs{
+		Create: pulumi.String("systemctl restart libvirtd"),
+		Sudo:   true,
+	}
+	poolDefineReadyArgs = command.CommandArgs{
+		Create: pulumi.String("virsh pool-define /tmp/pool.xml"),
+		Sudo:   true,
+	}
 )
 
 func createRunner(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) (*command.Runner, error) {
@@ -109,21 +119,48 @@ func provisionInstance(runner *command.Runner) ([]pulumi.Resource, error) {
 
 }
 
-func setupLibvirtFilesystem(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	downloadRootfs, err := runner.Command("download-rootfs", &downloadRootfsArgs)
-
-	extractRootfsArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("tar xzOf /tmp/rootfs.tar.gz > %s", vmset.Image))}
-	extractRootfs, err := runner.Command("extract-rootfs", &extractRootfsArgs, pulumi.DependsOn([]pulumi.Resource{downloadRootfs}))
-
-	poolXml, err := generatePoolXML(vmset.Name)
-	if err != nil {
-		return []pulumi.Resource{}, err
+func downloadRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, err) {
+	downloadRootfsArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("wget -q %s -O /tmp", vmset.Img.ImageSourceURI),
+		),
 	}
 
-	poolXmlWrittenArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("echo \"%s\" > /tmp/pool.xml", string(poolXml)))}
-	poolXmlWritten, err := runner.Command("write-pool-xml", &poolXmlWrittenArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return []pulumi.Resource{}, err
+	return runner.Command("download-rootfs", &downloadRootfsArgs)
+}
+
+func extractRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, err) {
+	extractRootfsArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("tar xzOf /tmp/rootfs.tar.gz > %s", vmset.Img.ImagePath),
+		),
+	}
+}
+
+func setupLibvirtVMSetPool(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+
+	poolXmlWrittenArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("echo \"%s\" > /tmp/pool.xml", string(poolXml)),
+		),
+	}
+	poolBuildReadyArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("virsh pool-build %s", vmset.Name),
+		),
+		Sudo: true,
+	}
+	poolStartReadyArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("virsh pool-start %s", vmset.Name),
+		),
+		Sudo: true,
+	}
+	poolRefreshDoneArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("virsh pool-refresh %s", vmset.Name),
+		),
+		Sudo: true,
 	}
 
 	poolDefineReady, err := runner.Command("define-libvirt-pool", &poolDefineReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolXmlWritten}))
@@ -131,20 +168,69 @@ func setupLibvirtFilesystem(vmset vmconfig.VMSet, runner *command.Runner, depend
 		return []pulumi.Resource{}, err
 	}
 
-	poolBuildReadyArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("virsh pool-build %s", vmset.Name)), Sudo: true}
 	poolBuildReady, err := runner.Command("build-libvirt-pool", &poolBuildReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolDefineReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	poolStartReadyArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("virsh pool-start %s", vmset.Name)), Sudo: true}
 	poolStartReady, err := runner.Command("start-libvirt-pool", &poolStartReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	poolRefreshDoneArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("virsh pool-refresh %s", vmset.Name)), Sudo: true}
 	poolRefreshDone, err := runner.Command("refresh-libvirt-pool", &poolRefreshDoneArgs, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return []pulumi.Resource{poolRefreshDone}, err
+}
+
+func setupLibvirtVMVolume(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	volXmlWrittenArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("echo \"%s\" > /tmp/volume.xml", string(volXml)),
+		),
+	}
+	baseVolumeReadyArgs := command.CommandArgs{
+		Create: pulumi.String(fmt.Sprintf("virsh vol-create %s /tmp/volume.xml", vmset.Name)),
+		Sudo:   true,
+	}
+	uploadImageToVolumeReadyArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("virsh vol-upload %s %s --pool %s", generateVolumeKey(vmset.Name), vmset.Image, vmset.Name),
+		),
+		Sudo: true,
+	}
+
+	baseVolumeReady, err := runner.Command("build-libvirt-basevolume", &baseVolumeReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolRefreshDone, extractRootfs, volXmlWritten}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	uploadImageToVolumeReady, err := runner.Command("upload-libvirt-volume", &uploadImageToVolumeReadyArgs, pulumi.DependsOn([]pulumi.Resource{baseVolumeReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+}
+
+func setupLibvirtFilesystem(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	donwloadRootfsDone, err := downloadRootfs(vmset, runner, []pulumi.Resource{})
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	extractRootfsDone, err := extractRootfs(vmset, runner, pulumi.DependsOn([]pulumi.Resource{downloadRootfsDone}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	poolXml, err := generatePoolXML(vmset.Name)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	poolXmlWritten, err := runner.Command("write-pool-xml", &poolXmlWrittenArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -153,24 +239,20 @@ func setupLibvirtFilesystem(vmset vmconfig.VMSet, runner *command.Runner, depend
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
-
-	volXmlWrittenArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("echo \"%s\" > /tmp/volume.xml", string(volXml)))}
 	volXmlWritten, err := runner.Command("write-vol-xml", &volXmlWrittenArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	baseVolumeReadyArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("virsh vol-create %s /tmp/volume.xml", vmset.Name)), Sudo: true}
-	baseVolumeReady, err := runner.Command("build-libvirt-basevolume", &baseVolumeReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolRefreshDone, extractRootfs, volXmlWritten}))
+	setupLibvirtVMPoolDone, err := setupLibvirtVMSetPool(vmset, runner, []pulumi.Resource{poolXmlWritten})
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	uploadImageToVolumeReadyArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("virsh vol-upload %s %s --pool %s", generateVolumeKey(vmset.Name), vmset.Image, vmset.Name)), Sudo: true}
-	uploadImageToVolumeReady, err := runner.Command("upload-libvirt-volume", &uploadImageToVolumeReadyArgs, pulumi.DependsOn([]pulumi.Resource{baseVolumeReady}))
+	setupLibvirtVMVolumeDone, err := setupLibvirtVMVolume(vmset, runner, []pulumi.Resource{setupLibvirtVMPoolDone, volXmlWritten, extractRootfsDone})
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	return []pulumi.Resource{uploadImageToVolumeReady}, nil
+	return []pulumi.Resource{setupLibvirtVMVolumeDone}, nil
 }

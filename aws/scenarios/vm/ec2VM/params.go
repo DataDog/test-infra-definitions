@@ -10,6 +10,7 @@ import (
 )
 
 type Params struct {
+	name                       string
 	ami                        string
 	instanceType               string
 	keyPair                    string
@@ -79,5 +80,12 @@ func WithHostAgent(apiKey string, options ...func(*agentinstall.Params) error) f
 		var err error
 		p.optionalAgentInstallParams, err = agentinstall.NewParams(apiKey, options...)
 		return err
+	}
+}
+
+func WithName(name string) func(*Params) error {
+	return func(p *Params) error {
+		p.name = name
+		return nil
 	}
 }

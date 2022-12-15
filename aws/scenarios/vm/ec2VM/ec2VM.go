@@ -28,9 +28,13 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2VM, erro
 		return nil, err
 	}
 
+	resourceName := params.name
+	if resourceName == "" {
+		resourceName = e.CommonNamer.ResourceName("ec2-instance")
+	}
 	instance, err := awsEc2.NewEC2Instance(
 		e,
-		e.CommonNamer.ResourceName("ec2-instance"),
+		resourceName,
 		params.ami,
 		params.os.GetAMIArch(params.arch),
 		params.instanceType,

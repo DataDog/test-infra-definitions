@@ -18,5 +18,5 @@ func ReadSecretFile(filePath string) (pulumi.StringPtrOutput, error) {
 }
 
 func WriteStringCommand(filePath string) pulumi.StringInput {
-	return pulumi.Sprintf(`cat - > %s`, filePath)
+	return pulumi.Sprintf(`bash -c 'cat - > %s'`, filePath)
 }

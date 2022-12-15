@@ -1,11 +1,12 @@
-package main
+package microVMs
 
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
-	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/config"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/vmconfig"
+	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -89,14 +90,16 @@ func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner,
 	}
 
 	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
+	privateKeyPath := filepath.Join(tempDir, libvirtSSHPrivateKey)
+	publicKeyPath := filepath.Join(tempDir, libvirtSSHPublicKey)
 	sshGenArgs := command.CommandArgs{
 		Create: pulumi.String(
-			fmt.Sprintf("ssh-keygen -t rsa -b 4096 -f %s/libvirt_rsa -q -N \"\" && cat %s/libvirt_rsa.pub", tempDir, tempDir),
+			fmt.Sprintf("ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath),
 		),
 		Update: pulumi.String("true"),
-		Delete: pulumi.String(fmt.Sprintf("rm %s/%s && rm %s/%s", tempDir, libvirtSSHPrivateKey, tempDir, libvirtSSHPublicKey)),
+		Delete: pulumi.String(fmt.Sprintf("rm %s && rm %s", privateKeyPath, publicKeyPath)),
 	}
-	sshgenDone, err := localRunner.Command("ssh-gen", &sshGenArgs)
+	sshgenDone, err := localRunner.Command("gen-libvirt-sshkey", &sshGenArgs)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

@@ -1,4 +1,4 @@
-package ec2instance
+package ec2vm
 
 import (
 	"fmt"

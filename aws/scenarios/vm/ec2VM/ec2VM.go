@@ -1,4 +1,4 @@
-package ec2instance
+package ec2vm
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
@@ -12,12 +12,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type Ec2Instance struct {
+type Ec2VM struct {
 	runner *command.Runner
 }
 
-// NewEc2Instance creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func NewEc2Instance(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2Instance, error) {
+// NewEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2VM, error) {
 	e, err := aws.AWSEnvironment(ctx)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func NewEc2Instance(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2In
 	e.Ctx.Export("instance-ip", instance.PrivateIp)
 	e.Ctx.Export("connection", connection)
 
-	return &Ec2Instance{runner: runner}, nil
+	return &Ec2VM{runner: runner}, nil
 }
 
 func createRunner(ctx *pulumi.Context, env aws.Environment, instance *ec2.Instance, os os.OS) (remote.ConnectionOutput, *command.Runner, error) {

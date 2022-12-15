@@ -91,7 +91,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		ResourceGroupName:        pulumi.String(e.DefaultResourceGroup()),
 		PublicIPAllocationMethod: pulumi.String(network.IPAllocationMethodStatic),
 		Tags:                     e.ResourcesTags(),
-	})
+	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -112,7 +112,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 			},
 		},
 		Tags: e.ResourcesTags(),
-	})
+	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, nil, nil, err
 	}

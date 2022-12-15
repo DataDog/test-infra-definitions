@@ -12,11 +12,11 @@ const (
 	defaultPublicKeyFilePath = ".ssh/id_rsa.pub"
 )
 
-func GetSSHPublicKey(filePath string) (pulumi.StringPtrOutput, error) {
+func GetSSHPublicKey(filePath string) (pulumi.StringOutput, error) {
 	if filePath == "" {
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			return pulumi.StringPtrOutput{}, fmt.Errorf("unable to read SSH key, err: %v", err)
+			return pulumi.StringOutput{}, fmt.Errorf("unable to read SSH key, err: %v", err)
 		}
 
 		filePath = path.Join(homeDir, defaultPublicKeyFilePath)

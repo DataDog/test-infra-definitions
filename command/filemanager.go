@@ -48,7 +48,8 @@ func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.Res
 func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.runner.Command(name,
 		&CommandArgs{
-			Create: utils.WriteStringCommand(fileContent, remotePath),
+			Create: utils.WriteStringCommand(remotePath),
+			Stdin:  fileContent,
 			Sudo:   useSudo,
 		}, opts...)
 }

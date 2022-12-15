@@ -13,9 +13,6 @@ func LoadFile(filename string) (*Config, error) {
 	if err != nil {
 		return nil, fmt.Errorf("LoadFile: %w", err)
 	}
-	//	if err := Complete(cfg); err != nil {
-	//		return nil, fmt.Errorf("LoadFile: %w", err)
-	//	}
 	return cfg, nil
 }
 

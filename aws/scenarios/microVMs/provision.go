@@ -4,18 +4,17 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/ssh"
+	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/config"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
-	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const basefsName = "custom-fsbase"
-
-var LibvirtPrivateKey string
+const (
+	basefsName           = "custom-fsbase"
+	libvirtSSHPrivateKey = "libvirt_rsa"
+	libvirtSSHPublicKey  = "libvirt_rsa.pub"
+)
 
 var (
 	downloadKernelArgs = command.CommandArgs{
@@ -34,17 +33,6 @@ var (
 		Sudo:   true,
 	}
 )
-
-func createRunner(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) (*command.Runner, error) {
-	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
-		return command.WaitForCloudInit(e.Ctx, r)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return runner, nil
-}
 
 func generatePoolPath(name string) string {
 	return "/pool/" + name + "/"
@@ -76,7 +64,7 @@ func generatePoolXML(pool string) (string, error) {
 	return fmt.Sprintf(string(xml), pool, path), nil
 }
 
-func provisionInstance(runner *command.Runner) ([]pulumi.Resource, error) {
+func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner, m *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
 	downloadKernel, err := runner.Command("download-kernel-image", &downloadKernelArgs)
 	aptManager := command.NewAptManager(runner)
 
@@ -100,18 +88,25 @@ func provisionInstance(runner *command.Runner) ([]pulumi.Resource, error) {
 		return []pulumi.Resource{}, err
 	}
 
-	privKey, pubKey, err := ssh.GenerateSSHKeyPair()
+	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
+	sshGenArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("ssh-keygen -t rsa -b 4096 -f %s/libvirt_rsa -q -N \"\" && cat %s/libvirt_rsa.pub", tempDir, tempDir),
+		),
+		Update: pulumi.String("true"),
+		Delete: pulumi.String(fmt.Sprintf("rm %s/%s && rm %s/%s", tempDir, libvirtSSHPrivateKey, tempDir, libvirtSSHPublicKey)),
+	}
+	sshgenDone, err := localRunner.Command("ssh-gen", &sshGenArgs)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	LibvirtPrivateKey, err = ssh.WriteKeyToTempFile(privKey, "libvirt_rsa")
-	if err != nil {
-		return []pulumi.Resource{}, err
+	sshWriteArgs := command.CommandArgs{
+		Create: pulumi.Sprintf("echo '%s' >> ~/.ssh/authorized_keys", sshgenDone.Stdout),
+		Update: pulumi.String("true"),
+		Sudo:   true,
 	}
-
-	sshWriteArgs := command.CommandArgs{Create: pulumi.String(fmt.Sprintf("sudo echo \"%s\" >> ~/.ssh/authorized_keys", string(pubKey)))}
-	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs)
+	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs, pulumi.DependsOn([]pulumi.Resource{sshgenDone}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

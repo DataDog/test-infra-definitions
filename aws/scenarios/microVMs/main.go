@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/DataDog/test-infra-definitions/aws"
@@ -42,14 +43,16 @@ func setupLibvirtVM(ctx *pulumi.Context, libvirtUri pulumi.StringOutput, vmset v
 		return err
 	}
 
+	network, err := libvirt.NewNetwork(ctx, "network", &libvirt.NetworkArgs{
+		Addresses: pulumi.StringArray{pulumi.String("169.254.0.0/16")},
+		Mode:      pulumi.String("nat"),
+	}, pulumi.Provider(provider))
+	if err != nil {
+		return err
+	}
+
 	for _, kernel := range vmset.Kernels {
-		network, err := libvirt.NewNetwork(ctx, "network", &libvirt.NetworkArgs{
-			Addresses: pulumi.StringArray{pulumi.String("192.168.0.2/24")},
-			Mode:      pulumi.String("nat"),
-		}, pulumi.Provider(provider))
-		if err != nil {
-			return err
-		}
+		fmt.Printf("%v\n", kernel)
 
 		baseVolumeId := generatePoolPath(vmset.Name) + basefsName
 		filesystem, err := libvirt.NewVolume(ctx, "filesystem", &libvirt.VolumeArgs{
@@ -107,6 +110,21 @@ func setupLibvirtVM(ctx *pulumi.Context, libvirtUri pulumi.StringOutput, vmset v
 	return nil
 }
 
+func createRunner(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) (*command.Runner, error) {
+	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
+		return command.WaitForCloudInit(e.Ctx, r)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return runner, nil
+}
+
+func createLocalRunner(e aws.Environment) *command.LocalRunner {
+	return command.NewLocalRunner(*e.CommonEnvironment)
+}
+
 func main() {
 	pulumi.Run(func(ctx *pulumi.Context) error {
 		e, err := aws.AWSEnvironment(ctx)
@@ -121,19 +139,18 @@ func main() {
 		}
 
 		instance, conn, err := newMetalInstance(e, ctx.Stack())
-		e.Ctx.Export("instance-ip", instance.PrivateIp)
-		e.Ctx.Export("connection", conn)
-
 		runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
 		})
+		localRunner := command.NewLocalRunner(*e.CommonEnvironment)
 
-		waitFor, err := provisionInstance(runner)
+		waitFor, err := provisionInstance(runner, localRunner, &m)
 		if err != nil {
 			return nil
 		}
 
-		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.PrivateIp, LibvirtPrivateKey)
+		privkey := fmt.Sprintf("%s/%s", m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp"), libvirtSSHPrivateKey)
+		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.PrivateIp, privkey)
 		waitForFs := []pulumi.Resource{}
 		for _, set := range cfg.VMSets {
 			d, err := setupLibvirtFilesystem(set, runner, waitFor)
@@ -146,6 +163,9 @@ func main() {
 		for _, set := range cfg.VMSets {
 			setupLibvirtVM(ctx, url, set, waitForFs)
 		}
+
+		e.Ctx.Export("instance-ip", instance.PrivateIp)
+		e.Ctx.Export("connection", conn)
 
 		return nil
 	})

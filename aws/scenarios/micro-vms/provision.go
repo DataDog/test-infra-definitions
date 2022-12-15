@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/ssh"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/micro-vms/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
@@ -99,12 +100,12 @@ func provisionInstance(runner *command.Runner) ([]pulumi.Resource, error) {
 		return []pulumi.Resource{}, err
 	}
 
-	privKey, pubKey, err := generateSSHKeyPair()
+	privKey, pubKey, err := ssh.GenerateSSHKeyPair()
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	LibvirtPrivateKey, err = writeKeyToTempFile(privKey, "libvirt_rsa")
+	LibvirtPrivateKey, err = ssh.WriteKeyToTempFile(privKey, "libvirt_rsa")
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

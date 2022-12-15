@@ -66,9 +66,13 @@ func createRunner(ctx *pulumi.Context, env aws.Environment, instance *ec2.Instan
 		return remote.ConnectionOutput{}, nil, err
 	}
 
-	runner, err := command.NewRunner(*env.CommonEnvironment, ctx.Stack()+"-conn", connection, func(r *command.Runner) (*remote.Command, error) {
-		return command.WaitForCloudInit(ctx, r)
-	})
+	runner, err := command.NewRunner(
+		*env.CommonEnvironment,
+		env.CommonNamer.ResourceName(ctx.Stack()+"-conn"),
+		connection,
+		func(r *command.Runner) (*remote.Command, error) {
+			return command.WaitForCloudInit(ctx, r)
+		})
 	if err != nil {
 		return remote.ConnectionOutput{}, nil, err
 	}

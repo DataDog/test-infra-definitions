@@ -66,6 +66,8 @@ func generatePoolXML(pool string) (string, error) {
 }
 
 func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner, m *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
+	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
+
 	downloadKernel, err := runner.Command("download-kernel-image", &downloadKernelArgs)
 	aptManager := command.NewAptManager(runner)
 
@@ -89,12 +91,11 @@ func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner,
 		return []pulumi.Resource{}, err
 	}
 
-	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
 	privateKeyPath := filepath.Join(tempDir, libvirtSSHPrivateKey)
 	publicKeyPath := filepath.Join(tempDir, libvirtSSHPublicKey)
 	sshGenArgs := command.CommandArgs{
 		Create: pulumi.String(
-			fmt.Sprintf("ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath),
+			fmt.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath, privateKeyPath, publicKeyPath),
 		),
 		Update: pulumi.String("true"),
 		Delete: pulumi.String(fmt.Sprintf("rm %s && rm %s", privateKeyPath, publicKeyPath)),

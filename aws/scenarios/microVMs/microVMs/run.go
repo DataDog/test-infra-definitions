@@ -26,21 +26,6 @@ func newMetalInstance(e aws.Environment, name string) (*awsEc2.Instance, remote.
 	return awsInstance, conn, err
 }
 
-func createRunner(vm *awsEc2.Instance, conn remote.ConnectionOutput, e aws.Environment) (*command.Runner, error) {
-	runner, err := command.NewRunner(*e.CommonEnvironment, e.Ctx.Stack()+"-conn", conn, func(r *command.Runner) (*remote.Command, error) {
-		return command.WaitForCloudInit(e.Ctx, r)
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return runner, nil
-}
-
-func createLocalRunner(e aws.Environment) *command.LocalRunner {
-	return command.NewLocalRunner(*e.CommonEnvironment)
-}
-
 func Run(ctx *pulumi.Context) error {
 	e, err := aws.AWSEnvironment(ctx)
 	if err != nil {

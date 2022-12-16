@@ -19,9 +19,9 @@ const (
 	ddinfraDefaultVPCIDParamName           = "aws/defaultVPCID"
 	ddinfraDefaultSubnetsParamName         = "aws/defaultSubnets"
 	ddinfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
-	ddinfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
-	ddinfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
-	ddinfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
+	DDInfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
+	DDInfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
+	DDInfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
 	ddinfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
 	ddinfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 
@@ -103,16 +103,16 @@ func (e *Environment) DefaultSecurityGroups() []string {
 }
 
 func (e *Environment) DefaultInstanceType() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
 }
 
 func (e *Environment) DefaultARMInstanceType() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultARMInstanceTypeParamName, e.envDefault.ddInfra.defaultARMInstanceType)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultARMInstanceTypeParamName, e.envDefault.ddInfra.defaultARMInstanceType)
 }
 
 func (e *Environment) DefaultKeyPairName() string {
 	// No default value for keyPair
-	return e.InfraConfig.Require(ddinfraDefaultKeyPairParamName)
+	return e.InfraConfig.Require(DDInfraDefaultKeyPairParamName)
 }
 
 func (e *Environment) DefaultPrivateKeyPath() string {
@@ -190,17 +190,6 @@ func (e *Environment) EKSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
 }
 
-func DefaultInstanceTypeKey() string {
-	return getInfraKey(ddinfraDefaultInstanceTypeParamName)
-}
-
-func DefaultARMInstanceTypeKey() string {
-	return getInfraKey(ddinfraDefaultARMInstanceTypeParamName)
-}
-func DefaultKeyPairNameKey() string {
-	return getInfraKey(ddinfraDefaultKeyPairParamName)
-}
-
-func getInfraKey(keyName string) string {
+func GetInfraKey(keyName string) string {
 	return fmt.Sprintf("%v:%v", config.DDInfraConfigNamespace, keyName)
 }

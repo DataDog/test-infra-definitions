@@ -122,7 +122,7 @@ func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner,
 func downloadRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	downloadRootfsArgs := command.CommandArgs{
 		Create: pulumi.String(
-			fmt.Sprintf("wget -q %s -O /tmp/rootfs.tar.gz", vmset.Img.ImageSourceURI),
+			fmt.Sprintf("wget -q %s -O /tmp/base-volume.tar", vmset.Img.ImageSourceURI),
 		),
 	}
 
@@ -131,12 +131,25 @@ func downloadRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulu
 }
 
 func extractRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	extractRootfsArgs := command.CommandArgs{
+	extractTopLevelArchive := command.CommandArgs{
 		Create: pulumi.String(
-			fmt.Sprintf("tar xzOf /tmp/rootfs.tar.gz > %s", vmset.Img.ImagePath),
+			fmt.Sprintf("tar xf /tmp/base-volume.tar"),
 		),
 	}
-	res, err := runner.Command("extract-rootfs", &extractRootfsArgs, pulumi.DependsOn(depends))
+	res, err := runner.Command("extract-base-volume-package", &extractTopLevelArchive, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	extractRootfsArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf("tar xzOf /tmp/bullseye.qcow2.amd64-0.1-DEV.tar.gz > %s", vmset.Img.ImagePath),
+		),
+	}
+	res, err = runner.Command("extract-rootfs", &extractRootfsArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
 	return []pulumi.Resource{res}, err
 }
 

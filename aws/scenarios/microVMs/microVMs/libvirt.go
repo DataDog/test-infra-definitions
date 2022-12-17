@@ -67,7 +67,6 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 		return err
 	}
 
-	// build parameters for domain
 	var dhcpEntries []string
 	domainParameters := make(map[string]*DomainParameters)
 	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)

@@ -15,8 +15,7 @@ func GetNodeRole(e aws.Environment, name string) (*awsIam.Role, error) {
 	}
 
 	return awsIam.NewRole(e.Ctx, e.Namer.ResourceName(name), &awsIam.RoleArgs{
-		Name:                e.Namer.DisplayName(pulumi.String(name)),
-		NamePrefix:          pulumi.StringPtr(e.Ctx.Stack() + "-" + name),
+		Name:                e.CommonNamer.DisplayName(pulumi.String(name)),
 		Description:         pulumi.StringPtr("Node role for EKS Cluster: " + e.Ctx.Stack()),
 		ForceDetachPolicies: pulumi.BoolPtr(true),
 		ManagedPolicyArns: pulumi.ToStringArray([]string{

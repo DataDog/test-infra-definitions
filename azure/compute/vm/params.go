@@ -1,8 +1,8 @@
-package ec2vm
+package vm
 
 import (
-	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
+	"github.com/DataDog/test-infra-definitions/azure"
+	"github.com/DataDog/test-infra-definitions/azure/compute/os"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/agentinstall"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
@@ -10,14 +10,12 @@ import (
 )
 
 type Params struct {
-	common  *vm.Params[os.OS]
-	keyPair string
+	common *vm.Params[commonos.OS]
 }
 
-func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
+func newParams(env azure.Environment, options ...func(*Params) error) (*Params, error) {
 	params := &Params{
-		keyPair: env.DefaultKeyPairName(),
-		common:  vm.NewParams(os.GetOSes(env)),
+		common: vm.NewParams(os.GetOSes(env)),
 	}
 
 	return common.ApplyOption(params, options)

@@ -91,3 +91,7 @@ func (e *Environment) DefaultPrivateKeyPath() string {
 func (e *Environment) DefaultPrivateKeyPassword() string {
 	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPassword)
 }
+
+func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
+	return e.CommonEnvironment
+}

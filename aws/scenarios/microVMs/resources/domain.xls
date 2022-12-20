@@ -15,6 +15,7 @@
           <source dir='/opt/kernel-headers'/>
           <target dir='kernel-headers'/>
       </filesystem>
+      <readonly/>
       <xsl:copy>
           <xsl:apply-templates select="@*|node()"/>
       </xsl:copy>

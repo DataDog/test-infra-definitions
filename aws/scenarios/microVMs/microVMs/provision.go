@@ -19,7 +19,7 @@ const (
 
 var (
 	downloadKernelArgs = command.CommandArgs{
-		Create: pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/bzImage -O /tmp/bzImage"),
+		Create: pulumi.String("wget -q https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/kernel-packages.tar.gz -O /tmp/kernel-packages.tar.gz"),
 	}
 	disableSELinuxArgs = command.CommandArgs{
 		Create: pulumi.String("sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"),
@@ -31,6 +31,10 @@ var (
 	}
 	poolDefineReadyArgs = command.CommandArgs{
 		Create: pulumi.String("virsh pool-define /tmp/pool.xml"),
+		Sudo:   true,
+	}
+	buildSharedDirArgs = command.CommandArgs{
+		Create: pulumi.String("install -d -m 0777 -o libvirt-qemu -g kvm /opt/kernel-headers"),
 		Sudo:   true,
 	}
 )
@@ -65,13 +69,58 @@ func generatePoolXML(pool string) (string, error) {
 	return fmt.Sprintf(string(xml), pool, path), nil
 }
 
+func downloadAndExtractKernelPackage(runner *command.Runner) ([]pulumi.Resource, error) {
+	downloadKernelPackage, err := runner.Command("download-kernel-image", &downloadKernelArgs)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	extractPackageArgs := command.CommandArgs{
+		Create: pulumi.String("pushd /tmp; tar -xzvf kernel-packages.tar.gz; popd;"),
+	}
+	extractPackageDone, err := runner.Command("extract-kernel-packages", &extractPackageArgs, pulumi.DependsOn([]pulumi.Resource{downloadKernelPackage}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return []pulumi.Resource{extractPackageDone}, nil
+}
+
+func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	permissionFixArgs := command.CommandArgs{
+		Create: pulumi.String("chown -R libvirt-qemu:kvm /tmp/kernel-packages"),
+		Sudo:   true,
+	}
+	permissionFixDone, err := runner.Command("permission-fix-kernel-headers", &permissionFixArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	copyKernelHeadersArgs := command.CommandArgs{
+		Create: pulumi.String("/bin/bash -c \"find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} /opt/kernel-headers && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} /opt/kernel-headers\""),
+		Sudo:   true,
+	}
+	copyKernelHeadersDone, err := runner.Command("copy-kernel-headers", &copyKernelHeadersArgs, pulumi.DependsOn([]pulumi.Resource{permissionFixDone}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return []pulumi.Resource{copyKernelHeadersDone}, nil
+}
+
 func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner, m *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
-	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
+	downloadKernelDone, err := downloadAndExtractKernelPackage(runner)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
 
-	downloadKernel, err := runner.Command("download-kernel-image", &downloadKernelArgs)
 	aptManager := command.NewAptManager(runner)
+	installSocat, err := aptManager.Ensure("socat")
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
 
-	installQemu, err := aptManager.Ensure("qemu-kvm")
+	installQemu, err := aptManager.Ensure("qemu-kvm", pulumi.DependsOn([]pulumi.Resource{installSocat}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -91,6 +140,18 @@ func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner,
 		return []pulumi.Resource{}, err
 	}
 
+	buildSharedDirDone, err := runner.Command("build-kernel-headers-dir", &buildSharedDirArgs, pulumi.DependsOn([]pulumi.Resource{libvirtReady}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	dependencies := append(downloadKernelDone, buildSharedDirDone)
+	copyKernelHeadersDone, err := copyKernelHeaders(runner, dependencies)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
 	privateKeyPath := filepath.Join(tempDir, libvirtSSHPrivateKey)
 	publicKeyPath := filepath.Join(tempDir, libvirtSSHPublicKey)
 	sshGenArgs := command.CommandArgs{
@@ -115,14 +176,14 @@ func provisionInstance(runner *command.Runner, localRunner *command.LocalRunner,
 		return []pulumi.Resource{}, err
 	}
 
-	return []pulumi.Resource{libvirtReady, sshWrite, downloadKernel}, nil
+	return append([]pulumi.Resource{libvirtReady, sshWrite, installSocat}, copyKernelHeadersDone...), nil
 
 }
 
 func downloadRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	downloadRootfsArgs := command.CommandArgs{
 		Create: pulumi.String(
-			fmt.Sprintf("wget -q %s -O /tmp/base-volume.tar", vmset.Img.ImageSourceURI),
+			fmt.Sprintf("wget -q %s -O /tmp/bullseye.qcow2.amd64-0.1-DEV.tar.gz", vmset.Img.ImageSourceURI),
 		),
 	}
 
@@ -133,7 +194,7 @@ func downloadRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulu
 func extractRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	extractTopLevelArchive := command.CommandArgs{
 		Create: pulumi.String(
-			fmt.Sprintf("tar xf /tmp/base-volume.tar"),
+			fmt.Sprintf("pushd /tmp; tar -xzf bullseye.qcow2.amd64-0.1-DEV.tar.gz; popd;"),
 		),
 	}
 	res, err := runner.Command("extract-base-volume-package", &extractTopLevelArchive, pulumi.DependsOn(depends))
@@ -141,15 +202,6 @@ func extractRootfs(vmset vmconfig.VMSet, runner *command.Runner, depends []pulum
 		return []pulumi.Resource{}, err
 	}
 
-	extractRootfsArgs := command.CommandArgs{
-		Create: pulumi.String(
-			fmt.Sprintf("tar xzOf /tmp/bullseye.qcow2.amd64-0.1-DEV.tar.gz > %s", vmset.Img.ImagePath),
-		),
-	}
-	res, err = runner.Command("extract-rootfs", &extractRootfsArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
 	return []pulumi.Resource{res}, err
 }
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
@@ -14,8 +15,9 @@ import (
 )
 
 const (
-	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
-	microVMGroupSubnet  = "169.254.0.0/16"
+	dhcpEntriesTemplate   = "<host mac='%s' name='%s' ip='%s'/>"
+	microVMGroupSubnet    = "169.254.0.0/16"
+	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
 
 var subnetGroupMask = net.IPv4Mask(255, 255, 255, 0)
@@ -53,6 +55,7 @@ func generateNewUnicastMac() (string, error) {
 }
 
 func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulumi.StringOutput, vmset vmconfig.VMSet, waitForList []pulumi.Resource) error {
+	var domainDependencies []pulumi.Resource
 	baseVolumeId := generatePoolPath(vmset.Name) + basefsName
 
 	provider, err := libvirt.NewProvider(ctx, "provider", &libvirt.ProviderArgs{
@@ -96,11 +99,24 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 			return err
 		}
 
+		// build domain sockets for fetching logs
+		createDomainSocketArgs := command.CommandArgs{
+			Create: pulumi.String(
+				fmt.Sprintf(domainSocketCreateCmd, kernel.Tag, kernel.Tag),
+			),
+		}
+		createDomainSocketDone, err := runner.Command("create-domain-socket-"+kernel.Tag, &createDomainSocketArgs)
+		if err != nil {
+			return err
+		}
+		domainDependencies = append(domainDependencies, createDomainSocketDone)
+
 		params.domainName = fmt.Sprintf("ddvm-custom-%s", kernel.Tag)
-		params.xls = fmt.Sprintf(string(domainXls), params.domainName, mac)
+		params.xls = fmt.Sprintf(string(domainXls), params.domainName, kernel.Tag, mac)
 		domainParameters[kernel.Tag] = &params
 
 		dhcpEntries = append(dhcpEntries, fmt.Sprintf(dhcpEntriesTemplate, mac, params.domainName, params.ip))
+
 	}
 
 	netXMLTemplate, err := os.ReadFile("resources/network.xls")
@@ -142,7 +158,9 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 					WaitForLease: pulumi.Bool(false),
 				},
 			},
-			Kernel: pulumi.String(kernel.Dir),
+			Kernel: pulumi.String(
+				filepath.Join(kernel.Dir, "bzImage"),
+			),
 			Cmdlines: pulumi.MapArray{
 				pulumi.Map{"console": pulumi.String("ttyS0")},
 				pulumi.Map{"acpi": pulumi.String("off")},
@@ -157,7 +175,7 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 				Xslt: pulumi.String(domainParams.xls),
 			},
 			// delete existing VM before creating replacement to avoid two VMs trying to use the same volume
-		}, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
+		}, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(domainDependencies))
 		if err != nil {
 			return err
 		}

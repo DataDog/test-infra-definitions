@@ -12,15 +12,6 @@ type OS interface {
 	GetTenancy() string
 }
 
-func GetOS(env aws.Environment, osType os.OSType) OS {
-	switch osType {
-	case os.WindowsOS:
-		return newWindows(env)
-	case os.UbuntuOS:
-		return newUbuntu(env)
-	case os.MacosOS:
-		return newMacOS(env)
-	default:
-		panic("OS not supported")
-	}
+func GetOSes(env aws.Environment) []OS {
+	return []OS{newWindows(env), newUbuntu(env), newMacOS(env)}
 }

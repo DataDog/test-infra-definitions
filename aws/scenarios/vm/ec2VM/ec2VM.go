@@ -32,23 +32,23 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2VM, erro
 		e,
 		e.CommonNamer.ResourceName(params.common.GetInstanceNameOrDefault("ec2-instance")),
 		params.common.ImageName,
-		params.common.Os.GetAMIArch(params.common.Arch),
+		params.common.OS.GetAMIArch(params.common.Arch),
 		params.common.InstanceType,
 		params.keyPair,
 		params.common.UserData,
-		params.common.Os.GetTenancy())
+		params.common.OS.GetTenancy())
 
 	if err != nil {
 		return nil, err
 	}
 
-	connection, runner, err := createRunner(ctx, e, instance, params.common.Os)
+	connection, runner, err := createRunner(ctx, e, instance, params.common.OS)
 	if err != nil {
 		return nil, err
 	}
 
 	if params.common.OptionalAgentInstallParams != nil {
-		agentinstall.Install(runner, e.CommonNamer, params.common.OptionalAgentInstallParams, params.common.Os)
+		agentinstall.Install(runner, e.CommonNamer, params.common.OptionalAgentInstallParams, params.common.OS)
 	}
 	e.Ctx.Export("instance-ip", instance.PrivateIp)
 	e.Ctx.Export("connection", connection)

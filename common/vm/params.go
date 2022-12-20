@@ -12,15 +12,22 @@ type Params[OS os.OS] struct {
 	ImageName                  string
 	InstanceType               string
 	UserData                   string
-	Os                         OS
+	OS                         OS
 	Arch                       os.Architecture
 	OptionalAgentInstallParams *agentinstall.Params
-	osFactory                  func(os.OSType) OS
+	osFactory                  func(os.OSType) (*OS, error)
 }
 
-func NewParams[OS os.OS](osFactory func(os.OSType) OS) *Params[OS] {
+func NewParams[OS os.OS](oses []OS) *Params[OS] {
 	params := &Params[OS]{
-		osFactory: osFactory,
+		osFactory: func(osType os.OSType) (*OS, error) {
+			for _, os := range oses {
+				if os.GetOSType() == osType {
+					return &os, nil
+				}
+			}
+			return nil, fmt.Errorf("%v is not suppported on this environment", osType)
+		},
 	}
 
 	// By default use Ubuntu
@@ -42,13 +49,14 @@ func (p *Params[OS]) SetName(name string) error {
 
 // SetOS sets the instance type and the AMI.
 func (p *Params[OS]) SetOS(osType os.OSType, arch os.Architecture) error {
-	var err error
-	var os = p.osFactory(osType)
-
-	p.InstanceType = os.GetDefaultInstanceType(arch)
+	os, err := p.osFactory(osType)
+	if err != nil {
+		return err
+	}
+	p.OS = *os
+	p.InstanceType = p.OS.GetDefaultInstanceType(arch)
 	p.Arch = arch
-	p.Os = os
-	p.ImageName, err = os.GetImage(arch)
+	p.ImageName, err = p.OS.GetImage(arch)
 	if err != nil {
 		return fmt.Errorf("cannot find image for %v (%v): %v", osType, arch, err)
 	}
@@ -59,7 +67,11 @@ func (p *Params[OS]) SetOS(osType os.OSType, arch os.Architecture) error {
 // SetImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
 func (p *Params[OS]) SetImage(imageName string, arch os.Architecture, osType os.OSType) error {
 	p.ImageName = imageName
-	p.Os = p.osFactory(osType)
+	os, err := p.osFactory(osType)
+	if err != nil {
+		return err
+	}
+	p.OS = *os
 	p.Arch = arch
 	return nil
 }

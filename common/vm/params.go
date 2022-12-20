@@ -31,7 +31,8 @@ func NewParams[OS os.OS](oses []OS) *Params[OS] {
 	}
 
 	// By default use Ubuntu
-	params.SetOS(os.UbuntuOS, os.AMD64Arch)
+	params.setOS(os.UbuntuOS, os.AMD64Arch)
+
 	return params
 }
 
@@ -42,13 +43,28 @@ func (p *Params[OS]) GetInstanceNameOrDefault(defaultName string) string {
 	return p.instanceName
 }
 
-func (p *Params[OS]) SetName(name string) error {
-	p.instanceName = name
-	return nil
+type ParamsGetter[OS os.OS] interface {
+	GetCommonParams() *Params[OS]
 }
 
-// SetOS sets the instance type and the AMI.
-func (p *Params[OS]) SetOS(osType os.OSType, arch os.Architecture) error {
+func WithName[OS os.OS, P ParamsGetter[OS]](name string) func(P) error {
+	return func(params P) error {
+		p := params.GetCommonParams()
+		p.instanceName = name
+		return nil
+	}
+}
+
+// WithOS sets the instance type and the AMI.
+func WithOS[OS os.OS, P ParamsGetter[OS]](osType os.OSType, arch os.Architecture) func(P) error {
+	return func(params P) error {
+		p := params.GetCommonParams()
+		p.setOS(osType, arch)
+		return nil
+	}
+}
+
+func (p *Params[OS]) setOS(osType os.OSType, arch os.Architecture) error {
 	os, err := p.osFactory(osType)
 	if err != nil {
 		return err
@@ -64,33 +80,45 @@ func (p *Params[OS]) SetOS(osType os.OSType, arch os.Architecture) error {
 	return nil
 }
 
-// SetImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-func (p *Params[OS]) SetImage(imageName string, arch os.Architecture, osType os.OSType) error {
-	p.ImageName = imageName
-	os, err := p.osFactory(osType)
-	if err != nil {
+// WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
+func WithImageName[OS os.OS, P ParamsGetter[OS]](imageName string, arch os.Architecture, osType os.OSType) func(P) error {
+	return func(params P) error {
+		p := params.GetCommonParams()
+		p.ImageName = imageName
+		os, err := p.osFactory(osType)
+		if err != nil {
+			return err
+		}
+		p.OS = *os
+		p.Arch = arch
+		return nil
+	}
+}
+
+// WithInstanceType set the instance type
+func WithInstanceType[OS os.OS, P ParamsGetter[OS]](instanceType string) func(P) error {
+	return func(params P) error {
+		p := params.GetCommonParams()
+		p.InstanceType = instanceType
+		return nil
+	}
+}
+
+// WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
+func WithUserData[OS os.OS, P ParamsGetter[OS]](userData string) func(P) error {
+	return func(params P) error {
+		p := params.GetCommonParams()
+		p.UserData = userData
+		return nil
+	}
+}
+
+// WithHostAgent installs an Agent on this EC2 instance. By default use with agentinstall.WithLatest().
+func WithHostAgent[OS os.OS, P ParamsGetter[OS]](apiKey string, options ...func(*agentinstall.Params) error) func(P) error {
+	return func(params P) error {
+		p := params.GetCommonParams()
+		var err error
+		p.OptionalAgentInstallParams, err = agentinstall.NewParams(apiKey, options...)
 		return err
 	}
-	p.OS = *os
-	p.Arch = arch
-	return nil
-}
-
-// SetInstanceType set the instance type
-func (p *Params[OS]) SetInstanceType(instanceType string) error {
-	p.InstanceType = instanceType
-	return nil
-}
-
-// SetUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
-func (p *Params[OS]) SetUserData(userData string) error {
-	p.UserData = userData
-	return nil
-}
-
-// SetHostAgent installs an Agent on this EC2 instance. By default use with agentinstall.WithLatest().
-func (p *Params[OS]) SetHostAgent(apiKey string, options ...func(*agentinstall.Params) error) error {
-	var err error
-	p.OptionalAgentInstallParams, err = agentinstall.NewParams(apiKey, options...)
-	return err
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/azure"
 	"github.com/DataDog/test-infra-definitions/azure/compute/os"
 	"github.com/DataDog/test-infra-definitions/common"
-	"github.com/DataDog/test-infra-definitions/common/agentinstall"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 )
@@ -21,32 +20,24 @@ func newParams(env azure.Environment, options ...func(*Params) error) (*Params, 
 	return common.ApplyOption(params, options)
 }
 
-// WithOS sets the instance type and the AMI.
-func WithOS(osType commonos.OSType, arch commonos.Architecture) func(*Params) error {
-	return func(p *Params) error { return p.common.SetOS(osType, arch) }
+func (p *Params) GetCommonParams() *vm.Params[commonos.OS] {
+	return p.common
 }
+
+// WithOS sets the instance type and the AMI.
+var WithOS = vm.WithOS[commonos.OS, *Params]
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-func WithImageName(imageName string, arch commonos.Architecture, osType commonos.OSType) func(*Params) error {
-	return func(p *Params) error { return p.common.SetImage(imageName, arch, osType) }
-}
+var WithImageName = vm.WithImageName[commonos.OS, *Params]
 
 // WithInstanceType set the instance type
-func WithInstanceType(instanceType string) func(*Params) error {
-	return func(p *Params) error { return p.common.SetInstanceType(instanceType) }
-}
+var WithInstanceType = vm.WithInstanceType[commonos.OS, *Params]
 
 // WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
-func WithUserData(userData string) func(*Params) error {
-	return func(p *Params) error { return p.common.SetUserData(userData) }
-}
+var WithUserData = vm.WithUserData[commonos.OS, *Params]
 
 // WithHostAgent installs an Agent on this EC2 instance. By default use with agentinstall.WithLatest().
-func WithHostAgent(apiKey string, options ...func(*agentinstall.Params) error) func(*Params) error {
-	return func(p *Params) error { return p.common.SetHostAgent(apiKey, options...) }
-}
+var WithHostAgent = vm.WithHostAgent[commonos.OS, *Params]
 
 // WithName set the VM name
-func WithName(name string) func(*Params) error {
-	return func(p *Params) error { return p.common.SetName(name) }
-}
+var WithName = vm.WithName[commonos.OS, *Params]

@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -23,7 +23,7 @@ type DockerComposeInlineManifest struct {
 }
 
 type DockerManager struct {
-	namer       common.Namer
+	namer       namer.Namer
 	runner      *Runner
 	fileManager *FileManager
 	pm          PackageManager
@@ -31,7 +31,7 @@ type DockerManager struct {
 
 func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerManager {
 	return &DockerManager{
-		namer:       common.NewNamer(runner.e.Ctx, "docker"),
+		namer:       namer.NewNamer(runner.e.Ctx, "docker"),
 		runner:      runner,
 		fileManager: NewFileManager(runner),
 		pm:          packageManager,

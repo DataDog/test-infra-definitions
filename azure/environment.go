@@ -1,8 +1,8 @@
 package azure
 
 import (
-	"github.com/DataDog/test-infra-definitions/common"
 	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 
 	sdkazure "github.com/pulumi/pulumi-azure-native-sdk"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -28,7 +28,7 @@ type Environment struct {
 	*config.CommonEnvironment
 
 	Provider *sdkazure.Provider
-	Namer    common.Namer
+	Namer    namer.Namer
 
 	envDefault environmentDefault
 }
@@ -38,7 +38,7 @@ func AzureEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	env := Environment{
 		CommonEnvironment: &commonEnv,
-		Namer:             common.NewNamer(ctx, azNamerNamespace),
+		Namer:             namer.NewNamer(ctx, azNamerNamespace),
 		envDefault:        getEnvironmentDefault(commonEnv.InfraEnvironmentName()),
 	}
 

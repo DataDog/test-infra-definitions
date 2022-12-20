@@ -7,7 +7,7 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -33,7 +33,7 @@ type CommonEnvironment struct {
 	Ctx         *pulumi.Context
 	InfraConfig *sdkconfig.Config
 	AgentConfig *sdkconfig.Config
-	CommonNamer common.Namer
+	CommonNamer namer.Namer
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
@@ -41,7 +41,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 		Ctx:         ctx,
 		InfraConfig: sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig: sdkconfig.New(ctx, ddAgentConfigNamespace),
-		CommonNamer: common.NewNamer(ctx, ""),
+		CommonNamer: namer.NewNamer(ctx, ""),
 	}
 }
 

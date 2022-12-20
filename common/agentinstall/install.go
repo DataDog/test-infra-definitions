@@ -4,13 +4,13 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func Install(runner *command.Runner, commonNamer common.Namer, params *Params, os os.OS) error {
+func Install(runner *command.Runner, commonNamer namer.Namer, params *Params, os os.OS) error {
 	cmd := getInstallFormatString(os.GetOSType(), params.version)
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),

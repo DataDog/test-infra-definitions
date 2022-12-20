@@ -1,10 +1,10 @@
 package os
 
-import "github.com/DataDog/test-infra-definitions/common"
+import "github.com/DataDog/test-infra-definitions/common/config"
 
 type Ubuntu struct{ unix }
 
-func NewUbuntu(env common.Environment) *Ubuntu {
+func NewUbuntu(env config.Environment) *Ubuntu {
 	return &Ubuntu{
 		unix: unix{env: env},
 	}

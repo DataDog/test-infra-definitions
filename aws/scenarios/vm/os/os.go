@@ -7,7 +7,6 @@ import (
 
 type OS interface {
 	os.OS
-	GetSSHUser() string
 	GetAMIArch(arch os.Architecture) string
 	GetTenancy() string
 }

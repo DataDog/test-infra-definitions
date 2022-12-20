@@ -136,3 +136,11 @@ func (e *CommonEnvironment) GetObjectWithDefault(config *sdkconfig.Config, param
 
 	return defaultValue
 }
+
+type Environment interface {
+	DefaultInstanceType() string
+	DefaultARMInstanceType() string
+	GetCommonEnvironment() *CommonEnvironment
+	DefaultPrivateKeyPath() string
+	DefaultPrivateKeyPassword() string
+}

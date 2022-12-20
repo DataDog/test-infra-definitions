@@ -1,12 +1,12 @@
 package os
 
-import "github.com/DataDog/test-infra-definitions/common"
+import "github.com/DataDog/test-infra-definitions/common/config"
 
 type Windows struct {
-	env common.Environment
+	env config.Environment
 }
 
-func NewWindows(env common.Environment) *Windows {
+func NewWindows(env config.Environment) *Windows {
 	return &Windows{
 		env: env,
 	}

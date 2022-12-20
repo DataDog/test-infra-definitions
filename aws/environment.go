@@ -190,6 +190,10 @@ func (e *Environment) EKSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
 }
 
+func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
+	return e.CommonEnvironment
+}
+
 func GetInfraKey(keyName string) string {
 	return fmt.Sprintf("%v:%v", config.DDInfraConfigNamespace, keyName)
 }

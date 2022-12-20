@@ -20,5 +20,6 @@ type OS interface {
 	GetDefaultInstanceType(Architecture) string
 	GetServiceManager() *serviceManager
 	GetConfigPath() string
+	GetSSHUser() string
 	GetOSType() OSType
 }

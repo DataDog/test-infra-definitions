@@ -1,11 +1,9 @@
 package os
 
-import (
-	"github.com/DataDog/test-infra-definitions/common"
-)
+import "github.com/DataDog/test-infra-definitions/common/config"
 
 type unix struct {
-	env common.Environment
+	env config.Environment
 }
 
 func (u *unix) GetDefaultInstanceType(arch Architecture) string {
@@ -13,7 +11,7 @@ func (u *unix) GetDefaultInstanceType(arch Architecture) string {
 }
 func (*unix) GetConfigPath() string { return "/etc/datadog-agent/datadog.yaml" }
 
-func getDefaultInstanceType(env common.Environment, arch Architecture) string {
+func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	switch arch {
 	case AMD64Arch:
 		return env.DefaultInstanceType()

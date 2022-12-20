@@ -3,17 +3,17 @@ package agentinstall
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
 	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func Install(runner *command.Runner, env aws.Environment, params *Params, os os.OS) error {
+func Install(runner *command.Runner, commonNamer common.Namer, params *Params, os os.OS) error {
 	cmd := getInstallFormatString(os.GetOSType(), params.version)
 	lastCommand, err := runner.Command(
-		env.CommonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
+		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
 		&command.CommandArgs{
 			Create: pulumi.Sprintf(cmd, params.apiKey),
 		})
@@ -34,7 +34,7 @@ func Install(runner *command.Runner, env aws.Environment, params *Params, os os.
 	// When the file content has changed, make sure the Agent is restarted.
 	serviceManager := os.GetServiceManager()
 	for _, cmd := range serviceManager.RestartAgentCmd() {
-		restartAgentRes := env.CommonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig))
+		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig))
 		_, err = runner.Command(
 			restartAgentRes,
 			&command.CommandArgs{
@@ -48,7 +48,7 @@ func getInstallFormatString(osType os.OSType, version version) string {
 	switch osType {
 	case os.UbuntuOS:
 		return getUnixInstallFormatString("install_script.sh", version)
-	case os.MacOS:
+	case os.MacosOS:
 		return getUnixInstallFormatString("install_mac_os.sh", version)
 	default:
 		panic("Not implemented")

@@ -3,9 +3,9 @@ package ec2vm
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	awsEc2 "github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/agentinstall"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
 	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common/agentinstall"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -28,31 +28,27 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2VM, erro
 		return nil, err
 	}
 
-	resourceName := params.name
-	if resourceName == "" {
-		resourceName = e.CommonNamer.ResourceName("ec2-instance")
-	}
 	instance, err := awsEc2.NewEC2Instance(
 		e,
-		resourceName,
-		params.ami,
-		params.os.GetAMIArch(params.arch),
-		params.instanceType,
+		e.CommonNamer.ResourceName(params.common.GetInstanceNameOrDefault("ec2-instance")),
+		params.common.ImageName,
+		params.common.Os.GetAMIArch(params.common.Arch),
+		params.common.InstanceType,
 		params.keyPair,
-		params.userData,
-		params.os.GetTenancy())
+		params.common.UserData,
+		params.common.Os.GetTenancy())
 
 	if err != nil {
 		return nil, err
 	}
 
-	connection, runner, err := createRunner(ctx, e, instance, params.os)
+	connection, runner, err := createRunner(ctx, e, instance, params.common.Os)
 	if err != nil {
 		return nil, err
 	}
 
-	if params.optionalAgentInstallParams != nil {
-		agentinstall.Install(runner, e, params.optionalAgentInstallParams, params.os)
+	if params.common.OptionalAgentInstallParams != nil {
+		agentinstall.Install(runner, e.CommonNamer, params.common.OptionalAgentInstallParams, params.common.Os)
 	}
 	e.Ctx.Export("instance-ip", instance.PrivateIp)
 	e.Ctx.Export("connection", connection)

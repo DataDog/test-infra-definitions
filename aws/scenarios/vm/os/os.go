@@ -2,42 +2,24 @@ package os
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
-)
-
-type Architecture string
-
-const (
-	AMD64Arch = Architecture("x86_64")
-	ARM64Arch = Architecture("arm64")
-)
-
-type OSType int
-
-const (
-	WindowsOS OSType = iota
-	UbuntuOS         = iota
-	MacOS            = iota
+	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
 type OS interface {
+	os.OS
 	GetSSHUser() string
-	GetAMI(Architecture) (string, error)
-	GetAMIArch(arch Architecture) string
-	GetDefaultInstanceType(Architecture) string
-	GetServiceManager() *serviceManager
+	GetAMIArch(arch os.Architecture) string
 	GetTenancy() string
-	GetConfigPath() string
-	GetOSType() OSType
 }
 
-func GetOS(env aws.Environment, os OSType) OS {
-	switch os {
-	case WindowsOS:
-		return &windows{env: env}
-	case UbuntuOS:
-		return &ubuntu{unix: unix{env: env}}
-	case MacOS:
-		return &macOS{}
+func GetOS(env aws.Environment, osType os.OSType) OS {
+	switch osType {
+	case os.WindowsOS:
+		return newWindows(env)
+	case os.UbuntuOS:
+		return newUbuntu(env)
+	case os.MacosOS:
+		return newMacOS(env)
 	default:
 		panic("OS not supported")
 	}

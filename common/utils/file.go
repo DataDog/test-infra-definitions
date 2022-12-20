@@ -17,6 +17,10 @@ func ReadSecretFile(filePath string) (pulumi.StringOutput, error) {
 	return s, nil
 }
 
-func WriteStringCommand(filePath string) pulumi.StringInput {
-	return pulumi.Sprintf(`cat - > %s`, filePath)
+func WriteStringCommand(filePath string, useSudo bool) pulumi.StringInput {
+	sudo := ""
+	if useSudo {
+		sudo = "sudo"
+	}
+	return pulumi.Sprintf(`cat - | %s tee %s > /dev/null`, sudo, filePath)
 }

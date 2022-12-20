@@ -55,7 +55,7 @@ func NewVM(ctx *pulumi.Context) (*VM, error) {
 }
 
 func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.Instance, remote.ConnectionOutput, error) {
-	awsInstance, err := NewEC2Instance(e, name, "", AMD64Arch, instanceType, e.DefaultKeyPairName(), "")
+	awsInstance, err := NewEC2Instance(e, name, "", AMD64Arch, instanceType, e.DefaultKeyPairName(), "", "default")
 	if err != nil {
 		return nil, remote.ConnectionOutput{}, err
 	}
@@ -70,7 +70,7 @@ func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.I
 	return awsInstance, connection.ToConnectionOutput(), nil
 }
 
-func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData string) (*ec2.Instance, error) {
+func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*ec2.Instance, error) {
 	var err error
 	if ami == "" {
 		ami, err = LatestUbuntuAMI(e, arch)
@@ -86,6 +86,7 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),
 		UserData:            pulumi.StringPtr(userData),
+		Tenancy:             pulumi.StringPtr(tenancy),
 		Tags: pulumi.StringMap{
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},

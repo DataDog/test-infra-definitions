@@ -18,8 +18,12 @@
                 {
                     "dir": "/tmp/kernel-packages/kernel-5.18.19.pkg",
                     "tag": "5.18.19"
+                },
+                {
+                    "dir": "/tmp/kernel-packages/kernel-4.4.302.pkg",
+                    "tag": "4.4.302"
                 }
-             ],
+            ],
             "vcpu": [4],
             "memory": [4096],
             "image": {

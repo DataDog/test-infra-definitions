@@ -2,20 +2,22 @@ package agentinstall
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func Install(runner *command.Runner, commonNamer namer.Namer, params *Params, os os.OS) error {
+func Install(runner *command.Runner, env *config.CommonEnvironment, params *Params, os os.OS) error {
 	cmd := getInstallFormatString(os.GetOSType(), params.version)
+	commonNamer := env.CommonNamer
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
 		&command.CommandArgs{
-			Create: pulumi.Sprintf(cmd, params.apiKey),
+			Create: pulumi.Sprintf(cmd, env.AgentAPIKey()),
 		})
 	if err != nil {
 		return err
@@ -24,7 +26,11 @@ func Install(runner *command.Runner, commonNamer namer.Namer, params *Params, os
 	if params.agentConfig != "" {
 		fileManager := command.NewFileManager(runner)
 		remotePath := os.GetConfigPath()
-		lastCommand, err = fileManager.CopyInlineFile("agent-config", pulumi.String(params.agentConfig), remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+		agentConfig := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
+			config := strings.ReplaceAll(params.agentConfig, "{{API_KEY}}", apiKey)
+			return pulumi.String(config)
+		}).(pulumi.StringInput)
+		lastCommand, err = fileManager.CopyInlineFile("agent-config", agentConfig, remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 		if err != nil {
 			return err
 		}

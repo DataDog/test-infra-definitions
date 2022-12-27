@@ -8,15 +8,12 @@ import (
 )
 
 type Params struct {
-	apiKey      string
 	version     version
 	agentConfig string
 }
 
-func NewParams(apiKey string, options ...func(*Params) error) (*Params, error) {
-	params := &Params{
-		apiKey: apiKey,
-	}
+func NewParams(options ...func(*Params) error) (*Params, error) {
+	params := &Params{}
 	options = append([]func(*Params) error{WithLatest()}, options...)
 	return common.ApplyOption(params, options)
 }
@@ -55,7 +52,7 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-// WithAgentConfig sets the configuration of the Agent.
+// WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.agentConfig = config

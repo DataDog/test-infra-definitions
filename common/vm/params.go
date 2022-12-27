@@ -114,11 +114,11 @@ func WithUserData[OS os.OS, P ParamsGetter[OS]](userData string) func(P) error {
 }
 
 // WithHostAgent installs an Agent on this EC2 instance. By default use with agentinstall.WithLatest().
-func WithHostAgent[OS os.OS, P ParamsGetter[OS]](apiKey string, options ...func(*agentinstall.Params) error) func(P) error {
+func WithHostAgent[OS os.OS, P ParamsGetter[OS]](options ...func(*agentinstall.Params) error) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
 		var err error
-		p.OptionalAgentInstallParams, err = agentinstall.NewParams(apiKey, options...)
+		p.OptionalAgentInstallParams, err = agentinstall.NewParams(options...)
 		return err
 	}
 }

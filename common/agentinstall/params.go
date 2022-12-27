@@ -27,7 +27,7 @@ func WithLatest() func(*Params) error {
 	}
 }
 
-// WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0-rc.7`
+// WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0~rc.7-1
 func WithVersion(version string) func(*Params) error {
 	return func(p *Params) error {
 		prefix := "7."
@@ -43,11 +43,7 @@ func WithVersion(version string) func(*Params) error {
 		}
 
 		p.version.minor = strings.TrimPrefix(version, prefix)
-		p.version.betaChannel = strings.Contains(version, "-")
-		if p.version.betaChannel {
-			// Update from `7.41.0-rc.7` to `7.41.0~rc.7-1
-			p.version.minor = strings.ReplaceAll(p.version.minor, "-", "~") + "-1"
-		}
+		p.version.betaChannel = strings.Contains(version, "~")
 		return nil
 	}
 }

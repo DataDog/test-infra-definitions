@@ -62,7 +62,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	for _, set := range cfg.VMSets {
-		setupLibvirtVM(ctx, runner, url, set, waitForFs)
+		setupLibvirtVM(ctx, runner, url, &set, waitForFs)
 	}
 
 	e.Ctx.Export("instance-ip", instance.PrivateIp)

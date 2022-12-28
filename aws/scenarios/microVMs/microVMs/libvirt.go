@@ -2,6 +2,7 @@ package microVMs
 
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -38,6 +40,10 @@ type DomainParameters struct {
 	ip           string
 	xls          string
 	domainName   string
+	vcpu         int
+	memory       int
+	dhcpEntry    string
+	kernel       vmconfig.Kernel
 }
 
 func getNextVMSubnet(ip net.IP) net.IP {
@@ -61,64 +67,88 @@ func generateNewUnicastMac() (string, error) {
 	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]), nil
 }
 
-func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulumi.StringOutput, vmset vmconfig.VMSet, waitForList []pulumi.Resource) error {
-	var domainDependencies []pulumi.Resource
-	baseVolumeId := generatePoolPath(vmset.Name) + basefsName
+func generateDomainIdentifier(vcpu, memory int, tag string) string {
+	return fmt.Sprintf("tag-%s-cpu-%d-mem-%d", tag, vcpu, memory)
+}
 
-	provider, err := libvirt.NewProvider(ctx, "provider", &libvirt.ProviderArgs{
-		Uri: libvirtUri,
-	}, pulumi.DependsOn(waitForList))
+func buildDomainSocket(runner *command.Runner, id string) (*remote.Command, error) {
+	// build domain sockets for fetching logs
+	createDomainSocketArgs := command.CommandArgs{
+		Create: pulumi.String(
+			fmt.Sprintf(domainSocketCreateCmd, id, id),
+		),
+	}
+	createDomainSocketDone, err := runner.Command("create-domain-socket-"+id, &createDomainSocketArgs)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	var dhcpEntries []string
+	return createDomainSocketDone, nil
+}
+
+func buildDomainParameters(ctx *pulumi.Context, provider *libvirt.Provider, runner *command.Runner, vmset *vmconfig.VMSet) (map[string]*DomainParameters, []pulumi.Resource, error) {
+	baseVolumeId := generatePoolPath(vmset.Name) + basefsName
 	domainParameters := make(map[string]*DomainParameters)
+	var domainDependencies []pulumi.Resource
+
+	if len(vmset.Kernels)*len(vmset.Memory)*len(vmset.VCpu) > 255 {
+		return domainParameters, []pulumi.Resource{}, errors.New("matrix of length greater than 255 not currently supported")
+	}
 	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
-	for _, kernel := range vmset.Kernels {
-		params := DomainParameters{}
 
-		if _, ok := domainParameters[kernel.Tag]; ok {
-			return fmt.Errorf("duplicate kernel tag: %s", kernel.Tag)
+	for _, vcpu := range vmset.VCpu {
+		for _, memory := range vmset.Memory {
+			for _, kernel := range vmset.Kernels {
+				id := generateDomainIdentifier(vcpu, memory, kernel.Tag)
+				params := DomainParameters{}
+
+				if _, ok := domainParameters[id]; ok {
+					return domainParameters, []pulumi.Resource{}, fmt.Errorf("duplicate domain: %s", id)
+				}
+
+				// Use base volume to generate new filesystem
+				filesystem, err := libvirt.NewVolume(ctx, "filesystem-"+id, &libvirt.VolumeArgs{
+					BaseVolumeId: pulumi.String(baseVolumeId),
+					Pool:         pulumi.String(vmset.Name),
+					Format:       pulumi.String("qcow2"),
+				}, pulumi.Provider(provider))
+				if err != nil {
+					return domainParameters, []pulumi.Resource{}, err
+				}
+
+				ip = getNextVMSubnet(ip)
+
+				params.filesystemID = filesystem.ID()
+				params.ip = ip.String()
+				mac, err := generateNewUnicastMac()
+				if err != nil {
+					return domainParameters, []pulumi.Resource{}, err
+				}
+
+				createDomainSocketDone, err := buildDomainSocket(runner, id)
+				if err != nil {
+					return domainParameters, []pulumi.Resource{}, err
+				}
+				domainDependencies = append(domainDependencies, createDomainSocketDone)
+
+				params.domainName = fmt.Sprintf("ddvm-custom-%s", id)
+				params.xls = fmt.Sprintf(string(domainXLS), params.domainName, sharedFSMountPoint, id, mac)
+				params.dhcpEntry = fmt.Sprintf(dhcpEntriesTemplate, mac, params.domainName, params.ip)
+				params.kernel = kernel
+				params.vcpu = vcpu
+				params.memory = memory
+				domainParameters[id] = &params
+			}
 		}
+	}
 
-		// Use base volume to generate new filesystem
-		filesystem, err := libvirt.NewVolume(ctx, "filesystem-"+kernel.Tag, &libvirt.VolumeArgs{
-			BaseVolumeId: pulumi.String(baseVolumeId),
-			Pool:         pulumi.String(vmset.Name),
-			Format:       pulumi.String("qcow2"),
-		}, pulumi.Provider(provider), pulumi.DependsOn(waitForList))
-		if err != nil {
-			return err
-		}
+	return domainParameters, domainDependencies, nil
+}
 
-		ip = getNextVMSubnet(ip)
-
-		params.filesystemID = filesystem.ID()
-		params.ip = ip.String()
-		mac, err := generateNewUnicastMac()
-		if err != nil {
-			return err
-		}
-
-		// build domain sockets for fetching logs
-		createDomainSocketArgs := command.CommandArgs{
-			Create: pulumi.String(
-				fmt.Sprintf(domainSocketCreateCmd, kernel.Tag, kernel.Tag),
-			),
-		}
-		createDomainSocketDone, err := runner.Command("create-domain-socket-"+kernel.Tag, &createDomainSocketArgs)
-		if err != nil {
-			return err
-		}
-		domainDependencies = append(domainDependencies, createDomainSocketDone)
-
-		params.domainName = fmt.Sprintf("ddvm-custom-%s", kernel.Tag)
-		params.xls = fmt.Sprintf(string(domainXLS), params.domainName, sharedFSMountPoint, kernel.Tag, mac)
-		domainParameters[kernel.Tag] = &params
-
-		dhcpEntries = append(dhcpEntries, fmt.Sprintf(dhcpEntriesTemplate, mac, params.domainName, params.ip))
-
+func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, domainParameters map[string]*DomainParameters) (*libvirt.Network, error) {
+	var dhcpEntries []string
+	for _, params := range domainParameters {
+		dhcpEntries = append(dhcpEntries, params.dhcpEntry)
 	}
 
 	netXML := fmt.Sprintf(string(netXMLTemplate), strings.Join(dhcpEntries[:], ""))
@@ -128,16 +158,32 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 		Xml:       libvirt.NetworkXmlArgs{pulumi.String(netXML)},
 	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true))
 	if err != nil {
+		return nil, err
+	}
+
+	return network, nil
+}
+
+func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulumi.StringOutput, vmset *vmconfig.VMSet, waitForList []pulumi.Resource) error {
+	provider, err := libvirt.NewProvider(ctx, "provider", &libvirt.ProviderArgs{
+		Uri: libvirtUri,
+	}, pulumi.DependsOn(waitForList))
+	if err != nil {
 		return err
 	}
 
-	for _, kernel := range vmset.Kernels {
-		domainParams, ok := domainParameters[kernel.Tag]
-		if !ok {
-			return fmt.Errorf("missing parameters for domain %s", kernel.Tag)
-		}
+	domainParameters, domainDependencies, err := buildDomainParameters(ctx, provider, runner, vmset)
+	if err != nil {
+		return err
+	}
 
-		_, err = libvirt.NewDomain(ctx, "ubuntu"+kernel.Tag, &libvirt.DomainArgs{
+	network, err := generateNetworkResource(ctx, provider, domainParameters)
+	if err != nil {
+		return err
+	}
+
+	for domainID, params := range domainParameters {
+		_, err = libvirt.NewDomain(ctx, "ubuntu-"+domainID, &libvirt.DomainArgs{
 			Consoles: libvirt.DomainConsoleArray{
 				libvirt.DomainConsoleArgs{
 					Type:       pulumi.String("pty"),
@@ -147,7 +193,7 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 			},
 			Disks: libvirt.DomainDiskArray{
 				libvirt.DomainDiskArgs{
-					VolumeId: domainParams.filesystemID,
+					VolumeId: params.filesystemID,
 				},
 			},
 			NetworkInterfaces: libvirt.DomainNetworkInterfaceArray{
@@ -157,7 +203,7 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 				},
 			},
 			Kernel: pulumi.String(
-				filepath.Join(kernel.Dir, "bzImage"),
+				filepath.Join(params.kernel.Dir, "bzImage"),
 			),
 			Cmdlines: pulumi.MapArray{
 				pulumi.Map{"console": pulumi.String("ttyS0")},
@@ -167,10 +213,10 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 				pulumi.Map{"net.ifnames": pulumi.String("0")},
 				pulumi.Map{"_": pulumi.String("rw")},
 			},
-			Memory: pulumi.Int(4096),
-			Vcpu:   pulumi.Int(4),
+			Memory: pulumi.Int(params.memory),
+			Vcpu:   pulumi.Int(params.vcpu),
 			Xml: libvirt.DomainXmlArgs{
-				Xslt: pulumi.String(domainParams.xls),
+				Xslt: pulumi.String(params.xls),
 			},
 			// delete existing VM before creating replacement to avoid two VMs trying to use the same volume
 		}, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(domainDependencies))

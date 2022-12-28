@@ -124,7 +124,6 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 		Create: pulumi.String(
 			fmt.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath, privateKeyPath, publicKeyPath),
 		),
-		Update: pulumi.String("true"),
 		Delete: pulumi.String(fmt.Sprintf("rm %s && rm %s", privateKeyPath, publicKeyPath)),
 	}
 	sshgenDone, err := localRunner.Command("gen-libvirt-sshkey", &sshGenArgs)
@@ -134,7 +133,6 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 
 	sshWriteArgs := command.CommandArgs{
 		Create: pulumi.Sprintf("echo '%s' >> ~/.ssh/authorized_keys", sshgenDone.Stdout),
-		Update: pulumi.String("true"),
 		Sudo:   true,
 	}
 	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs, pulumi.DependsOn([]pulumi.Resource{sshgenDone}))

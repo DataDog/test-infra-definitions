@@ -3,6 +3,7 @@ package vmconfig
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -11,9 +12,59 @@ import (
 func LoadConfigFile(filename string) (*Config, error) {
 	cfg, err := loadFile(filename)
 	if err != nil {
-		return nil, fmt.Errorf("LoadFile: %w", err)
+		return nil, err
+	}
+	err = validateRecipes(cfg)
+	if err != nil {
+		return nil, err
 	}
 	return cfg, nil
+}
+
+func validateRecipes(cfg *Config) error {
+	var err error
+	for _, set := range cfg.VMSets {
+		if set.Recipe == "custom" {
+			err = validateCustomRecipe(&set)
+		} else if set.Recipe == "distro" {
+			err = validateDistroRecipe(&set)
+		} else {
+			return fmt.Errorf("unknown recipe: %s", set.Recipe)
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func validateCustomRecipe(vmset *VMSet) error {
+	for _, kernel := range vmset.Kernels {
+		if kernel.ImageSource != "" {
+			return errors.New("cannot have source for custom kernels")
+		}
+	}
+
+	if vmset.Img.ImageName == "" || vmset.Img.ImageSourceURI == "" {
+		return errors.New("image needed for custom recipe")
+	}
+
+	return nil
+}
+
+func validateDistroRecipe(vmset *VMSet) error {
+	for _, kernel := range vmset.Kernels {
+		if kernel.ImageSource == "" {
+			return errors.New("source required for distribution kernels")
+		}
+	}
+
+	if vmset.Img.ImageName != "" || vmset.Img.ImageSourceURI != "" {
+		return errors.New("cannot use global image for distribution kernels")
+	}
+
+	return nil
 }
 
 func defaultValues() *Config {

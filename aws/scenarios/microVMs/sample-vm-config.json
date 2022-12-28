@@ -27,7 +27,7 @@
             "vcpu": [4],
             "memory": [4096],
             "image": {
-                "image_path": "/tmp/bullseye.qcow2.amd64-0.1-DEV",
+                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
                 "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV.tar.gz"
             }
         }

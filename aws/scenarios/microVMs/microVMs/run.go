@@ -33,7 +33,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	m := config.NewMicroVMConfig(ctx)
-	cfg, err := vmconfig.LoadFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
+	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
 	if err != nil {
 		return err
 	}
@@ -53,7 +53,8 @@ func Run(ctx *pulumi.Context) error {
 	url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.PrivateIp, privkey)
 	waitForFs := []pulumi.Resource{}
 	for _, set := range cfg.VMSets {
-		d, err := setupLibvirtFilesystem(set, runner, waitFor)
+		fs := NewLibvirtFS(set.Name, &set.Img)
+		d, err := fs.setupLibvirtFilesystem(runner, waitFor)
 		if err != nil {
 			return err
 		}

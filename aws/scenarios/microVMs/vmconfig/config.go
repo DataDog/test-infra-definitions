@@ -6,7 +6,7 @@ type Kernel struct {
 }
 
 type Image struct {
-	ImagePath      string `json:"image_path"`
+	ImageName      string `json:"image_path"`
 	ImageSourceURI string `json:"image_uri"`
 }
 

@@ -8,7 +8,7 @@ import (
 	"regexp"
 )
 
-func LoadFile(filename string) (*Config, error) {
+func LoadConfigFile(filename string) (*Config, error) {
 	cfg, err := loadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("LoadFile: %w", err)

@@ -4,9 +4,10 @@ import (
 	"crypto/rand"
 	"fmt"
 	"net"
-	"os"
 	"path/filepath"
 	"strings"
+
+	_ "embed"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
@@ -19,6 +20,12 @@ const (
 	microVMGroupSubnet    = "169.254.0.0/16"
 	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
+
+//go:embed resources/domain.xls
+var domainXLS string
+
+//go:embed resources/network.xls
+var netXMLTemplate string
 
 var subnetGroupMask = net.IPv4Mask(255, 255, 255, 0)
 
@@ -65,11 +72,6 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 		return err
 	}
 
-	domainXls, err := os.ReadFile("resources/domain.xls")
-	if err != nil {
-		return err
-	}
-
 	var dhcpEntries []string
 	domainParameters := make(map[string]*DomainParameters)
 	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
@@ -112,17 +114,13 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 		domainDependencies = append(domainDependencies, createDomainSocketDone)
 
 		params.domainName = fmt.Sprintf("ddvm-custom-%s", kernel.Tag)
-		params.xls = fmt.Sprintf(string(domainXls), params.domainName, kernel.Tag, mac)
+		params.xls = fmt.Sprintf(string(domainXLS), params.domainName, sharedFSMountPoint, kernel.Tag, mac)
 		domainParameters[kernel.Tag] = &params
 
 		dhcpEntries = append(dhcpEntries, fmt.Sprintf(dhcpEntriesTemplate, mac, params.domainName, params.ip))
 
 	}
 
-	netXMLTemplate, err := os.ReadFile("resources/network.xls")
-	if err != nil {
-		return err
-	}
 	netXML := fmt.Sprintf(string(netXMLTemplate), strings.Join(dhcpEntries[:], ""))
 	network, err := libvirt.NewNetwork(ctx, "network", &libvirt.NetworkArgs{
 		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},

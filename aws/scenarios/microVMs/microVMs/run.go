@@ -51,18 +51,9 @@ func Run(ctx *pulumi.Context) error {
 
 	privkey := filepath.Join(m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp"), libvirtSSHPrivateKey)
 	url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.PrivateIp, privkey)
-	waitForFs := []pulumi.Resource{}
-	for _, set := range cfg.VMSets {
-		fs := NewLibvirtFS(set.Name, &set.Img)
-		d, err := fs.setupLibvirtFilesystem(runner, waitFor)
-		if err != nil {
-			return err
-		}
-		waitForFs = append(waitForFs, d...)
-	}
 
 	for _, set := range cfg.VMSets {
-		setupLibvirtVM(ctx, runner, url, &set, waitForFs)
+		setupLibvirtVMWithRecipe(ctx, runner, url, &set, waitFor)
 	}
 
 	e.Ctx.Export("instance-ip", instance.PrivateIp)

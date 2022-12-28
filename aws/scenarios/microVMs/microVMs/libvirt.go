@@ -18,9 +18,10 @@ import (
 )
 
 const (
-	dhcpEntriesTemplate   = "<host mac='%s' name='%s' ip='%s'/>"
-	microVMGroupSubnet    = "169.254.0.0/16"
-	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
+	dhcpEntriesTemplate      = "<host mac='%s' name='%s' ip='%s'/>"
+	microVMCustomGroupSubnet = "169.254.0.0/16"
+	microVMDistroGroupSubnet = "179.254.0.0/16"
+	domainSocketCreateCmd    = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
 
 //go:embed resources/domain.xls
@@ -67,8 +68,8 @@ func generateNewUnicastMac() (string, error) {
 	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]), nil
 }
 
-func generateDomainIdentifier(vcpu, memory int, tag string) string {
-	return fmt.Sprintf("tag-%s-cpu-%d-mem-%d", tag, vcpu, memory)
+func generateDomainIdentifier(vcpu, memory int, vmsetName, tag string) string {
+	return fmt.Sprintf("%s-tag-%s-cpu-%d-mem-%d", vmsetName, tag, vcpu, memory)
 }
 
 func buildDomainSocket(runner *command.Runner, id string) (*remote.Command, error) {
@@ -94,12 +95,12 @@ func buildDomainParameters(ctx *pulumi.Context, provider *libvirt.Provider, runn
 	if len(vmset.Kernels)*len(vmset.Memory)*len(vmset.VCpu) > 255 {
 		return domainParameters, []pulumi.Resource{}, errors.New("matrix of length greater than 255 not currently supported")
 	}
-	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
+	ip, _, _ := net.ParseCIDR(microVMCustomGroupSubnet)
 
 	for _, vcpu := range vmset.VCpu {
 		for _, memory := range vmset.Memory {
 			for _, kernel := range vmset.Kernels {
-				id := generateDomainIdentifier(vcpu, memory, kernel.Tag)
+				id := generateDomainIdentifier(vcpu, memory, vmset.Name, kernel.Tag)
 				params := DomainParameters{}
 
 				if _, ok := domainParameters[id]; ok {
@@ -131,7 +132,7 @@ func buildDomainParameters(ctx *pulumi.Context, provider *libvirt.Provider, runn
 				}
 				domainDependencies = append(domainDependencies, createDomainSocketDone)
 
-				params.domainName = fmt.Sprintf("ddvm-custom-%s", id)
+				params.domainName = fmt.Sprintf("ddvm-%s", id)
 				params.xls = fmt.Sprintf(string(domainXLS), params.domainName, sharedFSMountPoint, id, mac)
 				params.dhcpEntry = fmt.Sprintf(dhcpEntriesTemplate, mac, params.domainName, params.ip)
 				params.kernel = kernel
@@ -153,7 +154,7 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, do
 
 	netXML := fmt.Sprintf(string(netXMLTemplate), strings.Join(dhcpEntries[:], ""))
 	network, err := libvirt.NewNetwork(ctx, "network", &libvirt.NetworkArgs{
-		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
+		Addresses: pulumi.StringArray{pulumi.String(microVMCustomGroupSubnet)},
 		Mode:      pulumi.String("nat"),
 		Xml:       libvirt.NetworkXmlArgs{pulumi.String(netXML)},
 	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true))
@@ -164,26 +165,10 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, do
 	return network, nil
 }
 
-func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulumi.StringOutput, vmset *vmconfig.VMSet, waitForList []pulumi.Resource) error {
-	provider, err := libvirt.NewProvider(ctx, "provider", &libvirt.ProviderArgs{
-		Uri: libvirtUri,
-	}, pulumi.DependsOn(waitForList))
-	if err != nil {
-		return err
-	}
-
-	domainParameters, domainDependencies, err := buildDomainParameters(ctx, provider, runner, vmset)
-	if err != nil {
-		return err
-	}
-
-	network, err := generateNetworkResource(ctx, provider, domainParameters)
-	if err != nil {
-		return err
-	}
-
+func libvirtCustomVMArgs(domainParameters map[string]*DomainParameters, network *libvirt.Network) map[string]*libvirt.DomainArgs {
+	domainArgs := make(map[string]*libvirt.DomainArgs)
 	for domainID, params := range domainParameters {
-		_, err = libvirt.NewDomain(ctx, "ubuntu-"+domainID, &libvirt.DomainArgs{
+		domainArgs[domainID] = &libvirt.DomainArgs{
 			Consoles: libvirt.DomainConsoleArray{
 				libvirt.DomainConsoleArgs{
 					Type:       pulumi.String("pty"),
@@ -218,8 +203,82 @@ func setupLibvirtVM(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulu
 			Xml: libvirt.DomainXmlArgs{
 				Xslt: pulumi.String(params.xls),
 			},
-			// delete existing VM before creating replacement to avoid two VMs trying to use the same volume
-		}, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(domainDependencies))
+		}
+	}
+
+	return domainArgs
+}
+
+func libvirtDistroVMArgs(domainParameters map[string]*DomainParameters, network *libvirt.Network) map[string]*libvirt.DomainArgs {
+	domainArgs := make(map[string]*libvirt.DomainArgs)
+	for domainID, params := range domainParameters {
+		domainArgs[domainID] = &libvirt.DomainArgs{
+			Consoles: libvirt.DomainConsoleArray{
+				libvirt.DomainConsoleArgs{
+					Type:       pulumi.String("pty"),
+					TargetPort: pulumi.String("0"),
+					TargetType: pulumi.String("serial"),
+				},
+			},
+			Disks: libvirt.DomainDiskArray{
+				libvirt.DomainDiskArgs{
+					VolumeId: params.filesystemID,
+				},
+			},
+			NetworkInterfaces: libvirt.DomainNetworkInterfaceArray{
+				libvirt.DomainNetworkInterfaceArgs{
+					NetworkId:    network.ID(),
+					WaitForLease: pulumi.Bool(false),
+				},
+			},
+			Memory: pulumi.Int(params.memory),
+			Vcpu:   pulumi.Int(params.vcpu),
+			Xml: libvirt.DomainXmlArgs{
+				Xslt: pulumi.String(params.xls),
+			},
+		}
+	}
+
+	return domainArgs
+}
+
+func setupLibvirtVMWithRecipe(ctx *pulumi.Context, runner *command.Runner, libvirtUri pulumi.StringOutput, vmset *vmconfig.VMSet, depends []pulumi.Resource) error {
+	var domainArgs map[string]*libvirt.DomainArgs
+
+	fs := NewLibvirtFS(vmset.Name, &vmset.Img)
+	fsDone, err := fs.setupLibvirtFilesystem(runner, depends)
+	if err != nil {
+		return err
+	}
+
+	provider, err := libvirt.NewProvider(ctx, "provider", &libvirt.ProviderArgs{
+		Uri: libvirtUri,
+	}, pulumi.DependsOn(fsDone))
+	if err != nil {
+		return err
+	}
+
+	domainParameters, domainDependencies, err := buildDomainParameters(ctx, provider, runner, vmset)
+	if err != nil {
+		return err
+	}
+
+	network, err := generateNetworkResource(ctx, provider, domainParameters)
+	if err != nil {
+		return err
+	}
+
+	if vmset.Recipe == "custom" {
+		domainArgs = libvirtCustomVMArgs(domainParameters, network)
+		//	} else if vmset.Recipe == "distro" {
+		//		domainArgs = libvirtDistroVMArgs(domainParameters, network)
+	} else {
+		return fmt.Errorf("unknown receipe: %s", vmset.Recipe)
+	}
+
+	for domainID, arg := range domainArgs {
+		_, err := libvirt.NewDomain(ctx, "dd-vm-"+domainID, arg, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(domainDependencies))
+
 		if err != nil {
 			return err
 		}

@@ -30,6 +30,10 @@ func (n Namer) WithPrefix(prefix string) Namer {
 }
 
 func (n Namer) ResourceName(parts ...string) string {
+	if len(parts) == 0 {
+		panic("Resource name requires at least one part to generate name")
+	}
+
 	var resourceName string
 	if n.prefix != "" {
 		resourceName += n.prefix + nameSep
@@ -44,10 +48,10 @@ func (n Namer) DisplayName(parts ...pulumi.StringInput) pulumi.StringInput {
 		convertedParts = append(convertedParts, part)
 	}
 	return pulumi.All(convertedParts...).ApplyT(func(args []interface{}) string {
-		var strArgs []string
+		strArgs := []string{n.ctx.Stack()}
 		for _, arg := range args {
 			strArgs = append(strArgs, arg.(string))
 		}
-		return n.ctx.Stack() + nameSep + n.ResourceName(strArgs...)
+		return n.ResourceName(strArgs...)
 	}).(pulumi.StringOutput)
 }

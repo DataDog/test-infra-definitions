@@ -147,7 +147,7 @@ func (fm *FileManager) CopyFSFolder(
 	return fileResources, nil
 }
 
-// When copying foo/bar to /tmp to result folder is /tmp/bar
+// When copying foo/bar to /tmp the result folder is /tmp/bar
 // This function remove the root prefix from the path (`foo` in this case)
 func getDestinationPath(folder string, rootFolder string) (string, error) {
 	baseFolder := filepath.Base(rootFolder)

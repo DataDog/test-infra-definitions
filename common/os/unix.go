@@ -9,7 +9,7 @@ type unix struct {
 func (u *unix) GetDefaultInstanceType(arch Architecture) string {
 	return getDefaultInstanceType(u.env, arch)
 }
-func (*unix) GetConfigPath() string { return "/etc/datadog-agent/datadog.yaml" }
+func (*unix) GetAgentConfigPath() string { return "/etc/datadog-agent/datadog.yaml" }
 
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	switch arch {

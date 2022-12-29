@@ -23,7 +23,7 @@ func Install(runner *command.Runner, commonNamer namer.Namer, params *Params, os
 
 	if params.agentConfig != "" {
 		fileManager := command.NewFileManager(runner)
-		remotePath := os.GetConfigPath()
+		remotePath := os.GetAgentConfigPath()
 		lastCommand, err = fileManager.CopyInlineFile("agent-config", pulumi.String(params.agentConfig), remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 		if err != nil {
 			return err

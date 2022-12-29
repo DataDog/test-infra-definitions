@@ -104,7 +104,7 @@ func WithInstanceType[OS os.OS, P ParamsGetter[OS]](instanceType string) func(P)
 	}
 }
 
-// WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
+// WithUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
 func WithUserData[OS os.OS, P ParamsGetter[OS]](userData string) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
@@ -113,7 +113,7 @@ func WithUserData[OS os.OS, P ParamsGetter[OS]](userData string) func(P) error {
 	}
 }
 
-// WithHostAgent installs an Agent on this EC2 instance. By default use with agentinstall.WithLatest().
+// WithHostAgent installs an Agent on this instance. By default use with agentinstall.WithLatest().
 func WithHostAgent[OS os.OS, P ParamsGetter[OS]](apiKey string, options ...func(*agentinstall.Params) error) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()

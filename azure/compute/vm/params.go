@@ -14,7 +14,7 @@ type Params struct {
 
 func newParams(env azure.Environment, options ...func(*Params) error) (*Params, error) {
 	params := &Params{
-		common: vm.NewParams(os.GetOSes(env)),
+		common: vm.NewParams(os.GetSupportedOSes(env)),
 	}
 
 	return common.ApplyOption(params, options)

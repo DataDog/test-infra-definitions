@@ -19,7 +19,7 @@ type OS interface {
 	GetImage(Architecture) (string, error)
 	GetDefaultInstanceType(Architecture) string
 	GetServiceManager() *serviceManager
-	GetConfigPath() string
+	GetAgentConfigPath() string
 	GetSSHUser() string
 	GetOSType() OSType
 }

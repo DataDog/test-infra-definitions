@@ -40,7 +40,7 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 		CustomData: userData,
 	}
 
-	return newVMInstance(e, name, imageUrn, instanceType, linuxOsProfile)
+	return newVMInstance(e, name, imageUrn, instanceType, linuxOsProfile, nil)
 }
 
 func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, pulumi.StringOutput, error) {
@@ -72,7 +72,27 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 		}
 	}
 
-	vm, publicIP, nw, err := newVMInstance(e, name, imageUrn, instanceType, windowsOsProfile)
+	securityGroup, err := network.NewNetworkSecurityGroup(e.Ctx, e.Namer.ResourceName(name, "security-group-rdp"), &network.NetworkSecurityGroupArgs{
+		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
+		SecurityRules: network.SecurityRuleTypeArray{
+			network.SecurityRuleTypeArgs{
+				Access:                   pulumi.String("Allow"),
+				DestinationAddressPrefix: pulumi.String("*"),
+				Direction:                pulumi.String("Inbound"),
+				DestinationPortRange:     pulumi.String("3389"), // RDP
+				Protocol:                 pulumi.String("TCP"),
+				SourceAddressPrefix:      pulumi.String("*"),
+				SourcePortRange:          pulumi.String("*"),
+				Name:                     pulumi.String(e.Namer.ResourceName(name, "security-rule-rdp")),
+				Priority:                 pulumi.Int(100),
+			},
+		},
+	})
+	if err != nil {
+		return nil, nil, nil, pulumi.StringOutput{}, err
+	}
+
+	vm, publicIP, nw, err := newVMInstance(e, name, imageUrn, instanceType, windowsOsProfile, securityGroup)
 	if err != nil {
 		return nil, nil, nil, pulumi.StringOutput{}, err
 	}
@@ -80,7 +100,11 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 	return vm, publicIP, nw, windowsAdminPassword.Result, nil
 }
 
-func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osProfile compute.OSProfilePtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, error) {
+func newVMInstance(
+	e azure.Environment,
+	name, imageUrn, instanceType string,
+	osProfile compute.OSProfilePtrInput,
+	securityGroup *network.NetworkSecurityGroup) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, error) {
 	vmImageRef, err := parseImageReferenceURN(imageUrn)
 	if err != nil {
 		return nil, nil, nil, err
@@ -96,7 +120,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		return nil, nil, nil, err
 	}
 
-	nwInt, err := network.NewNetworkInterface(e.Ctx, e.Namer.ResourceName(name), &network.NetworkInterfaceArgs{
+	networkArgs := &network.NetworkInterfaceArgs{
 		NetworkInterfaceName: e.Namer.DisplayName(pulumi.String(name)),
 		ResourceGroupName:    pulumi.String(e.DefaultResourceGroup()),
 		IpConfigurations: network.NetworkInterfaceIPConfigurationArray{
@@ -112,7 +136,15 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 			},
 		},
 		Tags: e.ResourcesTags(),
-	}, pulumi.Provider(e.Provider))
+	}
+
+	if securityGroup != nil {
+		networkArgs.NetworkSecurityGroup = network.NetworkSecurityGroupTypeArgs{
+			Id: securityGroup.ID(),
+		}
+	}
+
+	nwInt, err := network.NewNetworkInterface(e.Ctx, e.Namer.ResourceName(name), networkArgs, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, nil, nil, err
 	}

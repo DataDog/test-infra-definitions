@@ -31,19 +31,19 @@
                 "image_path": "bullseye.qcow2.amd64-0.1-DEV",
                 "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV.tar.gz"
             }
+        },
+        {
+            "name": "ubuntu",
+            "recipe": "distro",
+            "kernels": [
+                {
+                    "dir": "/tmp/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
+                    "tag": "16.0.4",
+                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/ubuntu-16.04-server-cloudimg-amd64-disk1.img.tar.gz"
+                }
+            ],
+            "vcpu": [4],
+            "memory": [4096]
         }
-        #{
-        #    "name": "ubuntu",
-        #    "recipe": "distro",
-        #    "kernels": [
-        #        {
-        #            "dir": "/tmp/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
-        #            "tag": "16.0.4",
-        #            "image_source": "https://cloud-images.ubuntu.com/releases/xenial/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img"
-        #        }
-        #    ],
-        #    "vcpu": [4],
-        #    "memory": [4096]
-        #}
     ]
 }

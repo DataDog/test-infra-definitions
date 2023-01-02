@@ -27,10 +27,7 @@ var (
 		Create: pulumi.String("systemctl restart libvirtd"),
 		Sudo:   true,
 	}
-	poolDefineReadyArgs = command.CommandArgs{
-		Create: pulumi.String("virsh pool-define /tmp/pool.xml"),
-		Sudo:   true,
-	}
+
 	buildSharedDirArgs = command.CommandArgs{
 		Create: pulumi.String(
 			fmt.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", sharedFSMountPoint),

@@ -54,9 +54,7 @@ func generateDomainIdentifier(vcpu, memory int, vmsetName, tag string) string {
 func buildDomainSocket(runner *command.Runner, id, resourceName string) (*remote.Command, error) {
 	// build domain sockets for fetching logs
 	createDomainSocketArgs := command.CommandArgs{
-		Create: pulumi.String(
-			fmt.Sprintf(domainSocketCreateCmd, id, id),
-		),
+		Create: pulumi.Sprintf(domainSocketCreateCmd, id, id),
 	}
 	createDomainSocketDone, err := runner.Command(resourceName, &createDomainSocketArgs)
 	if err != nil {

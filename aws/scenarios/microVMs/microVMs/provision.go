@@ -1,7 +1,6 @@
 package microVMs
 
 import (
-	"fmt"
 	"path/filepath"
 
 	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
@@ -29,13 +28,9 @@ var (
 	}
 
 	buildSharedDirArgs = command.CommandArgs{
-		Create: pulumi.String(
-			fmt.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", sharedFSMountPoint),
-		),
-		Delete: pulumi.String(
-			fmt.Sprintf("rm -rf %s", sharedFSMountPoint),
-		),
-		Sudo: true,
+		Create: pulumi.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", sharedFSMountPoint),
+		Delete: pulumi.Sprintf("rm -rf %s", sharedFSMountPoint),
+		Sudo:   true,
 	}
 )
 
@@ -67,8 +62,8 @@ func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pul
 	}
 
 	copyKernelHeadersArgs := command.CommandArgs{
-		Create: pulumi.String(
-			fmt.Sprintf("-u libvirt-qemu /bin/bash -c \"cd /tmp; find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} %s && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} %s\"", sharedFSMountPoint, sharedFSMountPoint),
+		Create: pulumi.Sprintf(
+			"-u libvirt-qemu /bin/bash -c \"cd /tmp; find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} %s && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} %s\"", sharedFSMountPoint, sharedFSMountPoint,
 		),
 		Sudo: true,
 	}
@@ -118,10 +113,8 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 	privateKeyPath := filepath.Join(tempDir, libvirtSSHPrivateKey)
 	publicKeyPath := filepath.Join(tempDir, libvirtSSHPublicKey)
 	sshGenArgs := command.CommandArgs{
-		Create: pulumi.String(
-			fmt.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath, privateKeyPath, publicKeyPath),
-		),
-		Delete: pulumi.String(fmt.Sprintf("rm %s && rm %s", privateKeyPath, publicKeyPath)),
+		Create: pulumi.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath, privateKeyPath, publicKeyPath),
+		Delete: pulumi.Sprintf("rm %s && rm %s", privateKeyPath, publicKeyPath),
 	}
 	sshgenDone, err := localRunner.Command("gen-libvirt-sshkey", &sshGenArgs)
 	if err != nil {

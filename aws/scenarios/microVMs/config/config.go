@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	ddMicroVMNamespace = "ddMicroVM"
+	ddMicroVMNamespace = "microvm"
 )
 
 type DDMicroVMConfig struct {

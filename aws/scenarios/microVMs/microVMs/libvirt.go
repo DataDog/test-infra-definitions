@@ -12,6 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microVMs/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -50,14 +51,14 @@ func generateDomainIdentifier(vcpu, memory int, vmsetName, tag string) string {
 	return fmt.Sprintf("%s-tag-%s-cpu-%d-mem-%d", vmsetName, tag, vcpu, memory)
 }
 
-func buildDomainSocket(runner *command.Runner, id string) (*remote.Command, error) {
+func buildDomainSocket(runner *command.Runner, id, resourceName string) (*remote.Command, error) {
 	// build domain sockets for fetching logs
 	createDomainSocketArgs := command.CommandArgs{
 		Create: pulumi.String(
 			fmt.Sprintf(domainSocketCreateCmd, id, id),
 		),
 	}
-	createDomainSocketDone, err := runner.Command("create-domain-socket-"+id, &createDomainSocketArgs)
+	createDomainSocketDone, err := runner.Command(resourceName, &createDomainSocketArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -66,17 +67,18 @@ func buildDomainSocket(runner *command.Runner, id string) (*remote.Command, erro
 }
 
 type DomainMatrix struct {
-	fs         *libvirtFilesystem
-	vcpu       int
-	memory     int
-	xls        string
-	domainName string
-	domainID   string
-	dhcpEntry  string
-	recipe     string
-	kernel     *vmconfig.Kernel
-	volume     *libvirt.Volume
-	domainArgs *libvirt.DomainArgs
+	fs          *libvirtFilesystem
+	vcpu        int
+	memory      int
+	xls         string
+	domainName  string
+	domainID    string
+	dhcpEntry   string
+	recipe      string
+	kernel      *vmconfig.Kernel
+	volume      *libvirt.Volume
+	domainArgs  *libvirt.DomainArgs
+	domainNamer common.Namer
 }
 
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, dhcpEntries []string) (*libvirt.Network, error) {
@@ -163,11 +165,11 @@ func setupLibvirtDomainArgs(domainMatrices []*DomainMatrix) error {
 	return nil
 }
 
-func newLibvirtFS(vmset *vmconfig.VMSet) (*libvirtFilesystem, error) {
+func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*libvirtFilesystem, error) {
 	if vmset.Recipe == "custom" {
-		return NewLibvirtFSCustomRecipe(vmset), nil
+		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
 	} else if vmset.Recipe == "distro" {
-		return NewLibvirtFSDistroRecipe(vmset), nil
+		return NewLibvirtFSDistroRecipe(ctx, vmset), nil
 	} else {
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}
@@ -182,7 +184,7 @@ func getRecipeDomainXLS(recipe string, args ...any) string {
 	return template
 }
 
-func buildDomainMatrix(vcpu, memory int, setName, recipe string, kernel vmconfig.Kernel, fs *libvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
+func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName, recipe string, kernel vmconfig.Kernel, fs *libvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
 	matrix := new(DomainMatrix)
 	matrix.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag)
 	matrix.vcpu = vcpu
@@ -200,17 +202,18 @@ func buildDomainMatrix(vcpu, memory int, setName, recipe string, kernel vmconfig
 	matrix.kernel = &kernel
 	matrix.recipe = recipe
 	matrix.fs = fs
+	matrix.domainNamer = common.NewNamer(ctx, matrix.domainID)
 
 	return matrix, nil
 }
 
-func buildDomainMatrices(runner *command.Runner, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*DomainMatrix, []pulumi.Resource, error) {
+func buildDomainMatrices(ctx *pulumi.Context, runner *command.Runner, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*DomainMatrix, []pulumi.Resource, error) {
 	var matrices []*DomainMatrix
 	var waitFor []pulumi.Resource
 
 	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
 	for _, vmset := range vmsets {
-		fs, err := newLibvirtFS(&vmset)
+		fs, err := newLibvirtFS(ctx, &vmset)
 		if err != nil {
 			return []*DomainMatrix{}, []pulumi.Resource{}, err
 		}
@@ -224,7 +227,7 @@ func buildDomainMatrices(runner *command.Runner, vmsets []vmconfig.VMSet, depend
 			for _, memory := range vmset.Memory {
 				for _, kernel := range vmset.Kernels {
 					ip = getNextVMSubnet(ip)
-					m, err := buildDomainMatrix(vcpu, memory, vmset.Name, vmset.Recipe, kernel, fs, ip)
+					m, err := buildDomainMatrix(ctx, vcpu, memory, vmset.Name, vmset.Recipe, kernel, fs, ip)
 					if err != nil {
 						return []*DomainMatrix{}, []pulumi.Resource{}, err
 					}
@@ -237,8 +240,8 @@ func buildDomainMatrices(runner *command.Runner, vmsets []vmconfig.VMSet, depend
 	return matrices, waitFor, nil
 }
 
-func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, baseVolumeId, poolName, domainName string) (*libvirt.Volume, error) {
-	volume, err := libvirt.NewVolume(ctx, "filesystem-"+domainName, &libvirt.VolumeArgs{
+func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, baseVolumeId, poolName, resourceName string) (*libvirt.Volume, error) {
+	volume, err := libvirt.NewVolume(ctx, resourceName, &libvirt.VolumeArgs{
 		BaseVolumeId: pulumi.String(baseVolumeId),
 		Pool:         pulumi.String(poolName),
 		Format:       pulumi.String("qcow2"),
@@ -254,7 +257,7 @@ func setupLibvirtDomainMatrices(ctx *pulumi.Context, runner *command.Runner, lib
 	var waitFor []pulumi.Resource
 	var matrices []*DomainMatrix
 
-	matrices, waitForMatrices, err := buildDomainMatrices(runner, vmsets, depends)
+	matrices, waitForMatrices, err := buildDomainMatrices(ctx, runner, vmsets, depends)
 	if err != nil {
 		return matrices, nil, waitFor, err
 	}
@@ -269,13 +272,13 @@ func setupLibvirtDomainMatrices(ctx *pulumi.Context, runner *command.Runner, lib
 	// setup volumes and domain sockets
 	for _, matrix := range matrices {
 		baseVolumeId := matrix.fs.baseVolumeMap[matrix.kernel.Tag].volumeKey
-		volume, err := setupDomainVolume(ctx, provider, baseVolumeId, matrix.fs.poolName, matrix.domainName)
+		volume, err := setupDomainVolume(ctx, provider, baseVolumeId, matrix.fs.poolName, matrix.domainNamer.ResourceName("volume"))
 		if err != nil {
 			return matrices, nil, waitFor, err
 		}
 		matrix.volume = volume
 
-		createDomainSocketDone, err := buildDomainSocket(runner, matrix.domainID)
+		createDomainSocketDone, err := buildDomainSocket(runner, matrix.domainID, matrix.domainNamer.ResourceName("create-domain-socket"))
 		if err != nil {
 			return matrices, nil, waitFor, err
 		}
@@ -318,7 +321,7 @@ func setupLibvirtVMWithRecipe(ctx *pulumi.Context, runner *command.Runner, libvi
 	}
 
 	for _, matrix := range matrices {
-		_, err := libvirt.NewDomain(ctx, "dd-vm-"+matrix.domainID, matrix.domainArgs, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(waitFor))
+		_, err := libvirt.NewDomain(ctx, matrix.domainNamer.ResourceName("ddvm"), matrix.domainArgs, pulumi.Provider(provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(waitFor))
 
 		if err != nil {
 			return err

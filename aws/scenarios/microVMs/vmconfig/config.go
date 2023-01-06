@@ -18,6 +18,7 @@ type VMSet struct {
 	VCpu    []int    `json:"vcpu"`
 	Memory  []int    `json:"memory"`
 	Img     Image    `json:"image"`
+	Arch    string
 }
 
 type Config struct {

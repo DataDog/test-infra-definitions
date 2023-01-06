@@ -1,28 +1,17 @@
 {
     "vmsets": [
         {
-            "name": "custom-kernels",
+            "name": "custom-kernels-x86_64",
             "recipe": "custom",
+            "arch": "x86_64",
             "kernels": [
                 {
-                    "dir": "/tmp/kernel-packages/kernel-4.14.302.pkg",
+                    "dir": "/tmp/kernel-packages/kernel-v4.14.x86.pkg",
                     "tag": "4.14.302"
                 },
                 {
-                    "dir": "/tmp/kernel-packages/kernel-5.4.227.pkg",
+                    "dir": "/tmp/kernel-packages/kernel-v5.4.x86.pkg",
                     "tag": "5.4.227"
-                },
-                {
-                    "dir": "/tmp/kernel-packages/kernel-5.15.83.pkg",
-                    "tag": "5.15.83"
-                },
-                {
-                    "dir": "/tmp/kernel-packages/kernel-5.18.19.pkg",
-                    "tag": "5.18.19"
-                },
-                {
-                    "dir": "/tmp/kernel-packages/kernel-4.4.302.pkg",
-                    "tag": "4.4.302"
                 }
             ],
             "vcpu": [4],
@@ -33,17 +22,25 @@
             }
         },
         {
-            "name": "ubuntu",
-            "recipe": "distro",
+            "name": "custom-kernels-arm64",
+            "recipe": "custom",
+            "arch": "arm64",
             "kernels": [
                 {
-                    "dir": "/tmp/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
-                    "tag": "16.0.4",
-                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/ubuntu-16.04-server-cloudimg-amd64-disk1.img.tar.gz"
+                    "dir": "/tmp/kernel-packages/kernel-v4.14.arm64.pkg",
+                    "tag": "4.14.302"
+                },
+                {
+                    "dir": "/tmp/kernel-packages/kernel-v4.4.arm64.pkg",
+                    "tag": "4.4.302"
                 }
             ],
-            "vcpu": [4],
-            "memory": [4096]
+            "vcpu": [1],
+            "memory": [4096],
+            "image": {
+                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
+                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV.tar.gz"
+            }
         }
     ]
 }

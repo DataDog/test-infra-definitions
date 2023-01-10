@@ -72,7 +72,7 @@ func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeR
 
 func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, ami, instanceType, userData pulumi.StringInput) (*eks.NodeGroup, error) {
 	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Namer.ResourceName(name), &awsIam.InstanceProfileArgs{
-		Name: e.Namer.DisplayName(pulumi.String(name)),
+		Name: e.CommonNamer.DisplayName(pulumi.String(name)),
 		Role: nodeRole.Name,
 	}, pulumi.Provider(e.Provider))
 	if err != nil {

@@ -67,6 +67,9 @@ func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInpu
 // then the full path of the folder will be ~/foo/bar“.
 // This function returns the resources that can be used with `pulumi.DependsOn`.
 func (fm *FileManager) CopyRelativeFolder(relativeFolder string, remoteFolder string, opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
+	// `./` cannot be used with os.DirFS
+	relativeFolder = strings.TrimPrefix(relativeFolder, "."+string(filepath.Separator))
+
 	fullPath, rootFolder, err := getFullPath(relativeFolder, 2)
 	if err != nil {
 		return nil, err
@@ -103,7 +106,7 @@ func (fm *FileManager) CopyFSFolder(
 
 	files, folders, err := readFilesAndFolders(folderFS, folderPath)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read files and folders for %v", folderPath)
+		return nil, fmt.Errorf("cannot read files and folders for %v. Error: %v", folderPath, err)
 	}
 
 	var folderResources []pulumi.Resource
@@ -128,15 +131,9 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 
-		fileContent, err := fs.ReadFile(folderFS, file)
-		if err != nil {
-			return nil, err
-		}
-		fileCommand, err := fm.CopyInlineFile(
-			resourceName+"-"+file,
-			pulumi.String(fileContent),
+		fileCommand, err := fm.CopyFile(
+			file,
 			path.Join(remoteFolder, destFile),
-			useSudo,
 			pulumi.DependsOn(folderResources))
 		if err != nil {
 			return nil, err

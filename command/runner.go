@@ -3,8 +3,8 @@ package command
 import (
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -54,7 +54,7 @@ func (args *CommandArgs) buildCommandInput(command pulumi.StringInput, env pulum
 
 type Runner struct {
 	e           config.CommonEnvironment
-	namer       common.Namer
+	namer       namer.Namer
 	connection  remote.ConnectionInput
 	waitCommand *remote.Command
 }
@@ -62,7 +62,7 @@ type Runner struct {
 func NewRunner(e config.CommonEnvironment, connName string, conn remote.ConnectionInput, readyFunc func(*Runner) (*remote.Command, error)) (*Runner, error) {
 	runner := &Runner{
 		e:          e,
-		namer:      common.NewNamer(e.Ctx, "remote").WithPrefix(connName),
+		namer:      namer.NewNamer(e.Ctx, "remote").WithPrefix(connName),
 		connection: conn,
 	}
 

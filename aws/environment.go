@@ -3,8 +3,8 @@ package aws
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/common"
 	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -50,7 +50,7 @@ type Environment struct {
 	*config.CommonEnvironment
 
 	Provider *sdkaws.Provider
-	Namer    common.Namer
+	Namer    namer.Namer
 
 	awsConfig  *sdkconfig.Config
 	envDefault environmentDefault
@@ -61,7 +61,7 @@ func AWSEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	env := Environment{
 		CommonEnvironment: &commonEnv,
-		Namer:             common.NewNamer(ctx, awsConfigNamespace),
+		Namer:             namer.NewNamer(ctx, awsConfigNamespace),
 		awsConfig:         sdkconfig.New(ctx, awsConfigNamespace),
 		envDefault:        getEnvironmentDefault(commonEnv.InfraEnvironmentName()),
 	}
@@ -188,6 +188,10 @@ func (e *Environment) EKSBottlerocketNodeGroup() bool {
 
 func (e *Environment) EKSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
+}
+
+func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
+	return e.CommonEnvironment
 }
 
 func GetInfraKey(keyName string) string {

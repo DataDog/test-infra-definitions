@@ -13,9 +13,13 @@ type Params struct {
 }
 
 func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
+	commonParams, err := vm.NewParams(env.CommonEnvironment, os.GetOSes(env))
+	if err != nil {
+		return nil, err
+	}
 	params := &Params{
 		keyPair: env.DefaultKeyPairName(),
-		common:  vm.NewParams(os.GetOSes(env)),
+		common:  commonParams,
 	}
 
 	return common.ApplyOption(params, options)

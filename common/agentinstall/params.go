@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/config"
 )
 
 type Params struct {
@@ -12,9 +13,13 @@ type Params struct {
 	agentConfig string
 }
 
-func NewParams(options ...func(*Params) error) (*Params, error) {
+func NewParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
 	params := &Params{}
-	options = append([]func(*Params) error{WithLatest()}, options...)
+	defaultVersion := WithLatest()
+	if env.AgentVersion() != "" {
+		defaultVersion = WithVersion(env.AgentVersion())
+	}
+	options = append([]func(*Params) error{defaultVersion}, options...)
 	return common.ApplyOption(params, options)
 }
 

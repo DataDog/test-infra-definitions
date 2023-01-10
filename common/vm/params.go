@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/agentinstall"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -16,9 +17,10 @@ type Params[OS os.OS] struct {
 	Arch                       os.Architecture
 	OptionalAgentInstallParams *agentinstall.Params
 	osFactory                  func(os.OSType) (*OS, error)
+	commonEnv                  *config.CommonEnvironment
 }
 
-func NewParams[OS os.OS](oses []OS) *Params[OS] {
+func NewParams[OS os.OS](commonEnv *config.CommonEnvironment, oses []OS) (*Params[OS], error) {
 	params := &Params[OS]{
 		osFactory: func(osType os.OSType) (*OS, error) {
 			for _, os := range oses {
@@ -28,12 +30,18 @@ func NewParams[OS os.OS](oses []OS) *Params[OS] {
 			}
 			return nil, fmt.Errorf("%v is not suppported on this environment", osType)
 		},
+		commonEnv: commonEnv,
 	}
 
 	// By default use Ubuntu
 	params.setOS(os.UbuntuOS, os.AMD64Arch)
+	if commonEnv.AgentDeploy() {
+		if err := params.setAgentInstallParams(); err != nil {
+			return nil, err
+		}
+	}
 
-	return params
+	return params, nil
 }
 
 func (p *Params[OS]) GetInstanceNameOrDefault(defaultName string) string {
@@ -117,8 +125,12 @@ func WithUserData[OS os.OS, P ParamsGetter[OS]](userData string) func(P) error {
 func WithHostAgent[OS os.OS, P ParamsGetter[OS]](options ...func(*agentinstall.Params) error) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
-		var err error
-		p.OptionalAgentInstallParams, err = agentinstall.NewParams(options...)
-		return err
+		return p.setAgentInstallParams(options...)
 	}
+}
+
+func (p *Params[OS]) setAgentInstallParams(options ...func(*agentinstall.Params) error) error {
+	var err error
+	p.OptionalAgentInstallParams, err = agentinstall.NewParams(p.commonEnv, options...)
+	return err
 }

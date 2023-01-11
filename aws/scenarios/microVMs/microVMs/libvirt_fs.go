@@ -47,10 +47,12 @@ func getImagePath(name string) string {
 
 func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvirtFilesystem {
 	var images []*filesystemImage
+
+	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolName := vmset.Name
 
 	poolPath := generatePoolPath(poolName)
-	poolXML := fmt.Sprintf(resources.GetRecipePoolTemplateOrDefault(vmset.Recipe), poolName, poolPath)
+	poolXML := rc.GetPoolXML(poolName, poolPath)
 	baseVolumeMap := make(map[string]*filesystemImage)
 
 	for _, k := range vmset.Kernels {
@@ -61,7 +63,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 			imagePath:     k.Dir,
 			imageSource:   k.ImageSource,
 			volumeKey:     volKey,
-			volumeXML:     fmt.Sprintf(resources.GetRecipeVolumeTemplateOrDefault(vmset.Recipe), imageName, volKey, volKey),
+			volumeXML:     rc.GetVolumeXML(imageName, volKey, volKey),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
 			volumeNamer:   common.NewNamer(ctx, volKey),
 		}
@@ -84,8 +86,9 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 	poolName := vmset.Name
 	imageName := vmset.Img.ImageName
 
+	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolPath := generatePoolPath(poolName)
-	poolXML := fmt.Sprintf(resources.GetRecipePoolTemplateOrDefault(vmset.Recipe), poolName, poolPath)
+	poolXML := rc.GetPoolXML(poolName, poolPath)
 	volKey := generateVolumeKey(poolName, basefsName)
 
 	img := &filesystemImage{
@@ -93,7 +96,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 		imagePath:     getImagePath(imageName),
 		imageSource:   vmset.Img.ImageSourceURI,
 		volumeKey:     volKey,
-		volumeXML:     fmt.Sprintf(resources.GetRecipeVolumeTemplateOrDefault(vmset.Recipe), basefsName, volKey, volKey),
+		volumeXML:     rc.GetVolumeXML(basefsName, volKey, volKey),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
 		volumeNamer:   common.NewNamer(ctx, volKey),
 	}

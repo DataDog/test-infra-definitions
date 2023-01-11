@@ -14,29 +14,7 @@ func LoadConfigFile(filename string) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = validateRecipes(cfg)
-	if err != nil {
-		return nil, err
-	}
 	return cfg, nil
-}
-
-func validateRecipes(cfg *Config) error {
-	var err error
-	for _, set := range cfg.VMSets {
-		if set.Recipe == "custom" {
-			err = validateCustomRecipe(&set)
-		} else if set.Recipe == "distro" {
-			err = validateDistroRecipe(&set)
-		} else {
-			return fmt.Errorf("unknown recipe: %s", set.Recipe)
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
 }
 
 func validateCustomRecipe(vmset *VMSet) error {

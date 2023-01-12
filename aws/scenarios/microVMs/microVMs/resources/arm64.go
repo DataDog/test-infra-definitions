@@ -40,6 +40,13 @@ func (a *ARM64ResourceCollection) GetPoolXML(args ...interface{}) string {
 
 func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	return &libvirt.DomainArgs{
+		Consoles: libvirt.DomainConsoleArray{
+			libvirt.DomainConsoleArgs{
+				Type:       pulumi.String("pty"),
+				TargetPort: pulumi.String("0"),
+				TargetType: pulumi.String("serial"),
+			},
+		},
 		Disks: libvirt.DomainDiskArray{
 			libvirt.DomainDiskArgs{
 				VolumeId: args.Volume.ID(),

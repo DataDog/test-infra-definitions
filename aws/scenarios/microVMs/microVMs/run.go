@@ -80,12 +80,16 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	archs := make(map[string]bool)
 	for _, set := range cfg.VMSets {
-		archs = append(archs, set.Arch)
+		if _, ok := archs[set.Arch]; ok {
+			continue
+		}
+		archs[set.Arch] = true
 	}
 
 	instances := make(map[string]*Instance)
-	for _, arch := range archs {
+	for arch, _ := range archs {
 		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch)
 		if err != nil {
 			return err

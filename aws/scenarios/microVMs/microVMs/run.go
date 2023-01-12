@@ -10,6 +10,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -44,22 +45,28 @@ func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, conn, err := ec2.NewDefaultEC2Instance(e, namer.ResourceName("instance"), arch, instanceType)
+	awsInstance, err := ec2.NewEC2Instance(e, name, "", arch, instanceType, e.DefaultKeyPairName(), "", "default")
 	if err != nil {
+		return nil, err
+	}
+
+	conn := remote.ConnectionArgs{
+		Host: awsInstance.PrivateIp,
+	}
+	if err := utils.ConfigureRemoteSSH("ubuntu", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "", &conn); err != nil {
 		return nil, err
 	}
 
 	return &Instance{
 		ctx:           e.Ctx,
 		instance:      awsInstance,
-		connection:    conn,
+		connection:    conn.ToConnectionOutput(),
 		arch:          arch,
 		instanceNamer: namer,
 	}, nil
 }
 
 func Run(ctx *pulumi.Context) error {
-	var archs []string
 	var waitFor []pulumi.Resource
 
 	e, err := aws.AWSEnvironment(ctx)

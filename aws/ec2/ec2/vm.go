@@ -32,7 +32,7 @@ func NewVM(ctx *pulumi.Context) (*VM, error) {
 	}
 	vm.CommonEnvironment = e.CommonEnvironment
 
-	instance, conn, err := NewDefaultEC2Instance(e, "vm", AMD64Arch, e.DefaultInstanceType())
+	instance, conn, err := NewDefaultEC2Instance(e, "vm", e.DefaultInstanceType())
 	if err != nil {
 		return nil, err
 	}
@@ -54,8 +54,8 @@ func NewVM(ctx *pulumi.Context) (*VM, error) {
 	return vm, nil
 }
 
-func NewDefaultEC2Instance(e aws.Environment, name, arch, instanceType string) (*ec2.Instance, remote.ConnectionOutput, error) {
-	awsInstance, err := NewEC2Instance(e, name, "", arch, instanceType, e.DefaultKeyPairName(), "", "default")
+func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.Instance, remote.ConnectionOutput, error) {
+	awsInstance, err := NewEC2Instance(e, name, "", AMD64Arch, instanceType, e.DefaultKeyPairName(), "", "default")
 	if err != nil {
 		return nil, remote.ConnectionOutput{}, err
 	}

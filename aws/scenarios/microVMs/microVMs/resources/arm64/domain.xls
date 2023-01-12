@@ -10,6 +10,13 @@
       </xsl:copy>
   </xsl:template>
 
+  <xsl:template match="/domain/features/pae">
+      <xsl:copy>
+          <xsl:apply-templates select="@* | node()"/>
+      </xsl:copy>
+      <gic version='3'/>
+  </xsl:template>
+
   <xsl:template match="/domain/name"><name>%s</name></xsl:template>
 
   <xsl:template match="/domain/os/type[@arch='aarch64']/@machine">

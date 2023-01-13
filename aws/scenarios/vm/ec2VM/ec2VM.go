@@ -35,7 +35,7 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error
 	}
 
 	return vm.NewVM(
-		params.common.ImageName,
+		params.common.InstanceName,
 		&env,
 		instance.PrivateIp,
 		os,

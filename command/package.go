@@ -3,7 +3,7 @@ package command
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -14,7 +14,7 @@ type PackageManager interface {
 }
 
 type AptManager struct {
-	namer           common.Namer
+	namer           namer.Namer
 	updateDBCommand *remote.Command
 	runner          *Runner
 	env             pulumi.StringMap
@@ -22,7 +22,7 @@ type AptManager struct {
 
 func NewAptManager(runner *Runner) *AptManager {
 	apt := &AptManager{
-		namer:  common.NewNamer(runner.e.Ctx, "apt"),
+		namer:  namer.NewNamer(runner.e.Ctx, "apt"),
 		runner: runner,
 		env: pulumi.StringMap{
 			"DEBIAN_FRONTEND": pulumi.String("noninteractive"),

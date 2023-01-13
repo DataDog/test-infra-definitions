@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/common"
+	"github.com/DataDog/test-infra-definitions/common"
 )
 
 type Params struct {
@@ -17,7 +17,8 @@ func NewParams(apiKey string, options ...func(*Params) error) (*Params, error) {
 	params := &Params{
 		apiKey: apiKey,
 	}
-	return common.ApplyOption(params, WithLatest(), options)
+	options = append([]func(*Params) error{WithLatest()}, options...)
+	return common.ApplyOption(params, options)
 }
 
 // WithLatest uses the latest Agent 7 version in the stable channel.

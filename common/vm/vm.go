@@ -12,19 +12,20 @@ import (
 )
 
 func InitVM(
-	ctx *pulumi.Context,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	os os.OS,
 	optionalAgentInstallParams *agentinstall.Params,
 ) (*command.Runner, error) {
+	commonEnv := env.GetCommonEnvironment()
+	ctx := commonEnv.Ctx
 	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser())
 	if err != nil {
 		return nil, err
 	}
 
 	if optionalAgentInstallParams != nil {
-		agentinstall.Install(runner, env.GetCommonEnvironment(), optionalAgentInstallParams, os)
+		agentinstall.Install(runner, commonEnv.CommonNamer, optionalAgentInstallParams, os)
 	}
 	ctx.Export("connection", connection)
 
@@ -45,7 +46,7 @@ func createRunner(
 	commonEnv := env.GetCommonEnvironment()
 	runner, err := command.NewRunner(
 		*commonEnv,
-		commonEnv.CommonNamer.ResourceName(ctx.Stack()+"-conn"),
+		commonEnv.CommonNamer.ResourceName("connection"),
 		connection,
 		func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(ctx, r)

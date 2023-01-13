@@ -8,7 +8,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
-func GetOSes(env azure.Environment) []os.OS {
+func GetSupportedOSes(env azure.Environment) []os.OS {
 	return []os.OS{newWindows(env), newUbuntu(env)}
 }
 

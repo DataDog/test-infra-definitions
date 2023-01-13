@@ -112,7 +112,7 @@ func WithInstanceType[OS os.OS, P ParamsGetter[OS]](instanceType string) func(P)
 	}
 }
 
-// WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
+// WithUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
 func WithUserData[OS os.OS, P ParamsGetter[OS]](userData string) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()

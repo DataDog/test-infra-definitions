@@ -10,6 +10,6 @@ func (*MacOS) GetServiceManager() *serviceManager {
 	return &serviceManager{restartCmd: []string{"launchctl stop com.datadoghq.agent", "launchctl start com.datadoghq.agent"}}
 }
 
-func (*MacOS) GetConfigPath() string { return "~/.datadog-agent/datadog.yaml" }
+func (*MacOS) GetAgentConfigPath() string { return "~/.datadog-agent/datadog.yaml" }
 
 func (*MacOS) GetOSType() OSType { return MacosOS }

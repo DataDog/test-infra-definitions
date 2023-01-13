@@ -45,7 +45,6 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*AzureVM, 
 	}
 
 	runner, err := vm.InitVM(
-		ctx,
 		&env,
 		publicIP.IpAddress.Elem(),
 		params.common.OS,

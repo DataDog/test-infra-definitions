@@ -20,6 +20,6 @@ func (*Windows) GetServiceManager() *serviceManager {
 	return &serviceManager{restartCmd: []string{`%ProgramFiles%\Datadog\Datadog Agent\bin\agent.exe restart-service`}}
 }
 
-func (*Windows) GetConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
+func (*Windows) GetAgentConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
 
 func (*Windows) GetOSType() OSType { return WindowsOS }

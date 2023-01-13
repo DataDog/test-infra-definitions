@@ -40,7 +40,6 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2VM, erro
 	}
 
 	runner, err := vm.InitVM(
-		ctx,
 		&env,
 		instance.PrivateIp,
 		os,

@@ -5,19 +5,14 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/azure"
 	"github.com/DataDog/test-infra-definitions/azure/compute"
-	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type AzureVM struct {
-	runner *command.Runner
-}
-
 // NewAzureVM creates a new azure instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*AzureVM, error) {
+func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error) {
 	env, err := azure.AzureEnvironment(ctx)
 	if err != nil {
 		return nil, err
@@ -44,16 +39,11 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*AzureVM, 
 		return nil, err
 	}
 
-	runner, err := vm.InitVM(
+	return vm.NewVM(
+		params.common.InstanceName,
 		&env,
 		publicIP.IpAddress.Elem(),
 		params.common.OS,
 		params.common.OptionalAgentInstallParams,
 	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &AzureVM{runner: runner}, nil
 }

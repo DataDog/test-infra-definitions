@@ -25,7 +25,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 
 	if params.agentConfig != "" {
 		fileManager := command.NewFileManager(runner)
-		remotePath := os.GetConfigPath()
+		remotePath := os.GetAgentConfigPath()
 		agentConfig := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
 			config := strings.ReplaceAll(params.agentConfig, "{{API_KEY}}", apiKey)
 			return pulumi.String(config)

@@ -75,7 +75,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		return nil, err
 	}
 
-	tempCmd, tempDirPath, err := d.fileManager.TempDirectory(name + "compose-tmp")
+	tempCmd, tempDirPath, err := d.fileManager.TempDirectory(name + "compose-tmp-folder")
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
 		writeCommand, err := d.fileManager.CopyInlineFile(
-			d.namer.ResourceName("write", manifest.Name),
+			d.namer.ResourceName("copy-compose", manifest.Name),
 			manifest.Content,
 			remoteComposePath,
 			false,
@@ -105,7 +105,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 
 	return d.runner.Command(
-		d.namer.ResourceName("run", name),
+		d.namer.ResourceName("docker-compose", name),
 		&CommandArgs{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),

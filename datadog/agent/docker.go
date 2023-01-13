@@ -3,15 +3,11 @@ package agent
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
-
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const (
-	agentComposeDefinition = `version: "3.9"
+	AgentComposeDefinition = `version: "3.9"
 services:
   agent:
     image: %s
@@ -23,7 +19,7 @@ services:
       DD_API_KEY: %s
       DD_PROCESS_AGENT_ENABLED: true
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
-	defaultAgentImageRepo = "gcr.io/datadoghq/agent"
+	DefaultAgentImageRepo = "gcr.io/datadoghq/agent"
 	defaultAgentImageTag  = "latest"
 )
 
@@ -33,7 +29,11 @@ func DockerFullImagePath(e *config.CommonEnvironment) string {
 		return e.AgentFullImagePath()
 	}
 
-	return fmt.Sprintf("%s:%s", defaultAgentImageRepo, DockerImageTag(e))
+	return BuildDockerImagePath(DefaultAgentImageRepo, DockerImageTag(e))
+}
+
+func BuildDockerImagePath(dockerRepository string, imageVersion string) string {
+	return fmt.Sprintf("%s:%s", dockerRepository, imageVersion)
 }
 
 func DockerImageTag(e *config.CommonEnvironment) string {
@@ -49,25 +49,4 @@ func DockerImageTag(e *config.CommonEnvironment) string {
 	}
 
 	return agentImageTag
-}
-
-// NewDockerAgentInstallation installs docker if needed and deploys a docker Datadog agent
-// given a DockerManager
-// e: contains Pulumi's environment configuration parameters
-// dockerManager: a docker manager from a provisioned instance
-// agentImagePath: optional path to a docker agent image. Use an empty string to use  latest agent release by default
-// extraConfiguration: optional extra docker compose. Use an empty string to default to use only the agent compose.
-func NewDockerAgentInstallation(e *config.CommonEnvironment, dockerManager *command.DockerManager, extraConfiguration string, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	composeContents := []command.DockerComposeInlineManifest{
-		{
-			Name:    "agent",
-			Content: pulumi.Sprintf(agentComposeDefinition, DockerFullImagePath(e), e.AgentAPIKey()),
-		},
-	}
-
-	if len(extraConfiguration) > 0 {
-		composeContents = append(composeContents, command.DockerComposeInlineManifest{Name: "agent-custom", Content: pulumi.String(extraConfiguration)})
-	}
-
-	return dockerManager.ComposeStrUp("agent", composeContents, envVars, opts...)
 }

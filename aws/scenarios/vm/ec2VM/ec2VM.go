@@ -27,7 +27,7 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*Ec2VM, erro
 	os := params.common.OS
 	instance, err := awsEc2.NewEC2Instance(
 		env,
-		env.CommonNamer.ResourceName(params.common.GetInstanceNameOrDefault("ec2-instance")),
+		env.CommonNamer.ResourceName(params.common.ImageName),
 		params.common.ImageName,
 		os.GetAMIArch(params.common.Arch),
 		params.common.InstanceType,

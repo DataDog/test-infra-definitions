@@ -34,7 +34,7 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*AzureVM, 
 
 	_, publicIP, _, err := compute.NewLinuxInstance(
 		env,
-		env.CommonNamer.ResourceName(params.common.GetInstanceNameOrDefault("azure-instance")),
+		env.CommonNamer.ResourceName(params.common.InstanceName),
 		params.common.ImageName,
 		params.common.InstanceType,
 		pulumi.StringPtr(params.common.UserData),

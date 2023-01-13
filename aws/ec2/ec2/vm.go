@@ -43,7 +43,7 @@ func NewVM(ctx *pulumi.Context) (*VM, error) {
 	if err != nil {
 		return nil, err
 	}
-	vm.PackageManager = command.NewAptManager(vm.Runner)
+	vm.PackageManager = command.NewAptManager("apt-manager", vm.Runner)
 	vm.DockerManager = command.NewDockerManager(vm.Runner, vm.PackageManager)
 
 	vm.FileManager = command.NewFileManager(vm.Runner)

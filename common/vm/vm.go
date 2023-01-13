@@ -38,7 +38,7 @@ func NewVM(
 	case commonos.UbuntuOS:
 		return &UbuntuVM{
 			rawVM:      rawVM,
-			aptManager: *command.NewAptManager(runner),
+			aptManager: command.NewAptManager(name, runner),
 		}, nil
 	default:
 		return &rawVM, nil
@@ -101,10 +101,10 @@ func (vm *rawVM) GetCommonEnvironment() *config.CommonEnvironment {
 }
 
 type UbuntuVM struct {
-	aptManager command.AptManager
+	aptManager *command.AptManager
 	rawVM
 }
 
 func (vm *UbuntuVM) GetAptManager() *command.AptManager {
-	return &vm.aptManager
+	return vm.aptManager
 }

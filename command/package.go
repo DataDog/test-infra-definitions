@@ -20,9 +20,9 @@ type AptManager struct {
 	env             pulumi.StringMap
 }
 
-func NewAptManager(runner *Runner) *AptManager {
+func NewAptManager(name string, runner *Runner) *AptManager {
 	apt := &AptManager{
-		namer:  namer.NewNamer(runner.e.Ctx, "apt"),
+		namer:  namer.NewNamer(runner.e.Ctx, "apt-"+name),
 		runner: runner,
 		env: pulumi.StringMap{
 			"DEBIAN_FRONTEND": pulumi.String("noninteractive"),
@@ -33,7 +33,7 @@ func NewAptManager(runner *Runner) *AptManager {
 }
 
 func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	updateDB, err := m.updateDB()
+	updateDB, err := m.updateDB(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 		opts...)
 }
 
-func (m *AptManager) updateDB() (*remote.Command, error) {
+func (m *AptManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {
 	if m.updateDBCommand != nil {
 		return m.updateDBCommand, nil
 	}
@@ -61,7 +61,7 @@ func (m *AptManager) updateDB() (*remote.Command, error) {
 			Create:      pulumi.String("apt-get update -y"),
 			Sudo:        true,
 			Environment: m.env,
-		})
+		}, opts...)
 	if err == nil {
 		m.updateDBCommand = c
 	}

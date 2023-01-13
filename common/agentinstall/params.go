@@ -5,19 +5,21 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/config"
 )
 
 type Params struct {
-	apiKey      string
 	version     version
 	agentConfig string
 }
 
-func NewParams(apiKey string, options ...func(*Params) error) (*Params, error) {
-	params := &Params{
-		apiKey: apiKey,
+func NewParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
+	params := &Params{}
+	defaultVersion := WithLatest()
+	if env.AgentVersion() != "" {
+		defaultVersion = WithVersion(env.AgentVersion())
 	}
-	options = append([]func(*Params) error{WithLatest()}, options...)
+	options = append([]func(*Params) error{defaultVersion}, options...)
 	return common.ApplyOption(params, options)
 }
 
@@ -30,7 +32,7 @@ func WithLatest() func(*Params) error {
 	}
 }
 
-// WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0-rc.7`
+// WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0~rc.7-1
 func WithVersion(version string) func(*Params) error {
 	return func(p *Params) error {
 		prefix := "7."
@@ -46,16 +48,12 @@ func WithVersion(version string) func(*Params) error {
 		}
 
 		p.version.minor = strings.TrimPrefix(version, prefix)
-		p.version.betaChannel = strings.Contains(version, "-")
-		if p.version.betaChannel {
-			// Update from `7.41.0-rc.7` to `7.41.0~rc.7-1
-			p.version.minor = strings.ReplaceAll(p.version.minor, "-", "~") + "-1"
-		}
+		p.version.betaChannel = strings.Contains(version, "~")
 		return nil
 	}
 }
 
-// WithAgentConfig sets the configuration of the Agent.
+// WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.agentConfig = config

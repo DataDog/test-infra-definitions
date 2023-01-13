@@ -26,7 +26,9 @@ func NewVM(
 	}
 
 	if optionalAgentInstallParams != nil {
-		agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os)
+		if err := agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os); err != nil {
+			return nil, err
+		}
 	}
 	ctx.Export("connection", connection)
 

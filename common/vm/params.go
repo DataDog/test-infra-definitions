@@ -35,7 +35,9 @@ func NewParams[OS os.OS](commonEnv *config.CommonEnvironment, oses []OS) (*Param
 	}
 
 	// By default use Ubuntu
-	params.setOS(os.UbuntuOS, os.AMD64Arch)
+	if err := params.setOS(os.UbuntuOS, os.AMD64Arch); err != nil {
+		return nil, err
+	}
 	if commonEnv.AgentDeploy() {
 		if err := params.setAgentInstallParams(); err != nil {
 			return nil, err
@@ -61,8 +63,7 @@ func WithName[OS os.OS, P ParamsGetter[OS]](name string) func(P) error {
 func WithOS[OS os.OS, P ParamsGetter[OS]](osType os.OSType, arch os.Architecture) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
-		p.setOS(osType, arch)
-		return nil
+		return p.setOS(osType, arch)
 	}
 }
 

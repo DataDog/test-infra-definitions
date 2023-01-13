@@ -46,7 +46,7 @@ func createRunner(
 	commonEnv := env.GetCommonEnvironment()
 	runner, err := command.NewRunner(
 		*commonEnv,
-		commonEnv.CommonNamer.ResourceName(ctx.Stack()+"-conn"),
+		commonEnv.CommonNamer.ResourceName("connection"),
 		connection,
 		func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(ctx, r)

@@ -10,6 +10,12 @@
 
   <xsl:template match="/domain/name"><name>%s</name></xsl:template>
 
+  <xsl:template match="/domain/features">
+       <cpu mode='host-model' check='none'>
+           <model fallback='forbid'>qemu64</model>
+       </cpu>
+  </xsl:template>
+
   <xsl:template match="/domain/devices/disk">
       <filesystem type='mount' accessmode='passthrough'>
           <source dir='%s'/>

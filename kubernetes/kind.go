@@ -27,7 +27,7 @@ func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*r
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetAptManager()
-	curlCommand, err := packageManager.Ensure("curl", utils.PulumiDependsOn(dockerOnVm.GetDependOnResource()))
+	curlCommand, err := packageManager.Ensure("curl")
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*r
 		&command.CommandArgs{
 			Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, arch),
 		},
-		utils.PulumiDependsOn(curlCommand),
+		dockerOnVm.GetDependsOn(), utils.PulumiDependsOn(curlCommand),
 	)
 	if err != nil {
 		return nil, err

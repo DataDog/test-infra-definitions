@@ -18,29 +18,32 @@ type AptManager struct {
 	updateDBCommand *remote.Command
 	runner          *Runner
 	env             pulumi.StringMap
+	opts            []pulumi.ResourceOption
 }
 
-func NewAptManager(name string, runner *Runner) *AptManager {
+func NewAptManager(name string, runner *Runner, opts ...pulumi.ResourceOption) *AptManager {
 	apt := &AptManager{
 		namer:  namer.NewNamer(runner.e.Ctx, "apt-"+name),
 		runner: runner,
 		env: pulumi.StringMap{
 			"DEBIAN_FRONTEND": pulumi.String("noninteractive"),
 		},
+		opts: opts,
 	}
 
 	return apt
 }
 
 func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	opts = append(opts, m.opts...)
 	updateDB, err := m.updateDB(opts)
 	if err != nil {
 		return nil, err
 	}
 
-	opts = append(opts, pulumi.DependsOn([]pulumi.Resource{updateDB}))
+	opts = append(opts, utils.PulumiDependsOn(updateDB))
 	installCmd := fmt.Sprintf("apt-get install -y %s", packageRef)
-	return m.runner.Command(
+	cmd, err := m.runner.Command(
 		m.namer.ResourceName("install", utils.StrHash(installCmd)),
 		&CommandArgs{
 			Create:      pulumi.String(installCmd),
@@ -48,6 +51,9 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 			Sudo:        true,
 		},
 		opts...)
+	// Make sure apt-get install doesn't run in parrallel
+	m.opts = append(m.opts, utils.PulumiDependsOn(cmd))
+	return cmd, err
 }
 
 func (m *AptManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {

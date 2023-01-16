@@ -25,22 +25,27 @@ func NewVM(
 		return nil, err
 	}
 
+	var dependsOn []pulumi.Resource
+
 	if optionalAgentInstallParams != nil {
-		if err := agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os); err != nil {
+		resource, err := agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os)
+		if err != nil {
 			return nil, err
 		}
+		dependsOn = append(dependsOn, resource)
 	}
 	ctx.Export("connection", connection)
 
 	rawVM := rawVM{
-		runner: runner,
-		env:    commonEnv,
+		runner:    runner,
+		env:       commonEnv,
+		dependsOn: pulumi.DependsOn(dependsOn),
 	}
 	switch os.GetOSType() {
 	case commonos.UbuntuOS:
 		return &UbuntuVM{
 			rawVM:      rawVM,
-			aptManager: command.NewAptManager(name, runner),
+			aptManager: command.NewAptManager(name, runner, rawVM.dependsOn),
 		}, nil
 	default:
 		return &rawVM, nil
@@ -90,8 +95,9 @@ type VM interface {
 }
 
 type rawVM struct {
-	runner *command.Runner
-	env    *config.CommonEnvironment
+	runner    *command.Runner
+	env       *config.CommonEnvironment
+	dependsOn pulumi.ResourceOption
 }
 
 func (vm *rawVM) GetRunner() *command.Runner {
@@ -100,6 +106,10 @@ func (vm *rawVM) GetRunner() *command.Runner {
 
 func (vm *rawVM) GetCommonEnvironment() *config.CommonEnvironment {
 	return vm.env
+}
+
+func (vm *rawVM) GetDependsOn() pulumi.ResourceOption {
+	return vm.dependsOn
 }
 
 type UbuntuVM struct {

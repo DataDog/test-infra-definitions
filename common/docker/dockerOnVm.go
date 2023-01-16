@@ -2,14 +2,15 @@ package docker
 
 import (
 	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type DockerOnVm struct {
-	vm               *vm.UbuntuVM
-	dependOnResource pulumi.Resource
+	vm        *vm.UbuntuVM
+	dependsOn pulumi.ResourceOption
 }
 
 func NewDockerOnVm(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) error) (*DockerOnVm, error) {
@@ -58,11 +59,11 @@ func NewDockerOnVm(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params
 		return nil, err
 	}
 
-	return &DockerOnVm{vm: vm, dependOnResource: dependOnResource}, nil
+	return &DockerOnVm{vm: vm, dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
 }
 
-func (d *DockerOnVm) GetDependOnResource() pulumi.Resource {
-	return d.dependOnResource
+func (d *DockerOnVm) GetDependsOn() pulumi.ResourceOption {
+	return d.dependsOn
 }
 
 func (d *DockerOnVm) GetVM() *vm.UbuntuVM {

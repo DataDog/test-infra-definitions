@@ -8,8 +8,22 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
-func GetSupportedOSes(env azure.Environment) []os.OS {
-	return []os.OS{newWindows(env), newUbuntu(env)}
+type Type int
+
+const (
+	WindowsOS Type = iota
+	UbuntuOS       = iota
+)
+
+func GetOS(env azure.Environment, osType Type) (os.OS, error) {
+	switch osType {
+	case WindowsOS:
+		return newWindows(env), nil
+	case UbuntuOS:
+		return newUbuntu(env), nil
+	default:
+		return nil, fmt.Errorf("cannot find environment: %v", osType)
+	}
 }
 
 type ubuntu struct {

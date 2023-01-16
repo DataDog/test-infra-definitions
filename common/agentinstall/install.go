@@ -50,7 +50,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 	return lastCommand, err
 }
 
-func getInstallFormatString(osType os.OSType, version version) string {
+func getInstallFormatString(osType os.Type, version version) string {
 	switch osType {
 	case os.UbuntuOS:
 		return getUnixInstallFormatString("install_script.sh", version)

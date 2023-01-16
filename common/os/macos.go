@@ -12,4 +12,4 @@ func (*MacOS) GetServiceManager() *ServiceManager {
 
 func (*MacOS) GetAgentConfigPath() string { return "~/.datadog-agent/datadog.yaml" }
 
-func (*MacOS) GetOSType() OSType { return MacosOS }
+func (*MacOS) GetOSType() Type { return MacosOS }

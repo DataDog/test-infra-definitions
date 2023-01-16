@@ -22,4 +22,4 @@ func (*Windows) GetServiceManager() *ServiceManager {
 
 func (*Windows) GetAgentConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
 
-func (*Windows) GetOSType() OSType { return WindowsOS }
+func (*Windows) GetOSType() Type { return WindowsOS }

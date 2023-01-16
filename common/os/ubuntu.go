@@ -14,4 +14,4 @@ func (*Ubuntu) GetServiceManager() *ServiceManager {
 	return &ServiceManager{restartCmd: []string{"sudo service datadog-agent restart"}}
 }
 
-func (*Ubuntu) GetOSType() OSType { return UbuntuOS }
+func (*Ubuntu) GetOSType() Type { return UbuntuOS }

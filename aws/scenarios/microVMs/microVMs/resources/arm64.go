@@ -55,6 +55,7 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		Machine: pulumi.String("virt"),
 		Kernel:  pulumi.String(args.KernelPath),
 		Cmdlines: pulumi.MapArray{
+			pulumi.Map{"console": pulumi.String("ttyAMA0")},
 			pulumi.Map{"acpi": pulumi.String("off")},
 			pulumi.Map{"panic": pulumi.String("-1")},
 			pulumi.Map{"root": pulumi.String("/dev/vda")},

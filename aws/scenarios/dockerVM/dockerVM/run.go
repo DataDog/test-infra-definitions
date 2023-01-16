@@ -1,4 +1,4 @@
-package dockerVM
+package dockervm
 
 import (
 	"fmt"

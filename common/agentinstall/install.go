@@ -16,7 +16,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 	commonNamer := env.CommonNamer
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
-		&command.CommandArgs{
+		&command.Args{
 			Create: pulumi.Sprintf(cmd, env.AgentAPIKey()),
 		})
 	if err != nil {
@@ -43,7 +43,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig))
 		lastCommand, err = runner.Command(
 			restartAgentRes,
-			&command.CommandArgs{
+			&command.Args{
 				Create: pulumi.String(cmd),
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}

@@ -45,7 +45,7 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 	installCmd := fmt.Sprintf("apt-get install -y %s", packageRef)
 	cmd, err := m.runner.Command(
 		m.namer.ResourceName("install", utils.StrHash(installCmd)),
-		&CommandArgs{
+		&Args{
 			Create:      pulumi.String(installCmd),
 			Environment: m.env,
 			Sudo:        true,
@@ -63,7 +63,7 @@ func (m *AptManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, er
 
 	c, err := m.runner.Command(
 		m.namer.ResourceName("update"),
-		&CommandArgs{
+		&Args{
 			Create:      pulumi.String("apt-get update -y"),
 			Sudo:        true,
 			Environment: m.env,

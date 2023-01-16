@@ -62,7 +62,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 
 	return d.runner.Command(
 		d.namer.ResourceName("run", composeFilePath),
-		&CommandArgs{
+		&Args{
 			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout %d", remoteComposePath, defaultTimeout),
 			Delete: pulumi.Sprintf("docker-compose -f %s down -t %d", remoteComposePath, defaultTimeout),
 		},
@@ -106,7 +106,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 
 	return d.runner.Command(
 		d.namer.ResourceName("docker-compose", name),
-		&CommandArgs{
+		&Args{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
 			Environment: envVars,
@@ -123,7 +123,7 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 
 	usermod, err := d.runner.Command(
 		d.namer.ResourceName("group"),
-		&CommandArgs{
+		&Args{
 			Create: pulumi.String("usermod -a -G docker $(whoami)"),
 			Sudo:   true,
 		},
@@ -135,7 +135,7 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 	composeInstallCmd := pulumi.Sprintf("curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose", composeVersion)
 	return d.runner.Command(
 		d.namer.ResourceName("install"),
-		&CommandArgs{
+		&Args{
 			Create: composeInstallCmd,
 			Sudo:   true,
 		},

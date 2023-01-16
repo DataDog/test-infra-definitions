@@ -51,7 +51,7 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 			Sudo:        true,
 		},
 		opts...)
-	// Make sure apt-get install doesn't run in parrallel
+	// Make sure apt-get install doesn't run in parallel
 	m.opts = append(m.opts, utils.PulumiDependsOn(cmd))
 	return cmd, err
 }

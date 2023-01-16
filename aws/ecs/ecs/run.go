@@ -76,7 +76,7 @@ func Run(ctx *pulumi.Context) error {
 	// Create task and service
 	if awsEnv.AgentDeploy() {
 		apiKeyParam, err := ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
-			Name:  awsEnv.Namer.DisplayName(pulumi.String("agent-apikey")),
+			Name:  awsEnv.CommonNamer.DisplayName(pulumi.String("agent-apikey")),
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
 		}, pulumi.Provider(awsEnv.Provider))

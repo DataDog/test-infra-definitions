@@ -2,73 +2,10 @@ package ec2
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
-
-type VM struct {
-	context *pulumi.Context
-
-	Runner            *command.Runner
-	CommonEnvironment *config.CommonEnvironment
-	PackageManager    command.PackageManager
-	FileManager       *command.FileManager
-	DockerManager     *command.DockerManager
-}
-
-func NewVM(ctx *pulumi.Context) (*VM, error) {
-	vm := &VM{
-		context: ctx,
-	}
-
-	e, err := aws.AWSEnvironment(ctx)
-	if err != nil {
-		return nil, err
-	}
-	vm.CommonEnvironment = e.CommonEnvironment
-
-	instance, conn, err := NewDefaultEC2Instance(e, "vm", e.DefaultInstanceType())
-	if err != nil {
-		return nil, err
-	}
-
-	vm.Runner, err = command.NewRunner(*e.CommonEnvironment, e.CommonNamer.ResourceName("vm"), conn, func(r *command.Runner) (*remote.Command, error) {
-		return command.WaitForCloudInit(ctx, r)
-	})
-	if err != nil {
-		return nil, err
-	}
-	vm.PackageManager = command.NewAptManager("apt-manager", vm.Runner)
-	vm.DockerManager = command.NewDockerManager(vm.Runner, vm.PackageManager)
-
-	vm.FileManager = command.NewFileManager(vm.Runner)
-
-	e.Ctx.Export("instance-ip", instance.PrivateIp)
-	e.Ctx.Export("connection", conn)
-
-	return vm, nil
-}
-
-func NewDefaultEC2Instance(e aws.Environment, name, instanceType string) (*ec2.Instance, remote.ConnectionOutput, error) {
-	awsInstance, err := NewEC2Instance(e, name, "", AMD64Arch, instanceType, e.DefaultKeyPairName(), "", "default")
-	if err != nil {
-		return nil, remote.ConnectionOutput{}, err
-	}
-
-	connection := remote.ConnectionArgs{
-		Host: awsInstance.PrivateIp,
-	}
-	if err := utils.ConfigureRemoteSSH("ubuntu", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "", &connection); err != nil {
-		return nil, remote.ConnectionOutput{}, err
-	}
-
-	return awsInstance, connection.ToConnectionOutput(), nil
-}
 
 func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*ec2.Instance, error) {
 	var err error

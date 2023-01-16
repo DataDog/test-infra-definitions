@@ -13,7 +13,7 @@ type DockerOnVm struct {
 	dependsOn pulumi.ResourceOption
 }
 
-func NewDockerOnVm(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) error) (*DockerOnVm, error) {
+func NewDockerOnVM(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) error) (*DockerOnVm, error) {
 	commonEnv := vm.GetCommonEnvironment()
 	params, err := newParams(commonEnv, options...)
 	if err != nil {

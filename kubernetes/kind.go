@@ -22,8 +22,8 @@ var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
 // Currently using ec2.VM waiting for correct abstraction
-func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*remote.Command, error) {
-	vm := dockerOnVm.GetVM()
+func NewKindCluster(dockerOnVM *docker.DockerOnVm, clusterName, arch string) (*remote.Command, error) {
+	vm := dockerOnVM.GetVM()
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetAptManager()
@@ -37,7 +37,7 @@ func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*r
 		&command.CommandArgs{
 			Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, arch),
 		},
-		dockerOnVm.GetDependsOn(), utils.PulumiDependsOn(curlCommand),
+		dockerOnVM.GetDependsOn(), utils.PulumiDependsOn(curlCommand),
 	)
 	if err != nil {
 		return nil, err

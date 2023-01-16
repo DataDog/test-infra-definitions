@@ -7,7 +7,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	env, err := azure.AzureEnvironment(ctx)
+	env, err := azure.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}

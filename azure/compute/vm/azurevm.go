@@ -13,7 +13,7 @@ import (
 
 // NewAzureVM creates a new azure instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error) {
-	env, err := azure.AzureEnvironment(ctx)
+	env, err := azure.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
 	}

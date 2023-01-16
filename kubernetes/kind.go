@@ -22,7 +22,7 @@ var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
 // Currently using ec2.VM waiting for correct abstraction
-func NewKindCluster(dockerOnVM *docker.DockerOnVm, clusterName, arch string) (*remote.Command, error) {
+func NewKindCluster(dockerOnVM *docker.OnVM, clusterName, arch string) (*remote.Command, error) {
 	vm := dockerOnVM.GetVM()
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()

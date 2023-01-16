@@ -18,7 +18,7 @@ func Run(ctx *pulumi.Context) error {
 	if !ok {
 		return fmt.Errorf("not an ubuntu VM")
 	}
-	_, err = docker.NewDockerOnVM(ctx, ubuntuVM, docker.WithAgent())
+	_, err = docker.NewOnVM(ctx, ubuntuVM, docker.WithAgent())
 
 	return err
 }

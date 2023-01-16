@@ -16,8 +16,8 @@ func (w *Windows) GetDefaultInstanceType(arch Architecture) string {
 	return getDefaultInstanceType(w.env, arch)
 }
 
-func (*Windows) GetServiceManager() *serviceManager {
-	return &serviceManager{restartCmd: []string{`%ProgramFiles%\Datadog\Datadog Agent\bin\agent.exe restart-service`}}
+func (*Windows) GetServiceManager() *ServiceManager {
+	return &ServiceManager{restartCmd: []string{`%ProgramFiles%\Datadog\Datadog Agent\bin\agent.exe restart-service`}}
 }
 
 func (*Windows) GetAgentConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }

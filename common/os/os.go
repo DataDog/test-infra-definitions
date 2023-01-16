@@ -18,7 +18,7 @@ const (
 type OS interface {
 	GetImage(Architecture) (string, error)
 	GetDefaultInstanceType(Architecture) string
-	GetServiceManager() *serviceManager
+	GetServiceManager() *ServiceManager
 	GetAgentConfigPath() string
 	GetSSHUser() string
 	GetOSType() OSType

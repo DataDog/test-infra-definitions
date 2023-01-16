@@ -56,6 +56,8 @@ func getInstallFormatString(osType os.OSType, version version) string {
 		return getUnixInstallFormatString("install_script.sh", version)
 	case os.MacosOS:
 		return getUnixInstallFormatString("install_mac_os.sh", version)
+	case os.WindowsOS:
+		panic("Not implemented")
 	default:
 		panic("Not implemented")
 	}

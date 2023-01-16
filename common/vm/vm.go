@@ -47,6 +47,10 @@ func NewVM(
 			rawVM:      rawVM,
 			aptManager: command.NewAptManager(name, runner, rawVM.dependsOn),
 		}, nil
+	case commonos.WindowsOS:
+		return &rawVM, nil
+	case commonos.MacosOS:
+		return &rawVM, nil
 	default:
 		return &rawVM, nil
 	}

@@ -8,12 +8,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type DockerOnVm struct {
+type DockerOnVM struct {
 	vm        *vm.UbuntuVM
 	dependsOn pulumi.ResourceOption
 }
 
-func NewDockerOnVM(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) error) (*DockerOnVm, error) {
+func NewDockerOnVM(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) error) (*DockerOnVM, error) {
 	commonEnv := vm.GetCommonEnvironment()
 	params, err := newParams(commonEnv, options...)
 	if err != nil {
@@ -59,13 +59,13 @@ func NewDockerOnVM(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params
 		return nil, err
 	}
 
-	return &DockerOnVm{vm: vm, dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
+	return &DockerOnVM{vm: vm, dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
 }
 
-func (d *DockerOnVm) GetDependsOn() pulumi.ResourceOption {
+func (d *DockerOnVM) GetDependsOn() pulumi.ResourceOption {
 	return d.dependsOn
 }
 
-func (d *DockerOnVm) GetVM() *vm.UbuntuVM {
+func (d *DockerOnVM) GetVM() *vm.UbuntuVM {
 	return d.vm
 }

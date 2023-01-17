@@ -10,6 +10,12 @@ type Unix struct {
 	env config.Environment
 }
 
+func NewUnix(env config.Environment) *Unix {
+	return &Unix{
+		env: env,
+	}
+}
+
 func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 	return getDefaultInstanceType(u.env, arch)
 }

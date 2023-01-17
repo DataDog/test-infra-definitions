@@ -11,7 +11,7 @@ func NewUbuntu(env config.Environment) *Ubuntu {
 }
 
 func (*Ubuntu) GetServiceManager() *ServiceManager {
-	return &ServiceManager{restartCmd: []string{"sudo service datadog-agent restart"}}
+	return NewServiceCmdServiceManager()
 }
 
 func (*Ubuntu) GetType() Type {

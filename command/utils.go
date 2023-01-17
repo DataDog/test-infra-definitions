@@ -9,6 +9,7 @@ func WaitForCloudInit(ctx *pulumi.Context, runner *Runner) (*remote.Command, err
 	return runner.Command(
 		"wait-cloud-init",
 		&Args{
-			Create: pulumi.String("cloud-init status --wait"),
+			// `sudo` is required for amazon linux
+			Create: pulumi.String("sudo cloud-init status --wait"),
 		})
 }

@@ -41,15 +41,16 @@ func NewVM(
 		env:       commonEnv,
 		dependsOn: pulumi.DependsOn(dependsOn),
 	}
-	switch os.GetOSType() {
-	case commonos.UbuntuOS:
+
+	switch os.GetType() {
+	case commonos.UbuntuType:
 		return &UbuntuVM{
 			rawVM:      rawVM,
 			aptManager: command.NewAptManager(name, runner, rawVM.dependsOn),
 		}, nil
-	case commonos.WindowsOS:
+	case commonos.WindowsType:
 		return &rawVM, nil
-	case commonos.MacosOS:
+	case commonos.OtherType:
 		return &rawVM, nil
 	default:
 		return &rawVM, nil

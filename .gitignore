@@ -16,3 +16,6 @@
 
 # Pulumi stack files
 Pulumi.*.yaml
+
+# Vim swap files
+*.swp

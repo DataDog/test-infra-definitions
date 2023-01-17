@@ -3,7 +3,6 @@ package vmconfig
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"regexp"
@@ -15,34 +14,6 @@ func LoadConfigFile(filename string) (*Config, error) {
 		return nil, err
 	}
 	return cfg, nil
-}
-
-func validateCustomRecipe(vmset *VMSet) error {
-	for _, kernel := range vmset.Kernels {
-		if kernel.ImageSource != "" {
-			return errors.New("cannot have source for custom kernels")
-		}
-	}
-
-	if vmset.Img.ImageName == "" || vmset.Img.ImageSourceURI == "" {
-		return errors.New("image needed for custom recipe")
-	}
-
-	return nil
-}
-
-func validateDistroRecipe(vmset *VMSet) error {
-	for _, kernel := range vmset.Kernels {
-		if kernel.ImageSource == "" {
-			return errors.New("source required for distribution kernels")
-		}
-	}
-
-	if vmset.Img.ImageName != "" || vmset.Img.ImageSourceURI != "" {
-		return errors.New("cannot use global image for distribution kernels")
-	}
-
-	return nil
 }
 
 func defaultValues() *Config {

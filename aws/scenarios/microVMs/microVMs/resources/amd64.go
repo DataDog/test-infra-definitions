@@ -39,6 +39,15 @@ func (a *AMD64ResourceCollection) GetPoolXML(args ...interface{}) string {
 }
 
 func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+	var cmdlines []map[string]interface{}
+
+	for cmd, val := range args.ExtraKernelParams {
+		cmdlines = append(cmdlines, map[string]interface{}{cmd: pulumi.String(val)})
+	}
+
+	cmdlines = append(cmdlines, kernelCmdlines...)
+
+	//			pulumi.Map{"console": pulumi.String("ttyS0")},
 	return &libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
@@ -52,17 +61,10 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 				VolumeId: args.Volume.ID(),
 			},
 		},
-		Kernel: pulumi.String(args.KernelPath),
-		Cmdlines: pulumi.MapArray{
-			pulumi.Map{"console": pulumi.String("ttyS0")},
-			pulumi.Map{"acpi": pulumi.String("off")},
-			pulumi.Map{"panic": pulumi.String("-1")},
-			pulumi.Map{"root": pulumi.String("/dev/vda")},
-			pulumi.Map{"net.ifnames": pulumi.String("0")},
-			pulumi.Map{"_": pulumi.String("rw")},
-		},
-		Memory: pulumi.Int(args.Memory),
-		Vcpu:   pulumi.Int(args.Vcpu),
+		Kernel:   pulumi.String(args.KernelPath),
+		Cmdlines: pulumi.ToMapArray(cmdlines),
+		Memory:   pulumi.Int(args.Memory),
+		Vcpu:     pulumi.Int(args.Vcpu),
 		Xml: libvirt.DomainXmlArgs{
 			Xslt: pulumi.String(args.Xls),
 		},

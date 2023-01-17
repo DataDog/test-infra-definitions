@@ -126,6 +126,7 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc
 	matrix.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(kernel.Dir, "bzImage")
 	matrix.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(matrix.domainName, sharedFSMountPoint, matrix.domainID, mac)
 	matrix.RecipeLibvirtDomainArgs.Resources = rc
+	matrix.RecipeLibvirtDomainArgs.ExtraKernelParams = kernel.ExtraParams
 
 	return matrix, nil
 }

@@ -1,9 +1,10 @@
 package vmconfig
 
 type Kernel struct {
-	Dir         string `json:"dir"`
-	Tag         string `json:"tag"`
-	ImageSource string `json:"image_source,omitempty"`
+	Dir         string            `json:"dir"`
+	Tag         string            `json:"tag"`
+	ImageSource string            `json:"image_source,omitempty"`
+	ExtraParams map[string]string `json:"extra_params,omitempty"`
 }
 
 type Image struct {

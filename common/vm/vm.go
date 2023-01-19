@@ -20,7 +20,14 @@ func NewVM(
 ) (VM, error) {
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
-	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser())
+
+	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(ctx, r) }
+	if os.GetType() == commonos.WindowsType {
+		// On Windows, there is no equivalent of cloud init, but the code wait until ssh connection is ready
+		// so it is OK to not have a ready function.
+		readyFunc = nil
+	}
+	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser(), readyFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -62,6 +69,7 @@ func createRunner(
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	sshUser string,
+	readyFunc func(*command.Runner) (*remote.Command, error),
 ) (remote.ConnectionOutput, *command.Runner, error) {
 	connection, err := createConnection(instanceIP, sshUser, env)
 	if err != nil {
@@ -73,9 +81,7 @@ func createRunner(
 		*commonEnv,
 		commonEnv.CommonNamer.ResourceName("connection"),
 		connection,
-		func(r *command.Runner) (*remote.Command, error) {
-			return command.WaitForCloudInit(ctx, r)
-		})
+		readyFunc)
 	if err != nil {
 		return remote.ConnectionOutput{}, nil, err
 	}

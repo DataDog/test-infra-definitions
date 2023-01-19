@@ -18,7 +18,7 @@ func newWindows(env aws.Environment) *windows {
 	}
 }
 
-func (*windows) GetSSHUser() string { panic("Not Yet supported") }
+func (*windows) GetSSHUser() string { return "administrator" }
 
 func (w *windows) GetImage(arch oscommon.Architecture) (string, error) {
 	return ec2.SearchAMI(w.env, "801119661308", "Windows_Server-2022-English-Full-Base-*", string(arch))

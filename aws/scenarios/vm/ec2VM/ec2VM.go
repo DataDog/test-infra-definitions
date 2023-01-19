@@ -1,8 +1,12 @@
 package ec2vm
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/DataDog/test-infra-definitions/aws"
 	awsEc2 "github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -20,6 +24,14 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error
 	}
 
 	os := params.common.OS
+	userData := params.common.UserData
+	if os.GetType() == commonos.WindowsType {
+		cmd, err := GetOpenSSHInstallCmd(env.DefaultPublicKeyPath())
+		if err != nil {
+			return nil, err
+		}
+		userData += cmd
+	}
 	instance, err := awsEc2.NewEC2Instance(
 		env,
 		env.CommonNamer.ResourceName(params.common.ImageName),
@@ -27,7 +39,7 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error
 		os.GetAMIArch(params.common.Arch),
 		params.common.InstanceType,
 		params.keyPair,
-		params.common.UserData,
+		userData,
 		os.GetTenancy())
 
 	if err != nil {
@@ -41,4 +53,25 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error
 		os,
 		params.common.OptionalAgentInstallParams,
 	)
+}
+
+func GetOpenSSHInstallCmd(publicKeyPath string) (string, error) {
+	publicKey, err := os.ReadFile(publicKeyPath)
+	if err != nil {
+		return "", err
+	}
+
+	openSSHInstallCmd := `<powershell>
+	$service = Get-Service -Name sshd -ErrorAction SilentlyContinue
+	# Don't try to reinstall OpenSSH if the user uses <persist>true</persist> on UserData.
+	if ($service -eq $null) {
+		Add-WindowsCapability -Online -Name OpenSSH.Server
+		Set-Service -Name sshd -StartupType Automatic
+		Add-Content -Path $env:ProgramData\ssh\administrators_authorized_keys -Value '%v'
+		icacls.exe ""$env:ProgramData\ssh\administrators_authorized_keys"" /inheritance:r /grant ""Administrators:F"" /grant ""SYSTEM:F""
+		New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
+		Start-Service sshd
+	}
+	</powershell>`
+	return fmt.Sprintf(openSSHInstallCmd, string(publicKey)), nil
 }

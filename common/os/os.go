@@ -18,7 +18,7 @@ const (
 
 type AgentVersion struct {
 	Major       string
-	Minor       string
+	Minor       string // Empty means latest
 	BetaChannel bool
 }
 

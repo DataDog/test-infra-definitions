@@ -12,7 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microVMs/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -73,11 +73,11 @@ type DomainMatrix struct {
 	arch        string
 	kernel      *vmconfig.Kernel
 	domainArgs  *libvirt.DomainArgs
-	domainNamer common.Namer
+	domainNamer namer.Namer
 	instance    *Instance
 }
 
-func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, resourceNamer common.Namer, dhcpEntries []string) (*libvirt.Network, error) {
+func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, resourceNamer namer.Namer, dhcpEntries []string) (*libvirt.Network, error) {
 
 	netXML := resources.GetDefaultNetworkXLS(strings.Join(dhcpEntries[:], ""))
 	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network"), &libvirt.NetworkArgs{
@@ -119,7 +119,7 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc
 	matrix.dhcpEntry = fmt.Sprintf(dhcpEntriesTemplate, mac, matrix.domainName, ip)
 	matrix.kernel = &kernel
 	matrix.fs = fs
-	matrix.domainNamer = common.NewNamer(ctx, matrix.domainID)
+	matrix.domainNamer = namer.NewNamer(ctx, matrix.domainID)
 
 	matrix.RecipeLibvirtDomainArgs.Vcpu = vcpu
 	matrix.RecipeLibvirtDomainArgs.Memory = memory

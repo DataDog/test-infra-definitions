@@ -88,13 +88,13 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 
 type LocalRunner struct {
 	e     config.CommonEnvironment
-	namer common.Namer
+	namer namer.Namer
 }
 
 func NewLocalRunner(e config.CommonEnvironment) *LocalRunner {
 	return &LocalRunner{
 		e:     e,
-		namer: common.NewNamer(e.Ctx, "local"),
+		namer: namer.NewNamer(e.Ctx, "local"),
 	}
 }
 

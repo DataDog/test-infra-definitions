@@ -8,7 +8,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microVMs/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -21,7 +21,7 @@ type filesystemImage struct {
 	volumeKey     string
 	volumeXML     string
 	volumeXMLPath string
-	volumeNamer   common.Namer
+	volumeNamer   namer.Namer
 }
 
 type libvirtFilesystem struct {
@@ -30,7 +30,7 @@ type libvirtFilesystem struct {
 	poolXMLPath   string
 	images        []*filesystemImage
 	baseVolumeMap map[string]*filesystemImage
-	poolNamer     common.Namer
+	poolNamer     namer.Namer
 }
 
 func generatePoolPath(name string) string {
@@ -65,7 +65,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 			volumeKey:     volKey,
 			volumeXML:     rc.GetVolumeXML(imageName, volKey, volKey),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
-			volumeNamer:   common.NewNamer(ctx, volKey),
+			volumeNamer:   namer.NewNamer(ctx, volKey),
 		}
 		images = append(images, img)
 		baseVolumeMap[k.Tag] = img
@@ -77,7 +77,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
-		poolNamer:     common.NewNamer(ctx, poolName),
+		poolNamer:     namer.NewNamer(ctx, poolName),
 	}
 }
 
@@ -98,7 +98,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 		volumeKey:     volKey,
 		volumeXML:     rc.GetVolumeXML(basefsName, volKey, volKey),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
-		volumeNamer:   common.NewNamer(ctx, volKey),
+		volumeNamer:   namer.NewNamer(ctx, volKey),
 	}
 	for _, k := range vmset.Kernels {
 		baseVolumeMap[k.Tag] = img
@@ -110,7 +110,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
-		poolNamer:     common.NewNamer(ctx, poolName),
+		poolNamer:     namer.NewNamer(ctx, poolName),
 	}
 }
 

@@ -1,17 +1,17 @@
 {
     "vmsets": [
         {
-            "name": "custom-kernels-x86_64",
+            "name": "custom-kernels-x86_64-gt4.14",
             "recipe": "custom-amd64",
             "arch": "x86_64",
             "kernels": [
                 {
-                    "dir": "/tmp/kernel-packages/kernel-v4.14.x86.pkg",
-                    "tag": "4.14.302"
+                    "dir": "/tmp/kernel-packages/kernel-v5.15.x86.pkg",
+                    "tag": "5.15"
                 },
                 {
                     "dir": "/tmp/kernel-packages/kernel-v5.4.x86.pkg",
-                    "tag": "5.4.227"
+                    "tag": "5.4"
                 }
             ],
             "vcpu": [4],
@@ -22,29 +22,9 @@
             }
         },
         {
-            "name": "custom-kernels-arm64",
-            "recipe": "custom-arm64",
-            "arch": "arm64",
-            "kernels": [
-                {
-                    "dir": "/tmp/kernel-packages/kernel-v5.15.arm64.pkg",
-                    "tag": "5.15"
-                },
-                {
-                    "dir": "/tmp/kernel-packages/kernel-v5.4.arm64.pkg",
-                    "tag": "5.4"
-                }
-            ],
-            "vcpu": [4],
-            "memory": [4096],
-            "image": {
-                "image_path": "bullseye.qcow2.arm64-0.1-DEV",
-                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.arm64-0.1-DEV.tar.gz"
-            }
-        },
-        {
             "name": "ubuntu",
             "recipe": "distro",
+            "arch": "x86_64",
             "kernels": [
                 {
                     "dir": "/tmp/ubuntu-16.04-server-cloudimg-amd64-disk1.img",

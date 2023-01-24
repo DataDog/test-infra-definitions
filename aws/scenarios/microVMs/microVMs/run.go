@@ -9,7 +9,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -26,7 +26,7 @@ type Instance struct {
 	instance      *awsEc2.Instance
 	connection    remote.ConnectionOutput
 	arch          string
-	instanceNamer common.Namer
+	instanceNamer namer.Namer
 	remoteRunner  *command.Runner
 	localRunner   *command.LocalRunner
 	libvirtURI    pulumi.StringOutput
@@ -36,7 +36,7 @@ type Instance struct {
 func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 	var instanceType string
 
-	namer := common.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
+	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
 	if arch == ec2.AMD64Arch {
 		instanceType = e.DefaultInstanceType()
 	} else if arch == ec2.ARM64Arch {

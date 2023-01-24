@@ -6,7 +6,7 @@ import (
 
 	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -112,7 +112,7 @@ func prepareLibvirtEnvironment(runner *command.Runner, depends []pulumi.Resource
 	return []pulumi.Resource{libvirtReady}, nil
 }
 
-func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer common.Namer, arch, tempDir string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, arch, tempDir string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	privateKeyPath := filepath.Join(tempDir, fmt.Sprintf(libvirtSSHPrivateKey, arch))
 	publicKeyPath := filepath.Join(tempDir, fmt.Sprintf(libvirtSSHPublicKey, arch))
 	sshGenArgs := command.CommandArgs{

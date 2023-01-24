@@ -91,15 +91,11 @@ func (e *Environment) DefaultVPCID() string {
 }
 
 func (e *Environment) DefaultSubnets() []string {
-	var arr []string
-	resInt := e.GetObjectWithDefault(e.InfraConfig, ddinfraDefaultSubnetsParamName, arr, e.envDefault.ddInfra.defaultSubnets)
-	return resInt.([]string)
+	return e.GetStringListWithDefault(e.InfraConfig, ddinfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 
 func (e *Environment) DefaultSecurityGroups() []string {
-	var arr []string
-	resInt := e.GetObjectWithDefault(e.InfraConfig, ddinfraDefaultSecurityGroupsParamName, arr, e.envDefault.ddInfra.defaultSecurityGroups)
-	return resInt.([]string)
+	return e.GetStringListWithDefault(e.InfraConfig, ddinfraDefaultSecurityGroupsParamName, e.envDefault.ddInfra.defaultSecurityGroups)
 }
 
 func (e *Environment) DefaultInstanceType() string {

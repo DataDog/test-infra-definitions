@@ -21,9 +21,9 @@ type AptManager struct {
 	opts            []pulumi.ResourceOption
 }
 
-func NewAptManager(name string, runner *Runner, opts ...pulumi.ResourceOption) *AptManager {
+func NewAptManager(runner *Runner, opts ...pulumi.ResourceOption) *AptManager {
 	apt := &AptManager{
-		namer:  namer.NewNamer(runner.e.Ctx, "apt-"+name),
+		namer:  namer.NewNamer(runner.e.Ctx, "apt"),
 		runner: runner,
 		env: pulumi.StringMap{
 			"DEBIAN_FRONTEND": pulumi.String("noninteractive"),
@@ -51,9 +51,12 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 			Sudo:        true,
 		},
 		opts...)
+	if err != nil {
+		return nil, err
+	}
 	// Make sure apt-get install doesn't run in parrallel
 	m.opts = append(m.opts, utils.PulumiDependsOn(cmd))
-	return cmd, err
+	return cmd, nil
 }
 
 func (m *AptManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {

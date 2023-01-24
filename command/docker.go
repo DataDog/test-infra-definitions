@@ -75,7 +75,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		return nil, err
 	}
 
-	tempCmd, tempDirPath, err := d.fileManager.TempDirectory(name + "compose-tmp-folder")
+	tempCmd, tempDirPath, err := d.fileManager.TempDirectory(name + "compose-tmp")
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 
 	return d.runner.Command(
-		d.namer.ResourceName("docker-compose", name),
+		d.namer.ResourceName("compose", name),
 		&CommandArgs{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),

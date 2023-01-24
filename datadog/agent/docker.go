@@ -1,9 +1,8 @@
 package agent
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 )
 
 const (
@@ -29,11 +28,7 @@ func DockerFullImagePath(e *config.CommonEnvironment) string {
 		return e.AgentFullImagePath()
 	}
 
-	return BuildDockerImagePath(DefaultAgentImageRepo, DockerImageTag(e))
-}
-
-func BuildDockerImagePath(dockerRepository string, imageVersion string) string {
-	return fmt.Sprintf("%s:%s", dockerRepository, imageVersion)
+	return utils.BuildDockerImagePath(DefaultAgentImageRepo, DockerImageTag(e))
 }
 
 func DockerImageTag(e *config.CommonEnvironment) string {

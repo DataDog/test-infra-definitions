@@ -16,6 +16,8 @@ const (
 	sharedFSMountPoint   = "/opt/kernel-version-testing"
 )
 
+var kernelHeadersDir = filepath.Join(sharedFSMountPoint, "kernel-headers")
+
 var (
 	disableSELinuxArgs = command.CommandArgs{
 		Create: pulumi.String("sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"),
@@ -29,6 +31,12 @@ var (
 	buildSharedDirArgs = command.CommandArgs{
 		Create: pulumi.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", sharedFSMountPoint),
 		Delete: pulumi.Sprintf("rm -rf %s", sharedFSMountPoint),
+		Sudo:   true,
+	}
+
+	buildKernelHeadersDirArgs = command.CommandArgs{
+		Create: pulumi.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", kernelHeadersDir),
+		Delete: pulumi.Sprintf("rm -rf %s", kernelHeadersDir),
 		Sudo:   true,
 	}
 )
@@ -66,7 +74,7 @@ func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pul
 
 	copyKernelHeadersArgs := command.CommandArgs{
 		Create: pulumi.Sprintf(
-			"-u libvirt-qemu /bin/bash -c \"cd /tmp; find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} %s && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} %s\"", sharedFSMountPoint, sharedFSMountPoint,
+			"-u libvirt-qemu /bin/bash -c \"cd /tmp; find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} %s && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} %s\"", kernelHeadersDir, kernelHeadersDir,
 		),
 		Sudo: true,
 	}
@@ -164,7 +172,12 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	dependencies := append(downloadKernelDone, buildSharedDirDone)
+	buildKernelHeadersDirDone, err := runner.Command("build-kernel-headers-dir", &buildKernelHeadersDirArgs, pulumi.DependsOn([]pulumi.Resource{buildSharedDirDone}))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	dependencies := append(downloadKernelDone, buildKernelHeadersDirDone)
 	copyKernelHeadersDone, err := copyKernelHeaders(runner, dependencies)
 	if err != nil {
 		return []pulumi.Resource{}, err

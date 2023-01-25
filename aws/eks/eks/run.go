@@ -10,6 +10,8 @@ import (
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -39,6 +41,12 @@ func Run(ctx *pulumi.Context) error {
 		},
 		VpcId: pulumi.StringPtr(awsEnv.DefaultVPCID()),
 	}, pulumi.Provider(awsEnv.Provider))
+	if err != nil {
+		return err
+	}
+
+	// Cluster role
+	clusterRole, err := GetClusterRole(awsEnv, "eks-cluster-role")
 	if err != nil {
 		return err
 	}
@@ -93,6 +101,7 @@ func Run(ctx *pulumi.Context) error {
 		InstanceRoles: awsIam.RoleArray{
 			linuxNodeRole,
 		},
+		ServiceRole: clusterRole,
 	}, pulumi.Timeouts(&pulumi.CustomTimeouts{
 		Create: "30m",
 		Update: "30m",
@@ -146,6 +155,19 @@ func Run(ctx *pulumi.Context) error {
 	}, pulumi.Provider(awsEnv.Provider), pulumi.DependsOn(nodeGroups))
 	if err != nil {
 		return err
+	}
+
+	// Applying necessary Windows configuration if Windows nodes
+	if awsEnv.EKSWindowsNodeGroup() {
+		corev1.NewConfigMapPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
+			Metadata: metav1.ObjectMetaPatchArgs{
+				Namespace: pulumi.String("kube-system"),
+				Name:      pulumi.String("amazon-vpc-cni"),
+			},
+			Data: pulumi.StringMap{
+				"enable-windows-ipam": pulumi.String("true"),
+			},
+		}, pulumi.Provider(eksKubeProvider))
 	}
 
 	// Deploy the Agent

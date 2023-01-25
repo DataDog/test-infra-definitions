@@ -159,7 +159,7 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 
 	// We need to wait until the libvirt-qemu user exists before doing this
 	// Hence, the dependency on the libvirt environment.
-	buildSharedDirDone, err := runner.Command("build-kernel-headers-dir", &buildSharedDirArgs, pulumi.DependsOn(prepareLibvirtEnvDone))
+	buildSharedDirDone, err := runner.Command("build-kernel-version-testing-dir", &buildSharedDirArgs, pulumi.DependsOn(prepareLibvirtEnvDone))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

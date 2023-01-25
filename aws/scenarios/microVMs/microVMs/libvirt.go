@@ -211,7 +211,10 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 		}
 		matrix.RecipeLibvirtDomainArgs.Volume = volume
 
-		createDomainSocketDone, err := buildDomainSocket(instance.remoteRunner, matrix.domainID, matrix.domainNamer.ResourceName("create-domain-socket"))
+		createDomainSocketDone, err := buildDomainSocket(instance.remoteRunner,
+			matrix.domainID,
+			matrix.domainNamer.ResourceName("create-domain-socket"),
+		)
 		if err != nil {
 			return matrices, waitFor, err
 		}
@@ -265,7 +268,14 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 	}
 
 	for _, matrix := range matrices {
-		_, err := libvirt.NewDomain(matrix.instance.ctx, matrix.domainNamer.ResourceName("ddvm"), matrix.domainArgs, pulumi.Provider(matrix.instance.provider), pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(waitFor))
+		_, err := libvirt.NewDomain(matrix.instance.ctx,
+			matrix.domainNamer.ResourceName("ddvm"),
+			matrix.domainArgs,
+			pulumi.Provider(matrix.instance.provider),
+			pulumi.ReplaceOnChanges([]string{"*"}),
+			pulumi.DeleteBeforeReplace(true),
+			pulumi.DependsOn(waitFor),
+		)
 
 		if err != nil {
 			return err

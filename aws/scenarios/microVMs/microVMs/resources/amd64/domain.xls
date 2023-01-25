@@ -19,7 +19,7 @@
   <xsl:template match="/domain/devices/disk">
       <filesystem type='mount' accessmode='passthrough'>
           <source dir='%s'/>
-          <target dir='kernel-headers'/>
+          <target dir='kernel-version-testing'/>
       </filesystem>
       <readonly/>
       <channel type='unix'>

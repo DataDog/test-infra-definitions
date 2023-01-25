@@ -66,18 +66,18 @@ func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 	}, nil
 }
 
-func Run(ctx *pulumi.Context) (remote.ConnectionOutput, error) {
+func run(ctx *pulumi.Context) (map[string]remote.ConnectionOutput, error) {
 	var waitFor []pulumi.Resource
 
 	e, err := aws.AWSEnvironment(ctx)
 	if err != nil {
-		return remote.ConnectionOutput{}, err
+		return nil, err
 	}
 
 	m := config.NewMicroVMConfig(ctx)
 	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
 	if err != nil {
-		return remote.ConnectionOutput{}, err
+		return nil, err
 	}
 
 	archs := make(map[string]bool)
@@ -92,20 +92,20 @@ func Run(ctx *pulumi.Context) (remote.ConnectionOutput, error) {
 	for arch, _ := range archs {
 		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch)
 		if err != nil {
-			return remote.ConnectionOutput{}, err
+			return nil, err
 		}
 
 		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
 		})
 		if err != nil {
-			return remote.ConnectionOutput{}, err
+			return nil, err
 		}
 		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
 
 		wait, err := provisionInstance(instance, &m)
 		if err != nil {
-			return remote.ConnectionOutput{}, err
+			return nil, err
 		}
 		waitFor = append(waitFor, wait...)
 
@@ -120,8 +120,22 @@ func Run(ctx *pulumi.Context) (remote.ConnectionOutput, error) {
 	}
 
 	if err := setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor); err != nil {
-		return remote.ConnectionOutput{}, err
+		return nil, err
 	}
 
-	return instance.connection, nil
+	connections := make(map[string]remote.ConnectionOutput)
+	for arch, instance := range instances {
+		connections[arch] = instance.connection
+	}
+
+	return connections, nil
+}
+
+func RunAndReturnConnections(ctx *pulumi.Context) (map[string]remote.ConnectionOutput, error) {
+	return run(ctx)
+}
+
+func Run(ctx *pulumi.Context) error {
+	_, err := run(ctx)
+	return err
 }

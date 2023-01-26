@@ -228,12 +228,12 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 	return matrices, waitFor, nil
 }
 
-func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) error {
+func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var dhcpEntries []string
 
 	matrices, waitFor, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
 	if err != nil {
-		return err
+		return []pulumi.Resource{}, err
 	}
 
 	networks := make(map[string]*libvirt.Network)
@@ -247,7 +247,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 
 		network, err := generateNetworkResource(instance.ctx, instance.provider, instance.instanceNamer, dhcpEntries)
 		if err != nil {
-			return err
+			return []pulumi.Resource{}, err
 		}
 		networks[arch] = network
 	}
@@ -256,7 +256,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 	for _, matrix := range matrices {
 		network, ok := networks[matrix.arch]
 		if !ok {
-			return fmt.Errorf("unsupported arch: %s", matrix.arch)
+			return []pulumi.Resource{}, fmt.Errorf("unsupported arch: %s", matrix.arch)
 		}
 
 		matrix.domainArgs.NetworkInterfaces = libvirt.DomainNetworkInterfaceArray{
@@ -267,8 +267,9 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 		}
 	}
 
+	var libvirtDomains []pulumi.Resource
 	for _, matrix := range matrices {
-		_, err := libvirt.NewDomain(matrix.instance.ctx,
+		d, err := libvirt.NewDomain(matrix.instance.ctx,
 			matrix.domainNamer.ResourceName("ddvm"),
 			matrix.domainArgs,
 			pulumi.Provider(matrix.instance.provider),
@@ -276,11 +277,12 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			pulumi.DeleteBeforeReplace(true),
 			pulumi.DependsOn(waitFor),
 		)
-
 		if err != nil {
-			return err
+			return []pulumi.Resource{}, err
 		}
+
+		libvirtDomains = append(libvirtDomains, d)
 	}
 
-	return nil
+	return libvirtDomains, nil
 }

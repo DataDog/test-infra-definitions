@@ -66,14 +66,19 @@ func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 	}, nil
 }
 
-func run(ctx *pulumi.Context, e aws.Environment) ([]*Instance, error) {
+type ScenarioDone struct {
+	Instances    []*Instance
+	Dependencies []pulumi.Resource
+}
+
+func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
-	var retInstances []*Instance
+	var scenarioReady ScenarioDone
 
 	m := config.NewMicroVMConfig(ctx)
 	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
 	if err != nil {
-		return []*Instance{}, err
+		return nil, err
 	}
 
 	archs := make(map[string]bool)
@@ -88,20 +93,20 @@ func run(ctx *pulumi.Context, e aws.Environment) ([]*Instance, error) {
 	for arch, _ := range archs {
 		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch)
 		if err != nil {
-			return []*Instance{}, err
+			return nil, err
 		}
 
 		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
 		})
 		if err != nil {
-			return []*Instance{}, err
+			return nil, err
 		}
 		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
 
 		wait, err := provisionInstance(instance, &m)
 		if err != nil {
-			return []*Instance{}, err
+			return nil, err
 		}
 		waitFor = append(waitFor, wait...)
 
@@ -111,20 +116,21 @@ func run(ctx *pulumi.Context, e aws.Environment) ([]*Instance, error) {
 		instance.libvirtURI = url
 
 		instances[arch] = instance
-		retInstances = append(retInstances, instance)
+		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
 		e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
 
 	}
 
-	if err := setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor); err != nil {
-		return []*Instance{}, err
+	scenarioReady.Dependencies, err = setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor)
+	if err != nil {
+		return nil, err
 	}
 
-	return retInstances, nil
+	return &scenarioReady, nil
 }
 
-func RunAndReturnInstances(ctx *pulumi.Context, e aws.Environment) ([]*Instance, error) {
+func RunAndReturnInstances(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 	return run(ctx, e)
 }
 

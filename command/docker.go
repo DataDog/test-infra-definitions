@@ -105,7 +105,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 
 	return d.runner.Command(
-		d.namer.ResourceName("compose", name),
+		d.namer.ResourceName("compose-run", name),
 		&CommandArgs{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),

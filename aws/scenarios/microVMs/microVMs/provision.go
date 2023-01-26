@@ -160,7 +160,7 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.remoteRunner, instance.arch)
+	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.remoteRunner, instance.Arch)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -184,7 +184,7 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 	}
 
 	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
-	prepareSSHKeysDone, err := prepareLibvirtSSHKeys(runner, localRunner, resourceNamer, instance.arch, tempDir, []pulumi.Resource{})
+	prepareSSHKeysDone, err := prepareLibvirtSSHKeys(runner, localRunner, resourceNamer, instance.Arch, tempDir, []pulumi.Resource{})
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

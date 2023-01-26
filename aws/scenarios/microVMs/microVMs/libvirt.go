@@ -107,7 +107,7 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*libvirtFilesyste
 func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc resources.ResourceCollection, instance *Instance, kernel vmconfig.Kernel, fs *libvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
 	matrix := new(DomainMatrix)
 	matrix.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag)
-	matrix.arch = instance.arch
+	matrix.arch = instance.Arch
 	matrix.instance = instance
 	matrix.domainName = fmt.Sprintf("ddvm-%s", matrix.domainID)
 
@@ -240,7 +240,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 	for arch, instance := range instances {
 		dhcpEntries = []string{}
 		for _, m := range matrices {
-			if m.instance.arch == arch {
+			if m.instance.Arch == arch {
 				dhcpEntries = append(dhcpEntries, m.dhcpEntry)
 			}
 		}

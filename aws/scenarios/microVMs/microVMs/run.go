@@ -24,8 +24,8 @@ const (
 type Instance struct {
 	ctx           *pulumi.Context
 	instance      *awsEc2.Instance
-	connection    remote.ConnectionOutput
-	arch          string
+	Connection    remote.ConnectionOutput
+	Arch          string
 	instanceNamer namer.Namer
 	remoteRunner  *command.Runner
 	localRunner   *command.LocalRunner
@@ -60,14 +60,15 @@ func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 	return &Instance{
 		ctx:           e.Ctx,
 		instance:      awsInstance,
-		connection:    conn.ToConnectionOutput(),
-		arch:          arch,
+		Connection:    conn.ToConnectionOutput(),
+		Arch:          arch,
 		instanceNamer: namer,
 	}, nil
 }
 
-func run(ctx *pulumi.Context) (map[string]remote.ConnectionOutput, error) {
+func run(ctx *pulumi.Context) ([]*Instance, error) {
 	var waitFor []pulumi.Resource
+	var retInstances []*Instance
 
 	e, err := aws.AWSEnvironment(ctx)
 	if err != nil {
@@ -95,7 +96,7 @@ func run(ctx *pulumi.Context) (map[string]remote.ConnectionOutput, error) {
 			return nil, err
 		}
 
-		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.connection, func(r *command.Runner) (*remote.Command, error) {
+		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
 		})
 		if err != nil {
@@ -109,29 +110,26 @@ func run(ctx *pulumi.Context) (map[string]remote.ConnectionOutput, error) {
 		}
 		waitFor = append(waitFor, wait...)
 
-		privkey := filepath.Join(m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp"), fmt.Sprintf(libvirtSSHPrivateKey, instance.arch))
+		privkey := filepath.Join(m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp"), fmt.Sprintf(libvirtSSHPrivateKey, instance.Arch))
 		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.instance.PrivateIp, privkey)
 
 		instance.libvirtURI = url
 
 		instances[arch] = instance
+		retInstances = append(retInstances, instance)
 
-		e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.arch), instance.instance.PrivateIp)
+		e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+
 	}
 
 	if err := setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor); err != nil {
 		return nil, err
 	}
 
-	connections := make(map[string]remote.ConnectionOutput)
-	for arch, instance := range instances {
-		connections[arch] = instance.connection
-	}
-
-	return connections, nil
+	return retInstances, nil
 }
 
-func RunAndReturnConnections(ctx *pulumi.Context) (map[string]remote.ConnectionOutput, error) {
+func RunAndReturnInstances(ctx *pulumi.Context) ([]*Instance, error) {
 	return run(ctx)
 }
 

@@ -66,19 +66,14 @@ func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 	}, nil
 }
 
-func run(ctx *pulumi.Context) ([]*Instance, error) {
+func run(ctx *pulumi.Context, e aws.Environment) ([]*Instance, error) {
 	var waitFor []pulumi.Resource
 	var retInstances []*Instance
-
-	e, err := aws.AWSEnvironment(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	m := config.NewMicroVMConfig(ctx)
 	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
 	if err != nil {
-		return nil, err
+		return []*Instance{}, err
 	}
 
 	archs := make(map[string]bool)
@@ -93,20 +88,20 @@ func run(ctx *pulumi.Context) ([]*Instance, error) {
 	for arch, _ := range archs {
 		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch)
 		if err != nil {
-			return nil, err
+			return []*Instance{}, err
 		}
 
 		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
 		})
 		if err != nil {
-			return nil, err
+			return []*Instance{}, err
 		}
 		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
 
 		wait, err := provisionInstance(instance, &m)
 		if err != nil {
-			return nil, err
+			return []*Instance{}, err
 		}
 		waitFor = append(waitFor, wait...)
 
@@ -123,17 +118,22 @@ func run(ctx *pulumi.Context) ([]*Instance, error) {
 	}
 
 	if err := setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor); err != nil {
-		return nil, err
+		return []*Instance{}, err
 	}
 
 	return retInstances, nil
 }
 
-func RunAndReturnInstances(ctx *pulumi.Context) ([]*Instance, error) {
-	return run(ctx)
+func RunAndReturnInstances(ctx *pulumi.Context, e aws.Environment) ([]*Instance, error) {
+	return run(ctx, e)
 }
 
 func Run(ctx *pulumi.Context) error {
-	_, err := run(ctx)
+	e, err := aws.AWSEnvironment(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = run(ctx, e)
 	return err
 }

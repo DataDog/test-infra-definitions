@@ -11,7 +11,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func Install(runner *command.Runner, env *config.CommonEnvironment, params *Params, os os.OS) error {
+func Install(runner *command.Runner, env *config.CommonEnvironment, params *Params, os os.OS) (pulumi.Resource, error) {
 	cmd := getInstallFormatString(os.GetOSType(), params.version)
 	commonNamer := env.CommonNamer
 	lastCommand, err := runner.Command(
@@ -20,7 +20,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 			Create: pulumi.Sprintf(cmd, env.AgentAPIKey()),
 		})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if params.agentConfig != "" {
@@ -32,7 +32,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 		}).(pulumi.StringInput)
 		lastCommand, err = fileManager.CopyInlineFile("agent-config", agentConfig, remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 	}
@@ -41,13 +41,13 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 	serviceManager := os.GetServiceManager()
 	for _, cmd := range serviceManager.RestartAgentCmd() {
 		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig))
-		_, err = runner.Command(
+		lastCommand, err = runner.Command(
 			restartAgentRes,
 			&command.CommandArgs{
 				Create: pulumi.String(cmd),
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}
-	return err
+	return lastCommand, err
 }
 
 func getInstallFormatString(osType os.OSType, version version) string {

@@ -4,19 +4,20 @@ import (
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/agentinstall"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/os"
+	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func InitVM(
+func NewVM(
+	name string,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
-	os os.OS,
+	os commonos.OS,
 	optionalAgentInstallParams *agentinstall.Params,
-) (*command.Runner, error) {
+) (VM, error) {
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
 	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser())
@@ -24,12 +25,31 @@ func InitVM(
 		return nil, err
 	}
 
+	var dependsOn []pulumi.Resource
+
 	if optionalAgentInstallParams != nil {
-		agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os)
+		resource, err := agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os)
+		if err != nil {
+			return nil, err
+		}
+		dependsOn = append(dependsOn, resource)
 	}
 	ctx.Export("connection", connection)
 
-	return runner, nil
+	rawVM := rawVM{
+		runner:    runner,
+		env:       commonEnv,
+		dependsOn: pulumi.DependsOn(dependsOn),
+	}
+	switch os.GetOSType() {
+	case commonos.UbuntuOS:
+		return &UbuntuVM{
+			rawVM:      rawVM,
+			aptManager: command.NewAptManager(runner, rawVM.dependsOn),
+		}, nil
+	default:
+		return &rawVM, nil
+	}
 }
 
 func createRunner(
@@ -67,4 +87,36 @@ func createConnection(ip pulumi.StringInput, user string, env config.Environment
 	}
 
 	return connection.ToConnectionOutput(), nil
+}
+
+type VM interface {
+	GetRunner() *command.Runner
+	GetCommonEnvironment() *config.CommonEnvironment
+}
+
+type rawVM struct {
+	runner    *command.Runner
+	env       *config.CommonEnvironment
+	dependsOn pulumi.ResourceOption
+}
+
+func (vm *rawVM) GetRunner() *command.Runner {
+	return vm.runner
+}
+
+func (vm *rawVM) GetCommonEnvironment() *config.CommonEnvironment {
+	return vm.env
+}
+
+func (vm *rawVM) GetDependsOn() pulumi.ResourceOption {
+	return vm.dependsOn
+}
+
+type UbuntuVM struct {
+	aptManager *command.AptManager
+	rawVM
+}
+
+func (vm *UbuntuVM) GetAptManager() *command.AptManager {
+	return vm.aptManager
 }

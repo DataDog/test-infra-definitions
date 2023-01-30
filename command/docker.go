@@ -70,7 +70,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 }
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installCommand, err := d.Install()
+	installCommand, err := d.Install(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +88,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
 		writeCommand, err := d.fileManager.CopyInlineFile(
-			d.namer.ResourceName("write", manifest.Name),
+			d.namer.ResourceName("copy-compose", manifest.Name),
 			manifest.Content,
 			remoteComposePath,
 			false,
@@ -105,7 +105,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 
 	return d.runner.Command(
-		d.namer.ResourceName("run", name),
+		d.namer.ResourceName("compose-run", name),
 		&CommandArgs{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
@@ -115,8 +115,8 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
 }
 
-func (d *DockerManager) Install() (*remote.Command, error) {
-	dockerInstall, err := d.pm.Ensure("docker.io")
+func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	dockerInstall, err := d.pm.Ensure("docker.io", opts...)
 	if err != nil {
 		return nil, err
 	}

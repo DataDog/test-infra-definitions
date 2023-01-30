@@ -9,7 +9,7 @@ import (
 )
 
 type Params[OS os.OS] struct {
-	instanceName               string
+	InstanceName               string
 	ImageName                  string
 	InstanceType               string
 	UserData                   string
@@ -30,11 +30,14 @@ func NewParams[OS os.OS](commonEnv *config.CommonEnvironment, oses []OS) (*Param
 			}
 			return nil, fmt.Errorf("%v is not suppported on this environment", osType)
 		},
-		commonEnv: commonEnv,
+		commonEnv:    commonEnv,
+		InstanceName: "vm",
 	}
 
 	// By default use Ubuntu
-	params.setOS(os.UbuntuOS, os.AMD64Arch)
+	if err := params.setOS(os.UbuntuOS, os.AMD64Arch); err != nil {
+		return nil, err
+	}
 	if commonEnv.AgentDeploy() {
 		if err := params.setAgentInstallParams(); err != nil {
 			return nil, err
@@ -44,13 +47,6 @@ func NewParams[OS os.OS](commonEnv *config.CommonEnvironment, oses []OS) (*Param
 	return params, nil
 }
 
-func (p *Params[OS]) GetInstanceNameOrDefault(defaultName string) string {
-	if p.instanceName == "" {
-		return defaultName
-	}
-	return p.instanceName
-}
-
 type ParamsGetter[OS os.OS] interface {
 	GetCommonParams() *Params[OS]
 }
@@ -58,7 +54,7 @@ type ParamsGetter[OS os.OS] interface {
 func WithName[OS os.OS, P ParamsGetter[OS]](name string) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
-		p.instanceName = name
+		p.InstanceName = name
 		return nil
 	}
 }
@@ -67,8 +63,7 @@ func WithName[OS os.OS, P ParamsGetter[OS]](name string) func(P) error {
 func WithOS[OS os.OS, P ParamsGetter[OS]](osType os.OSType, arch os.Architecture) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
-		p.setOS(osType, arch)
-		return nil
+		return p.setOS(osType, arch)
 	}
 }
 

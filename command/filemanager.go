@@ -78,6 +78,14 @@ func (fm *FileManager) CopyRelativeFolder(relativeFolder string, remoteFolder st
 	return fm.CopyFSFolder(fullPath, os.DirFS(rootFolder), relativeFolder, remoteFolder, opts...)
 }
 
+// CopyAbsoluteFolder copies recursively a folder to a remote folder.
+// This function returns the resources that can be used with `pulumi.DependsOn`.
+func (fm *FileManager) CopyAbsoluteFolder(absoluteFolder string, remoteFolder string, opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
+	baseFolder := filepath.Base(absoluteFolder)
+	rootWithoutBase := absoluteFolder[:len(absoluteFolder)-len(baseFolder)]
+	return fm.CopyFSFolder(absoluteFolder, os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
+}
+
 // CopyRelativeFile copies relative path to a remote path.
 // The relative path is defined in the same way as for `CopyRelativeFolder`.
 // This function returns the resource that can be used with `pulumi.DependsOn`.
@@ -131,10 +139,17 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 
-		fileCommand, err := fm.CopyFile(
-			file,
+		fileContent, err := fs.ReadFile(folderFS, file)
+		if err != nil {
+			return nil, err
+		}
+		fileCommand, err := fm.CopyInlineFile(
+			resourceName+"-"+file,
+			pulumi.String(fileContent),
 			path.Join(remoteFolder, destFile),
+			useSudo,
 			pulumi.DependsOn(folderResources))
+
 		if err != nil {
 			return nil, err
 		}

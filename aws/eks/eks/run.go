@@ -14,7 +14,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	awsEnv, err := aws.AWSEnvironment(ctx)
+	awsEnv, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}

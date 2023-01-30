@@ -24,7 +24,7 @@ func NewFileManager(runner *Runner) *FileManager {
 
 func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInput, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.runner.Command(name,
-		&CommandArgs{
+		&Args{
 			Create: pulumi.Sprintf("mkdir -p %s", remotePath),
 			Delete: pulumi.Sprintf("rm -rf %s", remotePath),
 			Sudo:   useSudo,
@@ -47,7 +47,7 @@ func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.Res
 
 func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.runner.Command(name,
-		&CommandArgs{
+		&Args{
 			Create: utils.WriteStringCommand(remotePath, useSudo),
 			Stdin:  fileContent,
 			Sudo:   useSudo,

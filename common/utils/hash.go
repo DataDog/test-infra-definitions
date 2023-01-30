@@ -25,7 +25,7 @@ func FileHash(filePath string) (string, error) {
 func StrHash(all ...string) string {
 	h := fnv.New64a()
 	for _, s := range all {
-		io.WriteString(h, s)
+		_, _ = io.WriteString(h, s)
 	}
 
 	return fmt.Sprintf("%x", h.Sum64())

@@ -9,7 +9,7 @@ import (
 
 // NewEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error) {
-	env, err := aws.AWSEnvironment(ctx)
+	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
 	}

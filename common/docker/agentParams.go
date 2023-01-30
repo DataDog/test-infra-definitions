@@ -7,33 +7,33 @@ import (
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
 )
 
-type DockerAgentParams struct {
+type AgentParams struct {
 	fullImagePath string
 	env           map[string]string
 }
 
-func newDockerAgentParams(commonEnv *config.CommonEnvironment, options ...func(*DockerAgentParams) error) (*DockerAgentParams, error) {
-	version := &DockerAgentParams{}
+func newAgentParams(commonEnv *config.CommonEnvironment, options ...func(*AgentParams) error) (*AgentParams, error) {
+	version := &AgentParams{}
 	version.fullImagePath = agent.DockerFullImagePath(commonEnv)
 	return common.ApplyOption(version, options)
 }
 
-func WithAgentImageTag(agentImageTag string) func(*DockerAgentParams) error {
-	return func(p *DockerAgentParams) error {
+func WithAgentImageTag(agentImageTag string) func(*AgentParams) error {
+	return func(p *AgentParams) error {
 		p.fullImagePath = utils.BuildDockerImagePath(agent.DefaultAgentImageRepo, agentImageTag)
 		return nil
 	}
 }
 
-func WithDockerAgentRepository(dockerAgentRepository string, agentImageTag string) func(*DockerAgentParams) error {
-	return func(p *DockerAgentParams) error {
+func WithDockerAgentRepository(dockerAgentRepository string, agentImageTag string) func(*AgentParams) error {
+	return func(p *AgentParams) error {
 		p.fullImagePath = utils.BuildDockerImagePath(dockerAgentRepository, agentImageTag)
 		return nil
 	}
 }
 
-func WithEnv(env map[string]string) func(*DockerAgentParams) error {
-	return func(p *DockerAgentParams) error {
+func WithEnv(env map[string]string) func(*AgentParams) error {
+	return func(p *AgentParams) error {
 		p.env = env
 		return nil
 	}

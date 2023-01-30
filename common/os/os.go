@@ -7,19 +7,19 @@ const (
 	ARM64Arch = Architecture("arm64")
 )
 
-type OSType int
+type Type int
 
 const (
-	WindowsOS OSType = iota
-	UbuntuOS         = iota
-	MacosOS          = iota
+	WindowsOS Type = iota
+	UbuntuOS       = iota
+	MacosOS        = iota
 )
 
 type OS interface {
 	GetImage(Architecture) (string, error)
 	GetDefaultInstanceType(Architecture) string
-	GetServiceManager() *serviceManager
+	GetServiceManager() *ServiceManager
 	GetAgentConfigPath() string
 	GetSSHUser() string
-	GetOSType() OSType
+	GetOSType() Type
 }

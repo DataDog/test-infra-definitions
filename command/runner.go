@@ -9,7 +9,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type CommandArgs struct {
+type Args struct {
 	Create      pulumi.StringInput
 	Update      pulumi.StringInput
 	Delete      pulumi.StringInput
@@ -19,7 +19,7 @@ type CommandArgs struct {
 	Sudo        bool
 }
 
-func (args *CommandArgs) toRemoteCommandArgs(c remote.ConnectionInput) *remote.CommandArgs {
+func (args *Args) toRemoteCommandArgs(c remote.ConnectionInput) *remote.CommandArgs {
 	return &remote.CommandArgs{
 		Connection: c,
 		Create:     args.buildCommandInput(args.Create, args.Environment, args.Sudo),
@@ -30,7 +30,7 @@ func (args *CommandArgs) toRemoteCommandArgs(c remote.ConnectionInput) *remote.C
 	}
 }
 
-func (args *CommandArgs) buildCommandInput(command pulumi.StringInput, env pulumi.StringMap, sudo bool) pulumi.StringInput {
+func (args *Args) buildCommandInput(command pulumi.StringInput, env pulumi.StringMap, sudo bool) pulumi.StringInput {
 	if command == nil {
 		return nil
 	}
@@ -77,7 +77,7 @@ func NewRunner(e config.CommonEnvironment, connName string, conn remote.Connecti
 	return runner, nil
 }
 
-func (r *Runner) Command(name string, args *CommandArgs, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	if r.waitCommand != nil {
 		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{r.waitCommand}))
 	}

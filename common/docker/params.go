@@ -7,7 +7,7 @@ import (
 )
 
 type Params struct {
-	optionalDockerAgentParams *DockerAgentParams
+	optionalDockerAgentParams *AgentParams
 	composeEnvVars            map[string]string
 	composeContent            string
 	pulumiResources           []pulumi.ResourceOption
@@ -33,10 +33,10 @@ func WithPulumiResources(pulumiResources ...pulumi.ResourceOption) func(*Params)
 	}
 }
 
-func WithAgent(options ...func(*DockerAgentParams) error) func(*Params) error {
+func WithAgent(options ...func(*AgentParams) error) func(*Params) error {
 	return func(p *Params) error {
 		var err error
-		p.optionalDockerAgentParams, err = newDockerAgentParams(p.commonEnv, options...)
+		p.optionalDockerAgentParams, err = newAgentParams(p.commonEnv, options...)
 		return err
 	}
 }

@@ -33,7 +33,7 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
-func AzureEnvironment(ctx *pulumi.Context) (Environment, error) {
+func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	commonEnv := config.NewCommonEnvironment(ctx)
 
 	env := Environment{

@@ -22,8 +22,8 @@ var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
 // Currently using ec2.VM waiting for correct abstraction
-func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*remote.Command, error) {
-	vm := dockerOnVm.GetVM()
+func NewKindCluster(dockerOnVM *docker.OnVM, clusterName, arch string) (*remote.Command, error) {
+	vm := dockerOnVM.GetVM()
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetAptManager()
@@ -34,10 +34,10 @@ func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*r
 
 	kindInstall, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-install"),
-		&command.CommandArgs{
+		&command.Args{
 			Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, arch),
 		},
-		dockerOnVm.GetDependsOn(), utils.PulumiDependsOn(curlCommand),
+		dockerOnVM.GetDependsOn(), utils.PulumiDependsOn(curlCommand),
 	)
 	if err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*r
 
 	createCluster, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", clusterName),
-		&command.CommandArgs{
+		&command.Args{
 			Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --wait %s", clusterName, clusterConfigFilePath, kindReadinessWait),
 			Delete:   pulumi.Sprintf("kind delete cluster --name %s", clusterName),
 			Triggers: pulumi.Array{pulumi.String(kindClusterConfig)},
@@ -68,7 +68,7 @@ func NewKindCluster(dockerOnVm *docker.DockerOnVm, clusterName, arch string) (*r
 
 	kubeConfig, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-kubeconfig", clusterName),
-		&command.CommandArgs{
+		&command.Args{
 			Create: pulumi.Sprintf("kind get kubeconfig --name %s", clusterName),
 		},
 		utils.PulumiDependsOn(createCluster),

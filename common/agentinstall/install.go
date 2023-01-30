@@ -16,7 +16,7 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 	commonNamer := env.CommonNamer
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
-		&command.CommandArgs{
+		&command.Args{
 			Create: pulumi.Sprintf(cmd, env.AgentAPIKey()),
 		})
 	if err != nil {
@@ -43,19 +43,21 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig))
 		lastCommand, err = runner.Command(
 			restartAgentRes,
-			&command.CommandArgs{
+			&command.Args{
 				Create: pulumi.String(cmd),
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}
 	return lastCommand, err
 }
 
-func getInstallFormatString(osType os.OSType, version version) string {
+func getInstallFormatString(osType os.Type, version version) string {
 	switch osType {
 	case os.UbuntuOS:
 		return getUnixInstallFormatString("install_script.sh", version)
 	case os.MacosOS:
 		return getUnixInstallFormatString("install_mac_os.sh", version)
+	case os.WindowsOS:
+		panic("Not implemented")
 	default:
 		panic("Not implemented")
 	}

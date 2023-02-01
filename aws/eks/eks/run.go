@@ -159,7 +159,7 @@ func Run(ctx *pulumi.Context) error {
 
 	// Applying necessary Windows configuration if Windows nodes
 	if awsEnv.EKSWindowsNodeGroup() {
-		corev1.NewConfigMapPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
+		_, err := corev1.NewConfigMapPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
 			Metadata: metav1.ObjectMetaPatchArgs{
 				Namespace: pulumi.String("kube-system"),
 				Name:      pulumi.String("amazon-vpc-cni"),
@@ -168,6 +168,9 @@ func Run(ctx *pulumi.Context) error {
 				"enable-windows-ipam": pulumi.String("true"),
 			},
 		}, pulumi.Provider(eksKubeProvider))
+		if err != nil {
+			return err
+		}
 	}
 
 	// Deploy the Agent

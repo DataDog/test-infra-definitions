@@ -59,9 +59,8 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 }
 
 func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.NodeGroup, error) {
-	// Currently only Windows 2019 is supported on EKS (as opposed to ECS)
 	windowsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
-		Name: fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-2019-English-Core-EKS_Optimized-%s/image_id", e.KubernetesVersion()),
+		Name: fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-2022-English-Core-EKS_Optimized-%s/image_id", e.KubernetesVersion()),
 	}, pulumi.Provider(e.Provider))
 	if err != nil {
 		return nil, err

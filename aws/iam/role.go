@@ -6,7 +6,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func GetAWSPrincipalAssumeRole(e aws.Environment) (*iam.GetPolicyDocumentResult, error) {
+const (
+	EC2ServicePrincipal = "ec2.amazonaws.com"
+	EKSServicePrincipal = "eks.amazonaws.com"
+)
+
+func GetAWSPrincipalAssumeRole(e aws.Environment, serviceName []string) (*iam.GetPolicyDocumentResult, error) {
 	return iam.GetPolicyDocument(e.Ctx, &iam.GetPolicyDocumentArgs{
 		Statements: []iam.GetPolicyDocumentStatement{
 			{
@@ -15,10 +20,8 @@ func GetAWSPrincipalAssumeRole(e aws.Environment) (*iam.GetPolicyDocumentResult,
 				},
 				Principals: []iam.GetPolicyDocumentStatementPrincipal{
 					{
-						Type: "Service",
-						Identifiers: []string{
-							"ec2.amazonaws.com",
-						},
+						Type:        "Service",
+						Identifiers: serviceName,
 					},
 				},
 			},

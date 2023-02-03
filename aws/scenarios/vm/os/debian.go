@@ -2,7 +2,6 @@ package os
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/common/os"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -22,7 +21,7 @@ func newDebian(env aws.Environment) *debian {
 func (*debian) GetSSHUser() string { return "admin" }
 
 func (u *debian) GetImage(arch commonos.Architecture) (string, error) {
-	return os.GetLatestAMI(u.env, arch,
+	return commonos.GetLatestAMI(u.env, arch,
 		"/aws/service/debian/release/bullseye/latest/amd64",
 		"/aws/service/debian/release/bullseye/latest/arm64")
 }

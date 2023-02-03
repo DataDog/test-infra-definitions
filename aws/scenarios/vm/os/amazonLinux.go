@@ -2,12 +2,12 @@ package os
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/common/os"
+	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
 type amazonLinux struct {
 	*unix
-	*os.Unix
+	*commonos.Unix
 	env aws.Environment
 }
 
@@ -15,15 +15,17 @@ func newAmazonLinux(env aws.Environment) *amazonLinux {
 	return &amazonLinux{
 		unix: &unix{},
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: commonos.NewUnix(&env),
 	}
 }
 func (*amazonLinux) GetSSHUser() string { return "ec2-user" }
 
-func (u *amazonLinux) GetImage(arch os.Architecture) (string, error) {
-	return os.GetLatestAMI(u.env, arch,
+func (u *amazonLinux) GetImage(arch commonos.Architecture) (string, error) {
+	return commonos.GetLatestAMI(u.env, arch,
 		"/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
 		"/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2")
 }
 
-func (u *amazonLinux) GetServiceManager() *os.ServiceManager { return os.NewSystemCtlServiceManager() }
+func (u *amazonLinux) GetServiceManager() *commonos.ServiceManager {
+	return commonos.NewSystemCtlServiceManager()
+}

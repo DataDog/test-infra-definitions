@@ -11,7 +11,10 @@ import (
 )
 
 func Install(runner *command.Runner, env *config.CommonEnvironment, params *Params, os os.OS) (pulumi.Resource, error) {
-	cmd := os.GetAgentInstallCmd(params.version)
+	cmd, err := os.GetAgentInstallCmd(params.version)
+	if err != nil {
+		return nil, err
+	}
 	commonNamer := env.CommonNamer
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),

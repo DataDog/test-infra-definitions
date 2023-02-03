@@ -21,8 +21,8 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 }
 func (*Unix) GetAgentConfigPath() string { return "/etc/datadog-agent/datadog.yaml" }
 
-func (*Unix) GetAgentInstallCmd(version AgentVersion) string {
-	return getUnixInstallFormatString("install_script.sh", version)
+func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
+	return getUnixInstallFormatString("install_script.sh", version), nil
 }
 
 func (*Unix) GetType() Type {

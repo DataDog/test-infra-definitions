@@ -2,6 +2,7 @@ package os
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -21,7 +22,7 @@ func newAmazonLinux(env aws.Environment) *amazonLinux {
 func (*amazonLinux) GetSSHUser() string { return "ec2-user" }
 
 func (u *amazonLinux) GetImage(arch commonos.Architecture) (string, error) {
-	return commonos.GetLatestAMI(u.env, arch,
+	return ec2.GetLatestAMI(u.env, arch,
 		"/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2",
 		"/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-arm64-gp2")
 }

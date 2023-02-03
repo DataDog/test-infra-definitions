@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -25,7 +26,7 @@ func (w *windows) GetImage(arch commonos.Architecture) (string, error) {
 	if arch == commonos.ARM64Arch {
 		return "", errors.New("ARM64 is not supported for Windows")
 	}
-	return commonos.GetLatestAMI(w.env, arch,
+	return ec2.GetLatestAMI(w.env, arch,
 		"/aws/service/ami-windows-latest/TPM-Windows_Server-2022-English-Full-Base",
 		"")
 }

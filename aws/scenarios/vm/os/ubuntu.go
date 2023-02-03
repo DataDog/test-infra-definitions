@@ -2,6 +2,7 @@ package os
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -21,7 +22,7 @@ func newUbuntu(env aws.Environment) *ubuntu {
 func (*ubuntu) GetSSHUser() string { return "ubuntu" }
 
 func (u *ubuntu) GetImage(arch commonos.Architecture) (string, error) {
-	return commonos.GetLatestAMI(u.env, arch,
+	return ec2.GetLatestAMI(u.env, arch,
 		"/aws/service/canonical/ubuntu/server/jammy/stable/current/amd64/hvm/ebs-gp2/ami-id",
 		"/aws/service/canonical/ubuntu/server/jammy/stable/current/arm64/hvm/ebs-gp2/ami-id",
 	)

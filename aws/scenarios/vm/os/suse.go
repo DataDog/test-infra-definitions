@@ -2,7 +2,7 @@ package os
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/common/os"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -22,7 +22,10 @@ func newSuse(env aws.Environment) *suse {
 func (*suse) GetSSHUser() string { return "ec2-user" }
 
 func (u *suse) GetImage(arch commonos.Architecture) (string, error) {
-	return ec2.SearchAMI(u.env, "013907871322", "suse-sles-*-hvm-ssd-*", string(arch))
+	return os.GetLatestAMI(u.env, arch,
+		"/aws/service/suse/sles/15-sp4/x86_64/latest",
+		"/aws/service/suse/sles/15-sp4/arm64/latest",
+	)
 }
 
 func (*suse) GetServiceManager() *commonos.ServiceManager {

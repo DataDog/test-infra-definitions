@@ -1,7 +1,7 @@
 package os
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
@@ -23,10 +23,12 @@ func newWindows(env aws.Environment) *windows {
 func (*windows) GetSSHUser() string { return "Administrator" }
 
 func (w *windows) GetImage(arch commonos.Architecture) (string, error) {
-	if arch != commonos.AMD64Arch {
-		return "", fmt.Errorf("the architecture %v is not supported on Windows", arch)
+	if arch == commonos.ARM64Arch {
+		return "", errors.New("ARM64 is not supported for Windows")
 	}
-	return ec2.SearchAMI(w.env, "801119661308", "Windows_Server-2022-English-Full-Base-*", string(arch))
+	return ec2.GetLatestAMI(w.env, arch,
+		"/aws/service/ami-windows-latest/TPM-Windows_Server-2022-English-Full-Base",
+		"")
 }
 
 func (*windows) GetAMIArch(arch commonos.Architecture) string { return string(arch) }

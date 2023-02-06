@@ -3,6 +3,7 @@ package docker
 import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
 )
 
@@ -19,14 +20,14 @@ func newAgentParams(commonEnv *config.CommonEnvironment, options ...func(*AgentP
 
 func WithAgentImageTag(agentImageTag string) func(*AgentParams) error {
 	return func(p *AgentParams) error {
-		p.fullImagePath = agent.BuildDockerImagePath(agent.DefaultAgentImageRepo, agentImageTag)
+		p.fullImagePath = utils.BuildDockerImagePath(agent.DefaultAgentImageRepo, agentImageTag)
 		return nil
 	}
 }
 
 func WithDockerAgentRepository(dockerAgentRepository string, agentImageTag string) func(*AgentParams) error {
 	return func(p *AgentParams) error {
-		p.fullImagePath = agent.BuildDockerImagePath(dockerAgentRepository, agentImageTag)
+		p.fullImagePath = utils.BuildDockerImagePath(dockerAgentRepository, agentImageTag)
 		return nil
 	}
 }

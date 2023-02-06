@@ -22,7 +22,9 @@ func newDebian(env aws.Environment) *debian {
 func (*debian) GetSSHUser() string { return "admin" }
 
 func (u *debian) GetImage(arch commonos.Architecture) (string, error) {
-	return ec2.SearchAMI(u.env, "136693071363", "debian-11-*", string(arch))
+	return ec2.GetLatestAMI(u.env, arch,
+		"/aws/service/debian/release/bullseye/latest/amd64",
+		"/aws/service/debian/release/bullseye/latest/arm64")
 }
 
 func (*debian) GetServiceManager() *commonos.ServiceManager {

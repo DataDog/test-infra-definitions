@@ -53,7 +53,7 @@ func NewVM(
 	case commonos.UbuntuType:
 		return &UbuntuVM{
 			rawVM:      rawVM,
-			aptManager: command.NewAptManager(name, runner, rawVM.dependsOn),
+			aptManager: command.NewAptManager(runner, rawVM.dependsOn),
 		}, nil
 	case commonos.WindowsType:
 		return &rawVM, nil

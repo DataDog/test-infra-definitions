@@ -22,7 +22,10 @@ func newSuse(env aws.Environment) *suse {
 func (*suse) GetSSHUser() string { return "ec2-user" }
 
 func (u *suse) GetImage(arch commonos.Architecture) (string, error) {
-	return ec2.SearchAMI(u.env, "013907871322", "suse-sles-*-hvm-ssd-*", string(arch))
+	return ec2.GetLatestAMI(u.env, arch,
+		"/aws/service/suse/sles/15-sp4/x86_64/latest",
+		"/aws/service/suse/sles/15-sp4/arm64/latest",
+	)
 }
 
 func (*suse) GetServiceManager() *commonos.ServiceManager {

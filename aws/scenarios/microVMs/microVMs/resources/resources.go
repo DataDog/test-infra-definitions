@@ -16,11 +16,11 @@ const (
 )
 
 var kernelCmdlines = []map[string]interface{}{
-	map[string]interface{}{"acpi": pulumi.String("off")},
-	map[string]interface{}{"panic": pulumi.String("-1")},
-	map[string]interface{}{"root": pulumi.String("/dev/vda")},
-	map[string]interface{}{"net.ifnames": pulumi.String("0")},
-	map[string]interface{}{"_": pulumi.String("rw")},
+	{"acpi": pulumi.String("off")},
+	{"panic": pulumi.String("-1")},
+	{"root": pulumi.String("/dev/vda")},
+	{"net.ifnames": pulumi.String("0")},
+	{"_": pulumi.String("rw")},
 }
 
 type ResourceCollection interface {

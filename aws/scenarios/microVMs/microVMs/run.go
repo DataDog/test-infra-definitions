@@ -90,7 +90,7 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 	}
 
 	instances := make(map[string]*Instance)
-	for arch, _ := range archs {
+	for arch := range archs {
 		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch)
 		if err != nil {
 			return nil, err

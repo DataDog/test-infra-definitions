@@ -2,9 +2,17 @@ package resources
 
 import (
 	_ "embed"
+	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+)
+
+const (
+	DomainName    = "domainName"
+	SharedFSMount = "sharedFSMount"
+	DomainID      = "domainID"
+	MACAddress    = "mac"
 )
 
 var kernelCmdlines = []map[string]interface{}{
@@ -16,7 +24,7 @@ var kernelCmdlines = []map[string]interface{}{
 }
 
 type ResourceCollection interface {
-	GetDomainXLS(args ...interface{}) string
+	GetDomainXLS(args map[string]interface{}) string
 	GetNetworkXLS(args ...interface{}) string
 	GetVolumeXML(args ...interface{}) string
 	GetPoolXML(args ...interface{}) string
@@ -31,6 +39,16 @@ type RecipeLibvirtDomainArgs struct {
 	Volume            *libvirt.Volume
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
+}
+
+func formatResourceXML(xml string, args map[string]interface{}) string {
+	var templateArgs []string
+	for k, v := range args {
+		templateArgs = append(templateArgs, "{"+k+"}", v.(string))
+	}
+
+	r := strings.NewReplacer(templateArgs...)
+	return r.Replace(xml)
 }
 
 func NewResourceCollection(recipe string) ResourceCollection {

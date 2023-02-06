@@ -17,7 +17,7 @@
       <gic version='3'/>
   </xsl:template>
 
-  <xsl:template match="/domain/name"><name>%s</name></xsl:template>
+  <xsl:template match="/domain/name"><name>{{.domainName}}</name></xsl:template>
 
   <xsl:template match="/domain/os/type[@arch='aarch64']/@machine">
       <xsl:attribute name="machine">
@@ -36,12 +36,12 @@
 
   <xsl:template match="/domain/devices/disk">
       <filesystem type='mount' accessmode='passthrough'>
-          <source dir='%s'/>
+          <source dir='{{.sharedFSMount}}'/>
           <target dir='kernel-version-testing'/>
       </filesystem>
       <readonly/>
       <channel type='unix'>
-          <source mode='bind' path='/tmp/%s.sock'/>
+          <source mode='bind' path='/tmp/{{.domainID}}.sock'/>
           <target type='virtio' name='logs-output-socket' state='disconnected'/>
       </channel>
       <xsl:copy>
@@ -51,7 +51,7 @@
   
   <xsl:template match="/domain/devices/interface[@type='network']/mac/@address">
       <xsl:attribute name="address">
-          <xsl:value-of select="'%s'"/>
+          <xsl:value-of select="'{{.mac}}'"/>
       </xsl:attribute>
   </xsl:template>
 

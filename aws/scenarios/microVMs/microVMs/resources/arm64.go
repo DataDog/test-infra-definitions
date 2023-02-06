@@ -1,8 +1,6 @@
 package resources
 
 import (
-	"fmt"
-
 	_ "embed"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -20,10 +18,11 @@ func NewARM64ResourceCollection(recipe string) *ARM64ResourceCollection {
 	return &ARM64ResourceCollection{
 		recipe: recipe,
 	}
+
 }
 
-func (a *ARM64ResourceCollection) GetDomainXLS(args ...interface{}) string {
-	return fmt.Sprintf(arm64DomainXLS, args...)
+func (a *ARM64ResourceCollection) GetDomainXLS(args map[string]interface{}) string {
+	return formatResourceXML(arm64DomainXLS, args)
 }
 
 func (a *ARM64ResourceCollection) GetNetworkXLS(args ...interface{}) string {

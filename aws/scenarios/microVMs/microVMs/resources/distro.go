@@ -7,6 +7,9 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+//go:embed distro/domain.xls
+var distroDomainXLS string
+
 type DistroResourceCollection struct {
 	recipe string
 }
@@ -17,8 +20,8 @@ func NewDistroResourceCollection(recipe string) *DistroResourceCollection {
 	}
 }
 
-func (a *DistroResourceCollection) GetDomainXLS(args ...interface{}) string {
-	return GetDefaultDomainXLS(args...)
+func (a *DistroResourceCollection) GetDomainXLS(args map[string]interface{}) string {
+	return formatResourceXML(distroDomainXLS, args)
 }
 
 func (a *DistroResourceCollection) GetNetworkXLS(args ...interface{}) string {

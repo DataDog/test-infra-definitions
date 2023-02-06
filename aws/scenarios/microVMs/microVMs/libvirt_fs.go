@@ -240,7 +240,7 @@ func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depe
 		Create: pulumi.Sprintf("echo \"%s\" > %s", fs.poolXML, fs.poolXMLPath),
 		Delete: pulumi.Sprintf("rm -f %s", fs.poolXMLPath),
 	}
-	poolXMLWritten, err := runner.Command(fs.poolNamer.ResourceName("write-pool-xml"), &poolXmlWrittenArgs, pulumi.DependsOn(depends))
+	poolXMLWritten, err := runner.Command(fs.poolNamer.ResourceName("write-pool-xml"), &poolXMLWrittenArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -260,7 +260,7 @@ func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depe
 		volumeXMLReady = append(volumeXMLReady, volXmlWritten)
 	}
 
-	setupLibvirtVMPoolDone, err := setupLibvirtVMSetPool(fs, runner, []pulumi.Resource{poolXmlWritten})
+	setupLibvirtVMPoolDone, err := setupLibvirtVMSetPool(fs, runner, []pulumi.Resource{poolXMLWritten})
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

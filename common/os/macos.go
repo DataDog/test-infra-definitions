@@ -12,6 +12,6 @@ func (*MacOS) GetServiceManager() *ServiceManager {
 
 func (*MacOS) GetAgentConfigPath() string { return "~/.datadog-agent/datadog.yaml" }
 
-func (*MacOS) GetAgentInstallCmd(version AgentVersion) string {
-	return getUnixInstallFormatString("install_mac_os.sh", version)
+func (*MacOS) GetAgentInstallCmd(version AgentVersion) (string, error) {
+	return getUnixInstallFormatString("install_mac_os.sh", version), nil
 }

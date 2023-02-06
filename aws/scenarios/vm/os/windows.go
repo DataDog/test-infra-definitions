@@ -20,7 +20,7 @@ func newWindows(env aws.Environment) *windows {
 	}
 }
 
-func (*windows) GetSSHUser() string { panic("Not Yet supported") }
+func (*windows) GetSSHUser() string { return "Administrator" }
 
 func (w *windows) GetImage(arch commonos.Architecture) (string, error) {
 	if arch == commonos.ARM64Arch {

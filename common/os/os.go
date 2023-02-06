@@ -18,7 +18,7 @@ const (
 
 type AgentVersion struct {
 	Major       string
-	Minor       string
+	Minor       string // Empty means latest
 	BetaChannel bool
 }
 
@@ -28,6 +28,6 @@ type OS interface {
 	GetServiceManager() *ServiceManager
 	GetAgentConfigPath() string
 	GetSSHUser() string
-	GetAgentInstallCmd(AgentVersion) string
+	GetAgentInstallCmd(AgentVersion) (string, error)
 	GetType() Type
 }

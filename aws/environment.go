@@ -22,6 +22,7 @@ const (
 	DDInfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
 	DDInfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
 	DDInfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
+	ddinfraDefaultPublicKeyPath            = "aws/defaultPublicKeyPath"
 	ddinfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
 	ddinfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 
@@ -109,6 +110,10 @@ func (e *Environment) DefaultARMInstanceType() string {
 func (e *Environment) DefaultKeyPairName() string {
 	// No default value for keyPair
 	return e.InfraConfig.Require(DDInfraDefaultKeyPairParamName)
+}
+
+func (e *Environment) DefaultPublicKeyPath() string {
+	return e.InfraConfig.Require(ddinfraDefaultPublicKeyPath)
 }
 
 func (e *Environment) DefaultPrivateKeyPath() string {

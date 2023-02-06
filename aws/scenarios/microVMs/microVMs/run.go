@@ -135,7 +135,7 @@ func RunAndReturnInstances(ctx *pulumi.Context, e aws.Environment) (*ScenarioDon
 }
 
 func Run(ctx *pulumi.Context) error {
-	e, err := aws.AWSEnvironment(ctx)
+	e, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}

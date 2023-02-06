@@ -117,7 +117,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 func downloadRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
-		downloadRootfsArgs := command.CommandArgs{
+		downloadRootfsArgs := command.Args{
 			Create: pulumi.Sprintf("wget -q %s -O %s", fsImage.imageSource, fsImage.imagePath),
 			Delete: pulumi.Sprintf("rm -f %s", fsImage.imagePath),
 		}
@@ -136,7 +136,7 @@ func extractRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pulu
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
 
-		extractTopLevelArchive := command.CommandArgs{
+		extractTopLevelArchive := command.Args{
 			Create: pulumi.Sprintf("pushd /tmp; tar -xzf %s; popd;", fsImage.imagePath),
 			Delete: pulumi.Sprintf("rm -rf %s", fsImage.imagePath),
 		}
@@ -152,22 +152,22 @@ func extractRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pulu
 }
 
 func setupLibvirtVMSetPool(fs *libvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	poolBuildReadyArgs := command.CommandArgs{
+	poolBuildReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-build %s", fs.poolName),
 		Delete: pulumi.Sprintf("virsh pool-delete %s", fs.poolName),
 		Sudo:   true,
 	}
-	poolStartReadyArgs := command.CommandArgs{
+	poolStartReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-start %s", fs.poolName),
 		Delete: pulumi.Sprintf("virsh pool-destroy %s", fs.poolName),
 		Sudo:   true,
 	}
-	poolRefreshDoneArgs := command.CommandArgs{
+	poolRefreshDoneArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-refresh %s", fs.poolName),
 		Sudo:   true,
 	}
 
-	poolDefineReadyArgs := command.CommandArgs{
+	poolDefineReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-define %s", fs.poolXMLPath),
 		Sudo:   true,
 	}
@@ -199,12 +199,12 @@ func setupLibvirtVMVolume(fs *libvirtFilesystem, runner *command.Runner, depends
 	var waitFor []pulumi.Resource
 
 	for _, fsImage := range fs.images {
-		baseVolumeReadyArgs := command.CommandArgs{
+		baseVolumeReadyArgs := command.Args{
 			Create: pulumi.Sprintf("virsh vol-create %s %s", fs.poolName, fsImage.volumeXMLPath),
 			Delete: pulumi.Sprintf("virsh vol-delete %s --pool %s", fsImage.volumeKey, fs.poolName),
 			Sudo:   true,
 		}
-		uploadImageToVolumeReadyArgs := command.CommandArgs{
+		uploadImageToVolumeReadyArgs := command.Args{
 			Create: pulumi.Sprintf("virsh vol-upload %s %s --pool %s", fsImage.volumeKey, fsImage.imagePath, fs.poolName),
 			Sudo:   true,
 		}
@@ -236,7 +236,7 @@ func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depe
 		return []pulumi.Resource{}, err
 	}
 
-	poolXmlWrittenArgs := command.CommandArgs{
+	poolXmlWrittenArgs := command.Args{
 		Create: pulumi.Sprintf("echo \"%s\" > %s", fs.poolXML, fs.poolXMLPath),
 		Delete: pulumi.Sprintf("rm -f %s", fs.poolXMLPath),
 	}
@@ -245,10 +245,10 @@ func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depe
 		return []pulumi.Resource{}, err
 	}
 
-	var volXmlWrittenArgs command.CommandArgs
+	var volXmlWrittenArgs command.Args
 	var volumeXMLReady []pulumi.Resource
 	for _, fsImage := range fs.images {
-		volXmlWrittenArgs = command.CommandArgs{
+		volXmlWrittenArgs = command.Args{
 			Create: pulumi.Sprintf("echo \"%s\" > %s", fsImage.volumeXML, fsImage.volumeXMLPath),
 			Delete: pulumi.Sprintf("rm -f %s", fsImage.volumeXMLPath),
 		}

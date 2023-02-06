@@ -98,7 +98,7 @@ func NewLocalRunner(e config.CommonEnvironment) *LocalRunner {
 	}
 }
 
-func (args *CommandArgs) toLocalCommandArgs() *local.CommandArgs {
+func (args *Args) toLocalCommandArgs() *local.CommandArgs {
 	return &local.CommandArgs{
 		Create:   args.buildCommandInput(args.Create, args.Environment, args.Sudo),
 		Update:   args.buildCommandInput(args.Update, args.Environment, args.Sudo),
@@ -108,6 +108,6 @@ func (args *CommandArgs) toLocalCommandArgs() *local.CommandArgs {
 	}
 }
 
-func (r *LocalRunner) Command(name string, args *CommandArgs, opts ...pulumi.ResourceOption) (*local.Command, error) {
+func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
 	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(), opts...)
 }

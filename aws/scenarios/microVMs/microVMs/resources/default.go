@@ -1,6 +1,7 @@
 package resources
 
 import (
+	// import embed
 	_ "embed"
 	"fmt"
 )

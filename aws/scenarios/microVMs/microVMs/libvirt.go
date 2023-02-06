@@ -1,4 +1,4 @@
-package microVMs
+package microVM
 
 import (
 	"crypto/rand"
@@ -177,9 +177,9 @@ func buildDomainMatrices(instances map[string]*Instance, vmsets []vmconfig.VMSet
 	return matrices, waitFor, nil
 }
 
-func setupDomainVolume(instance *Instance, baseVolumeId, poolName, resourceName string) (*libvirt.Volume, error) {
+func setupDomainVolume(instance *Instance, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
 	volume, err := libvirt.NewVolume(instance.ctx, resourceName, &libvirt.VolumeArgs{
-		BaseVolumeId: pulumi.String(baseVolumeId),
+		BaseVolumeId: pulumi.String(baseVolumeID),
 		Pool:         pulumi.String(poolName),
 		Format:       pulumi.String("qcow2"),
 	}, pulumi.Provider(instance.provider))
@@ -211,8 +211,8 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 	// setup volumes and domain sockets
 	for _, matrix := range matrices {
 		instance := matrix.instance
-		baseVolumeId := matrix.fs.baseVolumeMap[matrix.kernel.Tag].volumeKey
-		volume, err := setupDomainVolume(instance, baseVolumeId, matrix.fs.poolName, matrix.domainNamer.ResourceName("volume"))
+		baseVolumeID := matrix.fs.baseVolumeMap[matrix.kernel.Tag].volumeKey
+		volume, err := setupDomainVolume(instance, baseVolumeID, matrix.fs.poolName, matrix.domainNamer.ResourceName("volume"))
 		if err != nil {
 			return matrices, waitFor, err
 		}

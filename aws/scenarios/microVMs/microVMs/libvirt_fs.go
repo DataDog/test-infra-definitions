@@ -1,4 +1,4 @@
-package microVMs
+package microVM
 
 import (
 	"fmt"
@@ -236,23 +236,23 @@ func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depe
 		return []pulumi.Resource{}, err
 	}
 
-	poolXmlWrittenArgs := command.Args{
+	poolXMLWrittenArgs := command.Args{
 		Create: pulumi.Sprintf("echo \"%s\" > %s", fs.poolXML, fs.poolXMLPath),
 		Delete: pulumi.Sprintf("rm -f %s", fs.poolXMLPath),
 	}
-	poolXmlWritten, err := runner.Command(fs.poolNamer.ResourceName("write-pool-xml"), &poolXmlWrittenArgs, pulumi.DependsOn(depends))
+	poolXMLWritten, err := runner.Command(fs.poolNamer.ResourceName("write-pool-xml"), &poolXmlWrittenArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	var volXmlWrittenArgs command.Args
+	var volXMLWrittenArgs command.Args
 	var volumeXMLReady []pulumi.Resource
 	for _, fsImage := range fs.images {
-		volXmlWrittenArgs = command.Args{
+		volXMLWrittenArgs = command.Args{
 			Create: pulumi.Sprintf("echo \"%s\" > %s", fsImage.volumeXML, fsImage.volumeXMLPath),
 			Delete: pulumi.Sprintf("rm -f %s", fsImage.volumeXMLPath),
 		}
-		volXmlWritten, err := runner.Command(fsImage.volumeNamer.ResourceName("write-vol-xml"), &volXmlWrittenArgs, pulumi.DependsOn(depends))
+		volXmlWritten, err := runner.Command(fsImage.volumeNamer.ResourceName("write-vol-xml"), &volXMLWrittenArgs, pulumi.DependsOn(depends))
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}

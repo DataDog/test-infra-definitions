@@ -1,4 +1,4 @@
-package microVMs
+package microVM
 
 import (
 	"fmt"

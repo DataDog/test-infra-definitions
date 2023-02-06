@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"regexp"
 )
 
@@ -28,7 +28,7 @@ func loadFile(filename string) (*Config, error) {
 	if filename == "" {
 		return nil, fmt.Errorf("loadFile: no config file specified")
 	}
-	data, err := ioutil.ReadFile(filename)
+	data, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, fmt.Errorf("loadFile: failed to read config file: %w", err)
 	}

@@ -1,7 +1,6 @@
 package resources
 
 import (
-	_ "embed"
 	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"

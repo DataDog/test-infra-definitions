@@ -22,4 +22,10 @@ func (*Windows) GetServiceManager() *ServiceManager {
 
 func (*Windows) GetAgentConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
 
-func (*Windows) GetOSType() Type { return WindowsOS }
+func (*Windows) GetAgentInstallCmd(version AgentVersion) string {
+	panic("No yet implemented")
+}
+
+func (*Windows) GetType() Type {
+	return WindowsType
+}

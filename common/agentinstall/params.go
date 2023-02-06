@@ -6,10 +6,11 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
 type Params struct {
-	version     version
+	version     os.AgentVersion
 	agentConfig string
 }
 
@@ -26,8 +27,8 @@ func NewParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 // WithLatest uses the latest Agent 7 version in the stable channel.
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
-		p.version.major = "7"
-		p.version.betaChannel = false
+		p.version.Major = "7"
+		p.version.BetaChannel = false
 		return nil
 	}
 }
@@ -37,18 +38,18 @@ func WithVersion(version string) func(*Params) error {
 	return func(p *Params) error {
 		prefix := "7."
 		if strings.HasPrefix(version, prefix) {
-			p.version.major = "7"
+			p.version.Major = "7"
 		} else {
 			prefix = "6."
 			if strings.HasPrefix(version, prefix) {
-				p.version.major = "6"
+				p.version.Major = "6"
 			} else {
 				return fmt.Errorf("invalid version of the Agent: %v. The Agent version should starts with `7.` or `6.`", version)
 			}
 		}
 
-		p.version.minor = strings.TrimPrefix(version, prefix)
-		p.version.betaChannel = strings.Contains(version, "~")
+		p.version.Minor = strings.TrimPrefix(version, prefix)
+		p.version.BetaChannel = strings.Contains(version, "~")
 		return nil
 	}
 }
@@ -59,10 +60,4 @@ func WithAgentConfig(config string) func(*Params) error {
 		p.agentConfig = config
 		return nil
 	}
-}
-
-type version struct {
-	major       string
-	minor       string
-	betaChannel bool
 }

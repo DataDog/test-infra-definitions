@@ -1,11 +1,8 @@
 package vm
 
 import (
-	"errors"
-
 	"github.com/DataDog/test-infra-definitions/azure"
 	"github.com/DataDog/test-infra-definitions/azure/compute"
-	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -21,10 +18,6 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, err
 	params, err := newParams(env, options...)
 	if err != nil {
 		return nil, err
-	}
-
-	if params.common.OS.GetOSType() != os.UbuntuOS {
-		return nil, errors.New("only ubuntu is supported on Azure")
 	}
 
 	_, publicIP, _, err := compute.NewLinuxInstance(

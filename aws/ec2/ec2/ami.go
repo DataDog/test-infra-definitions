@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -54,4 +56,18 @@ func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
 	}
 
 	return image.Id, nil
+}
+
+func GetLatestAMI(e aws.Environment, arch os.Architecture, amd64Path string, armPath string) (string, error) {
+	amiParamName := amd64Path
+	if arch == ARM64Arch {
+		amiParamName = armPath
+	}
+	result, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
+		Name: amiParamName,
+	}, pulumi.Provider(e.Provider))
+	if err != nil {
+		return "", err
+	}
+	return result.Value, nil
 }

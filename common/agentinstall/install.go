@@ -1,7 +1,6 @@
 package agentinstall
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
@@ -12,7 +11,7 @@ import (
 )
 
 func Install(runner *command.Runner, env *config.CommonEnvironment, params *Params, os os.OS) (pulumi.Resource, error) {
-	cmd := getInstallFormatString(os.GetOSType(), params.version)
+	cmd := os.GetAgentInstallCmd(params.version)
 	commonNamer := env.CommonNamer
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
@@ -48,34 +47,4 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}
 	return lastCommand, err
-}
-
-func getInstallFormatString(osType os.Type, version version) string {
-	switch osType {
-	case os.UbuntuOS:
-		return getUnixInstallFormatString("install_script.sh", version)
-	case os.MacosOS:
-		return getUnixInstallFormatString("install_mac_os.sh", version)
-	case os.WindowsOS:
-		panic("Not implemented")
-	default:
-		panic("Not implemented")
-	}
-}
-
-func getUnixInstallFormatString(scriptName string, version version) string {
-	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.major)
-
-	if version.minor != "" {
-		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.minor)
-	}
-
-	if version.betaChannel {
-		commandLine += "REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=beta "
-	}
-
-	return fmt.Sprintf(
-		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-		commandLine,
-		scriptName)
 }

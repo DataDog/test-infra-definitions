@@ -7,13 +7,20 @@ const (
 	ARM64Arch = Architecture("arm64")
 )
 
+// The types of OSes that are common
 type Type int
 
 const (
-	WindowsOS Type = iota
-	UbuntuOS       = iota
-	MacosOS        = iota
+	UbuntuType  Type = iota
+	WindowsType Type = iota
+	OtherType   Type = iota
 )
+
+type AgentVersion struct {
+	Major       string
+	Minor       string
+	BetaChannel bool
+}
 
 type OS interface {
 	GetImage(Architecture) (string, error)
@@ -21,5 +28,6 @@ type OS interface {
 	GetServiceManager() *ServiceManager
 	GetAgentConfigPath() string
 	GetSSHUser() string
-	GetOSType() Type
+	GetAgentInstallCmd(AgentVersion) string
+	GetType() Type
 }

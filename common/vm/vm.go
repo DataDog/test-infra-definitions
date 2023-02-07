@@ -2,7 +2,6 @@ package vm
 
 import (
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common/agentinstall"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -16,7 +15,6 @@ func NewVM(
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	os commonos.OS,
-	optionalAgentInstallParams *agentinstall.Params,
 ) (VM, error) {
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
@@ -32,28 +30,19 @@ func NewVM(
 		return nil, err
 	}
 
-	var dependsOn []pulumi.Resource
-
-	if optionalAgentInstallParams != nil {
-		resource, err := agentinstall.Install(runner, commonEnv, optionalAgentInstallParams, os)
-		if err != nil {
-			return nil, err
-		}
-		dependsOn = append(dependsOn, resource)
-	}
 	ctx.Export("connection", connection)
 
 	rawVM := rawVM{
-		runner:    runner,
-		env:       commonEnv,
-		dependsOn: pulumi.DependsOn(dependsOn),
+		runner: runner,
+		env:    commonEnv,
+		os:     os,
 	}
 
 	switch os.GetType() {
 	case commonos.UbuntuType:
 		return &UbuntuVM{
 			rawVM:      rawVM,
-			aptManager: command.NewAptManager(runner, rawVM.dependsOn),
+			aptManager: command.NewAptManager(runner),
 		}, nil
 	case commonos.WindowsType:
 		return &rawVM, nil
@@ -103,12 +92,13 @@ func createConnection(ip pulumi.StringInput, user string, env config.Environment
 type VM interface {
 	GetRunner() *command.Runner
 	GetCommonEnvironment() *config.CommonEnvironment
+	GetOS() commonos.OS
 }
 
 type rawVM struct {
-	runner    *command.Runner
-	env       *config.CommonEnvironment
-	dependsOn pulumi.ResourceOption
+	runner *command.Runner
+	env    *config.CommonEnvironment
+	os     commonos.OS
 }
 
 func (vm *rawVM) GetRunner() *command.Runner {
@@ -119,8 +109,8 @@ func (vm *rawVM) GetCommonEnvironment() *config.CommonEnvironment {
 	return vm.env
 }
 
-func (vm *rawVM) GetDependsOn() pulumi.ResourceOption {
-	return vm.dependsOn
+func (vm *rawVM) GetOS() commonos.OS {
+	return vm.os
 }
 
 type UbuntuVM struct {

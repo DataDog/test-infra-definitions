@@ -4,18 +4,29 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/common/vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func Install(runner *command.Runner, env *config.CommonEnvironment, params *Params, os os.OS) (pulumi.Resource, error) {
+type Installer struct {
+	dependsOn pulumi.Resource
+}
+
+func NewInstaller(vm vm.VM, options ...func(*params) error) (*Installer, error) {
+	env := vm.GetCommonEnvironment()
+	params, err := newParams(env, options...)
+	if err != nil {
+		return nil, err
+	}
+
+	os := vm.GetOS()
 	cmd, err := os.GetAgentInstallCmd(params.version)
 	if err != nil {
 		return nil, err
 	}
 	commonNamer := env.CommonNamer
+	runner := vm.GetRunner()
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
 		&command.Args{
@@ -49,5 +60,5 @@ func Install(runner *command.Runner, env *config.CommonEnvironment, params *Para
 				Create: pulumi.String(cmd),
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}
-	return lastCommand, err
+	return &Installer{dependsOn: lastCommand}, err
 }

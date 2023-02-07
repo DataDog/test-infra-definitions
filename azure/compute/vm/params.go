@@ -48,8 +48,5 @@ var WithInstanceType = vm.WithInstanceType[commonos.OS, os.Type, *Params]
 // WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
 var WithUserData = vm.WithUserData[commonos.OS, os.Type, *Params]
 
-// WithHostAgent installs an Agent on this EC2 instance. By default use with agentinstall.WithLatest().
-var WithHostAgent = vm.WithHostAgent[commonos.OS, os.Type, *Params]
-
 // WithName set the VM name
 var WithName = vm.WithName[commonos.OS, os.Type, *Params]

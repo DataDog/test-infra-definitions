@@ -37,6 +37,5 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, err
 		&env,
 		publicIP.IpAddress.Elem(),
 		params.common.OS,
-		params.common.OptionalAgentInstallParams,
 	)
 }

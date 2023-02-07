@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/command"
-	"github.com/DataDog/test-infra-definitions/common/docker"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/common/vm"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -22,8 +22,7 @@ var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
 // Currently using ec2.VM waiting for correct abstraction
-func NewKindCluster(dockerOnVM *docker.OnVM, clusterName, arch string) (*remote.Command, error) {
-	vm := dockerOnVM.GetVM()
+func NewKindCluster(vm *vm.UbuntuVM, dockerManager *command.DockerManager, clusterName, arch string) (*remote.Command, error) {
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetAptManager()
@@ -31,13 +30,16 @@ func NewKindCluster(dockerOnVM *docker.OnVM, clusterName, arch string) (*remote.
 	if err != nil {
 		return nil, err
 	}
-
+	cmd, err := dockerManager.Install()
+	if err != nil {
+		return nil, err
+	}
 	kindInstall, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-install"),
 		&command.Args{
 			Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, arch),
 		},
-		dockerOnVM.GetDependsOn(), utils.PulumiDependsOn(curlCommand),
+		utils.PulumiDependsOn(cmd, curlCommand),
 	)
 	if err != nil {
 		return nil, err

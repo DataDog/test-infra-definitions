@@ -1,4 +1,4 @@
-package agentinstall
+package agent
 
 import (
 	"fmt"

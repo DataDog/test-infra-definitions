@@ -252,12 +252,12 @@ func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depe
 			Create: pulumi.Sprintf("echo \"%s\" > %s", fsImage.volumeXML, fsImage.volumeXMLPath),
 			Delete: pulumi.Sprintf("rm -f %s", fsImage.volumeXMLPath),
 		}
-		volXmlWritten, err := runner.Command(fsImage.volumeNamer.ResourceName("write-vol-xml"), &volXMLWrittenArgs, pulumi.DependsOn(depends))
+		volXMLWritten, err := runner.Command(fsImage.volumeNamer.ResourceName("write-vol-xml"), &volXMLWrittenArgs, pulumi.DependsOn(depends))
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
 
-		volumeXMLReady = append(volumeXMLReady, volXmlWritten)
+		volumeXMLReady = append(volumeXMLReady, volXMLWritten)
 	}
 
 	setupLibvirtVMPoolDone, err := setupLibvirtVMSetPool(fs, runner, []pulumi.Resource{poolXMLWritten})

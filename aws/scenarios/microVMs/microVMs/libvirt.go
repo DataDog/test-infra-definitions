@@ -7,8 +7,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	_ "embed"
-
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microVMs/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
@@ -66,7 +64,7 @@ func buildDomainSocket(runner *command.Runner, id, resourceName string) (*remote
 
 type DomainMatrix struct {
 	resources.RecipeLibvirtDomainArgs
-	fs          *libvirtFilesystem
+	fs          *LibvirtFilesystem
 	domainName  string
 	domainID    string
 	dhcpEntry   string
@@ -94,7 +92,7 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, re
 	return network, nil
 }
 
-func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*libvirtFilesystem, error) {
+func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
 	if vmset.Recipe == "custom-arm64" {
 		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
 	} else if vmset.Recipe == "custom-amd64" {
@@ -106,7 +104,7 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*libvirtFilesyste
 	}
 }
 
-func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc resources.ResourceCollection, instance *Instance, kernel vmconfig.Kernel, fs *libvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
+func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc resources.ResourceCollection, instance *Instance, kernel vmconfig.Kernel, fs *LibvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
 	matrix := new(DomainMatrix)
 	matrix.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag)
 	matrix.arch = instance.Arch

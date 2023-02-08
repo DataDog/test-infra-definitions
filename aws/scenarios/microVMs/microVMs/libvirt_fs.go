@@ -3,8 +3,6 @@ package microvm
 import (
 	"fmt"
 
-	_ "embed"
-
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microVMs/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
@@ -24,7 +22,7 @@ type filesystemImage struct {
 	volumeNamer   namer.Namer
 }
 
-type libvirtFilesystem struct {
+type LibvirtFilesystem struct {
 	poolName      string
 	poolXML       string
 	poolXMLPath   string
@@ -45,7 +43,7 @@ func getImagePath(name string) string {
 	return fmt.Sprintf("/tmp/%s", name)
 }
 
-func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvirtFilesystem {
+func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	var images []*filesystemImage
 
 	rc := resources.NewResourceCollection(vmset.Recipe)
@@ -71,7 +69,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 		baseVolumeMap[k.Tag] = img
 	}
 
-	return &libvirtFilesystem{
+	return &LibvirtFilesystem{
 		poolName:      poolName,
 		poolXML:       poolXML,
 		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
@@ -81,7 +79,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 	}
 }
 
-func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvirtFilesystem {
+func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	baseVolumeMap := make(map[string]*filesystemImage)
 	poolName := vmset.Name
 	imageName := vmset.Img.ImageName
@@ -104,7 +102,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 		baseVolumeMap[k.Tag] = img
 	}
 
-	return &libvirtFilesystem{
+	return &LibvirtFilesystem{
 		poolName:      poolName,
 		poolXML:       poolXML,
 		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
@@ -114,7 +112,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *libvi
 	}
 }
 
-func downloadRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func downloadRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
 		downloadRootfsArgs := command.Args{
@@ -132,7 +130,7 @@ func downloadRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pul
 	return waitFor, nil
 }
 
-func extractRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func extractRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
 
@@ -151,7 +149,7 @@ func extractRootfs(fs *libvirtFilesystem, runner *command.Runner, depends []pulu
 	return waitFor, nil
 }
 
-func setupLibvirtVMSetPool(fs *libvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLibvirtVMSetPool(fs *LibvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	poolBuildReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-build %s", fs.poolName),
 		Delete: pulumi.Sprintf("virsh pool-delete %s", fs.poolName),
@@ -195,7 +193,7 @@ func setupLibvirtVMSetPool(fs *libvirtFilesystem, runner *command.Runner, depend
 	return []pulumi.Resource{poolRefreshDone}, err
 }
 
-func setupLibvirtVMVolume(fs *libvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
 	for _, fsImage := range fs.images {
@@ -225,7 +223,7 @@ func setupLibvirtVMVolume(fs *libvirtFilesystem, runner *command.Runner, depends
 	return waitFor, nil
 }
 
-func (fs *libvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func (fs *LibvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	downloadRootfsDone, err := downloadRootfs(fs, runner, []pulumi.Resource{})
 	if err != nil {
 		return []pulumi.Resource{}, err

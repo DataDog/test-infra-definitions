@@ -1,4 +1,4 @@
-package microVM
+package microvm
 
 import (
 	"crypto/rand"
@@ -83,7 +83,9 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, re
 	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network"), &libvirt.NetworkArgs{
 		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
 		Mode:      pulumi.String("nat"),
-		Xml:       libvirt.NetworkXmlArgs{pulumi.String(netXML)},
+		Xml: libvirt.NetworkXmlArgs{
+			Xslt: pulumi.String(netXML),
+		},
 	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true))
 	if err != nil {
 		return nil, err

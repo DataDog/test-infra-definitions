@@ -33,6 +33,35 @@ type Instance struct {
 	provider      *libvirt.Provider
 }
 
+func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*awsEc2.Instance, error) {
+	var err error
+	if ami == "" {
+		ami, err = ec2.LatestUbuntuAMI(e, arch)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	instance, err := awsEc2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &awsEc2.InstanceArgs{
+		Ami:                 pulumi.StringPtr(ami),
+		SubnetId:            pulumi.StringPtr(e.DefaultSubnets()[0]),
+		InstanceType:        pulumi.StringPtr(instanceType),
+		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
+		KeyName:             pulumi.StringPtr(keyPair),
+		UserData:            pulumi.StringPtr(userData),
+		Tenancy:             pulumi.StringPtr(tenancy),
+		RootBlockDevice: awsEc2.InstanceRootBlockDeviceArgs{
+			VolumeSize: pulumi.Int(e.DefaultInstanceStorageSize()),
+		},
+		Tags: pulumi.StringMap{
+			"Name": e.Namer.DisplayName(pulumi.String(name)),
+			"Team": pulumi.String("ebpf-platform"),
+		},
+		InstanceInitiatedShutdownBehavior: pulumi.String("terminate"),
+	}, pulumi.Provider(e.Provider))
+	return instance, err
+}
+
 func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 	var instanceType string
 
@@ -45,7 +74,7 @@ func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := ec2.NewEC2Instance(e, name, "", arch, instanceType, e.DefaultKeyPairName(), "", "default")
+	awsInstance, err := newEC2Instance(e, name, "", arch, instanceType, e.DefaultKeyPairName(), "", "default")
 	if err != nil {
 		return nil, err
 	}

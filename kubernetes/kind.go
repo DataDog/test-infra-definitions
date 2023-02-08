@@ -21,8 +21,7 @@ const (
 var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
-// Currently using ec2.VM waiting for correct abstraction
-func NewKindCluster(vm *vm.UbuntuVM, dockerManager *command.DockerManager, clusterName, arch string) (*remote.Command, error) {
+func NewKindCluster(vm *vm.NixVM, clusterName, arch string) (*remote.Command, error) {
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetAptManager()
@@ -30,7 +29,7 @@ func NewKindCluster(vm *vm.UbuntuVM, dockerManager *command.DockerManager, clust
 	if err != nil {
 		return nil, err
 	}
-	cmd, err := dockerManager.Install()
+	cmd, err := vm.GetLazyDocker().Install()
 	if err != nil {
 		return nil, err
 	}

@@ -7,12 +7,27 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	awsEc2 "github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
-	"github.com/DataDog/test-infra-definitions/common/vm"
+	commonvm "github.com/DataDog/test-infra-definitions/common/vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // NewEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error) {
+func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {
+	return newVM(ctx, options...)
+}
+
+// NewNixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// The returned vm provides additional methods compared to NewEc2VM
+func NewNixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.NixVM, error) {
+	vm, err := newVM(ctx, options...)
+	if err != nil {
+		return nil, err
+	}
+	return commonvm.NewNixVM(vm)
+}
+
+// newVM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
@@ -46,7 +61,7 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error
 		return nil, err
 	}
 
-	return vm.NewVM(
+	return commonvm.NewGenericVM(
 		params.common.InstanceName,
 		&env,
 		instance.PrivateIp,

@@ -12,7 +12,7 @@ type AgentDockerInstaller struct {
 	dependsOn pulumi.ResourceOption
 }
 
-func NewAgentDockerInstaller(vm *vm.UbuntuVM, dockerManager *command.DockerManager, options ...func(*Params) error) (*AgentDockerInstaller, error) {
+func NewAgentDockerInstaller(vm *vm.NixVM, options ...func(*Params) error) (*AgentDockerInstaller, error) {
 	commonEnv := vm.GetCommonEnvironment()
 	params, err := newParams(commonEnv, options...)
 	if err != nil {
@@ -45,6 +45,7 @@ func NewAgentDockerInstaller(vm *vm.UbuntuVM, dockerManager *command.DockerManag
 	}
 
 	var dependOnResource pulumi.Resource
+	dockerManager := vm.GetLazyDocker()
 	if len(composeContents) > 0 {
 		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, env, params.pulumiResources...)
 	} else {

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -136,14 +135,14 @@ func getSSHKeyPair(m *sconfig.DDMicroVMConfig, arch string) sshKeyPair {
 	var pair sshKeyPair
 	pair.privateKey = m.GetStringWithDefault(
 		m.MicroVMConfig,
-		config.SSHKeyConfigNames[arch],
+		sconfig.SSHKeyConfigNames[arch],
 		defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
 	)
 	pair.publicKey = fmt.Sprintf(
 		"%s.pub",
 		m.GetStringWithDefault(
 			m.MicroVMConfig,
-			config.SSHKeyConfigNames[arch],
+			sconfig.SSHKeyConfigNames[arch],
 			defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
 		),
 	)

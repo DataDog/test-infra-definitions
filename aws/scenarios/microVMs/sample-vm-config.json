@@ -27,10 +27,20 @@
             "arch": "x86_64",
             "kernels": [
                 {
-                    "dir": "/tmp/ubuntu-16.04-server-cloudimg-amd64-disk1.img",
-                    "tag": "16.0.4",
-                    "image_source": "https://cloud-images.ubuntu.com/releases/xenial/release/ubuntu-16.04-server-cloudimg-amd64-disk1.img"
+                    "dir": "/tmp/jammy-server-cloudimg-amd64.qcow2",
+                    "tag": "22",
+                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/jammy-server-cloudimg-amd64.qcow2.tar.gz"
                 }
+                #{
+                #    "dir": "/tmp/focal-server-cloudimg-amd64-disk-kvm.img",
+                #    "tag": "20",
+                #    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/focal-server-cloudimg-amd64-disk-kvm.img.tar.gz"
+                #},
+                #{
+                #    "dir": "/tmp/bionic-server-cloudimg-amd64.img",
+                #    "tag": "18",
+                #    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bionic-server-cloudimg-amd64.img.tar.gz"
+                #}
             ],
             "vcpu": [4],
             "memory": [4096]

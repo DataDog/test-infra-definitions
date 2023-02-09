@@ -1,24 +1,18 @@
 package dockervm
 
 import (
-	"fmt"
-
 	ec2vm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm/ec2VM"
-	"github.com/DataDog/test-infra-definitions/common/docker"
-	commonvm "github.com/DataDog/test-infra-definitions/common/vm"
+	"github.com/DataDog/test-infra-definitions/datadog/agent/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func Run(ctx *pulumi.Context) error {
-	vm, err := ec2vm.NewEc2VM(ctx)
+	vm, err := ec2vm.NewNixEc2VM(ctx)
 	if err != nil {
 		return err
 	}
-	ubuntuVM, ok := vm.(*commonvm.UbuntuVM)
-	if !ok {
-		return fmt.Errorf("not an ubuntu VM")
-	}
-	_, err = docker.NewOnVM(ctx, ubuntuVM, docker.WithAgent())
+
+	_, err = docker.NewAgentDockerInstaller(vm, docker.WithAgent())
 
 	return err
 }

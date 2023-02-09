@@ -13,38 +13,46 @@ type PackageManager interface {
 	Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
-type AptManager struct {
+type genericPackageManager struct {
 	namer           namer.Namer
 	updateDBCommand *remote.Command
 	runner          *Runner
-	env             pulumi.StringMap
 	opts            []pulumi.ResourceOption
+	installCmd      string
+	updateCmd       string
+	env             pulumi.StringMap
 }
 
-func NewAptManager(runner *Runner, opts ...pulumi.ResourceOption) *AptManager {
-	apt := &AptManager{
-		namer:  namer.NewNamer(runner.e.Ctx, "apt"),
-		runner: runner,
-		env: pulumi.StringMap{
-			"DEBIAN_FRONTEND": pulumi.String("noninteractive"),
-		},
-		opts: opts,
+func NewGenericPackageManager(
+	runner *Runner,
+	name string,
+	installCmd string,
+	updateCmd string,
+	env pulumi.StringMap) PackageManager {
+	packageManager := &genericPackageManager{
+		namer:      namer.NewNamer(runner.e.Ctx, name),
+		runner:     runner,
+		installCmd: installCmd,
+		updateCmd:  updateCmd,
+		env:        env,
 	}
 
-	return apt
+	return packageManager
 }
 
-func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (m *genericPackageManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	opts = append(opts, m.opts...)
-	updateDB, err := m.updateDB(opts)
-	if err != nil {
-		return nil, err
-	}
+	if m.updateCmd != "" {
+		updateDB, err := m.updateDB(opts)
+		if err != nil {
+			return nil, err
+		}
 
-	opts = append(opts, utils.PulumiDependsOn(updateDB))
-	installCmd := fmt.Sprintf("apt-get install -y %s", packageRef)
+		opts = append(opts, utils.PulumiDependsOn(updateDB))
+	}
+	installCmd := fmt.Sprintf("%s %s", m.installCmd, packageRef)
 	cmd, err := m.runner.Command(
-		m.namer.ResourceName("install", utils.StrHash(installCmd)),
+		m.namer.ResourceName("install-"+packageRef, utils.StrHash(installCmd)),
 		&Args{
 			Create:      pulumi.String(installCmd),
 			Environment: m.env,
@@ -54,12 +62,12 @@ func (m *AptManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*
 	if err != nil {
 		return nil, err
 	}
-	// Make sure apt-get install doesn't run in parallel
+	// Make sure the package manager isn't running in parallel
 	m.opts = append(m.opts, utils.PulumiDependsOn(cmd))
 	return cmd, nil
 }
 
-func (m *AptManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {
+func (m *genericPackageManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {
 	if m.updateDBCommand != nil {
 		return m.updateDBCommand, nil
 	}
@@ -67,9 +75,9 @@ func (m *AptManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, er
 	c, err := m.runner.Command(
 		m.namer.ResourceName("update"),
 		&Args{
-			Create:      pulumi.String("apt-get update -y"),
-			Sudo:        true,
+			Create:      pulumi.String(m.updateCmd),
 			Environment: m.env,
+			Sudo:        true,
 		}, opts...)
 	if err == nil {
 		m.updateDBCommand = c

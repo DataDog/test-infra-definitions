@@ -1,5 +1,7 @@
 package os
 
+import "github.com/DataDog/test-infra-definitions/command"
+
 type MacOS struct{}
 
 func NewMacOS() *MacOS {
@@ -14,4 +16,8 @@ func (*MacOS) GetAgentConfigPath() string { return "~/.datadog-agent/datadog.yam
 
 func (*MacOS) GetAgentInstallCmd(version AgentVersion) (string, error) {
 	return getUnixInstallFormatString("install_mac_os.sh", version), nil
+}
+
+func (*MacOS) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
+	return NewBrewManager(runner), nil
 }

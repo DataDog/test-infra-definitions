@@ -24,7 +24,7 @@ var kindClusterConfig string
 func NewKindCluster(vm *vm.NixVM, clusterName, arch string) (*remote.Command, error) {
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
-	packageManager := vm.GetAptManager()
+	packageManager := vm.GetPackageManager()
 	curlCommand, err := packageManager.Ensure("curl")
 	if err != nil {
 		return nil, err

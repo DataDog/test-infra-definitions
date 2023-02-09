@@ -2,7 +2,6 @@ package microvm
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
@@ -15,10 +14,6 @@ import (
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-)
-
-const (
-	ddMicroVMConfigFile = "microVMConfigFile"
 )
 
 type Instance struct {
@@ -100,12 +95,16 @@ type ScenarioDone struct {
 	Dependencies []pulumi.Resource
 }
 
+func defaultLibvirtSSHKey(keyname string) string {
+	return "/tmp/" + keyname
+}
+
 func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
 	m := config.NewMicroVMConfig(ctx)
-	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, ddMicroVMConfigFile, "./test.json"))
+	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMConfigFile, "./test.json"))
 	if err != nil {
 		return nil, err
 	}
@@ -139,7 +138,7 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 		}
 		waitFor = append(waitFor, wait...)
 
-		privkey := filepath.Join(m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp"), fmt.Sprintf(libvirtSSHPrivateKey, instance.Arch))
+		privkey := m.GetStringWithDefault(m.MicroVMConfig, config.SSHKeyConfigNames[arch], defaultLibvirtSSHKey(SSHKeyFileNames[arch]))
 		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.instance.PrivateIp, privkey)
 
 		instance.libvirtURI = url

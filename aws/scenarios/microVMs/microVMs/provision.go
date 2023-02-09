@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"path/filepath"
 
+	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -11,10 +13,15 @@ import (
 )
 
 const (
-	libvirtSSHPrivateKey = "libvirt_rsa-%s"
-	libvirtSSHPublicKey  = "libvirt_rsa-%s.pub"
-	sharedFSMountPoint   = "/opt/kernel-version-testing"
+	libvirtSSHPrivateKeyX86 = "libvirt_rsa-x86"
+	libvirtSSHPrivateKeyArm = "libvirt_rsa-arm"
+	sharedFSMountPoint      = "/opt/kernel-version-testing"
 )
+
+var SSHKeyFileNames = map[string]string{
+	ec2.AMD64Arch: libvirtSSHPrivateKeyX86,
+	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
+}
 
 var kernelHeadersDir = filepath.Join(sharedFSMountPoint, "kernel-headers")
 
@@ -120,12 +127,34 @@ func prepareLibvirtEnvironment(runner *command.Runner, depends []pulumi.Resource
 	return []pulumi.Resource{libvirtReady}, nil
 }
 
-func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, arch, tempDir string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	privateKeyPath := filepath.Join(tempDir, fmt.Sprintf(libvirtSSHPrivateKey, arch))
-	publicKeyPath := filepath.Join(tempDir, fmt.Sprintf(libvirtSSHPublicKey, arch))
+type sshKeyPair struct {
+	privateKey string
+	publicKey  string
+}
+
+func getSSHKeyPair(m *sconfig.DDMicroVMConfig, arch string) sshKeyPair {
+	var pair sshKeyPair
+	pair.privateKey = m.GetStringWithDefault(
+		m.MicroVMConfig,
+		config.SSHKeyConfigNames[arch],
+		defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
+	)
+	pair.publicKey = fmt.Sprintf(
+		"%s.pub",
+		m.GetStringWithDefault(
+			m.MicroVMConfig,
+			config.SSHKeyConfigNames[arch],
+			defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
+		),
+	)
+
+	return pair
+}
+
+func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, arch string, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	sshGenArgs := command.Args{
-		Create: pulumi.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", privateKeyPath, publicKeyPath, privateKeyPath, publicKeyPath),
-		Delete: pulumi.Sprintf("rm %s && rm %s", privateKeyPath, publicKeyPath),
+		Create: pulumi.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", pair.privateKey, pair.publicKey, pair.privateKey, pair.publicKey),
+		Delete: pulumi.Sprintf("rm %s && rm %s", pair.privateKey, pair.publicKey),
 	}
 	sshgenDone, err := localRunner.Command(resourceNamer.ResourceName("gen-libvirt-sshkey"), &sshGenArgs)
 	if err != nil {
@@ -183,8 +212,8 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	tempDir := m.GetStringWithDefault(m.MicroVMConfig, "tempDir", "/tmp")
-	prepareSSHKeysDone, err := prepareLibvirtSSHKeys(runner, localRunner, resourceNamer, instance.Arch, tempDir, []pulumi.Resource{})
+	pair := getSSHKeyPair(m, instance.Arch)
+	prepareSSHKeysDone, err := prepareLibvirtSSHKeys(runner, localRunner, resourceNamer, instance.Arch, pair, []pulumi.Resource{})
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

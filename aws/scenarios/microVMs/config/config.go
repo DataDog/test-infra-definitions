@@ -4,13 +4,23 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 const (
-	ddMicroVMNamespace = "microvm"
+	ddMicroVMNamespace            = "microvm"
+	ddMicroVMX86LibvirtSSHKeyFile = "libvirtSSHKeyFileX86"
+	ddMicroVMArmLibvirtSSHKeyFile = "libvirtSSHKeyFileArm"
+
+	DDMicroVMConfigFile = "microVMConfigFile"
 )
+
+var SSHKeyConfigNames = map[string]string{
+	ec2.AMD64Arch: ddMicroVMX86LibvirtSSHKeyFile,
+	ec2.ARM64Arch: ddMicroVMArmLibvirtSSHKeyFile,
+}
 
 type DDMicroVMConfig struct {
 	Ctx           *pulumi.Context

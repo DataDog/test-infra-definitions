@@ -1,4 +1,4 @@
-package microvm
+package microvms
 
 import (
 	"crypto/rand"
@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microVMs/resources"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"

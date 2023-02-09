@@ -18,11 +18,12 @@ type awsProvider struct {
 }
 
 type ddInfra struct {
-	defaultVPCID           string
-	defaultSubnets         []string
-	defaultSecurityGroups  []string
-	defaultInstanceType    string
-	defaultARMInstanceType string
+	defaultVPCID               string
+	defaultSubnets             []string
+	defaultSecurityGroups      []string
+	defaultInstanceType        string
+	defaultARMInstanceType     string
+	defaultInstanceStorageSize int
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -65,11 +66,12 @@ func sandboxDefault() environmentDefault {
 			region: string(aws.RegionUSEast1),
 		},
 		ddInfra: ddInfra{
-			defaultVPCID:           "vpc-d1aac1a8",
-			defaultSubnets:         []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
-			defaultSecurityGroups:  []string{"sg-46506837", "sg-7fedd80a"},
-			defaultInstanceType:    "t3.xlarge",
-			defaultARMInstanceType: "t4g.xlarge",
+			defaultVPCID:               "vpc-d1aac1a8",
+			defaultSubnets:             []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
+			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a"},
+			defaultInstanceType:        "t3.xlarge",
+			defaultARMInstanceType:     "t4g.xlarge",
+			defaultInstanceStorageSize: 200,
 
 			ecs: ddInfraECS{
 				execKMSKeyID:               "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",

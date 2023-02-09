@@ -25,6 +25,7 @@ const (
 	ddinfraDefaultPublicKeyPath            = "aws/defaultPublicKeyPath"
 	ddinfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
 	ddinfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
+	ddinfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 
 	// AWS ECS
 	ddInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -122,6 +123,10 @@ func (e *Environment) DefaultPrivateKeyPath() string {
 
 func (e *Environment) DefaultPrivateKeyPassword() string {
 	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPassword)
+}
+
+func (e *Environment) DefaultInstanceStorageSize() int {
+	return e.GetIntWithDefault(e.InfraConfig, ddinfraDefaultInstanceStorageSize, e.envDefault.ddInfra.defaultInstanceStorageSize)
 }
 
 // ECS

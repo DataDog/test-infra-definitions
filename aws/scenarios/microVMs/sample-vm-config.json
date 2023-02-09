@@ -1,0 +1,49 @@
+{
+    "vmsets": [
+        {
+            "name": "custom-kernels-x86_64-gt4.14",
+            "recipe": "custom-amd64",
+            "arch": "x86_64",
+            "kernels": [
+                {
+                    "dir": "/tmp/kernel-packages/kernel-v5.15.x86.pkg",
+                    "tag": "5.15"
+                },
+                {
+                    "dir": "/tmp/kernel-packages/kernel-v5.4.x86.pkg",
+                    "tag": "5.4"
+                }
+            ],
+            "vcpu": [4],
+            "memory": [4096],
+            "image": {
+                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
+                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV.tar.gz"
+            }
+        },
+        {
+            "name": "ubuntu",
+            "recipe": "distro",
+            "arch": "x86_64",
+            "kernels": [
+                {
+                    "dir": "/tmp/jammy-server-cloudimg-amd64.qcow2",
+                    "tag": "22",
+                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/jammy-server-cloudimg-amd64.qcow2.tar.gz"
+                }
+                #{
+                #    "dir": "/tmp/focal-server-cloudimg-amd64-disk-kvm.img",
+                #    "tag": "20",
+                #    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/focal-server-cloudimg-amd64-disk-kvm.img.tar.gz"
+                #},
+                #{
+                #    "dir": "/tmp/bionic-server-cloudimg-amd64.img",
+                #    "tag": "18",
+                #    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bionic-server-cloudimg-amd64.img.tar.gz"
+                #}
+            ],
+            "vcpu": [4],
+            "memory": [4096]
+        }
+    ]
+}

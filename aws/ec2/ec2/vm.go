@@ -24,6 +24,9 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 		KeyName:             pulumi.StringPtr(keyPair),
 		UserData:            pulumi.StringPtr(userData),
 		Tenancy:             pulumi.StringPtr(tenancy),
+		RootBlockDevice: ec2.InstanceRootBlockDeviceArgs{
+			VolumeSize: pulumi.Int(e.DefaultInstanceStorageSize()),
+		},
 		Tags: pulumi.StringMap{
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},

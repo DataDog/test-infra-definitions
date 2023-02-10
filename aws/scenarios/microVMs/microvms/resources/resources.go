@@ -12,6 +12,12 @@ const (
 	SharedFSMount = "sharedFSMount"
 	DomainID      = "domainID"
 	MACAddress    = "mac"
+	DHCPEntries   = "dhcpEntries"
+	ImageName     = "imageName"
+	VolumeKey     = "volumeKey"
+	VolumePath    = "volumePath"
+	PoolName      = "poolName"
+	PoolPath      = "poolPath"
 )
 
 var kernelCmdlines = []map[string]interface{}{
@@ -23,31 +29,44 @@ var kernelCmdlines = []map[string]interface{}{
 }
 
 type ResourceCollection interface {
-	GetDomainXLS(args map[string]interface{}) string
-	GetNetworkXLS(args ...interface{}) string
-	GetVolumeXML(args ...interface{}) string
-	GetPoolXML(args ...interface{}) string
+	GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
+	GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
+	GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput
+	GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
 }
 
 type RecipeLibvirtDomainArgs struct {
 	Vcpu              int
 	Memory            int
-	Xls               string
+	Xls               pulumi.StringOutput
 	KernelPath        string
 	Volume            *libvirt.Volume
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 }
 
-func formatResourceXML(xml string, args map[string]interface{}) string {
-	var templateArgs []string
+func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {
+	var templateArgsPromise []interface{}
+
+	// The Replacer functionality expects a list in the format
+	// `{placeholder} val` as input for formatting a piece of text
 	for k, v := range args {
-		templateArgs = append(templateArgs, "{"+k+"}", v.(string))
+		templateArgsPromise = append(templateArgsPromise, pulumi.Sprintf("{%s}", k), v)
 	}
 
-	r := strings.NewReplacer(templateArgs...)
-	return r.Replace(xml)
+	pulumiXML := pulumi.All(templateArgsPromise...).ApplyT(func(promises []interface{}) (string, error) {
+		var templateArgs []string
+
+		for _, promise := range promises {
+			templateArgs = append(templateArgs, promise.(string))
+		}
+
+		r := strings.NewReplacer(templateArgs...)
+		return r.Replace(xml), nil
+	}).(pulumi.StringOutput)
+
+	return pulumiXML
 }
 
 func NewResourceCollection(recipe string) ResourceCollection {

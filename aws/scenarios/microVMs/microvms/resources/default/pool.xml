@@ -1,12 +1,12 @@
 <pool type='dir'>
-  <name>%s</name>
+    <name>{poolName}</name>
   <capacity unit='bytes'>0</capacity>
   <allocation unit='bytes'>0</allocation>
   <available unit='bytes'>0</available>
   <source>
   </source>
   <target>
-    <path>%s</path>
+      <path>{poolPath}</path>
 	<permissions>
       <owner>$(cat /etc/passwd | grep libvirt-qemu | cut -d ':' -f 3)</owner>
 	  <group>$(cat /etc/group | grep kvm | cut -d ':' -f 3)</group>

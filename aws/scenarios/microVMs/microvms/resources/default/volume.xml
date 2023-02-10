@@ -1,11 +1,11 @@
 <volume type='file'>
-  <name>%s</name>
-  <key>%s</key>
+    <name>{imageName}</name>
+    <key>{volumeKey}</key>
   <capacity unit='bytes'>10737418240</capacity>
   <allocation unit='bytes'>10000007168</allocation>
   <physical unit='bytes'>10000000000</physical>
   <target>
-    <path>%s</path>
+      <path>{volumePath}</path>
     <format type='qcow2'/>
     <permissions>
       <mode>0666</mode>

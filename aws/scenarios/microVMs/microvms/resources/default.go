@@ -3,7 +3,8 @@ package resources
 import (
 	// import embed
 	_ "embed"
-	"fmt"
+
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 //go:embed default/domain.xls
@@ -22,14 +23,14 @@ func GetDefaultDomainXLS(args ...interface{}) string {
 	return defaultDomainXLS
 }
 
-func GetDefaultNetworkXLS(args ...interface{}) string {
-	return fmt.Sprintf(defaultNetworkXLS, args...)
+func GetDefaultNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(defaultNetworkXLS, args)
 }
 
-func GetDefaultVolumeXML(args ...interface{}) string {
-	return fmt.Sprintf(defaultVolumeXML, args...)
+func GetDefaultVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(defaultVolumeXML, args)
 }
 
-func GetDefaultPoolXML(args ...interface{}) string {
-	return fmt.Sprintf(defaultPoolXML, args...)
+func GetDefaultPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(defaultPoolXML, args)
 }

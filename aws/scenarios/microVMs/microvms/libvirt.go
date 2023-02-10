@@ -1,7 +1,6 @@
 package microvms
 
 import (
-	"crypto/rand"
 	"fmt"
 	"net"
 	"path/filepath"
@@ -13,6 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -32,17 +32,26 @@ func getNextVMSubnet(ip net.IP) net.IP {
 	return ipv4
 }
 
-func generateNewUnicastMac() (string, error) {
-	buf := make([]byte, 6)
-	_, err := rand.Read(buf)
+func generateNewUnicastMac(ctx *pulumi.Context, domainID string) (pulumi.StringOutput, error) {
+	pulumiRandStr, err := random.NewRandomString(ctx, "random-"+domainID, &random.RandomStringArgs{
+		Length:  pulumi.Int(6),
+		Special: pulumi.Bool(true),
+	})
 	if err != nil {
-		return "", err
+		return pulumi.StringOutput{}, err
 	}
 
-	// Set LSB bit of MSB byte to 0
-	// This denotes unicast mac address
-	buf[0] &= 0xfe
-	return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5]), nil
+	macAddr := pulumiRandStr.Result.ApplyT(func(randStr string) string {
+		buf := []byte(randStr)
+
+		// Set LSB bit of MSB byte to 0
+		// This denotes unicast mac address
+		buf[0] &= 0xfe
+
+		return fmt.Sprintf("%02x:%02x:%02x:%02x:%02x:%02x", buf[0], buf[1], buf[2], buf[3], buf[4], buf[5])
+	}).(pulumi.StringOutput)
+
+	return macAddr, nil
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetName, tag string) string {
@@ -67,7 +76,7 @@ type DomainMatrix struct {
 	fs          *LibvirtFilesystem
 	domainName  string
 	domainID    string
-	dhcpEntry   string
+	dhcpEntry   pulumi.StringOutput
 	arch        string
 	kernel      *vmconfig.Kernel
 	domainArgs  *libvirt.DomainArgs
@@ -75,14 +84,32 @@ type DomainMatrix struct {
 	instance    *Instance
 }
 
-func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, resourceNamer namer.Namer, dhcpEntries []string) (*libvirt.Network, error) {
+func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
 
-	netXML := resources.GetDefaultNetworkXLS(strings.Join(dhcpEntries[:], ""))
+	// Collect all DHCP entries in a single string to be
+	// formatted in network XML.
+	dhcpEntriesJoined := pulumi.All(dhcpEntries...).ApplyT(
+		func(promises []interface{}) (string, error) {
+			var sb strings.Builder
+
+			for _, promise := range promises {
+				sb.WriteString(promise.(string))
+			}
+
+			return sb.String(), nil
+		},
+	).(pulumi.StringInput)
+
+	netXML := resources.GetDefaultNetworkXLS(
+		map[string]pulumi.StringInput{
+			resources.DHCPEntries: dhcpEntriesJoined,
+		},
+	)
 	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network"), &libvirt.NetworkArgs{
 		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
 		Mode:      pulumi.String("nat"),
 		Xml: libvirt.NetworkXmlArgs{
-			Xslt: pulumi.String(netXML),
+			Xslt: netXML,
 		},
 	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true))
 	if err != nil {
@@ -111,12 +138,12 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc
 	matrix.instance = instance
 	matrix.domainName = fmt.Sprintf("ddvm-%s", matrix.domainID)
 
-	mac, err := generateNewUnicastMac()
+	mac, err := generateNewUnicastMac(ctx, matrix.domainID)
 	if err != nil {
 		return nil, err
 	}
 
-	matrix.dhcpEntry = fmt.Sprintf(dhcpEntriesTemplate, mac, matrix.domainName, ip)
+	matrix.dhcpEntry = pulumi.Sprintf(dhcpEntriesTemplate, mac, matrix.domainName, ip)
 	matrix.kernel = &kernel
 	matrix.fs = fs
 	matrix.domainNamer = namer.NewNamer(ctx, matrix.domainID)
@@ -125,10 +152,10 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc
 	matrix.RecipeLibvirtDomainArgs.Memory = memory
 	matrix.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(kernel.Dir, "bzImage")
 	matrix.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
-		map[string]interface{}{
-			resources.DomainName:    matrix.domainName,
-			resources.SharedFSMount: sharedFSMountPoint,
-			resources.DomainID:      matrix.domainID,
+		map[string]pulumi.StringInput{
+			resources.DomainName:    pulumi.String(matrix.domainName),
+			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
+			resources.DomainID:      pulumi.String(matrix.domainID),
 			resources.MACAddress:    mac,
 		},
 	)
@@ -236,7 +263,7 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 }
 
 func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	var dhcpEntries []string
+	var dhcpEntries []interface{}
 
 	matrices, waitFor, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
 	if err != nil {
@@ -245,7 +272,6 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 
 	networks := make(map[string]*libvirt.Network)
 	for arch, instance := range instances {
-		dhcpEntries = []string{}
 		for _, m := range matrices {
 			if m.instance.Arch == arch {
 				dhcpEntries = append(dhcpEntries, m.dhcpEntry)

@@ -17,14 +17,14 @@ type filesystemImage struct {
 	imagePath     string
 	imageSource   string
 	volumeKey     string
-	volumeXML     string
+	volumeXML     pulumi.StringOutput
 	volumeXMLPath string
 	volumeNamer   namer.Namer
 }
 
 type LibvirtFilesystem struct {
 	poolName      string
-	poolXML       string
+	poolXML       pulumi.StringOutput
 	poolXMLPath   string
 	images        []*filesystemImage
 	baseVolumeMap map[string]*filesystemImage
@@ -50,18 +50,29 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 	poolName := vmset.Name
 
 	poolPath := generatePoolPath(poolName)
-	poolXML := rc.GetPoolXML(poolName, poolPath)
+	poolXML := rc.GetPoolXML(
+		map[string]pulumi.StringInput{
+			resources.PoolName: pulumi.String(poolName),
+			resources.PoolPath: pulumi.String(poolPath),
+		},
+	)
 	baseVolumeMap := make(map[string]*filesystemImage)
 
 	for _, k := range vmset.Kernels {
 		imageName := poolName + "-" + k.Tag
 		volKey := generateVolumeKey(poolName, imageName)
 		img := &filesystemImage{
-			imageName:     imageName,
-			imagePath:     k.Dir,
-			imageSource:   k.ImageSource,
-			volumeKey:     volKey,
-			volumeXML:     rc.GetVolumeXML(imageName, volKey, volKey),
+			imageName:   imageName,
+			imagePath:   k.Dir,
+			imageSource: k.ImageSource,
+			volumeKey:   volKey,
+			volumeXML: rc.GetVolumeXML(
+				map[string]pulumi.StringInput{
+					resources.ImageName:  pulumi.String(imageName),
+					resources.VolumeKey:  pulumi.String(volKey),
+					resources.VolumePath: pulumi.String(volKey),
+				},
+			),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
 			volumeNamer:   namer.NewNamer(ctx, volKey),
 		}
@@ -86,15 +97,26 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 
 	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolPath := generatePoolPath(poolName)
-	poolXML := rc.GetPoolXML(poolName, poolPath)
+	poolXML := rc.GetPoolXML(
+		map[string]pulumi.StringInput{
+			resources.PoolName: pulumi.String(poolName),
+			resources.PoolPath: pulumi.String(poolPath),
+		},
+	)
 	volKey := generateVolumeKey(poolName, basefsName)
 
 	img := &filesystemImage{
-		imageName:     imageName,
-		imagePath:     getImagePath(imageName),
-		imageSource:   vmset.Img.ImageSourceURI,
-		volumeKey:     volKey,
-		volumeXML:     rc.GetVolumeXML(basefsName, volKey, volKey),
+		imageName:   imageName,
+		imagePath:   getImagePath(imageName),
+		imageSource: vmset.Img.ImageSourceURI,
+		volumeKey:   volKey,
+		volumeXML: rc.GetVolumeXML(
+			map[string]pulumi.StringInput{
+				resources.ImageName:  pulumi.String(basefsName),
+				resources.VolumeKey:  pulumi.String(volKey),
+				resources.VolumePath: pulumi.String(volKey),
+			},
+		),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
 		volumeNamer:   namer.NewNamer(ctx, volKey),
 	}

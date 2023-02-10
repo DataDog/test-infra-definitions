@@ -13,14 +13,14 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.V
 	return newVM(ctx, options...)
 }
 
-// NewNixAzureVM creates a new azure instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// NewUnixLikeAzureVM creates a new azure instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 // The returned vm provides additional methods compared to NewAzureVM
-func NewNixAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.NixVM, error) {
+func NewUnixLikeAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.UnixLikeVM, error) {
 	vm, err := newVM(ctx, options...)
 	if err != nil {
 		return nil, err
 	}
-	return commonvm.NewNixVM(vm)
+	return commonvm.NewUnixLikeVM(vm)
 }
 
 func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {

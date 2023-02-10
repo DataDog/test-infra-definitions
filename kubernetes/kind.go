@@ -21,7 +21,7 @@ const (
 var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
-func NewKindCluster(vm *vm.NixVM, clusterName, arch string) (*remote.Command, error) {
+func NewKindCluster(vm *vm.UnixLikeVM, clusterName, arch string) (*remote.Command, error) {
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetPackageManager()

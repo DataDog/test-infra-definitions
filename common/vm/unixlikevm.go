@@ -7,7 +7,7 @@ import (
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
-type NixVM struct {
+type UnixLikeVM struct {
 	packageManager    command.PackageManager
 	fileManager       *command.FileManager
 	runner            *command.Runner
@@ -15,7 +15,7 @@ type NixVM struct {
 	VM
 }
 
-func NewNixVM(vm VM) (*NixVM, error) {
+func NewUnixLikeVM(vm VM) (*UnixLikeVM, error) {
 	os := vm.GetOS()
 	if os.GetType() == commonos.WindowsType {
 		return nil, errors.New("the OS Windows is not a valid Nix OS. Use `NewXXXVM` instead of `NewNixXXXVM`")
@@ -26,7 +26,7 @@ func NewNixVM(vm VM) (*NixVM, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &NixVM{
+	return &UnixLikeVM{
 		VM:             vm,
 		runner:         runner,
 		packageManager: packageManager,
@@ -34,15 +34,15 @@ func NewNixVM(vm VM) (*NixVM, error) {
 	}, nil
 
 }
-func (vm *NixVM) GetPackageManager() command.PackageManager {
+func (vm *UnixLikeVM) GetPackageManager() command.PackageManager {
 	return vm.packageManager
 }
 
-func (vm *NixVM) GetFileManager() *command.FileManager {
+func (vm *UnixLikeVM) GetFileManager() *command.FileManager {
 	return vm.fileManager
 }
 
-func (vm *NixVM) GetLazyDocker() *command.DockerManager {
+func (vm *UnixLikeVM) GetLazyDocker() *command.DockerManager {
 	if vm.lazyDockerManager == nil {
 		vm.lazyDockerManager = command.NewDockerManager(vm.GetRunner(), vm.GetPackageManager())
 	}

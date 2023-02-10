@@ -7,7 +7,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	vm, err := ec2vm.NewNixEc2VM(ctx)
+	vm, err := ec2vm.NewUnixLikeEc2VM(ctx)
 	if err != nil {
 		return err
 	}

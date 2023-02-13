@@ -5,7 +5,7 @@
 
   <xsl:template match="/network/ip/dhcp">
     <xsl:copy>
-        %s
+        {dhcpEntries}
       <xsl:apply-templates/>
     </xsl:copy>
   </xsl:template>

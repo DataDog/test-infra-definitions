@@ -22,20 +22,20 @@ func NewARM64ResourceCollection(recipe string) *ARM64ResourceCollection {
 
 }
 
-func (a *ARM64ResourceCollection) GetDomainXLS(args map[string]interface{}) string {
+func (a *ARM64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return formatResourceXML(arm64DomainXLS, args)
 }
 
-func (a *ARM64ResourceCollection) GetNetworkXLS(args ...interface{}) string {
-	return GetDefaultNetworkXLS(args...)
+func (a *ARM64ResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultNetworkXLS(args)
 }
 
-func (a *ARM64ResourceCollection) GetVolumeXML(args ...interface{}) string {
-	return GetDefaultVolumeXML(args...)
+func (a *ARM64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultVolumeXML(args)
 }
 
-func (a *ARM64ResourceCollection) GetPoolXML(args ...interface{}) string {
-	return GetDefaultPoolXML(args...)
+func (a *ARM64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultPoolXML(args)
 }
 
 func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
@@ -65,7 +65,7 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		Memory:   pulumi.Int(args.Memory),
 		Vcpu:     pulumi.Int(args.Vcpu),
 		Xml: libvirt.DomainXmlArgs{
-			Xslt: pulumi.String(args.Xls),
+			Xslt: args.Xls,
 		},
 	}
 }

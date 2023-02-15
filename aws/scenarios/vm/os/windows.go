@@ -27,7 +27,7 @@ func (w *windows) GetImage(arch commonos.Architecture) (string, error) {
 		return "", errors.New("ARM64 is not supported for Windows")
 	}
 	return ec2.GetLatestAMI(w.env, arch,
-		"/aws/service/ami-windows-latest/TPM-Windows_Server-2022-English-Full-Base",
+		"/aws/service/ami-windows-latest/Windows_Server-2022-English-Full-Base",
 		"")
 }
 

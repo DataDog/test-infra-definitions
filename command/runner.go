@@ -5,6 +5,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -83,4 +84,30 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	}
 
 	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.connection), opts...)
+}
+
+type LocalRunner struct {
+	e     config.CommonEnvironment
+	namer namer.Namer
+}
+
+func NewLocalRunner(e config.CommonEnvironment) *LocalRunner {
+	return &LocalRunner{
+		e:     e,
+		namer: namer.NewNamer(e.Ctx, "local"),
+	}
+}
+
+func (args *Args) toLocalCommandArgs() *local.CommandArgs {
+	return &local.CommandArgs{
+		Create:   args.buildCommandInput(args.Create, args.Environment, args.Sudo),
+		Update:   args.buildCommandInput(args.Update, args.Environment, args.Sudo),
+		Delete:   args.buildCommandInput(args.Delete, args.Environment, args.Sudo),
+		Triggers: args.Triggers,
+		Stdin:    args.Stdin,
+	}
+}
+
+func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
+	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(), opts...)
 }

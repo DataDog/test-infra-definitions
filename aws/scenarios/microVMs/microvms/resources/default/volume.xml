@@ -1,0 +1,20 @@
+<volume type='file'>
+    <name>{imageName}</name>
+    <key>{volumeKey}</key>
+  <capacity unit='bytes'>10737418240</capacity>
+  <allocation unit='bytes'>10000007168</allocation>
+  <physical unit='bytes'>10000000000</physical>
+  <target>
+      <path>{volumePath}</path>
+    <format type='qcow2'/>
+    <permissions>
+      <mode>0666</mode>
+      <owner>$(cat /etc/passwd | grep libvirt-qemu | cut -d ':' -f 3)</owner>
+      <group>$(cat /etc/group | grep kvm | cut -d ':' -f 3)</group>
+    </permissions>
+    <compat>1.1</compat>
+    <clusterSize unit='B'>65536</clusterSize>
+    <features/>
+  </target>
+</volume>
+

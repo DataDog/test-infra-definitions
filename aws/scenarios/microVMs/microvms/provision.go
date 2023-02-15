@@ -8,6 +8,7 @@ import (
 	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -93,7 +94,7 @@ func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pul
 }
 
 func installPackages(runner *command.Runner) ([]pulumi.Resource, error) {
-	aptManager := command.NewAptManager(runner)
+	aptManager := os.NewAptManager(runner)
 	installSocat, err := aptManager.Ensure("socat")
 	if err != nil {
 		return []pulumi.Resource{}, err

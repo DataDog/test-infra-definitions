@@ -1,4 +1,4 @@
-package agentinstall
+package agent
 
 import (
 	"fmt"
@@ -9,24 +9,24 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
-type Params struct {
+type params struct {
 	version     os.AgentVersion
 	agentConfig string
 }
 
-func NewParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
-	params := &Params{}
+func newParams(env *config.CommonEnvironment, options ...func(*params) error) (*params, error) {
+	p := &params{}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
-	options = append([]func(*Params) error{defaultVersion}, options...)
-	return common.ApplyOption(params, options)
+	options = append([]func(*params) error{defaultVersion}, options...)
+	return common.ApplyOption(p, options)
 }
 
 // WithLatest uses the latest Agent 7 version in the stable channel.
-func WithLatest() func(*Params) error {
-	return func(p *Params) error {
+func WithLatest() func(*params) error {
+	return func(p *params) error {
 		p.version.Major = "7"
 		p.version.BetaChannel = false
 		return nil
@@ -34,8 +34,8 @@ func WithLatest() func(*Params) error {
 }
 
 // WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0~rc.7-1`
-func WithVersion(version string) func(*Params) error {
-	return func(p *Params) error {
+func WithVersion(version string) func(*params) error {
+	return func(p *params) error {
 		prefix := "7."
 		if strings.HasPrefix(version, prefix) {
 			p.version.Major = "7"
@@ -55,8 +55,8 @@ func WithVersion(version string) func(*Params) error {
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
-func WithAgentConfig(config string) func(*Params) error {
-	return func(p *Params) error {
+func WithAgentConfig(config string) func(*params) error {
+	return func(p *params) error {
 		p.agentConfig = config
 		return nil
 	}

@@ -4,32 +4,24 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/DataDog/test-infra-definitions/common/agentinstall"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
 type Params[OS os.OS] struct {
-	InstanceName               string
-	ImageName                  string
-	InstanceType               string
-	UserData                   string
-	OS                         OS
-	Arch                       os.Architecture
-	OptionalAgentInstallParams *agentinstall.Params
-	commonEnv                  *config.CommonEnvironment
+	InstanceName string
+	ImageName    string
+	InstanceType string
+	UserData     string
+	OS           OS
+	Arch         os.Architecture
+	commonEnv    *config.CommonEnvironment
 }
 
 func NewParams[OS os.OS](commonEnv *config.CommonEnvironment) (*Params[OS], error) {
 	params := &Params[OS]{
 		commonEnv:    commonEnv,
 		InstanceName: "vm",
-	}
-
-	if commonEnv.AgentDeploy() {
-		if err := params.setAgentInstallParams(); err != nil {
-			return nil, err
-		}
 	}
 
 	return params, nil
@@ -104,18 +96,4 @@ func WithUserData[OS os.OS, T any, P ParamsGetter[OS, T]](userData string) func(
 		p.UserData = userData
 		return nil
 	}
-}
-
-// WithHostAgent installs an Agent on this instance. By default use with agentinstall.WithLatest().
-func WithHostAgent[OS os.OS, T any, P ParamsGetter[OS, T]](options ...func(*agentinstall.Params) error) func(P) error {
-	return func(params P) error {
-		p := params.GetCommonParams()
-		return p.setAgentInstallParams(options...)
-	}
-}
-
-func (p *Params[OS]) setAgentInstallParams(options ...func(*agentinstall.Params) error) error {
-	var err error
-	p.OptionalAgentInstallParams, err = agentinstall.NewParams(p.commonEnv, options...)
-	return err
 }

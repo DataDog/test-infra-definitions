@@ -51,7 +51,6 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error
 		&env,
 		instance.PrivateIp,
 		os,
-		params.common.OptionalAgentInstallParams,
 	)
 }
 

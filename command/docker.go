@@ -27,6 +27,7 @@ type DockerManager struct {
 	runner      *Runner
 	fileManager *FileManager
 	pm          PackageManager
+	installCmd  *remote.Command
 }
 
 func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerManager {
@@ -116,6 +117,9 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 }
 
 func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	if d.installCmd != nil {
+		return d.installCmd, nil
+	}
 	dockerInstall, err := d.pm.Ensure("docker.io", opts...)
 	if err != nil {
 		return nil, err
@@ -133,11 +137,12 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 	}
 
 	composeInstallCmd := pulumi.Sprintf("curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose", composeVersion)
-	return d.runner.Command(
+	d.installCmd, err = d.runner.Command(
 		d.namer.ResourceName("install"),
 		&Args{
 			Create: composeInstallCmd,
 			Sudo:   true,
 		},
 		pulumi.DependsOn([]pulumi.Resource{usermod}))
+	return d.installCmd, err
 }

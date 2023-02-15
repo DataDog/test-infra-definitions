@@ -8,21 +8,17 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type OnVM struct {
-	vm        *vm.UbuntuVM
+type AgentDockerInstaller struct {
 	dependsOn pulumi.ResourceOption
 }
 
-func NewOnVM(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) error) (*OnVM, error) {
+func NewAgentDockerInstaller(vm *vm.UbuntuVM, dockerManager *command.DockerManager, options ...func(*Params) error) (*AgentDockerInstaller, error) {
 	commonEnv := vm.GetCommonEnvironment()
 	params, err := newParams(commonEnv, options...)
 	if err != nil {
 		return nil, err
 	}
 
-	runner := vm.GetRunner()
-	packageManager := vm.GetAptManager()
-	dockerManager := command.NewDockerManager(runner, packageManager)
 	env := make(pulumi.StringMap)
 	for key, value := range params.composeEnvVars {
 		env[key] = pulumi.String(value)
@@ -59,13 +55,9 @@ func NewOnVM(ctx *pulumi.Context, vm *vm.UbuntuVM, options ...func(*Params) erro
 		return nil, err
 	}
 
-	return &OnVM{vm: vm, dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
+	return &AgentDockerInstaller{dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
 }
 
-func (d *OnVM) GetDependsOn() pulumi.ResourceOption {
+func (d *AgentDockerInstaller) GetDependsOn() pulumi.ResourceOption {
 	return d.dependsOn
-}
-
-func (d *OnVM) GetVM() *vm.UbuntuVM {
-	return d.vm
 }

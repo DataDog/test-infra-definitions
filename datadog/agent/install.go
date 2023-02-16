@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"path"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
@@ -38,7 +39,7 @@ func NewInstaller(vm vm.VM, options ...func(*params) error) (*Installer, error) 
 
 	if params.agentConfig != "" {
 		fileManager := command.NewFileManager(runner)
-		remotePath := os.GetAgentConfigPath()
+		remotePath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
 		agentConfig := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
 			config := strings.ReplaceAll(params.agentConfig, "{{API_KEY}}", apiKey)
 			return pulumi.String(config)

@@ -10,12 +10,15 @@ import (
 )
 
 type params struct {
-	version     os.AgentVersion
-	agentConfig string
+	version      os.AgentVersion
+	agentConfig  string
+	integrations map[string]string
 }
 
 func newParams(env *config.CommonEnvironment, options ...func(*params) error) (*params, error) {
-	p := &params{}
+	p := &params{
+		integrations: make(map[string]string),
+	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
@@ -58,6 +61,14 @@ func WithVersion(version string) func(*params) error {
 func WithAgentConfig(config string) func(*params) error {
 	return func(p *params) error {
 		p.agentConfig = config
+		return nil
+	}
+}
+
+// WithIntegration adds the configuration for an integration.
+func WithIntegration(folderName string, content string) func(*params) error {
+	return func(p *params) error {
+		p.integrations[folderName] = content
 		return nil
 	}
 }

@@ -21,6 +21,7 @@ type Installer struct {
 // Temporary requires vm.UnixLikeVM until FileManager is available in VM
 func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer, error) {
 	env := vm.GetCommonEnvironment()
+	options = addTelemetry(options)
 	params, err := newParams(env, options...)
 	if err != nil {
 		return nil, err
@@ -66,6 +67,20 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}
 	return &Installer{dependsOn: lastCommand}, err
+}
+
+func addTelemetry(options []func(*params) error) []func(*params) error {
+	config := `
+instances:
+  - expvar_url: http://localhost:5000/debug/vars
+    max_returned_metrics: 1000
+    metrics:      
+      - path: ".*"
+      - path: ".*/.*"
+      - path: ".*/.*/.*"
+`
+	options = append(options, WithIntegration("go_expvar.d", config))
+	return options
 }
 
 func updateAgentConfig(

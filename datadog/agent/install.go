@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -41,22 +42,14 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 		return nil, err
 	}
 
-	if params.agentConfig != "" {
-		fileManager := command.NewFileManager(runner)
-		remotePath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
-		agentConfig := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
-			config := strings.ReplaceAll(params.agentConfig, "{{API_KEY}}", apiKey)
-			return pulumi.String(config)
-		}).(pulumi.StringInput)
-		lastCommand, err = fileManager.CopyInlineFile("agent-config", agentConfig, remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
-		if err != nil {
-			return nil, err
-		}
-
+	var configHash string
+	lastCommand, configHash, err = updateAgentConfig(runner, env, params.agentConfig, os, lastCommand)
+	if err != nil {
+		return nil, err
 	}
 
-	var hash string
-	lastCommand, hash, err = installIntegrations(commonNamer, vm.GetFileManager(), params.integrations, os, lastCommand)
+	var integsHash string
+	lastCommand, integsHash, err = installIntegrations(commonNamer, vm.GetFileManager(), params.integrations, os, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -65,7 +58,7 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 	// When the file content has changed, make sure the Agent is restarted.
 	serviceManager := os.GetServiceManager()
 	for _, cmd := range serviceManager.RestartAgentCmd() {
-		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, params.agentConfig, utils.StrHash(hash)))
+		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, configHash, integsHash))
 		lastCommand, err = runner.Command(
 			restartAgentRes,
 			&command.Args{
@@ -73,6 +66,29 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 	}
 	return &Installer{dependsOn: lastCommand}, err
+}
+
+func updateAgentConfig(
+	runner *command.Runner,
+	env *config.CommonEnvironment,
+	agentConfig string,
+	os os.OS,
+	lastCommand *remote.Command) (*remote.Command, string, error) {
+	if agentConfig != "" {
+		fileManager := command.NewFileManager(runner)
+		remotePath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
+		agentConfig := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
+			config := strings.ReplaceAll(agentConfig, "{{API_KEY}}", apiKey)
+			return pulumi.String(config)
+		}).(pulumi.StringInput)
+		var err error
+		lastCommand, err = fileManager.CopyInlineFile("agent-config", agentConfig, remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+		if err != nil {
+			return nil, "", err
+		}
+
+	}
+	return lastCommand, utils.StrHash(agentConfig), nil
 }
 
 func installIntegrations(

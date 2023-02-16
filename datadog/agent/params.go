@@ -72,3 +72,17 @@ func WithIntegration(folderName string, content string) func(*params) error {
 		return nil
 	}
 }
+
+func WithTelemetry() func(*params) error {
+	return func(p *params) error {
+		config := `instances:
+  - expvar_url: http://localhost:5000/debug/vars
+    max_returned_metrics: 1000
+    metrics:      
+	  - path: ".*"
+	  - path: ".*/.*"
+	  - path: ".*/.*/.*"
+`
+		return WithIntegration("go_expvar.d", config)(p)
+	}
+}

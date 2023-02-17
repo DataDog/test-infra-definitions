@@ -14,7 +14,10 @@ const (
 	ddMicroVMX86LibvirtSSHKeyFile = "libvirtSSHKeyFileX86"
 	ddMicroVMArmLibvirtSSHKeyFile = "libvirtSSHKeyFileArm"
 
-	DDMicroVMConfigFile = "microVMConfigFile"
+	DDMicroVMProvisionEC2Instance = "provision"
+	DDMicroVMAMIID                = "amiID"
+	DDMicroVMConfigFile           = "microVMConfigFile"
+	DDMicroVMWorkingDirectory     = "workingDir"
 )
 
 var SSHKeyConfigNames = map[string]string{
@@ -36,6 +39,33 @@ func NewMicroVMConfig(ctx *pulumi.Context) DDMicroVMConfig {
 
 func (e *DDMicroVMConfig) GetStringWithDefault(config *sdkconfig.Config, paramName string, defaultValue string) string {
 	val, err := config.Try(paramName)
+	if err == nil {
+		return val
+	}
+
+	if !errors.Is(err, sdkconfig.ErrMissingVar) {
+		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+	}
+
+	return defaultValue
+}
+
+func (e *DDMicroVMConfig) GetIntWithDefault(config *sdkconfig.Config, paramName string, defaultValue int) int {
+	val, err := config.TryInt(paramName)
+	if err == nil {
+		return val
+	}
+
+	if !errors.Is(err, sdkconfig.ErrMissingVar) {
+		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+	}
+
+	return defaultValue
+
+}
+
+func (e *DDMicroVMConfig) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {
+	val, err := config.TryBool(paramName)
 	if err == nil {
 		return val
 	}

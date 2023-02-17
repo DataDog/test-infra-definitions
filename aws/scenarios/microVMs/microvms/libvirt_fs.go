@@ -40,7 +40,7 @@ func generateVolumeKey(pool, volName string) string {
 }
 
 func getImagePath(name string) string {
-	return fmt.Sprintf("/tmp/%s", name)
+	return fmt.Sprintf("%s/rootfs/%s", GetWorkingDirectory(), name)
 }
 
 func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {

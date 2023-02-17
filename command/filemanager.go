@@ -46,7 +46,7 @@ func (fm *FileManager) TempDirectory(name string, opts ...pulumi.ResourceOption)
 
 func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
 	return remote.NewCopyFile(fm.runner.e.Ctx, fm.runner.namer.ResourceName("copy", utils.StrHash(localPath, remotePath)), &remote.CopyFileArgs{
-		Connection: fm.runner.connection,
+		Connection: fm.runner.config.connection,
 		LocalPath:  pulumi.String(localPath),
 		RemotePath: pulumi.String(remotePath),
 	}, opts...)

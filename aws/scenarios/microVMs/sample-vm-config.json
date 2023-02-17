@@ -7,11 +7,17 @@
             "kernels": [
                 {
                     "dir": "kernel-v5.15.x86.pkg",
-                    "tag": "5.15"
+                    "tag": "5.15",
+                    "extra_params": {
+                        "console": "ttyS0"
+                    }
                 },
                 {
                     "dir": "kernel-v5.4.x86.pkg",
-                    "tag": "5.4"
+                    "tag": "5.4",
+                    "extra_params": {
+                        "console": "ttyS0"
+                    }
                 }
             ],
             "vcpu": [4],
@@ -19,6 +25,26 @@
             "image": {
                 "image_path": "bullseye.qcow2.amd64-0.1-DEV",
                 "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV.tar.gz"
+            }
+        },
+        {
+            "name": "custom-kernels-arm64",
+            "recipe": "custom-arm64",
+            "arch": "arm64",
+            "kernels": [
+                {
+                    "dir": "/tmp/kernel-packages/kernel-v4.18.arm64.pkg",
+                    "tag": "4.18",
+                    "extra_params": {
+                        "console": "ttyAMA0"
+                    }
+                }
+            ],
+            "vcpu": [4],
+            "memory": [8192],
+            "image": {
+                "image_path": "bullseye.qcow2.arm64-0.1-DEV",
+                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.arm64-0.1-DEV.tar.gz"
             }
         }
         #{

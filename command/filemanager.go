@@ -53,20 +53,26 @@ func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.Res
 }
 
 func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.runner.Command(name,
-		&Args{
-			Create: utils.WriteStringCommand(remotePath, useSudo),
-			Stdin:  fileContent,
-			Sudo:   useSudo,
-		}, opts...)
+	return fm.updateInlineFile(name, fileContent, remotePath, useSudo, utils.WriteStringCommand(remotePath, useSudo), opts...)
 }
 
 func (fm *FileManager) AppendInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return fm.updateInlineFile(name, fileContent, remotePath, useSudo, utils.AppendStringCommand(remotePath, useSudo), opts...)
+}
+
+func (fm *FileManager) updateInlineFile(
+	name string,
+	fileContent pulumi.StringInput,
+	remotePath string,
+	useSudo bool,
+	createCmd pulumi.StringInput,
+	opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.runner.Command(name,
 		&Args{
-			Create: utils.AppendStringCommand(remotePath, useSudo),
-			Stdin:  fileContent,
-			Sudo:   useSudo,
+			Create:   createCmd,
+			Stdin:    fileContent,
+			Sudo:     useSudo,
+			Triggers: pulumi.Array{pulumi.String(remotePath), fileContent, pulumi.BoolPtr(useSudo)},
 		}, opts...)
 }
 

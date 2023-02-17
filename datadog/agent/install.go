@@ -66,12 +66,13 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 	// When the file content has changed, make sure the Agent is restarted.
 	serviceManager := os.GetServiceManager()
 	for _, cmd := range serviceManager.RestartAgentCmd() {
-		restartAgentRes := commonNamer.ResourceName("restart-agent", utils.StrHash(cmd, configHash, integsHash))
+		restartAgentRes := commonNamer.ResourceName("restart-agent")
 		lastCommand, err = runner.Command(
 			restartAgentRes,
 			&command.Args{
-				Create: pulumi.String(cmd),
-			}, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+				Create:   pulumi.String(cmd),
+				Triggers: pulumi.Array{pulumi.String(utils.StrHash(cmd, configHash, integsHash))},
+			}, utils.PulumiDependsOn(lastCommand))
 	}
 	return &Installer{dependsOn: lastCommand}, err
 }
@@ -93,11 +94,11 @@ func updateAgentConfig(
 			return pulumi.String(config)
 		}).(pulumi.StringInput)
 		lastCommand, err = fileManager.CopyInlineFile(
-			namer.ResourceName("agent-config", utils.StrHash(agentConfig)),
+			namer.ResourceName("agent-config"),
 			agentConfigWithAPIKEY,
 			agentConfigFullPath,
 			true,
-			pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+			utils.PulumiDependsOn(lastCommand))
 		if err != nil {
 			return nil, "", err
 		}
@@ -106,7 +107,7 @@ func updateAgentConfig(
 	for _, extraConfig := range extraAgentConfig {
 		parts = append(parts, extraConfig)
 		lastCommand, err = fileManager.AppendInlineFile(
-			namer.ResourceName("config-append", utils.StrHash(extraConfig)),
+			namer.ResourceName("config-append"),
 			pulumi.String(fmt.Sprintf("\n%v\n", extraConfig)),
 			agentConfigFullPath,
 			true,
@@ -130,7 +131,7 @@ func installIntegrations(
 		var err error
 		confPath := path.Join(configFolder, "conf.d", folderName, "conf.yaml")
 		lastCommand, err = fileManager.CopyInlineFile(
-			namer.ResourceName(confPath, utils.StrHash(content)),
+			namer.ResourceName("integration", folderName),
 			pulumi.String(content),
 			confPath, true, utils.PulumiDependsOn(lastCommand))
 		if err != nil {

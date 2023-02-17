@@ -6,6 +6,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/alessio/shellescape"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -52,7 +53,11 @@ func (args *Args) buildCommandInput(command pulumi.StringInput, env pulumi.Strin
 		return strings.Join(inputs, " ")
 	}).(pulumi.StringOutput)
 
-	return pulumi.Sprintf("%s %s %s", prefix, envVarsStr, command)
+	commandEscaped := command.ToStringOutput().ApplyT(func(command string) string {
+		return shellescape.Quote(command)
+	}).(pulumi.StringOutput)
+
+	return pulumi.Sprintf("%s %s bash -c %s", prefix, envVarsStr, commandEscaped)
 }
 
 type runnerConfiguration struct {

@@ -18,9 +18,17 @@ func ReadSecretFile(filePath string) (pulumi.StringOutput, error) {
 }
 
 func WriteStringCommand(filePath string, useSudo bool) pulumi.StringInput {
+	return writeStringCommand(filePath, useSudo, "")
+}
+
+func AppendStringCommand(filePath string, useSudo bool) pulumi.StringInput {
+	return writeStringCommand(filePath, useSudo, "-a")
+}
+
+func writeStringCommand(filePath string, useSudo bool, teeFlags string) pulumi.StringInput {
 	sudo := ""
 	if useSudo {
 		sudo = "sudo"
 	}
-	return pulumi.Sprintf(`cat - | %s tee %s > /dev/null`, sudo, filePath)
+	return pulumi.Sprintf(`cat - | %s tee %s %s > /dev/null`, sudo, teeFlags, filePath)
 }

@@ -10,9 +10,10 @@ import (
 )
 
 type params struct {
-	version      os.AgentVersion
-	agentConfig  string
-	integrations map[string]string
+	version          os.AgentVersion
+	agentConfig      string
+	integrations     map[string]string
+	extraAgentConfig []string
 }
 
 func newParams(env *config.CommonEnvironment, options ...func(*params) error) (*params, error) {
@@ -79,10 +80,21 @@ func WithTelemetry() func(*params) error {
   - expvar_url: http://localhost:5000/debug/vars
     max_returned_metrics: 1000
     metrics:      
-	  - path: ".*"
-	  - path: ".*/.*"
-	  - path: ".*/.*/.*"
+      - path: ".*"
+      - path: ".*/.*"
+      - path: ".*/.*/.*"
 `
-		return WithIntegration("go_expvar.d", config)(p)
+		if err := WithIntegration("go_expvar.d", config)(p); err != nil {
+			return err
+		}
+
+		config = `instances:
+  - prometheus_url: http://localhost:5000/telemetry
+    namespace: "datadog"
+    metrics:
+      - "*"
+`
+		p.extraAgentConfig = append(p.extraAgentConfig, "telemetry.enabled: true")
+		return WithIntegration("openmetrics.d", config)(p)
 	}
 }

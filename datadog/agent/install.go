@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"path"
 	"strings"
 
@@ -43,7 +44,14 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 	}
 
 	var configHash string
-	lastCommand, configHash, err = updateAgentConfig(runner, env, params.agentConfig, os, lastCommand)
+	lastCommand, configHash, err = updateAgentConfig(
+		commonNamer,
+		vm.GetFileManager(),
+		env,
+		params.agentConfig,
+		params.extraAgentConfig,
+		os,
+		lastCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -69,26 +77,45 @@ func NewInstaller(vm *vm.UnixLikeVM, options ...func(*params) error) (*Installer
 }
 
 func updateAgentConfig(
-	runner *command.Runner,
+	namer namer.Namer,
+	fileManager *command.FileManager,
 	env *config.CommonEnvironment,
 	agentConfig string,
+	extraAgentConfig []string,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, string, error) {
+	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
+	var err error
+	var parts = []string{agentConfig}
 	if agentConfig != "" {
-		fileManager := command.NewFileManager(runner)
-		remotePath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
-		agentConfig := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
+		agentConfigWithAPIKEY := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
 			config := strings.ReplaceAll(agentConfig, "{{API_KEY}}", apiKey)
 			return pulumi.String(config)
 		}).(pulumi.StringInput)
-		var err error
-		lastCommand, err = fileManager.CopyInlineFile("agent-config", agentConfig, remotePath, true, pulumi.DependsOn([]pulumi.Resource{lastCommand}))
+		lastCommand, err = fileManager.CopyInlineFile(
+			namer.ResourceName("agent-config", utils.StrHash(agentConfig)),
+			agentConfigWithAPIKEY,
+			agentConfigFullPath,
+			true,
+			pulumi.DependsOn([]pulumi.Resource{lastCommand}))
 		if err != nil {
 			return nil, "", err
 		}
-
 	}
-	return lastCommand, utils.StrHash(agentConfig), nil
+
+	for _, extraConfig := range extraAgentConfig {
+		parts = append(parts, extraConfig)
+		lastCommand, err = fileManager.AppendInlineFile(
+			namer.ResourceName("config-append", utils.StrHash(extraConfig)),
+			pulumi.String(fmt.Sprintf("\n%v\n", extraConfig)),
+			agentConfigFullPath,
+			true,
+			utils.PulumiDependsOn(lastCommand))
+		if err != nil {
+			return nil, "", err
+		}
+	}
+	return lastCommand, utils.StrHash(parts...), nil
 }
 
 func installIntegrations(

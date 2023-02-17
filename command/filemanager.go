@@ -61,6 +61,15 @@ func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInpu
 		}, opts...)
 }
 
+func (fm *FileManager) AppendInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return fm.runner.Command(name,
+		&Args{
+			Create: utils.AppendStringCommand(remotePath, useSudo),
+			Stdin:  fileContent,
+			Sudo:   useSudo,
+		}, opts...)
+}
+
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.
 // The path of the folder is relative to the caller of this function.
 // For example, if this function is called from ~/foo/test.go with remoteFolder="bar"

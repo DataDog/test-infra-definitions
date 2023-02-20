@@ -26,6 +26,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			Subnets:        pulumi.ToStringArray(e.DefaultSubnets()),
 		},
+		EnableExecuteCommand: pulumi.BoolPtr(true),
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"datadog-agent": ecsLinuxAgentSingleContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName),

@@ -124,19 +124,19 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 			return nil, err
 		}
 
-		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
+		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), "libvirt-qemu", instance.Connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
 		})
 		if err != nil {
 			return nil, err
 		}
-		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
+		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment, "")
 
-		wait, err := provisionInstance(instance, &m)
+		waitProvision, err := provisionInstance(instance, &m)
 		if err != nil {
 			return nil, err
 		}
-		waitFor = append(waitFor, wait...)
+		waitFor = append(waitFor, waitProvision...)
 
 		privkey := m.GetStringWithDefault(m.MicroVMConfig, config.SSHKeyConfigNames[arch], defaultLibvirtSSHKey(SSHKeyFileNames[arch]))
 		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.instance.PrivateIp, privkey)

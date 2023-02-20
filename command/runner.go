@@ -127,6 +127,8 @@ func (args *Args) toLocalCommandArgs(config runnerConfiguration) *local.CommandA
 	var prefix string
 	if args.Sudo {
 		prefix = "sudo"
+	} else if args.User != "" {
+		prefix = fmt.Sprintf("sudo -u %s", args.User)
 	} else if config.user != "" {
 		prefix = fmt.Sprintf("sudo -u %s", config.user)
 	}

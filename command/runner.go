@@ -12,6 +12,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const DefaultUser = ""
+
 type Args struct {
 	Create      pulumi.StringInput
 	Update      pulumi.StringInput

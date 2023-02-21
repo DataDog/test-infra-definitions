@@ -12,8 +12,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const DefaultUser = ""
-
 type Args struct {
 	Create      pulumi.StringInput
 	Update      pulumi.StringInput
@@ -78,14 +76,23 @@ type Runner struct {
 	config      runnerConfiguration
 }
 
-func NewRunner(e config.CommonEnvironment, connName, asUser string, conn remote.ConnectionInput, readyFunc func(*Runner) (*remote.Command, error)) (*Runner, error) {
+func WithUser(user string) func(*Runner) {
+	return func(r *Runner) {
+		r.config.user = user
+	}
+}
+
+func NewRunner(e config.CommonEnvironment, connName string, conn remote.ConnectionInput, readyFunc func(*Runner) (*remote.Command, error), options ...func(*Runner)) (*Runner, error) {
 	runner := &Runner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx, "remote").WithPrefix(connName),
 		config: runnerConfiguration{
 			connection: conn,
-			user:       asUser,
 		},
+	}
+
+	for _, opt := range options {
+		opt(runner)
 	}
 
 	if readyFunc != nil {
@@ -113,14 +120,23 @@ type LocalRunner struct {
 	config runnerConfiguration
 }
 
-func NewLocalRunner(e config.CommonEnvironment, asUser string) *LocalRunner {
-	return &LocalRunner{
+func WithLocalUser(user string) func(*LocalRunner) {
+	return func(l *LocalRunner) {
+		l.config.user = user
+	}
+}
+
+func NewLocalRunner(e config.CommonEnvironment, options ...func(*LocalRunner)) *LocalRunner {
+	localRunner := &LocalRunner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx, "local"),
-		config: runnerConfiguration{
-			user: asUser,
-		},
 	}
+
+	for _, opt := range options {
+		opt(localRunner)
+	}
+
+	return localRunner
 }
 
 func (args *Args) toLocalCommandArgs(config runnerConfiguration) *local.CommandArgs {

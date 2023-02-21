@@ -26,7 +26,7 @@ func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
 }
 
 func (*Unix) GetType() Type {
-	return OtherType
+	return UnixType
 }
 
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {

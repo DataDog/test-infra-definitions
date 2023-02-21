@@ -17,10 +17,6 @@ func (*Ubuntu) GetServiceManager() *ServiceManager {
 	return NewServiceCmdServiceManager()
 }
 
-func (*Ubuntu) GetType() Type {
-	return UbuntuType
-}
-
 func (*Ubuntu) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
 	return NewAptManager(runner), nil
 }

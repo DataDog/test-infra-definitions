@@ -13,7 +13,7 @@ const (
 type Type int
 
 const (
-	UbuntuType  Type = iota
+	UnixType    Type = iota
 	WindowsType Type = iota
 	OtherType   Type = iota
 )

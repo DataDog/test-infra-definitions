@@ -79,7 +79,6 @@ func createRunner(
 	runner, err := command.NewRunner(
 		*commonEnv,
 		commonEnv.CommonNamer.ResourceName("connection"),
-		command.DefaultUser,
 		connection,
 		readyFunc)
 	if err != nil {

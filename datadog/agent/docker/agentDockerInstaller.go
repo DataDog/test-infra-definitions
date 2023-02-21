@@ -12,7 +12,7 @@ type AgentDockerInstaller struct {
 	dependsOn pulumi.ResourceOption
 }
 
-func NewAgentDockerInstaller(vm *vm.UnixLikeVM, options ...func(*Params) error) (*AgentDockerInstaller, error) {
+func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*AgentDockerInstaller, error) {
 	commonEnv := vm.GetCommonEnvironment()
 	params, err := newParams(commonEnv, options...)
 	if err != nil {

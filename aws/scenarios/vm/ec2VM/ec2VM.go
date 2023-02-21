@@ -16,14 +16,14 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM,
 	return newVM(ctx, options...)
 }
 
-// NewUnixLikeEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// NewUnixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 // The returned vm provides additional methods compared to NewEc2VM
-func NewUnixLikeEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.UnixLikeVM, error) {
+func NewUnixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.UnixVM, error) {
 	vm, err := newVM(ctx, options...)
 	if err != nil {
 		return nil, err
 	}
-	return commonvm.NewUnixLikeVM(vm)
+	return commonvm.NewUnixVM(vm)
 }
 
 // newVM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).

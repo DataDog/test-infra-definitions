@@ -124,9 +124,9 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 			return nil, err
 		}
 
-		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), "libvirt-qemu", instance.Connection, func(r *command.Runner) (*remote.Command, error) {
+		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(e.Ctx, r)
-		})
+		}, command.WithUser("libvirt-qemu"))
 		if err != nil {
 			return nil, err
 		}

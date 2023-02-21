@@ -130,7 +130,7 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 		if err != nil {
 			return nil, err
 		}
-		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment, "")
+		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
 
 		waitProvision, err := provisionInstance(instance, &m)
 		if err != nil {

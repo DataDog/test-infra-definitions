@@ -1,12 +1,15 @@
 package vm
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -14,12 +17,14 @@ type VM interface {
 	GetRunner() *command.Runner
 	GetCommonEnvironment() *config.CommonEnvironment
 	GetOS() commonos.OS
+	GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error)
 }
 
 type genericVM struct {
-	runner *command.Runner
-	env    *config.CommonEnvironment
-	os     commonos.OS
+	runner   *command.Runner
+	env      *config.CommonEnvironment
+	os       commonos.OS
+	stackKey string
 }
 
 func NewGenericVM(
@@ -42,13 +47,26 @@ func NewGenericVM(
 		return nil, err
 	}
 
-	ctx.Export("connection", connection)
+	stackKey := fmt.Sprintf("%v-connection", name)
+	ctx.Export(stackKey, connection)
 
 	return &genericVM{
-		runner: runner,
-		env:    commonEnv,
-		os:     os,
+		runner:   runner,
+		env:      commonEnv,
+		os:       os,
+		stackKey: stackKey,
 	}, nil
+}
+
+type ClientData struct {
+	Connection utils.Connection
+}
+
+func (vm *genericVM) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
+	return func(result auto.UpResult) (*ClientData, error) {
+		connection, err := utils.NewConnection(result, vm.stackKey)
+		return &ClientData{Connection: connection}, err
+	}
 }
 
 func (vm *genericVM) GetRunner() *command.Runner {

@@ -2,10 +2,17 @@ package dockervm
 
 import (
 	ec2vm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm/ec2VM"
+	"github.com/DataDog/test-infra-definitions/datadog/agent/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func Run(ctx *pulumi.Context) error {
-	_, err := ec2vm.NewEc2VM(ctx)
+	vm, err := ec2vm.NewUnixEc2VM(ctx)
+	if err != nil {
+		return err
+	}
+
+	_, err = docker.NewAgentDockerInstaller(vm, docker.WithAgent())
+
 	return err
 }

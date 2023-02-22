@@ -6,6 +6,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/command"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
@@ -38,4 +39,8 @@ func (u *fedora) GetImage(arch commonos.Architecture) (string, error) {
 
 func (*fedora) GetServiceManager() *commonos.ServiceManager {
 	return commonos.NewSystemCtlServiceManager()
+}
+
+func (*fedora) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
+	return newDnfManager(runner), nil
 }

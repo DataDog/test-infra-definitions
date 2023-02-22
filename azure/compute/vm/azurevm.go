@@ -3,13 +3,27 @@ package vm
 import (
 	"github.com/DataDog/test-infra-definitions/azure"
 	"github.com/DataDog/test-infra-definitions/azure/compute"
-	"github.com/DataDog/test-infra-definitions/common/vm"
+	commonvm "github.com/DataDog/test-infra-definitions/common/vm"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // NewAzureVM creates a new azure instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, error) {
+func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {
+	return newVM(ctx, options...)
+}
+
+// NewUnixAzureVM creates a new azure instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// The returned vm provides additional methods compared to NewAzureVM
+func NewUnixAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.UnixVM, error) {
+	vm, err := newVM(ctx, options...)
+	if err != nil {
+		return nil, err
+	}
+	return commonvm.NewUnixVM(vm)
+}
+
+func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {
 	env, err := azure.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
@@ -32,7 +46,7 @@ func NewAzureVM(ctx *pulumi.Context, options ...func(*Params) error) (vm.VM, err
 		return nil, err
 	}
 
-	return vm.NewVM(
+	return commonvm.NewGenericVM(
 		params.common.InstanceName,
 		&env,
 		publicIP.IpAddress.Elem(),

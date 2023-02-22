@@ -10,6 +10,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
 )
 
@@ -32,6 +33,10 @@ func (*Windows) GetServiceManager() *ServiceManager {
 }
 
 func (*Windows) GetAgentConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
+
+func (*Windows) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
+	return nil, errors.New("package manager is not supported on Windows")
+}
 
 func (*Windows) GetAgentInstallCmd(version AgentVersion) (string, error) {
 	url, err := getAgentURL(version)

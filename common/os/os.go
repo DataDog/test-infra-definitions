@@ -1,5 +1,7 @@
 package os
 
+import "github.com/DataDog/test-infra-definitions/command"
+
 type Architecture string
 
 const (
@@ -11,7 +13,7 @@ const (
 type Type int
 
 const (
-	UbuntuType  Type = iota
+	UnixType    Type = iota
 	WindowsType Type = iota
 	OtherType   Type = iota
 )
@@ -30,4 +32,5 @@ type OS interface {
 	GetSSHUser() string
 	GetAgentInstallCmd(AgentVersion) (string, error)
 	GetType() Type
+	CreatePackageManager(runner *command.Runner) (command.PackageManager, error)
 }

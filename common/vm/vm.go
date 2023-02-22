@@ -10,7 +10,19 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewVM(
+type VM interface {
+	GetRunner() *command.Runner
+	GetCommonEnvironment() *config.CommonEnvironment
+	GetOS() commonos.OS
+}
+
+type genericVM struct {
+	runner *command.Runner
+	env    *config.CommonEnvironment
+	os     commonos.OS
+}
+
+func NewGenericVM(
 	name string,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
@@ -32,25 +44,23 @@ func NewVM(
 
 	ctx.Export("connection", connection)
 
-	rawVM := rawVM{
+	return &genericVM{
 		runner: runner,
 		env:    commonEnv,
 		os:     os,
-	}
+	}, nil
+}
 
-	switch os.GetType() {
-	case commonos.UbuntuType:
-		return &UbuntuVM{
-			rawVM:      rawVM,
-			aptManager: command.NewAptManager(runner),
-		}, nil
-	case commonos.WindowsType:
-		return &rawVM, nil
-	case commonos.OtherType:
-		return &rawVM, nil
-	default:
-		return &rawVM, nil
-	}
+func (vm *genericVM) GetRunner() *command.Runner {
+	return vm.runner
+}
+
+func (vm *genericVM) GetCommonEnvironment() *config.CommonEnvironment {
+	return vm.env
+}
+
+func (vm *genericVM) GetOS() commonos.OS {
+	return vm.os
 }
 
 func createRunner(
@@ -87,37 +97,4 @@ func createConnection(ip pulumi.StringInput, user string, env config.Environment
 	}
 
 	return connection.ToConnectionOutput(), nil
-}
-
-type VM interface {
-	GetRunner() *command.Runner
-	GetCommonEnvironment() *config.CommonEnvironment
-	GetOS() commonos.OS
-}
-
-type rawVM struct {
-	runner *command.Runner
-	env    *config.CommonEnvironment
-	os     commonos.OS
-}
-
-func (vm *rawVM) GetRunner() *command.Runner {
-	return vm.runner
-}
-
-func (vm *rawVM) GetCommonEnvironment() *config.CommonEnvironment {
-	return vm.env
-}
-
-func (vm *rawVM) GetOS() commonos.OS {
-	return vm.os
-}
-
-type UbuntuVM struct {
-	aptManager *command.AptManager
-	rawVM
-}
-
-func (vm *UbuntuVM) GetAptManager() *command.AptManager {
-	return vm.aptManager
 }

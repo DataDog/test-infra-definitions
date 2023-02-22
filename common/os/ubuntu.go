@@ -1,6 +1,9 @@
 package os
 
-import "github.com/DataDog/test-infra-definitions/common/config"
+import (
+	"github.com/DataDog/test-infra-definitions/command"
+	"github.com/DataDog/test-infra-definitions/common/config"
+)
 
 type Ubuntu struct{ Unix }
 
@@ -14,6 +17,6 @@ func (*Ubuntu) GetServiceManager() *ServiceManager {
 	return NewServiceCmdServiceManager()
 }
 
-func (*Ubuntu) GetType() Type {
-	return UbuntuType
+func (*Ubuntu) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
+	return NewAptManager(runner), nil
 }

@@ -20,15 +20,13 @@ type Args struct {
 	Stdin       pulumi.StringPtrInput
 	Environment pulumi.StringMap
 	Sudo        bool
-	User        string
 }
 
 func (args *Args) toRemoteCommandArgs(config runnerConfiguration) *remote.CommandArgs {
 	var prefix string
+
 	if args.Sudo {
 		prefix = "sudo"
-	} else if args.User != "" {
-		prefix = fmt.Sprintf("sudo -u %s", args.User)
 	} else if config.user != "" {
 		prefix = fmt.Sprintf("sudo -u %s", config.user)
 	}
@@ -143,8 +141,6 @@ func (args *Args) toLocalCommandArgs(config runnerConfiguration) *local.CommandA
 	var prefix string
 	if args.Sudo {
 		prefix = "sudo"
-	} else if args.User != "" {
-		prefix = fmt.Sprintf("sudo -u %s", args.User)
 	} else if config.user != "" {
 		prefix = fmt.Sprintf("sudo -u %s", config.user)
 	}

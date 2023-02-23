@@ -2,6 +2,7 @@ package microvms
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
@@ -40,11 +41,11 @@ func generateVolumeKey(pool, volName string) string {
 }
 
 func rootFSDir() string {
-	return fmt.Sprintf("%s/rootfs", GetWorkingDirectory())
+	return filepath.Join(GetWorkingDirectory(), "rootfs")
 }
 
 func getImagePath(name string) string {
-	return fmt.Sprintf("%s/%s", rootFSDir(), name)
+	return filepath.Join(rootFSDir(), name)
 }
 
 func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
@@ -161,7 +162,7 @@ func extractRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulu
 	for _, fsImage := range fs.images {
 
 		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("cd %s && tar -xzf %s", rootFSDir(), fsImage.imagePath),
+			Create: pulumi.Sprintf("tar -C %s -xzf %s", rootFSDir(), fsImage.imagePath),
 			Delete: pulumi.Sprintf("rm -rf %s", fsImage.imagePath),
 		}
 		res, err := runner.Command(fsImage.volumeNamer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))

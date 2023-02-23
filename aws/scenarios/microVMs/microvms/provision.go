@@ -60,7 +60,7 @@ func downloadAndExtractKernelPackage(runner *command.Runner, arch string, depend
 	kernelPackages := fmt.Sprintf("kernel-packages-%s.tar", arch)
 	kernelPackagesDownloadDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
 
-	kernelPackagesDownloadTarget := fmt.Sprintf("%s/%s", kernelPackagesDownloadDir, kernelPackages)
+	kernelPackagesDownloadTarget := filepath.Join(kernelPackagesDownloadDir, kernelPackages)
 	downloadKernelArgs := command.Args{
 		Create: pulumi.Sprintf("wget -q https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/%s -O %s", kernelPackages, kernelPackagesDownloadTarget),
 	}

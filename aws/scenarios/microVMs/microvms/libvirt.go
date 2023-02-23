@@ -58,12 +58,12 @@ func generateDomainIdentifier(vcpu, memory int, vmsetName, tag string) string {
 	return fmt.Sprintf("%s-tag-%s-cpu-%d-mem-%d", vmsetName, tag, vcpu, memory)
 }
 
-func buildDomainSocket(runner *command.Runner, id, resourceName string) (*remote.Command, error) {
+func buildDomainSocket(runner *command.Runner, id, resourceName string, depends []pulumi.Resource) (*remote.Command, error) {
 	// build domain sockets for fetching logs
 	createDomainSocketArgs := command.Args{
 		Create: pulumi.Sprintf(domainSocketCreateCmd, id, id),
 	}
-	createDomainSocketDone, err := runner.Command(resourceName, &createDomainSocketArgs)
+	createDomainSocketDone, err := runner.Command(resourceName, &createDomainSocketArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +248,7 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 		createDomainSocketDone, err := buildDomainSocket(instance.remoteRunner,
 			matrix.domainID,
 			matrix.domainNamer.ResourceName("create-domain-socket"),
+			depends,
 		)
 		if err != nil {
 			return matrices, waitFor, err
@@ -264,8 +265,9 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 
 func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var dhcpEntries []interface{}
+	var newDomainDepends []pulumi.Resource
 
-	matrices, waitFor, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
+	matrices, waitForDomainMatrices, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -283,6 +285,13 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			return []pulumi.Resource{}, err
 		}
 		networks[arch] = network
+
+		waitKernelHeaders, err := setupKernelPackages(instance, depends)
+		if err != nil {
+			return []pulumi.Resource{}, err
+		}
+		newDomainDepends = append(waitForDomainMatrices, waitKernelHeaders...)
+
 	}
 
 	// attach network interface to each domain
@@ -308,7 +317,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			pulumi.Provider(matrix.instance.provider),
 			pulumi.ReplaceOnChanges([]string{"*"}),
 			pulumi.DeleteBeforeReplace(true),
-			pulumi.DependsOn(waitFor),
+			pulumi.DependsOn(newDomainDepends),
 		)
 		if err != nil {
 			return []pulumi.Resource{}, err

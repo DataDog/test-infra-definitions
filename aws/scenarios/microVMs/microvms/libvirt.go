@@ -290,7 +290,9 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
-		newDomainDepends = append(waitForDomainMatrices, waitKernelHeaders...)
+		newDomainDepends = append(
+			newDomainDepends,
+			append(waitForDomainMatrices, waitKernelHeaders...)...)
 
 	}
 

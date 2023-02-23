@@ -265,7 +265,6 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 
 func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var dhcpEntries []interface{}
-	var newDomainDepends []pulumi.Resource
 
 	matrices, waitForDomainMatrices, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
 	if err != nil {
@@ -285,15 +284,6 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			return []pulumi.Resource{}, err
 		}
 		networks[arch] = network
-
-		waitKernelHeaders, err := setupKernelPackages(instance, depends)
-		if err != nil {
-			return []pulumi.Resource{}, err
-		}
-		newDomainDepends = append(
-			newDomainDepends,
-			append(waitForDomainMatrices, waitKernelHeaders...)...)
-
 	}
 
 	// attach network interface to each domain
@@ -319,7 +309,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			pulumi.Provider(matrix.instance.provider),
 			pulumi.ReplaceOnChanges([]string{"*"}),
 			pulumi.DeleteBeforeReplace(true),
-			pulumi.DependsOn(newDomainDepends),
+			pulumi.DependsOn(waitForDomainMatrices),
 		)
 		if err != nil {
 			return []pulumi.Resource{}, err

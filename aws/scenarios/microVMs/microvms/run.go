@@ -167,6 +167,7 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 			if err != nil {
 				return nil, err
 			}
+
 			waitFor = append(waitFor, waitProvision...)
 		}
 

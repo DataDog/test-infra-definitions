@@ -206,7 +206,12 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	return append(buildDirectoryStructureDone, buildKernelHeadersDirDone), nil
+	kernelPackagesDone, err := setupKernelPackages(instance, append(buildDirectoryStructureDone, buildKernelHeadersDirDone))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return kernelPackagesDone, nil
 }
 
 func setupKernelPackages(instance *Instance, depends []pulumi.Resource) ([]pulumi.Resource, error) {

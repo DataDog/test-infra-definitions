@@ -157,7 +157,7 @@ func extractRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulu
 	for _, fsImage := range fs.images {
 
 		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("pushd /tmp; tar -xzf %s; popd;", fsImage.imagePath),
+			Create: pulumi.Sprintf("cd /tmp && tar -xzf %s", fsImage.imagePath),
 			Delete: pulumi.Sprintf("rm -rf %s", fsImage.imagePath),
 		}
 		res, err := runner.Command(fsImage.volumeNamer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
@@ -246,7 +246,7 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *command.Runner, depends
 }
 
 func (fs *LibvirtFilesystem) setupLibvirtFilesystem(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	downloadRootfsDone, err := downloadRootfs(fs, runner, []pulumi.Resource{})
+	downloadRootfsDone, err := downloadRootfs(fs, runner, depends)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

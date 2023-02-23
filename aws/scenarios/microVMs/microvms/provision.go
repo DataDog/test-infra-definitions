@@ -48,18 +48,18 @@ var (
 	}
 )
 
-func downloadAndExtractKernelPackage(runner *command.Runner, arch string) ([]pulumi.Resource, error) {
+func downloadAndExtractKernelPackage(runner *command.Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	kernelPackages := fmt.Sprintf("kernel-packages-%s.tar", arch)
 	downloadKernelArgs := command.Args{
 		Create: pulumi.Sprintf("mkdir /tmp/kernel-packages && wget -q https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/%s -O /tmp/kernel-packages/%s", kernelPackages, kernelPackages),
 	}
-	downloadKernelPackage, err := runner.Command("download-kernel-image", &downloadKernelArgs)
+	downloadKernelPackage, err := runner.Command("download-kernel-image", &downloadKernelArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
 	extractPackageArgs := command.Args{
-		Create: pulumi.Sprintf("pushd /tmp/kernel-packages; tar xvf %s | xargs -i tar xzf {}; popd;", kernelPackages),
+		Create: pulumi.Sprintf("cd /tmp/kernel-packages; tar xvf %s | xargs -i tar xzf {};", kernelPackages),
 	}
 	extractPackageDone, err := runner.Command("extract-kernel-packages", &extractPackageArgs, pulumi.DependsOn([]pulumi.Resource{downloadKernelPackage}))
 	if err != nil {
@@ -70,22 +70,12 @@ func downloadAndExtractKernelPackage(runner *command.Runner, arch string) ([]pul
 }
 
 func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	permissionFixArgs := command.Args{
-		Create: pulumi.String("chown -R libvirt-qemu:kvm /tmp/kernel-packages/kernel-v*.pkg"),
-		Sudo:   true,
-	}
-	permissionFixDone, err := runner.Command("permission-fix-kernel-headers", &permissionFixArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
 	copyKernelHeadersArgs := command.Args{
 		Create: pulumi.Sprintf(
-			"-u libvirt-qemu /bin/bash -c \"cd /tmp; find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} %s && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} %s\"", kernelHeadersDir, kernelHeadersDir,
+			"cd /tmp; find /tmp/kernel-packages -name 'linux-image-*' -type f | xargs -i cp {} %s && find /tmp/kernel-packages -name 'linux-headers-*' -type f | xargs -i cp {} %s", kernelHeadersDir, kernelHeadersDir,
 		),
-		Sudo: true,
 	}
-	copyKernelHeadersDone, err := runner.Command("copy-kernel-headers", &copyKernelHeadersArgs, pulumi.DependsOn([]pulumi.Resource{permissionFixDone}))
+	copyKernelHeadersDone, err := runner.Command("copy-kernel-headers", &copyKernelHeadersArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -162,10 +152,12 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 	}
 
 	sshWriteArgs := command.Args{
-		Create: pulumi.Sprintf("echo '%s' >> ~/.ssh/authorized_keys", sshgenDone.Stdout),
+		Create: pulumi.Sprintf("echo '%s' >> $(getent passwd 1000 | cut -d: -f6)/.ssh/authorized_keys", sshgenDone.Stdout),
 		Sudo:   true,
 	}
-	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs, pulumi.DependsOn([]pulumi.Resource{sshgenDone}))
+
+	wait := append(depends, sshgenDone)
+	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs, pulumi.DependsOn(wait))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -176,8 +168,6 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 // This function provisions the metal instance for setting up libvirt based micro-vms.
 func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
 	runner := instance.remoteRunner
-	localRunner := instance.localRunner
-	resourceNamer := instance.instanceNamer
 
 	packagesInstallDone, err := installPackages(runner)
 	if err != nil {
@@ -185,11 +175,6 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 	}
 
 	prepareLibvirtEnvDone, err := prepareLibvirtEnvironment(runner, packagesInstallDone)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.remoteRunner, instance.Arch)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -206,18 +191,19 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	dependencies := append(downloadKernelDone, buildKernelHeadersDirDone)
-	copyKernelHeadersDone, err := copyKernelHeaders(runner, dependencies)
+	return []pulumi.Resource{buildKernelHeadersDirDone}, nil
+}
+
+func setupKernelPackages(instance *Instance, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.remoteRunner, instance.Arch, depends)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	pair := getSSHKeyPair(m, instance.Arch)
-	prepareSSHKeysDone, err := prepareLibvirtSSHKeys(runner, localRunner, resourceNamer, instance.Arch, pair, []pulumi.Resource{})
+	copyKernelHeadersDone, err := copyKernelHeaders(instance.remoteRunner, downloadKernelDone)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	return append(prepareSSHKeysDone, copyKernelHeadersDone...), nil
-
+	return copyKernelHeadersDone, nil
 }

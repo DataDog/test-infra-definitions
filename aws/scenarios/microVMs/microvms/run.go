@@ -138,6 +138,13 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 		}
 		waitFor = append(waitFor, waitProvision...)
 
+		pair := getSSHKeyPair(&m, instance.Arch)
+		prepareSSHKeysDone, err := prepareLibvirtSSHKeys(instance.remoteRunner, instance.localRunner, instance.instanceNamer, instance.Arch, pair, []pulumi.Resource{})
+		if err != nil {
+			return nil, err
+		}
+		waitFor = append(waitFor, prepareSSHKeysDone...)
+
 		privkey := m.GetStringWithDefault(m.MicroVMConfig, config.SSHKeyConfigNames[arch], defaultLibvirtSSHKey(SSHKeyFileNames[arch]))
 		url := pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.instance.PrivateIp, privkey)
 

@@ -59,7 +59,7 @@ func downloadAndExtractKernelPackage(runner *command.Runner, arch string, depend
 	}
 
 	extractPackageArgs := command.Args{
-		Create: pulumi.Sprintf("cd /tmp/kernel-packages; tar xvf %s | xargs -i tar xzf {};", kernelPackages),
+		Create: pulumi.Sprintf("cd /tmp/kernel-packages && tar xvf %s | xargs -i tar xzf {};", kernelPackages),
 	}
 	extractPackageDone, err := runner.Command("extract-kernel-packages", &extractPackageArgs, pulumi.DependsOn([]pulumi.Resource{downloadKernelPackage}))
 	if err != nil {

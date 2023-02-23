@@ -26,6 +26,7 @@ const (
 	ddinfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
 	ddinfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 	ddinfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
+	ddinfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 
 	// AWS ECS
 	ddInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -127,6 +128,11 @@ func (e *Environment) DefaultPrivateKeyPassword() string {
 
 func (e *Environment) DefaultInstanceStorageSize() int {
 	return e.GetIntWithDefault(e.InfraConfig, ddinfraDefaultInstanceStorageSize, e.envDefault.ddInfra.defaultInstanceStorageSize)
+}
+
+// shutdown behavior can be 'terminate' or 'stop'
+func (e *Environment) DefaultShutdownBehavior() string {
+	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
 }
 
 // ECS

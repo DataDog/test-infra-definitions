@@ -24,6 +24,7 @@ type ddInfra struct {
 	defaultInstanceType        string
 	defaultARMInstanceType     string
 	defaultInstanceStorageSize int
+	defaultShutdownBehavior    string
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -72,6 +73,7 @@ func sandboxDefault() environmentDefault {
 			defaultInstanceType:        "t3.xlarge",
 			defaultARMInstanceType:     "t4g.xlarge",
 			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:               "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",

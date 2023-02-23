@@ -174,7 +174,8 @@ func extractRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulu
 
 	for _, fsImage := range fs.images {
 		res, err := runner.Command(fsImage.volumeNamer.ResourceName("copy-ssh-key-file"), &command.Args{
-			Create: pulumi.Sprintf("cp %s/ddvm_rsa /tmp && chown $USER:$USER /tmp/ddvm_rsa", rootFSDir()),
+			Create: pulumi.Sprintf("cp %s/ddvm_rsa /tmp && chown 1000:1000 /tmp/ddvm_rsa", rootFSDir()),
+			Sudo:   true,
 		}, pulumi.DependsOn(waitFor))
 		if err != nil {
 			return []pulumi.Resource{}, err

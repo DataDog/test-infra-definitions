@@ -6,7 +6,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
-	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -34,18 +33,18 @@ type sshKeyPair struct {
 	publicKey  string
 }
 
-func getSSHKeyPairFiles(m *sconfig.DDMicroVMConfig, arch string) sshKeyPair {
+func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	var pair sshKeyPair
 	pair.privateKey = m.GetStringWithDefault(
 		m.MicroVMConfig,
-		sconfig.SSHKeyConfigNames[arch],
+		config.SSHKeyConfigNames[arch],
 		defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
 	)
 	pair.publicKey = fmt.Sprintf(
 		"%s.pub",
 		m.GetStringWithDefault(
 			m.MicroVMConfig,
-			sconfig.SSHKeyConfigNames[arch],
+			config.SSHKeyConfigNames[arch],
 			defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
 		),
 	)

@@ -85,7 +85,7 @@ func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pul
 
 	copyKernelHeadersArgs := command.Args{
 		Create: pulumi.Sprintf(
-			"find %s -name 'linux-image-*' -type f | xargs -i cp {} %s && find %s -name 'linux-headers-*' -type f | xargs -i cp {} %s", kernelPackagesDownloadDir, kernelHeadersDir, kernelPackagesDownloadDir, kernelHeadersDir,
+			"cd %s && find %s -name 'linux-image-*' -type f | xargs -i cp {} %s && find %s -name 'linux-headers-*' -type f | xargs -i cp {} %s", GetWorkingDirectory(), kernelPackagesDownloadDir, kernelHeadersDir, kernelPackagesDownloadDir, kernelHeadersDir,
 		),
 	}
 	copyKernelHeadersDone, err := runner.Command("copy-kernel-headers", &copyKernelHeadersArgs, pulumi.DependsOn(depends))
@@ -159,14 +159,15 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 	return []pulumi.Resource{sshWrite}, nil
 }
 
-func buildDirectoryStructure(runner *command.Runner) ([]pulumi.Resource, error) {
+func buildDirectoryStructure(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	kernelPackagesDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
 	rootfsDir := filepath.Join(GetWorkingDirectory(), "rootfs")
 
 	buildDirectoryStructureArgs := command.Args{
-		Create: pulumi.Sprintf("mkdir -p %s && mkdir -p %s", kernelPackagesDir, rootfsDir),
+		Create: pulumi.Sprintf("install -d -m 0755 -o libvirt-qemu -g kvm %s && install -d -m 0755 -o libvirt-qemu -g kvm %s", kernelPackagesDir, rootfsDir),
+		Sudo:   true,
 	}
-	buildDirectoryStructureDone, err := runner.Command("build-directory-structure", &buildDirectoryStructureArgs)
+	buildDirectoryStructureDone, err := runner.Command("build-directory-structure", &buildDirectoryStructureArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -183,12 +184,12 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	buildDirectoryStructureDone, err := buildDirectoryStructure(runner)
+	prepareLibvirtEnvDone, err := prepareLibvirtEnvironment(runner, packagesInstallDone)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	prepareLibvirtEnvDone, err := prepareLibvirtEnvironment(runner, packagesInstallDone)
+	buildDirectoryStructureDone, err := buildDirectoryStructure(runner, prepareLibvirtEnvDone)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -205,7 +206,7 @@ func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi
 		return []pulumi.Resource{}, err
 	}
 
-	return []pulumi.Resource{buildKernelHeadersDirDone}, nil
+	return append(buildDirectoryStructureDone, buildKernelHeadersDirDone), nil
 }
 
 func setupKernelPackages(instance *Instance, depends []pulumi.Resource) ([]pulumi.Resource, error) {

@@ -151,6 +151,11 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 		return []pulumi.Resource{}, err
 	}
 
+	// This command writes the public ssh key which pulumi uses to talk to the libvirt daemon, in the authorized_keys
+	// file of the default user. We must write in this file because pulumi runs its commands as the default user.
+	//
+	// We override the runner-level user here with root, and construct the path to the default users .ssh directory,
+	// in order to write the public ssh key in the correct file.
 	sshWriteArgs := command.Args{
 		Create: pulumi.Sprintf("echo '%s' >> $(getent passwd 1000 | cut -d: -f6)/.ssh/authorized_keys", sshgenDone.Stdout),
 		Sudo:   true,

@@ -126,11 +126,11 @@ func defaultLibvirtSSHKey(keyname string) string {
 	return "/tmp/" + keyname
 }
 
-func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
+func run(e aws.Environment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
-	m := config.NewMicroVMConfig(ctx)
+	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMConfigFile, "./test.json"))
 	if err != nil {
 		return nil, err
@@ -149,7 +149,7 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 
 	instances := make(map[string]*Instance)
 	for arch := range archs {
-		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch, m)
+		instance, err := newMetalInstance(e, e.Ctx.Stack()+"-"+arch, arch, m)
 		if err != nil {
 			return nil, err
 		}
@@ -205,8 +205,8 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 	return &scenarioReady, nil
 }
 
-func RunAndReturnInstances(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
-	return run(ctx, e)
+func RunAndReturnInstances(e aws.Environment) (*ScenarioDone, error) {
+	return run(e)
 }
 
 func Run(ctx *pulumi.Context) error {
@@ -215,6 +215,6 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, err = run(ctx, e)
+	_, err = run(e)
 	return err
 }

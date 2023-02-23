@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
@@ -26,14 +26,14 @@ var SSHKeyConfigNames = map[string]string{
 }
 
 type DDMicroVMConfig struct {
-	Ctx           *pulumi.Context
 	MicroVMConfig *sdkconfig.Config
+	aws.Environment
 }
 
-func NewMicroVMConfig(ctx *pulumi.Context) DDMicroVMConfig {
+func NewMicroVMConfig(e aws.Environment) DDMicroVMConfig {
 	return DDMicroVMConfig{
-		Ctx:           ctx,
-		MicroVMConfig: sdkconfig.New(ctx, ddMicroVMNamespace),
+		sdkconfig.New(e.Ctx, ddMicroVMNamespace),
+		e,
 	}
 }
 

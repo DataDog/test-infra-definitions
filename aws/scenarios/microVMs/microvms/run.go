@@ -77,7 +77,7 @@ func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 			"Team": pulumi.String("ebpf-platform"),
 		},
-		InstanceInitiatedShutdownBehavior: pulumi.String("terminate"),
+		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
 	}, pulumi.Provider(e.Provider))
 	return instance, err
 }

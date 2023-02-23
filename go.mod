@@ -23,6 +23,7 @@ require (
 	github.com/ProtonMail/go-crypto v0.0.0-20230217124315-7d5c6f04bbb8 // indirect
 	github.com/acomagu/bufpipe v1.0.3 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
+	github.com/alessio/shellescape v1.4.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
 	github.com/cloudflare/circl v1.3.2 // indirect

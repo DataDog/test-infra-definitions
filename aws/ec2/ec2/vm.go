@@ -30,6 +30,7 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 		Tags: pulumi.StringMap{
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},
+		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
 	}, pulumi.Provider(e.Provider))
 	return instance, err
 }

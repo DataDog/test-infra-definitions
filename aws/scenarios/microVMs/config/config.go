@@ -12,7 +12,8 @@ const (
 	ddMicroVMArmLibvirtSSHKeyFile = "libvirtSSHKeyFileArm"
 
 	DDMicroVMProvisionEC2Instance = "provision"
-	DDMicroVMAMIID                = "amiID"
+	DDMicroVMX86AmiID             = "x86AmiID"
+	DDMicroVMArm64AmiID           = "arm64AmiID"
 	DDMicroVMConfigFile           = "microVMConfigFile"
 	DDMicroVMWorkingDirectory     = "workingDir"
 )

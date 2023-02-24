@@ -83,18 +83,18 @@ func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 
 func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
+	var ami string
 
 	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
 	if arch == ec2.AMD64Arch {
 		instanceType = e.DefaultInstanceType()
+		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMX86AmiID, "")
 	} else if arch == ec2.ARM64Arch {
 		instanceType = e.DefaultARMInstanceType()
+		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMArm64AmiID, "")
 	} else {
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
-
-	// get ami if present
-	ami := m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMAMIID, "")
 
 	awsInstance, err := newEC2Instance(e, name, ami, arch, instanceType, e.DefaultKeyPairName(), "", "default")
 	if err != nil {

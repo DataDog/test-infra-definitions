@@ -74,8 +74,10 @@ func NewResourceCollection(recipe string) ResourceCollection {
 		return NewARM64ResourceCollection(recipe)
 	} else if recipe == "custom-amd64" {
 		return NewAMD64ResourceCollection(recipe)
-	} else if recipe == "distro" {
-		return NewDistroResourceCollection(recipe)
+	} else if recipe == "distro-amd64" {
+		return NewDistroAMD64ResourceCollection(recipe)
+	} else if recipe == "distro-arm64" {
+		return NewDistroARM64ResourceCollection(recipe)
 	}
 
 	panic("unknown recipe: " + recipe)

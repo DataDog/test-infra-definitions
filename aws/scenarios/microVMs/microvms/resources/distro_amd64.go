@@ -8,36 +8,36 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed distro/domain.xls
+//go:embed distro-amd64/domain.xls
 var distroDomainXLS string
 
-type DistroResourceCollection struct {
+type DistroAMD64ResourceCollection struct {
 	recipe string
 }
 
-func NewDistroResourceCollection(recipe string) *DistroResourceCollection {
-	return &DistroResourceCollection{
+func NewDistroAMD64ResourceCollection(recipe string) *DistroAMD64ResourceCollection {
+	return &DistroAMD64ResourceCollection{
 		recipe: recipe,
 	}
 }
 
-func (a *DistroResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return formatResourceXML(distroDomainXLS, args)
 }
 
-func (a *DistroResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return GetDefaultNetworkXLS(args)
 }
 
-func (a *DistroResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args)
 }
 
-func (a *DistroResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return GetDefaultPoolXML(args)
 }
 
-func (a *DistroResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	return &libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{

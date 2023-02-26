@@ -54,8 +54,8 @@ func generateNewUnicastMac(ctx *pulumi.Context, domainID string) (pulumi.StringO
 	return macAddr, nil
 }
 
-func generateDomainIdentifier(vcpu, memory int, vmsetName, tag string) string {
-	return fmt.Sprintf("%s-tag-%s-cpu-%d-mem-%d", vmsetName, tag, vcpu, memory)
+func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) string {
+	return fmt.Sprintf("%s_%s-tag-%s-cpu-%d-mem-%d", vmsetName, arch, tag, vcpu, memory)
 }
 
 func buildDomainSocket(runner *command.Runner, id, resourceName string, depends []pulumi.Resource) (*remote.Command, error) {
@@ -133,7 +133,7 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesyste
 
 func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc resources.ResourceCollection, instance *Instance, kernel vmconfig.Kernel, fs *LibvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
 	matrix := new(DomainMatrix)
-	matrix.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag)
+	matrix.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, instance.Arch)
 	matrix.arch = instance.Arch
 	matrix.instance = instance
 	matrix.domainName = fmt.Sprintf("ddvm-%s", matrix.domainID)

@@ -2,6 +2,7 @@ package microvms
 
 import (
 	"fmt"
+	"net/url"
 	"path/filepath"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
@@ -12,6 +13,7 @@ import (
 )
 
 const basefsName = "custom-fsbase"
+const refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
 
 type filesystemImage struct {
 	imageName     string
@@ -68,7 +70,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		volKey := generateVolumeKey(poolName, imageName)
 		img := &filesystemImage{
 			imageName:   imageName,
-			imagePath:   k.Dir,
+			imagePath:   getImagePath(k.Dir),
 			imageSource: k.ImageSource,
 			volumeKey:   volKey,
 			volumeXML: rc.GetVolumeXML(
@@ -140,10 +142,33 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 }
 
 func downloadRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var downloadCmd string
 	var waitFor []pulumi.Resource
+
 	for _, fsImage := range fs.images {
+		url, err := url.Parse(fsImage.imageSource)
+		if err != nil {
+			return []pulumi.Resource{}, fmt.Errorf("error parsing url %s: %w", fsImage.imageSource, err)
+		}
+
+		refreshCmd := fmt.Sprintf(refreshFromEBS, url.Path)
+		if url.Scheme == "file" {
+			// We do this because reading the EBS blocks is the only way to download the files
+			// from the backing storage. Not doing this means, that the file is downloaded when
+			// it is first accessed in other commands. This can cause other problems, on top of
+			// being very slow.
+			if url.Path != fsImage.imagePath {
+				downloadCmd = fmt.Sprintf("%s && mv %s %s", refreshCmd, url.Path, fsImage.imagePath)
+			} else {
+
+				downloadCmd = refreshCmd
+			}
+		} else {
+			downloadCmd = fmt.Sprintf("curl -o %s %s", fsImage.imagePath, fsImage.imageSource)
+		}
+
 		downloadRootfsArgs := command.Args{
-			Create: pulumi.Sprintf("curl -o %s %s", fsImage.imagePath, fsImage.imageSource),
+			Create: pulumi.String(downloadCmd),
 			Delete: pulumi.Sprintf("rm -f %s", fsImage.imagePath),
 		}
 
@@ -160,12 +185,11 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pul
 func extractRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
-
-		// Extract archive if it is gzip compressed, which will be the case when downloading from remote S3 bucket.
+		// Extract archive if it is xz compressed, which will be the case when downloading from remote S3 bucket.
 		// To do this we check if the magic bytes of the file at imagePath is 514649fb. If so then this is already
-		// a qcow2 file. No need to extract it. Otherwise it SHOULD be gzipped archive. Attempt to uncompress and extract.
+		// a qcow2 file. No need to extract it. Otherwise it SHOULD be xz archive. Attempt to uncompress.
 		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("if xxd -p -l 4 %s | grep -E '^514649fb$'; then echo '%s is qcow2 file'; else tar -C %s -xzf %s; fi", fsImage.imagePath, fsImage.imagePath, rootFSDir(), fsImage.imagePath),
+			Create: pulumi.Sprintf("if xxd -p -l 4 %s | grep -E '^514649fb$'; then echo '%s is qcow2 file'; else mv %s %s.xz && xz -T0 -c -d %s.xz > %s; fi", fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath),
 			Delete: pulumi.Sprintf("rm -rf %s", fsImage.imagePath),
 		}
 		res, err := runner.Command(fsImage.volumeNamer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))

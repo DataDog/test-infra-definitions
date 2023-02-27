@@ -25,7 +25,7 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 		TaskDefinition:            taskDefArn,
 		EnableExecuteCommand:      pulumi.BoolPtr(true),
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }
 
 func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput) (*ecs.FargateTaskDefinition, error) {
@@ -53,7 +53,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 				Name: pulumi.String("dd-sockets"),
 			},
 		},
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }
 
 func FargateRedisContainerDefinition(e aws.Environment, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {

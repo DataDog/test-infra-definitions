@@ -46,7 +46,7 @@ func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
 		Owners: []string{
 			owner,
 		},
-	}, pulumi.Provider(e.Provider))
+	}, e.InvokeProviderOption())
 	if err != nil {
 		return "", err
 	}
@@ -65,7 +65,7 @@ func GetLatestAMI(e aws.Environment, arch os.Architecture, amd64Path string, arm
 	}
 	result, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: amiParamName,
-	}, pulumi.Provider(e.Provider))
+	}, e.InvokeProviderOption())
 	if err != nil {
 		return "", err
 	}

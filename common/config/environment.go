@@ -13,6 +13,8 @@ import (
 )
 
 const (
+	multiValueSeparator = ","
+
 	namerNamespace         = "common"
 	DDInfraConfigNamespace = "ddinfra"
 	ddAgentConfigNamespace = "ddagent"
@@ -46,8 +48,9 @@ func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 }
 
 // Infra namespace
-func (e *CommonEnvironment) InfraEnvironmentName() string {
-	return e.InfraConfig.Require(ddInfraEnvironment)
+func (e *CommonEnvironment) InfraEnvironmentNames() []string {
+	envsStr := e.InfraConfig.Require(ddInfraEnvironment)
+	return strings.Split(envsStr, multiValueSeparator)
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
@@ -114,7 +117,7 @@ func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramNa
 func (e *CommonEnvironment) GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string {
 	val, err := config.Try(paramName)
 	if err == nil {
-		return strings.Split(val, ",")
+		return strings.Split(val, multiValueSeparator)
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
@@ -161,7 +164,6 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
-
 }
 
 type Environment interface {

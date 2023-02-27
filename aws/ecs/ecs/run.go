@@ -79,7 +79,7 @@ func Run(ctx *pulumi.Context) error {
 			Name:  awsEnv.CommonNamer.DisplayName(pulumi.String("agent-apikey")),
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
-		}, pulumi.Provider(awsEnv.Provider))
+		}, awsEnv.ResourceProvidersOption())
 		if err != nil {
 			return err
 		}

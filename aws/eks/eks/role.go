@@ -24,7 +24,7 @@ func GetNodeRole(e aws.Environment, name string) (*awsIam.Role, error) {
 			"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
 		}),
 		AssumeRolePolicy: pulumi.String(assumeRolePolicy.Json),
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }
 
 func GetClusterRole(e aws.Environment, name string) (*awsIam.Role, error) {
@@ -41,5 +41,5 @@ func GetClusterRole(e aws.Environment, name string) (*awsIam.Role, error) {
 			"arn:aws:iam::aws:policy/AmazonEKSVPCResourceController",
 		}),
 		AssumeRolePolicy: pulumi.String(assumeRolePolicy.Json),
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }

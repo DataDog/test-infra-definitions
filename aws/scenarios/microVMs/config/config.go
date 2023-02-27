@@ -1,11 +1,8 @@
 package config
 
 import (
-	"errors"
-	"fmt"
-
+	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
@@ -14,7 +11,11 @@ const (
 	ddMicroVMX86LibvirtSSHKeyFile = "libvirtSSHKeyFileX86"
 	ddMicroVMArmLibvirtSSHKeyFile = "libvirtSSHKeyFileArm"
 
-	DDMicroVMConfigFile = "microVMConfigFile"
+	DDMicroVMProvisionEC2Instance = "provision"
+	DDMicroVMX86AmiID             = "x86AmiID"
+	DDMicroVMArm64AmiID           = "arm64AmiID"
+	DDMicroVMConfigFile           = "microVMConfigFile"
+	DDMicroVMWorkingDirectory     = "workingDir"
 )
 
 var SSHKeyConfigNames = map[string]string{
@@ -23,26 +24,13 @@ var SSHKeyConfigNames = map[string]string{
 }
 
 type DDMicroVMConfig struct {
-	Ctx           *pulumi.Context
 	MicroVMConfig *sdkconfig.Config
+	aws.Environment
 }
 
-func NewMicroVMConfig(ctx *pulumi.Context) DDMicroVMConfig {
+func NewMicroVMConfig(e aws.Environment) DDMicroVMConfig {
 	return DDMicroVMConfig{
-		Ctx:           ctx,
-		MicroVMConfig: sdkconfig.New(ctx, ddMicroVMNamespace),
+		sdkconfig.New(e.Ctx, ddMicroVMNamespace),
+		e,
 	}
-}
-
-func (e *DDMicroVMConfig) GetStringWithDefault(config *sdkconfig.Config, paramName string, defaultValue string) string {
-	val, err := config.Try(paramName)
-	if err == nil {
-		return val
-	}
-
-	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
-	}
-
-	return defaultValue
 }

@@ -150,7 +150,7 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc
 
 	matrix.RecipeLibvirtDomainArgs.Vcpu = vcpu
 	matrix.RecipeLibvirtDomainArgs.Memory = memory
-	matrix.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(kernel.Dir, "bzImage")
+	matrix.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
 	matrix.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
 			resources.DomainName:    pulumi.String(matrix.domainName),
@@ -265,7 +265,6 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 
 func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var dhcpEntries []interface{}
-	var newDomainDepends []pulumi.Resource
 
 	matrices, waitForDomainMatrices, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
 	if err != nil {
@@ -285,13 +284,6 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			return []pulumi.Resource{}, err
 		}
 		networks[arch] = network
-
-		waitKernelHeaders, err := setupKernelPackages(instance, depends)
-		if err != nil {
-			return []pulumi.Resource{}, err
-		}
-		newDomainDepends = append(waitForDomainMatrices, waitKernelHeaders...)
-
 	}
 
 	// attach network interface to each domain
@@ -317,7 +309,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			pulumi.Provider(matrix.instance.provider),
 			pulumi.ReplaceOnChanges([]string{"*"}),
 			pulumi.DeleteBeforeReplace(true),
-			pulumi.DependsOn(newDomainDepends),
+			pulumi.DependsOn(waitForDomainMatrices),
 		)
 		if err != nil {
 			return []pulumi.Resource{}, err

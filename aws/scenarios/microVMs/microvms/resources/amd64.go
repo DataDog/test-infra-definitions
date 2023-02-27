@@ -46,7 +46,6 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 
 	cmdlines = append(cmdlines, kernelCmdlines...)
 
-	//			pulumi.Map{"console": pulumi.String("ttyS0")},
 	return &libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{

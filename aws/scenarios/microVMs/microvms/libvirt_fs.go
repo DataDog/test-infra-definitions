@@ -2,6 +2,7 @@ package microvms
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
@@ -39,8 +40,12 @@ func generateVolumeKey(pool, volName string) string {
 	return generatePoolPath(pool) + volName
 }
 
+func rootFSDir() string {
+	return filepath.Join(GetWorkingDirectory(), "rootfs")
+}
+
 func getImagePath(name string) string {
-	return fmt.Sprintf("/tmp/%s", name)
+	return filepath.Join(rootFSDir(), name)
 }
 
 func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
@@ -138,7 +143,7 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pul
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
 		downloadRootfsArgs := command.Args{
-			Create: pulumi.Sprintf("wget -q %s -O %s", fsImage.imageSource, fsImage.imagePath),
+			Create: pulumi.Sprintf("curl -o %s %s", fsImage.imagePath, fsImage.imageSource),
 			Delete: pulumi.Sprintf("rm -f %s", fsImage.imagePath),
 		}
 
@@ -156,8 +161,11 @@ func extractRootfs(fs *LibvirtFilesystem, runner *command.Runner, depends []pulu
 	var waitFor []pulumi.Resource
 	for _, fsImage := range fs.images {
 
+		// Extract archive if it is gzip compressed, which will be the case when downloading from remote S3 bucket.
+		// To do this we check if the magic bytes of the file at imagePath is 514649fb. If so then this is already
+		// a qcow2 file. No need to extract it. Otherwise it SHOULD be gzipped archive. Attempt to uncompress and extract.
 		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("cd /tmp && tar -xzf %s", fsImage.imagePath),
+			Create: pulumi.Sprintf("if xxd -p -l 4 %s | grep -E '^514649fb$'; then echo '%s is qcow2 file'; else tar -C %s -xzf %s; fi", fsImage.imagePath, fsImage.imagePath, rootFSDir(), fsImage.imagePath),
 			Delete: pulumi.Sprintf("rm -rf %s", fsImage.imagePath),
 		}
 		res, err := runner.Command(fsImage.volumeNamer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))

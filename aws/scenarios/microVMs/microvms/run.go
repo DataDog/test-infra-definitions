@@ -28,6 +28,30 @@ type Instance struct {
 	provider      *libvirt.Provider
 }
 
+type sshKeyPair struct {
+	privateKey string
+	publicKey  string
+}
+
+func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
+	var pair sshKeyPair
+	pair.privateKey = m.GetStringWithDefault(
+		m.MicroVMConfig,
+		config.SSHKeyConfigNames[arch],
+		defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
+	)
+	pair.publicKey = fmt.Sprintf(
+		"%s.pub",
+		m.GetStringWithDefault(
+			m.MicroVMConfig,
+			config.SSHKeyConfigNames[arch],
+			defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
+		),
+	)
+
+	return pair
+}
+
 func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*awsEc2.Instance, error) {
 	var err error
 	if ami == "" {
@@ -52,24 +76,27 @@ func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 			"Team": pulumi.String("ebpf-platform"),
 		},
-		InstanceInitiatedShutdownBehavior: pulumi.String("terminate"),
+		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
 	}, pulumi.Provider(e.Provider))
 	return instance, err
 }
 
-func newMetalInstance(e aws.Environment, name, arch string) (*Instance, error) {
+func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
+	var ami string
 
 	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
 	if arch == ec2.AMD64Arch {
 		instanceType = e.DefaultInstanceType()
+		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMX86AmiID, "")
 	} else if arch == ec2.ARM64Arch {
 		instanceType = e.DefaultARMInstanceType()
+		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMArm64AmiID, "")
 	} else {
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := newEC2Instance(e, name, "", arch, instanceType, e.DefaultKeyPairName(), "", "default")
+	awsInstance, err := newEC2Instance(e, name, ami, arch, instanceType, e.DefaultKeyPairName(), "", "default")
 	if err != nil {
 		return nil, err
 	}
@@ -99,15 +126,18 @@ func defaultLibvirtSSHKey(keyname string) string {
 	return "/tmp/" + keyname
 }
 
-func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
+func run(e aws.Environment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
-	m := config.NewMicroVMConfig(ctx)
+	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMConfigFile, "./test.json"))
 	if err != nil {
 		return nil, err
 	}
+
+	GetWorkingDirectory = getKernelVersionTestingWorkingDir(&m)
+	shouldProvision := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionEC2Instance, true)
 
 	archs := make(map[string]bool)
 	for _, set := range cfg.VMSets {
@@ -119,7 +149,7 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 
 	instances := make(map[string]*Instance)
 	for arch := range archs {
-		instance, err := newMetalInstance(e, ctx.Stack()+"-"+arch, arch)
+		instance, err := newMetalInstance(e, e.Ctx.Stack()+"-"+arch, arch, m)
 		if err != nil {
 			return nil, err
 		}
@@ -132,14 +162,25 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 		}
 		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
 
-		waitProvision, err := provisionInstance(instance, &m)
-		if err != nil {
-			return nil, err
-		}
-		waitFor = append(waitFor, waitProvision...)
+		if shouldProvision {
+			waitProvision, err := provisionInstance(instance, &m)
+			if err != nil {
+				return nil, err
+			}
 
-		pair := getSSHKeyPair(&m, instance.Arch)
-		prepareSSHKeysDone, err := prepareLibvirtSSHKeys(instance.remoteRunner, instance.localRunner, instance.instanceNamer, instance.Arch, pair, []pulumi.Resource{})
+			waitFor = append(waitFor, waitProvision...)
+		}
+
+		// prepare ssh key pair for libvirt daemon
+		pair := getSSHKeyPairFiles(&m, instance.Arch)
+		prepareSSHKeysDone, err := prepareLibvirtSSHKeys(
+			instance.remoteRunner,
+			instance.localRunner,
+			instance.instanceNamer,
+			instance.Arch,
+			pair,
+			[]pulumi.Resource{},
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -165,8 +206,8 @@ func run(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
 	return &scenarioReady, nil
 }
 
-func RunAndReturnInstances(ctx *pulumi.Context, e aws.Environment) (*ScenarioDone, error) {
-	return run(ctx, e)
+func RunAndReturnInstances(e aws.Environment) (*ScenarioDone, error) {
+	return run(e)
 }
 
 func Run(ctx *pulumi.Context) error {
@@ -175,6 +216,6 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, err = run(ctx, e)
+	_, err = run(e)
 	return err
 }

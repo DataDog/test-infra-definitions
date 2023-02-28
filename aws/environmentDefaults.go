@@ -6,6 +6,7 @@ import (
 
 const (
 	sandboxEnv = "aws/sandbox"
+	agentQAEnv = "aws/agent-qa"
 )
 
 type environmentDefault struct {
@@ -56,6 +57,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 	switch envName {
 	case sandboxEnv:
 		return sandboxDefault()
+	case agentQAEnv:
+		return agentQADefault()
 	default:
 		panic("Unknown environment: " + envName)
 	}
@@ -89,6 +92,44 @@ func sandboxDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-46506837", "sg-b9e2ebcb"},
+				fargateNamespace:             "fargate",
+				linuxNodeGroup:               true,
+				linuxARMNodeGroup:            true,
+				linuxBottlerocketNodeGroup:   true,
+				windowsLTSCNodeGroup:         true,
+			},
+		},
+	}
+}
+
+func agentQADefault() environmentDefault {
+	return environmentDefault{
+		aws: awsProvider{
+			region: string(aws.RegionUSEast1),
+		},
+		ddInfra: ddInfra{
+			defaultVPCID:               "vpc-0097b9307ec2c8139",
+			defaultSubnets:             []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
+			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c"},
+			defaultInstanceType:        "t3.xlarge",
+			defaultARMInstanceType:     "t4g.xlarge",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
+
+			ecs: ddInfraECS{
+				execKMSKeyID:               "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
+				taskExecutionRole:          "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
+				taskRole:                   "arn:aws:iam::669783387624:role/ecsTaskRole",
+				instanceProfile:            "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole-profile",
+				serviceAllocatePublicIP:    false,
+				fargateCapacityProvider:    true,
+				linuxECSOptimizedNodeGroup: true,
+				linuxBottlerocketNodeGroup: true,
+				windowsLTSCNodeGroup:       true,
+			},
+
+			eks: ddInfraEKS{
+				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

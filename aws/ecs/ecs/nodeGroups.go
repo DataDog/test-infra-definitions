@@ -41,7 +41,7 @@ func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput,
 
 	ecsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: amiParamName,
-	}, pulumi.Provider(e.Provider))
+	}, e.InvokeProviderOption())
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
@@ -52,7 +52,7 @@ func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput,
 func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
 	bottlerocketAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: "/aws/service/bottlerocket/aws-ecs-1/x86_64/latest/image_id",
-	}, pulumi.Provider(e.Provider))
+	}, e.InvokeProviderOption())
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
@@ -63,7 +63,7 @@ func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput)
 func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
 	winAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: "/aws/service/ami-windows-latest/Windows_Server-2022-English-Full-ECS_Optimized/image_id",
-	}, pulumi.Provider(e.Provider))
+	}, e.InvokeProviderOption())
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

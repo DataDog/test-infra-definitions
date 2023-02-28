@@ -1,12 +1,11 @@
 package aws
 
 import (
-	"fmt"
-
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
+	sdkawsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -52,11 +51,12 @@ const (
 type Environment struct {
 	*config.CommonEnvironment
 
-	Provider *sdkaws.Provider
-	Namer    namer.Namer
+	Namer namer.Namer
 
-	awsConfig  *sdkconfig.Config
-	envDefault environmentDefault
+	awsProvider  *sdkaws.Provider
+	awsxProvider *sdkawsx.Provider
+	awsConfig    *sdkconfig.Config
+	envDefault   environmentDefault
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
@@ -66,22 +66,38 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		CommonEnvironment: &commonEnv,
 		Namer:             namer.NewNamer(ctx, awsConfigNamespace),
 		awsConfig:         sdkconfig.New(ctx, awsConfigNamespace),
-		envDefault:        getEnvironmentDefault(commonEnv.InfraEnvironmentName()),
+		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), awsConfigNamespace)),
 	}
 
 	var err error
-	env.Provider, err = sdkaws.NewProvider(ctx, "aws", &sdkaws.ProviderArgs{
+	env.awsProvider, err = sdkaws.NewProvider(ctx, "aws", &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
 			Tags: commonEnv.ResourcesTags(),
 		},
 	})
+	if err != nil {
+		return Environment{}, err
+	}
 
+	env.awsxProvider, err = sdkawsx.NewProvider(ctx, "awsx", &sdkawsx.ProviderArgs{})
 	if err != nil {
 		return Environment{}, err
 	}
 
 	return env, nil
+}
+
+// InvokeOption are used in non-resources methods (like LookupXXX or GetXXX)
+// These methods only allow for a single provider.
+func (e *Environment) InvokeProviderOption() pulumi.InvokeOption {
+	return pulumi.Provider(e.awsProvider)
+}
+
+// ResourceOption are used in resources methods (like NewXXX)
+// These methods can use multiple providers (like awsx with aws)
+func (e *Environment) ResourceProvidersOption() pulumi.ResourceOption {
+	return pulumi.Providers(e.awsProvider, e.awsxProvider)
 }
 
 // Common
@@ -204,8 +220,4 @@ func (e *Environment) EKSWindowsNodeGroup() bool {
 
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
-}
-
-func GetInfraKey(keyName string) string {
-	return fmt.Sprintf("%v:%v", config.DDInfraConfigNamespace, keyName)
 }

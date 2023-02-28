@@ -17,12 +17,12 @@ func NewCapacityProvider(e aws.Environment, name string, asgArn pulumi.StringInp
 			},
 			ManagedTerminationProtection: aws.DisabledString,
 		},
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }
 
 func NewClusterCapacityProvider(e aws.Environment, name string, clusterName pulumi.StringInput, capacityProviders pulumi.StringArray) (*ecs.ClusterCapacityProviders, error) {
 	return ecs.NewClusterCapacityProviders(e.Ctx, e.Namer.ResourceName(name), &ecs.ClusterCapacityProvidersArgs{
 		ClusterName:       clusterName,
 		CapacityProviders: capacityProviders,
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }

@@ -40,7 +40,7 @@ func Run(ctx *pulumi.Context) error {
 			},
 		},
 		VpcId: pulumi.StringPtr(awsEnv.DefaultVPCID()),
-	}, pulumi.Provider(awsEnv.Provider))
+	}, awsEnv.ResourceProvidersOption())
 	if err != nil {
 		return err
 	}
@@ -152,7 +152,7 @@ func Run(ctx *pulumi.Context) error {
 	eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
 		Kubeconfig:            utils.KubeconfigToJSON(cluster.Kubeconfig),
-	}, pulumi.Provider(awsEnv.Provider), pulumi.DependsOn(nodeGroups))
+	}, awsEnv.ResourceProvidersOption(), pulumi.DependsOn(nodeGroups))
 	if err != nil {
 		return err
 	}

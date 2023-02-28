@@ -39,7 +39,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
 		CommonEnvironment: &commonEnv,
 		Namer:             namer.NewNamer(ctx, azNamerNamespace),
-		envDefault:        getEnvironmentDefault(commonEnv.InfraEnvironmentName()),
+		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace)),
 	}
 
 	var err error

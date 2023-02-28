@@ -66,7 +66,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 				},
 			},
 		},
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }
 
 func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput) ecs.TaskDefinitionContainerDefinitionArgs {

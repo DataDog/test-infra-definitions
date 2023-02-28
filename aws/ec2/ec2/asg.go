@@ -29,5 +29,5 @@ func NewAutoscalingGroup(e aws.Environment, name string,
 				MinHealthyPercentage: pulumi.Int(0),
 			},
 		},
-	}, pulumi.Provider(e.Provider))
+	}, e.ResourceProvidersOption())
 }

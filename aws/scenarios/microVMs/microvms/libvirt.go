@@ -134,7 +134,7 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesyste
 	}
 }
 
-func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc resources.ResourceCollection, instance *Instance, kernel vmconfig.Kernel, fs *LibvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
+func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName, machine string, rc resources.ResourceCollection, instance *Instance, kernel vmconfig.Kernel, fs *LibvirtFilesystem, ip net.IP) (*DomainMatrix, error) {
 	matrix := new(DomainMatrix)
 	matrix.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, instance.Arch)
 	matrix.arch = instance.Arch
@@ -162,6 +162,7 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName string, rc
 			resources.MACAddress:    mac,
 		},
 	)
+	matrix.RecipeLibvirtDomainArgs.Machine = machine
 	matrix.RecipeLibvirtDomainArgs.Resources = rc
 	matrix.RecipeLibvirtDomainArgs.ExtraKernelParams = kernel.ExtraParams
 
@@ -194,7 +195,7 @@ func buildDomainMatrices(instances map[string]*Instance, vmsets []vmconfig.VMSet
 			for _, memory := range vmset.Memory {
 				for _, kernel := range vmset.Kernels {
 					ip = getNextVMSubnet(ip)
-					m, err := buildDomainMatrix(instance.ctx, vcpu, memory, vmset.Name, rc, instance, kernel, fs, ip)
+					m, err := buildDomainMatrix(instance.ctx, vcpu, memory, vmset.Name, vmset.Machine, rc, instance, kernel, fs, ip)
 					if err != nil {
 						return []*DomainMatrix{}, []pulumi.Resource{}, err
 					}

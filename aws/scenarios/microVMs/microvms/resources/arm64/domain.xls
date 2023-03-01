@@ -19,12 +19,6 @@
 
   <xsl:template match="/domain/name"><name>{domainName}</name></xsl:template>
 
-  <xsl:template match="/domain/os/type[@arch='aarch64']/@machine">
-      <xsl:attribute name="machine">
-          <xsl:value-of select="'virt'"/>
-      </xsl:attribute>
-  </xsl:template>
-
   <xsl:template match="/domain/features">
        <xsl:copy>
            <xsl:apply-templates select="@*|node()"/>

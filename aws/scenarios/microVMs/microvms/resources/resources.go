@@ -44,6 +44,7 @@ type RecipeLibvirtDomainArgs struct {
 	Volume            *libvirt.Volume
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
+	Machine           string
 }
 
 func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {

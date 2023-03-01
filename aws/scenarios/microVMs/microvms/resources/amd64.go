@@ -46,7 +46,7 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 
 	cmdlines = append(cmdlines, kernelCmdlines...)
 
-	return &libvirt.DomainArgs{
+	domainArgs := libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),
@@ -67,4 +67,10 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 			Xslt: args.Xls,
 		},
 	}
+
+	if args.Machine != "" {
+		domainArgs.Machine = pulumi.String(args.Machine)
+	}
+
+	return &domainArgs
 }

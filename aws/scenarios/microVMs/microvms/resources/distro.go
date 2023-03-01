@@ -41,7 +41,7 @@ func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 }
 
 func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
-	return &libvirt.DomainArgs{
+	domainArgs := libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),
@@ -60,6 +60,12 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 			Xslt: args.Xls,
 		},
 	}
+
+	if args.Machine != "" {
+		domainArgs.Machine = pulumi.String(args.Machine)
+	}
+
+	return &domainArgs
 }
 
 type DistroARM64ResourceCollection struct {
@@ -89,7 +95,7 @@ func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 }
 
 func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
-	return &libvirt.DomainArgs{
+	domainArgs := libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),
@@ -109,4 +115,10 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 			Xslt: args.Xls,
 		},
 	}
+
+	if args.Machine != "" {
+		domainArgs.Machine = pulumi.String(args.Machine)
+	}
+
+	return &domainArgs
 }

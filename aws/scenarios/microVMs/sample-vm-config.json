@@ -188,28 +188,28 @@
                 "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV"
             }
         },
-        {
-            "name": "custom-kernels-arm64-lte4.14",
-            "recipe": "custom-arm64",
-            "arch": "arm64",
-            "machine": "virt",
-            "kernels": [
-                {
-                    "dir": "kernel-v4.14.arm64.pkg",
-                    "tag": "4.14",
-                    "extra_params": {
-                        "console": "ttyAMA0",
-                        "systemd.unified_cgroup_hierarchy": "0"
-                    }
-                }
-            ],
-            "vcpu": [4],
-            "memory": [8192],
-            "image": {
-                "image_path": "buster.qcow2",
-                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-0.1-DEV.tar.gz"
-            }
-        },
+        #{
+        #    "name": "custom-kernels-arm64-lte4.14",
+        #    "recipe": "custom-arm64",
+        #    "arch": "arm64",
+        #    "machine": "virt",
+        #    "kernels": [
+        #        {
+        #            "dir": "kernel-v4.14.arm64.pkg",
+        #            "tag": "4.14",
+        #            "extra_params": {
+        #                "console": "ttyAMA0",
+        #                "systemd.unified_cgroup_hierarchy": "0"
+        #            }
+        #        }
+        #    ],
+        #    "vcpu": [4],
+        #    "memory": [8192],
+        #    "image": {
+        #        "image_path": "buster.qcow2",
+        #        "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-0.1-DEV.tar.gz"
+        #    }
+        #},
         {
             "name": "custom-kernels-arm64-gt4.14",
             "recipe": "custom-arm64",

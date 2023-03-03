@@ -8,37 +8,40 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed distro/domain.xls
+//go:embed distro/domain-amd64.xls
 var distroDomainXLS string
 
-type DistroResourceCollection struct {
+//go:embed distro/domain-arm64.xls
+var distroARM64DomainXLS string
+
+type DistroAMD64ResourceCollection struct {
 	recipe string
 }
 
-func NewDistroResourceCollection(recipe string) *DistroResourceCollection {
-	return &DistroResourceCollection{
+func NewDistroAMD64ResourceCollection(recipe string) *DistroAMD64ResourceCollection {
+	return &DistroAMD64ResourceCollection{
 		recipe: recipe,
 	}
 }
 
-func (a *DistroResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return formatResourceXML(distroDomainXLS, args)
 }
 
-func (a *DistroResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return GetDefaultNetworkXLS(args)
 }
 
-func (a *DistroResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args)
 }
 
-func (a *DistroResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
 	return GetDefaultPoolXML(args)
 }
 
-func (a *DistroResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
-	return &libvirt.DomainArgs{
+func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+	domainArgs := libvirt.DomainArgs{
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),
@@ -57,4 +60,65 @@ func (a *DistroResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomai
 			Xslt: args.Xls,
 		},
 	}
+
+	if args.Machine != "" {
+		domainArgs.Machine = pulumi.String(args.Machine)
+	}
+
+	return &domainArgs
+}
+
+type DistroARM64ResourceCollection struct {
+	recipe string
+}
+
+func NewDistroARM64ResourceCollection(recipe string) *DistroARM64ResourceCollection {
+	return &DistroARM64ResourceCollection{
+		recipe: recipe,
+	}
+}
+
+func (a *DistroARM64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(distroARM64DomainXLS, args)
+}
+
+func (a *DistroARM64ResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultNetworkXLS(args)
+}
+
+func (a *DistroARM64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultVolumeXML(args)
+}
+
+func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultPoolXML(args)
+}
+
+func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+	domainArgs := libvirt.DomainArgs{
+		Consoles: libvirt.DomainConsoleArray{
+			libvirt.DomainConsoleArgs{
+				Type:       pulumi.String("pty"),
+				TargetPort: pulumi.String("0"),
+				TargetType: pulumi.String("serial"),
+			},
+		},
+		Disks: libvirt.DomainDiskArray{
+			libvirt.DomainDiskArgs{
+				VolumeId: args.Volume.ID(),
+			},
+		},
+		Memory:  pulumi.Int(args.Memory),
+		Vcpu:    pulumi.Int(args.Vcpu),
+		Machine: pulumi.String("virt"),
+		Xml: libvirt.DomainXmlArgs{
+			Xslt: args.Xls,
+		},
+	}
+
+	if args.Machine != "" {
+		domainArgs.Machine = pulumi.String(args.Machine)
+	}
+
+	return &domainArgs
 }

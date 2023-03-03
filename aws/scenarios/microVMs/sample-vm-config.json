@@ -1,7 +1,7 @@
 {
     "vmsets": [
         {
-            "name": "custom-kernels-x86_64-lte4.14",
+            "name": "custom_kernels_x86_64_lte4.14",
             "recipe": "custom-amd64",
             "arch": "x86_64",
             "kernels": [
@@ -18,11 +18,11 @@
             "memory": [8192],
             "image": {
                 "image_path": "buster.qcow2.amd64-0.1-DEV",
-                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.amd64-0.1-DEV.tar.gz"
+                "image_uri": "file:///home/kernel-version-testing/rootfs/buster.qcow2.amd64-0.1-DEV"
             }
         },
         {
-            "name": "custom-kernels-x86_64-gt4.14",
+            "name": "custom_kernels_x86_64_gt4.14",
             "recipe": "custom-amd64",
             "arch": "x86_64",
             "kernels": [
@@ -185,34 +185,36 @@
             "memory": [8192],
             "image": {
                 "image_path": "bullseye.qcow2.amd64-0.1-DEV",
-                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV.tar.gz"
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV"
             }
         },
+        #{
+        #    "name": "custom-kernels-arm64-lte4.14",
+        #    "recipe": "custom-arm64",
+        #    "arch": "arm64",
+        #    "machine": "virt",
+        #    "kernels": [
+        #        {
+        #            "dir": "kernel-v4.14.arm64.pkg",
+        #            "tag": "4.14",
+        #            "extra_params": {
+        #                "console": "ttyAMA0",
+        #                "systemd.unified_cgroup_hierarchy": "0"
+        #            }
+        #        }
+        #    ],
+        #    "vcpu": [4],
+        #    "memory": [8192],
+        #    "image": {
+        #        "image_path": "buster.qcow2",
+        #        "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-0.1-DEV.tar.gz"
+        #    }
+        #},
         {
-            "name": "custom-kernels-arm64-lte4.14",
+            "name": "custom_kernels_arm64_gt4.14",
             "recipe": "custom-arm64",
             "arch": "arm64",
-            "kernels": [
-                {
-                    "dir": "kernel-v4.14.arm64.pkg",
-                    "tag": "4.14",
-                    "extra_params": {
-                        "console": "ttyAMA0",
-                        "systemd.unified_cgroup_hierarchy": "0"
-                    }
-                }
-            ],
-            "vcpu": [4],
-            "memory": [8192],
-            "image": {
-                "image_path": "buster.qcow2.arm64-0.1-DEV",
-                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-0.1-DEV.tar.gz"
-            }
-        },
-        {
-            "name": "custom-kernels-arm64-gt4.14",
-            "recipe": "custom-arm64",
-            "arch": "arm64",
+            "machine": "virt",
             "kernels": [
                 {
                     "dir": "kernel-v5.15.arm64.pkg",
@@ -373,32 +375,32 @@
             "memory": [8192],
             "image": {
                 "image_path": "bullseye.qcow2.arm64-0.1-DEV",
-                "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bullseye.qcow2.arm64-0.1-DEV.tar.gz"
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.arm64-0.1-DEV"
             }
         },
         {
-            "name": "ubuntu",
-            "recipe": "distro",
+            "name": "ubuntu_amd64",
+            "recipe": "distro-amd64",
             "arch": "x86_64",
             "kernels": [
                 {
                     "dir": "jammy-server-cloudimg-amd64.qcow2",
-                    "tag": "22",
-                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/jammy-server-cloudimg-amd64.qcow2.tar.gz"
+                    "tag": "jammy_22",
+                    "image_source": "file:///home/kernel-version-testing/rootfs/jammy-server-cloudimg-amd64.qcow2"
                 },
                 {
-                    "dir": "focal-server-cloudimg-amd64-disk-kvm.img",
-                    "tag": "20",
-                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/focal-server-cloudimg-amd64-disk-kvm.img.tar.gz"
+                    "dir": "focal-server-cloudimg-amd64.qcow2",
+                    "tag": "focal_20",
+                    "image_source": "file:///home/kernel-version-testing/rootfs/focal-server-cloudimg-amd64.qcow2"
                 },
                 {
-                    "dir": "bionic-server-cloudimg-amd64.img",
-                    "tag": "18",
-                    "image_source": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/bionic-server-cloudimg-amd64.img.tar.gz"
+                    "dir": "bionic-server-cloudimg-amd64.qcow2",
+                    "tag": "bionic_18",
+                    "image_source": "file:///home/kernel-version-testing/rootfs/bionic-server-cloudimg-amd64.qcow2"
                 }
             ],
             "vcpu": [4],
             "memory": [4096]
         }
-    ]
+   ]
 }

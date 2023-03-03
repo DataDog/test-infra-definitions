@@ -198,9 +198,14 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 
 	}
 
-	scenarioReady.Dependencies, err = setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor)
+	var microVMIPMap map[string]string
+	scenarioReady.Dependencies, microVMIPMap, err = setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor)
 	if err != nil {
 		return nil, err
+	}
+
+	for domainID, ip := range microVMIPMap {
+		e.Ctx.Export(domainID, pulumi.String(ip))
 	}
 
 	return &scenarioReady, nil

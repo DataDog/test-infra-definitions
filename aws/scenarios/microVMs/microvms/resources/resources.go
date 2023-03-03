@@ -44,6 +44,7 @@ type RecipeLibvirtDomainArgs struct {
 	Volume            *libvirt.Volume
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
+	Machine           string
 }
 
 func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {
@@ -70,13 +71,16 @@ func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.St
 }
 
 func NewResourceCollection(recipe string) ResourceCollection {
-	if recipe == "custom-arm64" {
+	switch recipe {
+	case "custom-arm64":
 		return NewARM64ResourceCollection(recipe)
-	} else if recipe == "custom-amd64" {
+	case "custom-amd64":
 		return NewAMD64ResourceCollection(recipe)
-	} else if recipe == "distro" {
-		return NewDistroResourceCollection(recipe)
+	case "distro-arm64":
+		return NewDistroARM64ResourceCollection(recipe)
+	case "distro-amd64":
+		return NewDistroAMD64ResourceCollection(recipe)
+	default:
+		panic("unknown recipe: " + recipe)
 	}
-
-	panic("unknown recipe: " + recipe)
 }

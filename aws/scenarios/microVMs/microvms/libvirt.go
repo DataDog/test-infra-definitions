@@ -55,7 +55,7 @@ func generateNewUnicastMac(ctx *pulumi.Context, domainID string) (pulumi.StringO
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) string {
-	return fmt.Sprintf("%s_%s-tag-%s-cpu-%d-mem-%d", vmsetName, arch, tag, vcpu, memory)
+	return fmt.Sprintf("%s-%s-%s-%d-%d", vmsetName, arch, tag, vcpu, memory)
 }
 
 func buildDomainSocket(runner *command.Runner, id, resourceName string, depends []pulumi.Resource) (*remote.Command, error) {
@@ -82,6 +82,7 @@ type DomainMatrix struct {
 	domainArgs  *libvirt.DomainArgs
 	domainNamer namer.Namer
 	instance    *Instance
+	ip          string
 }
 
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
@@ -146,7 +147,8 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName, machine s
 		return nil, err
 	}
 
-	matrix.dhcpEntry = pulumi.Sprintf(dhcpEntriesTemplate, mac, matrix.domainName, ip)
+	matrix.ip = fmt.Sprintf("%s", ip)
+	matrix.dhcpEntry = pulumi.Sprintf(dhcpEntriesTemplate, mac, matrix.domainName, matrix.ip)
 	matrix.kernel = &kernel
 	matrix.fs = fs
 	matrix.domainNamer = namer.NewNamer(ctx, matrix.domainID)
@@ -267,25 +269,28 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 	return matrices, waitFor, nil
 }
 
-func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]pulumi.Resource, map[string]string, error) {
 	var dhcpEntries []interface{}
 
 	matrices, waitForDomainMatrices, err := setupLibvirtDomainMatrices(instances, vmsets, depends)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return []pulumi.Resource{}, nil, err
 	}
 
+	ipInformation := make(map[string]string)
 	networks := make(map[string]*libvirt.Network)
 	for arch, instance := range instances {
 		for _, m := range matrices {
 			if m.instance.Arch == arch {
 				dhcpEntries = append(dhcpEntries, m.dhcpEntry)
+
+				ipInformation[m.domainID] = m.ip
 			}
 		}
 
 		network, err := generateNetworkResource(instance.ctx, instance.provider, instance.instanceNamer, dhcpEntries)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return []pulumi.Resource{}, nil, err
 		}
 		networks[arch] = network
 	}
@@ -294,7 +299,7 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 	for _, matrix := range matrices {
 		network, ok := networks[matrix.arch]
 		if !ok {
-			return []pulumi.Resource{}, fmt.Errorf("unsupported arch: %s", matrix.arch)
+			return []pulumi.Resource{}, nil, fmt.Errorf("unsupported arch: %s", matrix.arch)
 		}
 
 		matrix.domainArgs.NetworkInterfaces = libvirt.DomainNetworkInterfaceArray{
@@ -316,11 +321,11 @@ func setupLibvirtVMWithRecipe(instances map[string]*Instance, vmsets []vmconfig.
 			pulumi.DependsOn(waitForDomainMatrices),
 		)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return []pulumi.Resource{}, nil, err
 		}
 
 		libvirtDomains = append(libvirtDomains, d)
 	}
 
-	return libvirtDomains, nil
+	return libvirtDomains, ipInformation, nil
 }

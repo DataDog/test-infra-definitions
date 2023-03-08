@@ -37,7 +37,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
-			NetworkMode: pulumi.StringPtr("bridge"),
+			NetworkMode: pulumi.StringPtr("awsvpc"),
 			Family:      e.CommonNamer.DisplayName(pulumi.String("datadog-agent-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{

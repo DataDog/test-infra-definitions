@@ -82,7 +82,7 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 
 // Agent Namespace
 func (e *CommonEnvironment) AgentDeploy() bool {
-	return e.GetBoolWithDefault(e.AgentConfig, ddAgentDeployParamName, false)
+	return e.GetBoolWithDefault(e.AgentConfig, ddAgentDeployParamName, true)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {

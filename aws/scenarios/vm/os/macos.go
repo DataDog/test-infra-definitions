@@ -6,24 +6,24 @@ import (
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 
-type macOS struct {
+type macOS struct { // nolint:unused
 	*commonos.MacOS
 	env aws.Environment
 }
 
-func newMacOS(env aws.Environment) *macOS {
+func newMacOS(env aws.Environment) *macOS { // nolint:unused
 	return &macOS{
 		MacOS: commonos.NewMacOS(),
 		env:   env,
 	}
 }
-func (*macOS) GetSSHUser() string { return "ec2-user" }
+func (*macOS) GetSSHUser() string { return "ec2-user" } // nolint:unused
 
-func (m *macOS) GetImage(arch commonos.Architecture) (string, error) {
+func (m *macOS) GetImage(arch commonos.Architecture) (string, error) { // nolint:unused
 	return ec2.SearchAMI(m.env, "628277914472", "amzn-ec2-macos-13.*", m.GetAMIArch(arch))
 }
 
-func (*macOS) GetAMIArch(arch commonos.Architecture) string {
+func (*macOS) GetAMIArch(arch commonos.Architecture) string { // nolint:unused
 	switch arch {
 	case commonos.AMD64Arch:
 		return "x86_64_mac"
@@ -34,7 +34,7 @@ func (*macOS) GetAMIArch(arch commonos.Architecture) string {
 	}
 }
 
-func (*macOS) GetDefaultInstanceType(arch commonos.Architecture) string {
+func (*macOS) GetDefaultInstanceType(arch commonos.Architecture) string { // nolint:unused
 	switch arch {
 	case commonos.AMD64Arch:
 		return "mac1.metal"
@@ -45,8 +45,8 @@ func (*macOS) GetDefaultInstanceType(arch commonos.Architecture) string {
 	}
 }
 
-func (*macOS) GetTenancy() string { return "host" }
+func (*macOS) GetTenancy() string { return "host" } // nolint:unused
 
-func (*macOS) GetType() commonos.Type {
+func (*macOS) GetType() commonos.Type { // nolint:unused
 	return commonos.OtherType
 }

@@ -25,3 +25,6 @@ Pulumi.*.yaml
 
 # MacOS files
 .DS_Store
+
+# user config
+tasks/config.json 

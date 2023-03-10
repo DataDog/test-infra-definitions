@@ -33,9 +33,24 @@ func NewGenericVM(
 
 	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(ctx, r) }
 	if os.GetType() == commonos.WindowsType {
-		// On Windows, there is no equivalent of cloud init, but the code wait until ssh connection is ready
-		// so it is OK to not have a ready function.
-		readyFunc = nil
+		cmd := `for ($i = 0; $i -le 120; $i++) { 
+			$service = Get-Service -Name sshd -ErrorAction SilentlyContinue;
+			if ($service -ne $null -and $service.Status -eq "Running") {
+				exit 0
+			}
+			Start-Sleep -Second 1
+		}		
+		exit 1
+		`
+		// The content of the command is so not important as pulumi waits the host to be ready
+		// before sending a remote command. So typicall the powershell script doesn't wait.
+		readyFunc = func(r *command.Runner) (*remote.Command, error) {
+			return r.Command(
+				"wait-openssh-require-win2019-win10-or-above",
+				&command.Args{
+					Create: pulumi.String(cmd),
+				})
+		}
 	}
 	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser(), readyFunc)
 	if err != nil {

@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/registry"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -213,6 +214,10 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 
 func RunAndReturnInstances(e aws.Environment) (*ScenarioDone, error) {
 	return run(e)
+}
+
+func init() {
+	registry.Scenarios.Register("aws/microvms", Run)
 }
 
 func Run(ctx *pulumi.Context) error {

@@ -1,0 +1,22 @@
+variables:
+  IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
+
+stages:
+  - build
+
+build-runner-imge:
+  stage: build
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
+  tags: ["runner:docker"]
+  variables:
+    PUSH_IMAGE: "false"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        PUSH_IMAGE: "true"
+    - when: on_success
+  script:
+    - TARGET_TAG="${IMAGE_REPOSITORY}/runner:${CI_COMMIT_SHORT_SHA}"
+    - if [ "$PUSH_IMAGE" = "true" ]; then PUSH_ARG="--push"; fi
+    - docker buildx build --no-cache --pull $PUSH_ARG --tag ${TARGET_TAG} .
+  retry: 2

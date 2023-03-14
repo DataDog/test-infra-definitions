@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/DataDog/test-infra-definitions/aws"
-	awsEc2 "github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	awsEc2 "github.com/DataDog/test-infra-definitions/aws/ec2"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	commonvm "github.com/DataDog/test-infra-definitions/common/vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -56,7 +56,6 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, er
 		params.keyPair,
 		userData,
 		os.GetTenancy())
-
 	if err != nil {
 		return nil, err
 	}

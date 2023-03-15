@@ -17,7 +17,7 @@ const (
 
 	namerNamespace         = "common"
 	DDInfraConfigNamespace = "ddinfra"
-	ddAgentConfigNamespace = "ddagent"
+	DDAgentConfigNamespace = "ddagent"
 
 	// Infra namespace
 	ddInfraEnvironment       = "env"
@@ -27,7 +27,7 @@ const (
 	ddAgentDeployParamName        = "deploy"
 	ddAgentVersionParamName       = "version"
 	ddAgentFullImagePathParamName = "fullImagePath"
-	ddAgentAPIKeyParamName        = "apiKey"
+	DDAgentAPIKeyParamName        = "apiKey"
 	ddAgentAPPKeyParamName        = "appKey"
 )
 
@@ -42,7 +42,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 	return CommonEnvironment{
 		Ctx:         ctx,
 		InfraConfig: sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig: sdkconfig.New(ctx, ddAgentConfigNamespace),
+		AgentConfig: sdkconfig.New(ctx, DDAgentConfigNamespace),
 		CommonNamer: namer.NewNamer(ctx, ""),
 	}
 }
@@ -94,7 +94,7 @@ func (e *CommonEnvironment) AgentFullImagePath() string {
 }
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {
-	return e.AgentConfig.RequireSecret(ddAgentAPIKeyParamName)
+	return e.AgentConfig.RequireSecret(DDAgentAPIKeyParamName)
 }
 
 func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {

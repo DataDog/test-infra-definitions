@@ -12,11 +12,13 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type Installer struct {
 	dependsOn pulumi.Resource
+	vm        *vm.UnixVM
 }
 
 // Temporary requires vm.UnixVM until FileManager is available in VM
@@ -74,7 +76,7 @@ func NewInstaller(vm *vm.UnixVM, options ...func(*params) error) (*Installer, er
 				Triggers: pulumi.Array{pulumi.String(utils.StrHash(cmd, configHash, integsHash))},
 			}, utils.PulumiDependsOn(lastCommand))
 	}
-	return &Installer{dependsOn: lastCommand}, err
+	return &Installer{dependsOn: lastCommand, vm: vm}, err
 }
 
 func updateAgentConfig(
@@ -141,4 +143,21 @@ func installIntegrations(
 	}
 
 	return lastCommand, utils.StrHash(parts...), nil
+}
+
+type ClientData struct {
+	Connection utils.Connection
+}
+
+func (installer *Installer) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
+	vmDataDeserializer := installer.vm.GetClientDataDeserializer()
+	return func(result auto.UpResult) (*ClientData, error) {
+		vmData, err := vmDataDeserializer(result)
+
+		if err != nil {
+			return nil, err
+		}
+
+		return &ClientData{Connection: vmData.Connection}, nil
+	}
 }

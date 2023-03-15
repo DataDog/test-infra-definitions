@@ -10,12 +10,16 @@ import (
 )
 
 type params struct {
-	version     os.AgentVersion
-	agentConfig string
+	version          os.AgentVersion
+	agentConfig      string
+	integrations     map[string]string
+	extraAgentConfig []string
 }
 
 func newParams(env *config.CommonEnvironment, options ...func(*params) error) (*params, error) {
-	p := &params{}
+	p := &params{
+		integrations: make(map[string]string),
+	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
@@ -59,5 +63,38 @@ func WithAgentConfig(config string) func(*params) error {
 	return func(p *params) error {
 		p.agentConfig = config
 		return nil
+	}
+}
+
+// WithIntegration adds the configuration for an integration.
+func WithIntegration(folderName string, content string) func(*params) error {
+	return func(p *params) error {
+		p.integrations[folderName] = content
+		return nil
+	}
+}
+
+func WithTelemetry() func(*params) error {
+	return func(p *params) error {
+		config := `instances:
+  - expvar_url: http://localhost:5000/debug/vars
+    max_returned_metrics: 1000
+    metrics:      
+      - path: ".*"
+      - path: ".*/.*"
+      - path: ".*/.*/.*"
+`
+		if err := WithIntegration("go_expvar.d", config)(p); err != nil {
+			return err
+		}
+
+		config = `instances:
+  - prometheus_url: http://localhost:5000/telemetry
+    namespace: "datadog"
+    metrics:
+      - "*"
+`
+		p.extraAgentConfig = append(p.extraAgentConfig, "telemetry.enabled: true")
+		return WithIntegration("openmetrics.d", config)(p)
 	}
 }

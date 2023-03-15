@@ -32,7 +32,7 @@ func (*Windows) GetServiceManager() *ServiceManager {
 	return &ServiceManager{restartCmd: []string{`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`}}
 }
 
-func (*Windows) GetAgentConfigPath() string { return `C:\ProgramData\Datadog\datadog.yaml` }
+func (*Windows) GetAgentConfigFolder() string { return `C:\ProgramData\Datadog` }
 
 func (*Windows) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
 	return nil, errors.New("package manager is not supported on Windows")

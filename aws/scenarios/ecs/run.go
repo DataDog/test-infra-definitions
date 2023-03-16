@@ -2,12 +2,18 @@ package ecs
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	"github.com/DataDog/test-infra-definitions/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/registry"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	ecsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
+
+func init() {
+	registry.Scenarios.Register("aws/ecs", Run)
+}
 
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := aws.NewEnvironment(ctx)
@@ -16,7 +22,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Create cluster
-	ecsCluster, err := CreateEcsCluster(awsEnv, "ecs")
+	ecsCluster, err := ecs.CreateEcsCluster(awsEnv, "ecs")
 	if err != nil {
 		return err
 	}
@@ -29,7 +35,7 @@ func Run(ctx *pulumi.Context) error {
 
 	linuxNodeGroupPresent := false
 	if awsEnv.ECSLinuxECSOptimizedNodeGroup() {
-		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, false)
+		cpName, err := ecs.NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, false)
 		if err != nil {
 			return err
 		}
@@ -39,7 +45,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if awsEnv.ECSLinuxECSOptimizedARMNodeGroup() {
-		cpName, err := NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, true)
+		cpName, err := ecs.NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, true)
 		if err != nil {
 			return err
 		}
@@ -49,7 +55,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if awsEnv.ECSLinuxBottlerocketNodeGroup() {
-		cpName, err := NewBottlerocketNodeGroup(awsEnv, ecsCluster.Name)
+		cpName, err := ecs.NewBottlerocketNodeGroup(awsEnv, ecsCluster.Name)
 		if err != nil {
 			return err
 		}
@@ -59,7 +65,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if awsEnv.ECSWindowsNodeGroup() {
-		cpName, err := NewWindowsNodeGroup(awsEnv, ecsCluster.Name)
+		cpName, err := ecs.NewWindowsNodeGroup(awsEnv, ecsCluster.Name)
 		if err != nil {
 			return err
 		}
@@ -68,7 +74,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Associate capacity providers
-	_, err = NewClusterCapacityProvider(awsEnv, ctx.Stack(), ecsCluster.Name, capacityProviders)
+	_, err = ecs.NewClusterCapacityProvider(awsEnv, ctx.Stack(), ecsCluster.Name, capacityProviders)
 	if err != nil {
 		return err
 	}
@@ -85,13 +91,13 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Deploy Fargate Agent
-		testContainer := FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
-		taskDef, err := FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), []*ecs.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
+		testContainer := ecs.FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
+		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), []*ecsx.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
 		if err != nil {
 			return err
 		}
 
-		_, err = FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+		_, err = ecs.FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
 		if err != nil {
 			return err
 		}

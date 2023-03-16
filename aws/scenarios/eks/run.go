@@ -2,8 +2,10 @@ package eks
 
 import (
 	"github.com/DataDog/test-infra-definitions/aws"
+	localEks "github.com/DataDog/test-infra-definitions/aws/eks"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/registry"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -14,6 +16,10 @@ import (
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
+
+func init() {
+	registry.Scenarios.Register("aws/eks", Run)
+}
 
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := aws.NewEnvironment(ctx)
@@ -46,18 +52,18 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Cluster role
-	clusterRole, err := GetClusterRole(awsEnv, "eks-cluster-role")
+	clusterRole, err := localEks.GetClusterRole(awsEnv, "eks-cluster-role")
 	if err != nil {
 		return err
 	}
 
 	// IAM Node role
-	linuxNodeRole, err := GetNodeRole(awsEnv, "eks-linux-node-role")
+	linuxNodeRole, err := localEks.GetNodeRole(awsEnv, "eks-linux-node-role")
 	if err != nil {
 		return err
 	}
 
-	windowsNodeRole, err := GetNodeRole(awsEnv, "eks-windows-node-role")
+	windowsNodeRole, err := localEks.GetNodeRole(awsEnv, "eks-windows-node-role")
 	if err != nil {
 		return err
 	}
@@ -114,7 +120,7 @@ func Run(ctx *pulumi.Context) error {
 	nodeGroups := make([]pulumi.Resource, 0)
 	// Create managed node groups
 	if awsEnv.EKSLinuxNodeGroup() {
-		ng, err := NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
+		ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
 		if err != nil {
 			return err
 		}
@@ -122,7 +128,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if awsEnv.EKSLinuxARMNodeGroup() {
-		ng, err := NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
+		ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
 		if err != nil {
 			return err
 		}
@@ -130,7 +136,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if awsEnv.EKSBottlerocketNodeGroup() {
-		ng, err := NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
+		ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
 		if err != nil {
 			return err
 		}
@@ -139,7 +145,7 @@ func Run(ctx *pulumi.Context) error {
 
 	// Create unmanaged node groups
 	if awsEnv.EKSWindowsNodeGroup() {
-		_, err := NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
+		_, err := localEks.NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
 		if err != nil {
 			return err
 		}

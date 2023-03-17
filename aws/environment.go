@@ -75,6 +75,8 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
 			Tags: commonEnv.ResourcesTags(),
 		},
+		SkipCredentialsValidation: pulumi.BoolPtr(false),
+		SkipMetadataApiCheck:      pulumi.BoolPtr(false),
 	})
 	if err != nil {
 		return Environment{}, err

@@ -4,16 +4,11 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/registry"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	ecsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
-
-func init() {
-	registry.Scenarios.Register("aws/ecs", Run)
-}
 
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := aws.NewEnvironment(ctx)

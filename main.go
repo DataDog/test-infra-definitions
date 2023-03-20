@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/registry"
-	_ "github.com/DataDog/test-infra-definitions/registry/scenarios"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
@@ -27,13 +26,14 @@ func main() {
 			scenarioName = s
 		}
 
+		// Fake stack name used to pre-download pulumi plugins due to a bug with `pulumi plugin install` and azure-native-sdk
 		if scenarioName == dummyScenario {
 			return nil
 		}
 
-		rf := registry.Scenarios.Get(scenarioName)
+		rf := registry.Scenarios().Get(scenarioName)
 		if rf == nil {
-			return fmt.Errorf("impossible to run unknown scenario: %s, known scenarios: %s", scenarioName, strings.Join(registry.Scenarios.List(), " ,"))
+			return fmt.Errorf("impossible to run unknown scenario: %s, known scenarios: %s", scenarioName, strings.Join(registry.Scenarios().List(), " ,"))
 		}
 
 		return rf(ctx)

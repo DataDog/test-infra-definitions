@@ -42,8 +42,8 @@ func NewGenericVM(
 		}		
 		exit 1
 		`
-		// The content of the command is so not important as pulumi waits the host to be ready
-		// before sending a remote command. So typicall the powershell script doesn't wait.
+		// Most of the waiting time is waiting the remote command to run.
+		// This command is still relevant to make sure ssh is running.
 		readyFunc = func(r *command.Runner) (*remote.Command, error) {
 			return r.Command(
 				"wait-openssh-require-win2019-win10-or-above",

@@ -19,7 +19,7 @@ var defaultPoolXML string
 //go:embed default/volume.xml
 var defaultVolumeXML string
 
-func GetDefaultDomainXLS(args ...interface{}) string {
+func GetDefaultDomainXLS(...interface{}) string {
 	return defaultDomainXLS
 }
 

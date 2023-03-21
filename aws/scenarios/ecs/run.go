@@ -86,7 +86,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Deploy Fargate Agent
-		testContainer := ecs.FargateRedisContainerDefinition(awsEnv, apiKeyParam.Arn)
+		testContainer := ecs.FargateRedisContainerDefinition(apiKeyParam.Arn)
 		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), []*ecsx.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
 		if err != nil {
 			return err

@@ -56,18 +56,20 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 	}
 	remoteComposePath := path.Join(tempDirPath, path.Base(composeFilePath))
 
-	copyCmd, err := d.fileManager.CopyFile(composeFilePath, remoteComposePath, pulumi.DependsOn([]pulumi.Resource{tempCmd}))
+	opts = append(opts, utils.PulumiDependsOn(tempCmd))
+	copyCmd, err := d.fileManager.CopyFile(composeFilePath, remoteComposePath, opts...)
 	if err != nil {
 		return nil, err
 	}
 
+	opts = append(opts, utils.PulumiDependsOn(installCommand, copyCmd))
 	return d.runner.Command(
 		d.namer.ResourceName("run", composeFilePath),
 		&Args{
 			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout %d", remoteComposePath, defaultTimeout),
 			Delete: pulumi.Sprintf("docker-compose -f %s down -t %d", remoteComposePath, defaultTimeout),
 		},
-		pulumi.DependsOn([]pulumi.Resource{installCommand, copyCmd}))
+		opts...)
 }
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {

@@ -22,6 +22,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 	// Warning: we're modifying passed array as it should normally never be used anywhere else
 	nodePool = append(nodePool, systemNodePool(e, "system"))
 
+	opts = append(opts, pulumi.Provider(e.Provider))
 	cluster, err := containerservice.NewManagedCluster(e.Ctx, e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
 		ResourceName:      e.CommonNamer.DisplayName(pulumi.String(name)),
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
@@ -52,7 +53,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 			Type: containerservice.ResourceIdentityTypeSystemAssigned,
 		},
 		Tags: e.ResourcesTags(),
-	}, pulumi.Provider(e.Provider))
+	}, opts...)
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err
 	}

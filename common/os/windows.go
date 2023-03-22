@@ -34,7 +34,7 @@ func (*Windows) GetServiceManager() *ServiceManager {
 
 func (*Windows) GetAgentConfigFolder() string { return `C:\ProgramData\Datadog` }
 
-func (*Windows) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
+func (*Windows) CreatePackageManager(*command.Runner) (command.PackageManager, error) {
 	return nil, errors.New("package manager is not supported on Windows")
 }
 

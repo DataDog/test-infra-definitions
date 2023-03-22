@@ -10,7 +10,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/registry"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -156,7 +155,7 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		}
 
 		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
-			return command.WaitForCloudInit(e.Ctx, r)
+			return command.WaitForCloudInit(r)
 		}, command.WithUser("libvirt-qemu"))
 		if err != nil {
 			return nil, err
@@ -178,7 +177,6 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 			instance.remoteRunner,
 			instance.localRunner,
 			instance.instanceNamer,
-			instance.Arch,
 			pair,
 			[]pulumi.Resource{},
 		)
@@ -214,10 +212,6 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 
 func RunAndReturnInstances(e aws.Environment) (*ScenarioDone, error) {
 	return run(e)
-}
-
-func init() {
-	registry.Scenarios.Register("aws/microvms", Run)
 }
 
 func Run(ctx *pulumi.Context) error {

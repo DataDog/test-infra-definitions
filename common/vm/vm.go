@@ -36,13 +36,13 @@ func NewGenericVM(
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
 
-	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(ctx, r) }
+	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
 	if os.GetType() == commonos.WindowsType {
 		// On Windows, there is no equivalent of cloud init, but the code wait until ssh connection is ready
 		// so it is OK to not have a ready function.
 		readyFunc = nil
 	}
-	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser(), readyFunc)
+	connection, runner, err := createRunner(env, instanceIP, os.GetSSHUser(), readyFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +82,6 @@ func (vm *genericVM) GetOS() commonos.OS {
 }
 
 func createRunner(
-	ctx *pulumi.Context,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	sshUser string,

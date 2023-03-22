@@ -5,7 +5,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func WaitForCloudInit(ctx *pulumi.Context, runner *Runner) (*remote.Command, error) {
+func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
 	return runner.Command(
 		"wait-cloud-init",
 		&Args{

@@ -46,7 +46,7 @@ func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput,
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, ngName, clusterName, pulumi.String(ecsAmi.Value), pulumi.String(instanceType), getUserData(linuxInitUserData, clusterName))
+	return newNodeGroup(e, ngName, pulumi.String(ecsAmi.Value), pulumi.String(instanceType), getUserData(linuxInitUserData, clusterName))
 }
 
 func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
@@ -57,7 +57,7 @@ func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput)
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "bottlerocket-ng", clusterName, pulumi.String(bottlerocketAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(linuxBottlerocketInitUserData, clusterName))
+	return newNodeGroup(e, "bottlerocket-ng", pulumi.String(bottlerocketAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(linuxBottlerocketInitUserData, clusterName))
 }
 
 func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
@@ -68,10 +68,10 @@ func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pul
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "win2022-ng", clusterName, pulumi.String(winAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(windowsInitUserData, clusterName))
+	return newNodeGroup(e, "win2022-ng", pulumi.String(winAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(windowsInitUserData, clusterName))
 }
 
-func newNodeGroup(e aws.Environment, ngName string, clusterName, ami, instanceType, userData pulumi.StringInput) (pulumi.StringOutput, error) {
+func newNodeGroup(e aws.Environment, ngName string, ami, instanceType, userData pulumi.StringInput) (pulumi.StringOutput, error) {
 	lt, err := ec2.CreateLaunchTemplate(e, ngName,
 		ami,
 		instanceType,

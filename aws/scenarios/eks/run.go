@@ -5,7 +5,6 @@ import (
 	localEks "github.com/DataDog/test-infra-definitions/aws/eks"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/registry"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -16,10 +15,6 @@ import (
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
-
-func init() {
-	registry.Scenarios.Register("aws/eks", Run)
-}
 
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := aws.NewEnvironment(ctx)

@@ -3,6 +3,7 @@ package vm
 import (
 	"github.com/DataDog/test-infra-definitions/azure"
 	"github.com/DataDog/test-infra-definitions/azure/compute"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

@@ -19,7 +19,7 @@ func NewUnix(env config.Environment) *Unix {
 func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 	return getDefaultInstanceType(u.env, arch)
 }
-func (*Unix) GetAgentConfigPath() string { return "/etc/datadog-agent/datadog.yaml" }
+func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
 	return getUnixInstallFormatString("install_script.sh", version), nil

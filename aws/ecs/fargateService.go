@@ -35,7 +35,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 		containersMap[reflect.ValueOf(c.Name).Elem().String()] = *c
 	}
 	containersMap["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
-	containersMap["log_router"] = *FargateFirelensContainerDefinition(e)
+	containersMap["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containersMap,
@@ -56,7 +56,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 	}, e.ResourceProvidersOption())
 }
 
-func FargateRedisContainerDefinition(e aws.Environment, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
+func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("redis"),
@@ -76,7 +76,7 @@ func FargateRedisContainerDefinition(e aws.Environment, apiKeySSMParamName pulum
 	}
 }
 
-func FargateFirelensContainerDefinition(e aws.Environment) *ecs.TaskDefinitionContainerDefinitionArgs {
+func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		User:      pulumi.StringPtr("0"),

@@ -3,6 +3,7 @@ package aks
 import (
 	"github.com/DataDog/test-infra-definitions/azure"
 	"github.com/DataDog/test-infra-definitions/azure/aks"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

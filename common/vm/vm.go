@@ -1,12 +1,15 @@
 package vm
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -14,12 +17,14 @@ type VM interface {
 	GetRunner() *command.Runner
 	GetCommonEnvironment() *config.CommonEnvironment
 	GetOS() commonos.OS
+	GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error)
 }
 
 type genericVM struct {
-	runner *command.Runner
-	env    *config.CommonEnvironment
-	os     commonos.OS
+	runner   *command.Runner
+	env      *config.CommonEnvironment
+	os       commonos.OS
+	stackKey string
 }
 
 func NewGenericVM(
@@ -31,7 +36,7 @@ func NewGenericVM(
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
 
-	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(ctx, r) }
+	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
 	if os.GetType() == commonos.WindowsType {
 		cmd := `for ($i = 0; $i -le 120; $i++) { 
 			$service = Get-Service -Name sshd -ErrorAction SilentlyContinue;
@@ -52,18 +57,31 @@ func NewGenericVM(
 				})
 		}
 	}
-	connection, runner, err := createRunner(ctx, env, instanceIP, os.GetSSHUser(), readyFunc)
+	connection, runner, err := createRunner(env, instanceIP, os.GetSSHUser(), readyFunc)
 	if err != nil {
 		return nil, err
 	}
 
-	ctx.Export("connection", connection)
+	stackKey := fmt.Sprintf("%v-connection", name)
+	ctx.Export(stackKey, connection)
 
 	return &genericVM{
-		runner: runner,
-		env:    commonEnv,
-		os:     os,
+		runner:   runner,
+		env:      commonEnv,
+		os:       os,
+		stackKey: stackKey,
 	}, nil
+}
+
+type ClientData struct {
+	Connection utils.Connection
+}
+
+func (vm *genericVM) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
+	return func(result auto.UpResult) (*ClientData, error) {
+		connection, err := utils.NewConnection(result, vm.stackKey)
+		return &ClientData{Connection: connection}, err
+	}
 }
 
 func (vm *genericVM) GetRunner() *command.Runner {
@@ -79,7 +97,6 @@ func (vm *genericVM) GetOS() commonos.OS {
 }
 
 func createRunner(
-	ctx *pulumi.Context,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	sshUser string,

@@ -1,4 +1,4 @@
-name: golangci-lint
+name: lint
 on:
   push:
     tags:
@@ -22,6 +22,8 @@ jobs:
           # is consistently fast.
           cache: true
           cache-dependency-path: go.sum
+      - name: Check tidy
+        run: go mod tidy && git diff-files --exit-code go.mod go.sum
       - name: Install golangci-lint
         # Install golangci-lint from source instead of using
         # golangci-lint-action to ensure the golangci-lint binary is built with
@@ -32,4 +34,4 @@ jobs:
         # - https://github.com/golangci/golangci-lint-action/issues/442
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Run golangci-lint
-        run: golangci-lint run --verbose --out-format=github-actions --new
+        run: golangci-lint version && golangci-lint run --new

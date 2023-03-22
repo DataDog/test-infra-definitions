@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/aws/ec2"
 	commonos "github.com/DataDog/test-infra-definitions/common/os"
 )
 

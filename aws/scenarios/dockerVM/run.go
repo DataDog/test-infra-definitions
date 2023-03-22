@@ -3,6 +3,7 @@ package dockervm
 import (
 	ec2vm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm/ec2VM"
 	"github.com/DataDog/test-infra-definitions/datadog/agent/docker"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/aws/ec2"
 	sconfig "github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -130,7 +130,7 @@ func prepareLibvirtEnvironment(runner *command.Runner, depends []pulumi.Resource
 	return []pulumi.Resource{libvirtReady}, nil
 }
 
-func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, arch string, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	sshGenArgs := command.Args{
 		Create: pulumi.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", pair.privateKey, pair.publicKey, pair.privateKey, pair.publicKey),
 		Delete: pulumi.Sprintf("rm %s && rm %s", pair.privateKey, pair.publicKey),
@@ -176,7 +176,7 @@ func buildDirectoryStructure(runner *command.Runner, depends []pulumi.Resource) 
 }
 
 // This function provisions the metal instance for setting up libvirt based micro-vms.
-func provisionInstance(instance *Instance, m *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
+func provisionInstance(instance *Instance, _ *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
 	runner := instance.remoteRunner
 
 	packagesInstallDone, err := installPackages(runner)

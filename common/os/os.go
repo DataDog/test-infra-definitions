@@ -28,7 +28,7 @@ type OS interface {
 	GetImage(Architecture) (string, error)
 	GetDefaultInstanceType(Architecture) string
 	GetServiceManager() *ServiceManager
-	GetAgentConfigPath() string
+	GetAgentConfigFolder() string
 	GetSSHUser() string
 	GetAgentInstallCmd(AgentVersion) (string, error)
 	GetType() Type

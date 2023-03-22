@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/aws"
-	"github.com/DataDog/test-infra-definitions/aws/ec2/ec2"
+	"github.com/DataDog/test-infra-definitions/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
@@ -155,7 +155,7 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		}
 
 		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
-			return command.WaitForCloudInit(e.Ctx, r)
+			return command.WaitForCloudInit(r)
 		}, command.WithUser("libvirt-qemu"))
 		if err != nil {
 			return nil, err
@@ -177,7 +177,6 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 			instance.remoteRunner,
 			instance.localRunner,
 			instance.instanceNamer,
-			instance.Arch,
 			pair,
 			[]pulumi.Resource{},
 		)

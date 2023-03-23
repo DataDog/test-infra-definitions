@@ -25,7 +25,7 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		common:  commonParams,
 	}
 
-	if err := WithOS(os.UbuntuOS, commonos.AMD64Arch)(params); err != nil {
+	if err := WithOS(os.UbuntuOS)(params); err != nil {
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
@@ -45,7 +45,10 @@ var WithOS = vm.WithOS[os.OS, os.Type, *Params]
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
 var WithImageName = vm.WithImageName[os.OS, os.Type, *Params]
 
-// WithInstanceType set the instance type
+// WithArch set the architecture and the operating system.
+var WithArch = vm.WithArch[os.OS, os.Type, *Params]
+
+// WithInstanceType set the instance type.
 var WithInstanceType = vm.WithInstanceType[os.OS, os.Type, *Params]
 
 // WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.

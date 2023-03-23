@@ -4,14 +4,12 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
 	"github.com/DataDog/test-infra-definitions/common"
-	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 )
 
 type Params struct {
-	env     aws.Environment
-	common  *vm.Params[os.OS]
-	keyPair string
+	env    aws.Environment
+	common *vm.Params[os.OS]
 }
 
 func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
@@ -20,9 +18,8 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		return nil, err
 	}
 	params := &Params{
-		env:     env,
-		keyPair: env.DefaultKeyPairName(),
-		common:  commonParams,
+		env:    env,
+		common: commonParams,
 	}
 
 	if err := WithOS(os.UbuntuOS)(params); err != nil {

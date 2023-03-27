@@ -18,13 +18,15 @@ type VM interface {
 	GetCommonEnvironment() *config.CommonEnvironment
 	GetOS() commonos.OS
 	GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error)
+	GetFileManager() *command.FileManager
 }
 
 type genericVM struct {
-	runner   *command.Runner
-	env      *config.CommonEnvironment
-	os       commonos.OS
-	stackKey string
+	runner      *command.Runner
+	env         *config.CommonEnvironment
+	os          commonos.OS
+	fileManager *command.FileManager
+	stackKey    string
 }
 
 func NewGenericVM(
@@ -51,10 +53,11 @@ func NewGenericVM(
 	ctx.Export(stackKey, connection)
 
 	return &genericVM{
-		runner:   runner,
-		env:      commonEnv,
-		os:       os,
-		stackKey: stackKey,
+		runner:      runner,
+		env:         commonEnv,
+		os:          os,
+		stackKey:    stackKey,
+		fileManager: command.NewFileManager(runner),
 	}, nil
 }
 
@@ -79,6 +82,10 @@ func (vm *genericVM) GetCommonEnvironment() *config.CommonEnvironment {
 
 func (vm *genericVM) GetOS() commonos.OS {
 	return vm.os
+}
+
+func (vm *genericVM) GetFileManager() *command.FileManager {
+	return vm.fileManager
 }
 
 func createRunner(

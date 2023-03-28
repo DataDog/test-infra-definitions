@@ -38,22 +38,12 @@ func NewGenericVM(
 
 	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
 	if os.GetType() == commonos.WindowsType {
-		cmd := `for ($i = 0; $i -le 120; $i++) { 
-			$service = Get-Service -Name sshd -ErrorAction SilentlyContinue;
-			if ($service -ne $null -and $service.Status -eq "Running") {
-				exit 0
-			}
-			Start-Sleep -Second 1
-		}		
-		exit 1
-		`
-		// Most of the waiting time is waiting the remote command to run.
-		// This command is still relevant to make sure ssh is running.
 		readyFunc = func(r *command.Runner) (*remote.Command, error) {
+			// Wait until a command can be executed.
 			return r.Command(
 				"wait-openssh-require-win2019-win10-or-above",
 				&command.Args{
-					Create: pulumi.String(cmd),
+					Create: pulumi.String(`Write-Host "Ready"`),
 				})
 		}
 	}

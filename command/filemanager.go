@@ -77,7 +77,8 @@ func (fm *FileManager) CopyRelativeFolder(relativeFolder string, remoteFolder st
 func (fm *FileManager) CopyAbsoluteFolder(absoluteFolder string, remoteFolder string, opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
 	baseFolder := filepath.Base(absoluteFolder)
 	rootWithoutBase := absoluteFolder[:len(absoluteFolder)-len(baseFolder)]
-	return fm.CopyFSFolder(absoluteFolder, os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
+	// Use remoteFolder as `absoluteFolder` may be a random file path that is different for each run.
+	return fm.CopyFSFolder(remoteFolder, os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
 }
 
 // CopyRelativeFile copies relative path to a remote path.
@@ -138,7 +139,7 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 		fileCommand, err := fm.CopyInlineFile(
-			resourceName+"-"+file,
+			resourceName+"-"+destFile, // Use destfile as `file` may be a random file path that is different for each run
 			pulumi.String(fileContent),
 			path.Join(remoteFolder, destFile),
 			useSudo,

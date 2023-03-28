@@ -70,8 +70,6 @@ func fargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTas
 
 func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:         pulumi.IntPtr(100),
-		Memory:      pulumi.IntPtr(512),
 		Name:        pulumi.StringPtr(containerName),
 		Image:       pulumi.StringPtr("public.ecr.aws/datadog/fakeintake:latest"),
 		Essential:   pulumi.BoolPtr(true),

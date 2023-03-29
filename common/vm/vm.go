@@ -38,9 +38,14 @@ func NewGenericVM(
 
 	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
 	if os.GetType() == commonos.WindowsType {
-		// On Windows, there is no equivalent of cloud init, but the code wait until ssh connection is ready
-		// so it is OK to not have a ready function.
-		readyFunc = nil
+		readyFunc = func(r *command.Runner) (*remote.Command, error) {
+			// Wait until a command can be executed.
+			return r.Command(
+				"wait-openssh-require-win2019-win10-or-above",
+				&command.Args{
+					Create: pulumi.String(`Write-Host "Ready"`),
+				})
+		}
 	}
 	connection, runner, err := createRunner(env, instanceIP, os.GetSSHUser(), readyFunc)
 	if err != nil {

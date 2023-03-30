@@ -10,7 +10,7 @@ import (
 )
 
 type Client struct {
-	awsECS.Client
+	*awsECS.Client
 
 	ctx context.Context
 }
@@ -22,7 +22,7 @@ func NewECSClient(ctx context.Context, region string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &Client{Client: *awsECS.NewFromConfig(cfg), ctx: ctx}, nil
+	return &Client{Client: awsECS.NewFromConfig(cfg), ctx: ctx}, nil
 }
 
 func (c *Client) GetTaskPrivateIP(clusterArn, serviceName string) (string, error) {
@@ -55,14 +55,16 @@ func (c *Client) getTaskPrivateIP(clusterArn string, taskArn string) (string, er
 	if err != nil {
 		return "", err
 	}
-	if len(taskOutput.Tasks) < 1 {
-		return "", fmt.Errorf("no task found on cluster %s with arn %s", clusterArn, taskArn)
+	if len(taskOutput.Tasks) != 1 {
+		return "", fmt.Errorf("expected 1 task on cluster %s with arn %s, found %d", clusterArn, taskArn, len(taskOutput.Tasks))
 	}
-	if len(taskOutput.Tasks[0].Containers) < 1 {
+	containers := taskOutput.Tasks[0].Containers
+	if len(containers) < 1 {
 		return "", fmt.Errorf("no container found on cluster %s with arn %s", clusterArn, taskArn)
 	}
-	if len(taskOutput.Tasks[0].Containers[0].NetworkInterfaces) < 1 {
+	networkInterfaces := containers[0].NetworkInterfaces
+	if len(networkInterfaces) < 1 {
 		return "", fmt.Errorf("no network interface found on cluster %s with arn %s", clusterArn, taskArn)
 	}
-	return *taskOutput.Tasks[0].Containers[0].NetworkInterfaces[0].PrivateIpv4Address, nil
+	return *networkInterfaces[0].PrivateIpv4Address, nil
 }

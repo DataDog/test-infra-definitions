@@ -149,9 +149,16 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 	osCommand := command.NewUnixOSCommand()
 	instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment, osCommand)
 	if instance.Arch != LocalVMSet {
-		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
-			return command.WaitForCloudInit(r)
-		}, osCommand, command.WithUser("libvirt-qemu"))
+		instance.remoteRunner, err = command.NewRunner(
+			*e.CommonEnvironment,
+			instance.instanceNamer.ResourceName("conn"),
+			instance.Connection,
+			func(r *command.Runner) (*remote.Command, error) {
+				return command.WaitForCloudInit(r)
+			},
+			osCommand,
+			command.WithUser("libvirt-qemu"),
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -181,8 +188,16 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 		}
 		waitFor = append(waitFor, prepareSSHKeysDone...)
 
-		privkey := m.GetStringWithDefault(m.MicroVMConfig, config.SSHKeyConfigNames[arch], defaultLibvirtSSHKey(SSHKeyFileNames[arch]))
-		url = pulumi.Sprintf("qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore", instance.instance.PrivateIp, privkey)
+		privkey := m.GetStringWithDefault(
+			m.MicroVMConfig,
+			config.SSHKeyConfigNames[arch],
+			defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
+		)
+		url = pulumi.Sprintf(
+			"qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore",
+			instance.instance.PrivateIp,
+			privkey,
+		)
 
 	} else {
 		url = pulumi.String("qemu:///system")
@@ -198,7 +213,9 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 	var scenarioReady ScenarioDone
 
 	m := config.NewMicroVMConfig(e)
-	cfg, err := vmconfig.LoadConfigFile(m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMConfigFile, "./test.json"))
+	cfg, err := vmconfig.LoadConfigFile(
+		m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMConfigFile, "./test.json"),
+	)
 	if err != nil {
 		return nil, err
 	}

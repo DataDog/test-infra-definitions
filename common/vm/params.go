@@ -40,29 +40,29 @@ func WithName[OS os.OS, T any, P ParamsGetter[OS, T]](name string) func(P) error
 	}
 }
 
-// WithOS sets the instance type and the AMI.
-func WithOS[OS os.OS, T any, P ParamsGetter[OS, T]](osType T, arch os.Architecture) func(P) error {
+// WithOS sets the OS. This function also set the instance type and the AMI.
+func WithOS[OS os.OS, T any, P ParamsGetter[OS, T]](osType T) func(P) error {
+	return WithArch[OS, T, P](osType, os.AMD64Arch)
+}
+
+// WithArch set the architecture and the operating system.
+func WithArch[OS os.OS, T any, P ParamsGetter[OS, T]](osType T, arch os.Architecture) func(P) error {
 	return func(params P) error {
 		p := params.GetCommonParams()
 		os, err := params.GetOS(osType)
 		if err != nil {
 			return err
 		}
-		return p.setOS(os, arch)
-	}
-}
+		p.ImageName, err = os.GetImage(arch)
+		if err != nil {
+			return fmt.Errorf("cannot find image for %v (%v): %v", reflect.TypeOf(os), arch, err)
+		}
+		p.OS = os
+		p.InstanceType = p.OS.GetDefaultInstanceType(arch)
+		p.Arch = arch
 
-func (p *Params[OS]) setOS(os OS, arch os.Architecture) error {
-	p.OS = os
-	p.InstanceType = p.OS.GetDefaultInstanceType(arch)
-	p.Arch = arch
-	var err error
-	p.ImageName, err = p.OS.GetImage(arch)
-	if err != nil {
-		return fmt.Errorf("cannot find image for %v (%v): %v", reflect.TypeOf(os), arch, err)
+		return nil
 	}
-
-	return nil
 }
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.

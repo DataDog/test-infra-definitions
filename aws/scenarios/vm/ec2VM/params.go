@@ -4,14 +4,12 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
 	"github.com/DataDog/test-infra-definitions/common"
-	commonos "github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/vm"
 )
 
 type Params struct {
-	env     aws.Environment
-	common  *vm.Params[os.OS]
-	keyPair string
+	env    aws.Environment
+	common *vm.Params[os.OS]
 }
 
 func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
@@ -20,12 +18,11 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		return nil, err
 	}
 	params := &Params{
-		env:     env,
-		keyPair: env.DefaultKeyPairName(),
-		common:  commonParams,
+		env:    env,
+		common: commonParams,
 	}
 
-	if err := WithOS(os.UbuntuOS, commonos.AMD64Arch)(params); err != nil {
+	if err := WithOS(os.UbuntuOS)(params); err != nil {
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
@@ -45,7 +42,10 @@ var WithOS = vm.WithOS[os.OS, os.Type, *Params]
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
 var WithImageName = vm.WithImageName[os.OS, os.Type, *Params]
 
-// WithInstanceType set the instance type
+// WithArch set the architecture and the operating system.
+var WithArch = vm.WithArch[os.OS, os.Type, *Params]
+
+// WithInstanceType set the instance type.
 var WithInstanceType = vm.WithInstanceType[os.OS, os.Type, *Params]
 
 // WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.

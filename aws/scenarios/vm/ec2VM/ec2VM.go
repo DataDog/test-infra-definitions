@@ -53,7 +53,7 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, er
 		params.common.ImageName,
 		os.GetAMIArch(params.common.Arch),
 		params.common.InstanceType,
-		params.keyPair,
+		env.DefaultKeyPairName(),
 		userData,
 		os.GetTenancy())
 	if err != nil {

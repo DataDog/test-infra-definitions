@@ -9,28 +9,28 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/os"
 )
 
-type params struct {
+type Params struct {
 	version          os.AgentVersion
 	agentConfig      string
 	integrations     map[string]string
 	extraAgentConfig []string
 }
 
-func newParams(env *config.CommonEnvironment, options ...func(*params) error) (*params, error) {
-	p := &params{
+func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
+	p := &Params{
 		integrations: make(map[string]string),
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
-	options = append([]func(*params) error{defaultVersion}, options...)
+	options = append([]func(*Params) error{defaultVersion}, options...)
 	return common.ApplyOption(p, options)
 }
 
 // WithLatest uses the latest Agent 7 version in the stable channel.
-func WithLatest() func(*params) error {
-	return func(p *params) error {
+func WithLatest() func(*Params) error {
+	return func(p *Params) error {
 		p.version.Major = "7"
 		p.version.BetaChannel = false
 		return nil
@@ -38,8 +38,8 @@ func WithLatest() func(*params) error {
 }
 
 // WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0~rc.7-1`
-func WithVersion(version string) func(*params) error {
-	return func(p *params) error {
+func WithVersion(version string) func(*Params) error {
+	return func(p *Params) error {
 		prefix := "7."
 		if strings.HasPrefix(version, prefix) {
 			p.version.Major = "7"
@@ -59,23 +59,23 @@ func WithVersion(version string) func(*params) error {
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
-func WithAgentConfig(config string) func(*params) error {
-	return func(p *params) error {
+func WithAgentConfig(config string) func(*Params) error {
+	return func(p *Params) error {
 		p.agentConfig = config
 		return nil
 	}
 }
 
 // WithIntegration adds the configuration for an integration.
-func WithIntegration(folderName string, content string) func(*params) error {
-	return func(p *params) error {
+func WithIntegration(folderName string, content string) func(*Params) error {
+	return func(p *Params) error {
 		p.integrations[folderName] = content
 		return nil
 	}
 }
 
-func WithTelemetry() func(*params) error {
-	return func(p *params) error {
+func WithTelemetry() func(*Params) error {
+	return func(p *Params) error {
 		config := `instances:
   - expvar_url: http://localhost:5000/debug/vars
     max_returned_metrics: 1000

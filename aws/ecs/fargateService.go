@@ -1,15 +1,24 @@
 package ecs
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/datadog/fakeintake"
+	"github.com/cenkalti/backoff/v4"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+)
+
+const (
+	oneSecond     = 1000
+	sleepInterval = 1 * oneSecond
+	maxRetries    = 120
 )
 
 func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput) (*ecs.FargateService, error) {
@@ -115,4 +124,36 @@ func getFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringI
 			},
 		},
 	}
+}
+
+// FargateServiceFakeintake deploys one service with one instance to a dedicated cluster
+func FargateServiceFakeintake(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
+	taskDef, err := fakeintake.FargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
+	if err != nil {
+		return pulumi.StringOutput{}, err
+	}
+	fargateService, err := FargateService(e, e.Namer.ResourceName("fakeintake-srv"), pulumi.String(fakeintake.FargateClusterArn), taskDef.TaskDefinition.Arn())
+
+	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
+	// when taskDef has an ARN, thus it is defined on AWS side
+	ipAddress = pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(args []any) (string, error) {
+		var ipAddress string
+		err := backoff.Retry(func() error {
+			fmt.Println("waiting for task private ip")
+			serviceName := args[1].(string)
+			ecsClient, err := NewECSClient(e.Ctx.Context(), e.Region())
+			if err != nil {
+				return err
+			}
+			ipAddress, err = ecsClient.GetTaskPrivateIP(fakeintake.FargateClusterArn, serviceName)
+			if err != nil {
+				return err
+			}
+			fmt.Printf("task private ip found: %s\n", ipAddress)
+			return err
+		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
+		return ipAddress, err
+	}).(pulumi.StringOutput)
+
+	return ipAddress, err
 }

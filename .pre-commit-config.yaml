@@ -3,3 +3,4 @@ repos:
     rev: v1.50.1
     hooks:
     - id: golangci-lint
+      args: ["--allow-parallel-runners"]

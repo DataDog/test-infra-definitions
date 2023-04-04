@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/alessio/shellescape"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -46,8 +45,15 @@ func (unixOSCommand) CopyInlineFile(
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	createCmd := utils.WriteStringCommand(remotePath, useSudo)
-	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
+	sudo := ""
+	if useSudo {
+		sudo = "sudo"
+	}
+	backupPath := remotePath + "." + backupExtension
+	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; fi", remotePath, sudo, remotePath, backupPath)
+	createCmd := fmt.Sprintf("(%v) && cat - | %s tee %s > /dev/null", backupCmd, sudo, remotePath)
+	deleteCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; else %v rm -f '%v'; fi", backupPath, sudo, backupPath, remotePath, sudo, remotePath)
+	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs unixOSCommand) CreateTemporaryFolder(runner *Runner, resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {

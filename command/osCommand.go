@@ -40,6 +40,8 @@ type osCommand interface {
 // Helpers to implement osCommand
 // ------------------------------
 
+const backupExtension = "pulumi.backup"
+
 func createDirectory(
 	runner *Runner,
 	name string,
@@ -65,17 +67,19 @@ func copyInlineFile(
 	runner *Runner,
 	fileContent pulumi.StringInput,
 	useSudo bool,
-	createCmd pulumi.StringInput,
+	createCmd string,
+	deleteCmd string,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// If the file was previously created, make sure to delete it before creating it.
 	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 
 	return runner.Command(name,
 		&Args{
-			Create:   createCmd,
+			Create:   pulumi.String(createCmd),
+			Delete:   pulumi.String(deleteCmd),
 			Stdin:    fileContent,
 			Sudo:     useSudo,
-			Triggers: pulumi.Array{createCmd, fileContent, pulumi.BoolPtr(useSudo)},
+			Triggers: pulumi.Array{pulumi.String(createCmd), fileContent, pulumi.BoolPtr(useSudo)},
 		}, opts...)
 }
 

@@ -1,9 +1,7 @@
 package agent
 
 import (
-	"fmt"
 	"path"
-	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -89,11 +87,13 @@ func updateAgentConfig(
 	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
 	var err error
 	var parts = []string{agentConfig}
+
+	for _, extraConfig := range extraAgentConfig {
+		agentConfig = agentConfig + "\n" + extraConfig
+	}
+
 	if agentConfig != "" {
-		agentConfigWithAPIKEY := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
-			config := strings.ReplaceAll(agentConfig, "{{API_KEY}}", apiKey)
-			return pulumi.String(config)
-		}).(pulumi.StringInput)
+		agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), agentConfig)
 		lastCommand, err = fileManager.CopyInlineFile(
 			namer.ResourceName("agent-config"),
 			agentConfigWithAPIKEY,
@@ -105,18 +105,6 @@ func updateAgentConfig(
 		}
 	}
 
-	for _, extraConfig := range extraAgentConfig {
-		parts = append(parts, extraConfig)
-		lastCommand, err = fileManager.AppendInlineFile(
-			namer.ResourceName("config-append"),
-			pulumi.String(fmt.Sprintf("\n%v\n", extraConfig)),
-			agentConfigFullPath,
-			true,
-			utils.PulumiDependsOn(lastCommand))
-		if err != nil {
-			return nil, "", err
-		}
-	}
 	return lastCommand, utils.StrHash(parts...), nil
 }
 

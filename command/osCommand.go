@@ -27,7 +27,6 @@ type osCommand interface {
 		fileContent pulumi.StringInput,
 		remotePath string,
 		useSudo bool,
-		append bool,
 		opts ...pulumi.ResourceOption) (*remote.Command, error)
 
 	BuildCommand(

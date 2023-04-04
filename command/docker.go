@@ -68,6 +68,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 		&Args{
 			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout %d", remoteComposePath, defaultTimeout),
 			Delete: pulumi.Sprintf("docker-compose -f %s down -t %d", remoteComposePath, defaultTimeout),
+			Sudo:   true,
 		},
 		opts...)
 }
@@ -114,6 +115,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
 			Environment: envVars,
 			Triggers:    runCommandTriggers,
+			Sudo:        true,
 		},
 		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/common/vm"
@@ -44,7 +43,6 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 
 	var configHash string
 	lastCommand, configHash, err = updateAgentConfig(
-		commonNamer,
 		vm.GetFileManager(),
 		env,
 		params.agentConfig,
@@ -56,7 +54,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	}
 
 	var integsHash string
-	lastCommand, integsHash, err = installIntegrations(commonNamer, vm.GetFileManager(), params.integrations, os, lastCommand)
+	lastCommand, integsHash, err = installIntegrations(vm.GetFileManager(), params.integrations, os, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -77,7 +75,6 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 }
 
 func updateAgentConfig(
-	namer namer.Namer,
 	fileManager *command.FileManager,
 	env *config.CommonEnvironment,
 	agentConfig string,
@@ -95,7 +92,6 @@ func updateAgentConfig(
 	if agentConfig != "" {
 		agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), agentConfig)
 		lastCommand, err = fileManager.CopyInlineFile(
-			namer.ResourceName("agent-config"),
 			agentConfigWithAPIKEY,
 			agentConfigFullPath,
 			true,
@@ -109,7 +105,6 @@ func updateAgentConfig(
 }
 
 func installIntegrations(
-	namer namer.Namer,
 	fileManager *command.FileManager,
 	integrations map[string]string,
 	os os.OS,
@@ -120,7 +115,6 @@ func installIntegrations(
 		var err error
 		confPath := path.Join(configFolder, "conf.d", folderName, "conf.yaml")
 		lastCommand, err = fileManager.CopyInlineFile(
-			namer.ResourceName("integration", folderName),
 			pulumi.String(content),
 			confPath, true, utils.PulumiDependsOn(lastCommand))
 		if err != nil {

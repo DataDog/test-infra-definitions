@@ -23,7 +23,6 @@ type osCommand interface {
 
 	CopyInlineFile(
 		runner *Runner,
-		resourceName string,
 		fileContent pulumi.StringInput,
 		remotePath string,
 		useSudo bool,
@@ -73,7 +72,7 @@ func copyInlineFile(
 	// If the file was previously created, make sure to delete it before creating it.
 	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 
-	return runner.Command(name,
+	return runner.Command(runner.namer.ResourceName("copy-file-support-only-single-call-per-path", name),
 		&Args{
 			Create:   pulumi.String(createCmd),
 			Delete:   pulumi.String(deleteCmd),

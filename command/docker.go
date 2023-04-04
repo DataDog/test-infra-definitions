@@ -92,7 +92,6 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
 		writeCommand, err := d.fileManager.CopyInlineFile(
-			d.namer.ResourceName("copy-compose", manifest.Name),
 			manifest.Content,
 			remoteComposePath,
 			false,

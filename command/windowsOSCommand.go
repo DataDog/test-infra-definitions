@@ -35,7 +35,6 @@ func (fs windowsOSCommand) CreateDirectory(
 
 func (fs windowsOSCommand) CopyInlineFile(
 	runner *Runner,
-	name string,
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
@@ -47,7 +46,7 @@ func (fs windowsOSCommand) CopyInlineFile(
 	deleteMoveCmd := fmt.Sprintf(`Move-Item -Force -Path '%v' -Destination '%v'`, backupPath, remotePath)
 	deleteRemoveCmd := fmt.Sprintf(`Remove-Item -Force -Path '%v'`, remotePath)
 	deleteCmd := fmt.Sprintf("if (Test-Path -Path '%v') { %v } else { %v }", backupPath, deleteMoveCmd, deleteRemoveCmd)
-	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
+	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs windowsOSCommand) CreateTemporaryFolder(

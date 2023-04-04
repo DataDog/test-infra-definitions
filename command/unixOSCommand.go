@@ -39,7 +39,6 @@ func (unixOSCommand) CreateDirectory(
 
 func (unixOSCommand) CopyInlineFile(
 	runner *Runner,
-	name string,
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
@@ -53,7 +52,7 @@ func (unixOSCommand) CopyInlineFile(
 	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; fi", remotePath, sudo, remotePath, backupPath)
 	createCmd := fmt.Sprintf("(%v) && cat - | %s tee %s > /dev/null", backupCmd, sudo, remotePath)
 	deleteCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; else %v rm -f '%v'; fi", backupPath, sudo, backupPath, remotePath, sudo, remotePath)
-	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
+	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs unixOSCommand) CreateTemporaryFolder(runner *Runner, resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {

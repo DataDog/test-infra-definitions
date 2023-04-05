@@ -31,13 +31,10 @@ func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInpu
 }
 
 func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	return fm.command.CreateTemporaryFolder(fm.runner, resourceName, opts...)
+	return fm.command.CreateTemporaryDirectory(fm.runner, resourceName, opts...)
 }
 
 func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	// If the file was previously created, make sure to delete it before creating it.
-	opts = append(opts, pulumi.DeleteBeforeReplace(true))
-
 	return remote.NewCopyFile(fm.runner.e.Ctx, fm.runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
 		Connection: fm.runner.config.connection,
 		LocalPath:  pulumi.String(localPath),

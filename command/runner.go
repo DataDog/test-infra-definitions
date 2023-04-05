@@ -21,9 +21,9 @@ type Args struct {
 func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand osCommand) *remote.CommandArgs {
 	return &remote.CommandArgs{
 		Connection: config.connection,
-		Create:     osCommand.BuildCommand(args.Create, args.Environment, args.Sudo, config.user),
-		Update:     osCommand.BuildCommand(args.Update, args.Environment, args.Sudo, config.user),
-		Delete:     osCommand.BuildCommand(args.Delete, args.Environment, args.Sudo, config.user),
+		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
+		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
+		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
 		Triggers:   args.Triggers,
 		Stdin:      args.Stdin,
 	}
@@ -123,9 +123,9 @@ func NewLocalRunner(e config.CommonEnvironment, isWindows bool, options ...func(
 
 func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand osCommand) *local.CommandArgs {
 	return &local.CommandArgs{
-		Create:   osCommand.BuildCommand(args.Create, args.Environment, args.Sudo, config.user),
-		Update:   osCommand.BuildCommand(args.Update, args.Environment, args.Sudo, config.user),
-		Delete:   osCommand.BuildCommand(args.Delete, args.Environment, args.Sudo, config.user),
+		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
+		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
+		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
 		Triggers: args.Triggers,
 		Stdin:    args.Stdin,
 	}

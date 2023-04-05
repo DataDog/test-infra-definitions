@@ -49,7 +49,7 @@ func (fs windowsOSCommand) CopyInlineFile(
 	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
 }
 
-func (fs windowsOSCommand) CreateTemporaryFolder(
+func (fs windowsOSCommand) CreateTemporaryDirectory(
 	runner *Runner,
 	resourceName string,
 	opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
@@ -58,7 +58,7 @@ func (fs windowsOSCommand) CreateTemporaryFolder(
 	return folderCmd, tempDir, err
 }
 
-func (fs windowsOSCommand) BuildCommand(
+func (fs windowsOSCommand) BuildCommandString(
 	command pulumi.StringInput,
 	env pulumi.StringMap,
 	_ bool,
@@ -68,7 +68,7 @@ func (fs windowsOSCommand) BuildCommand(
 		envVars = append(envVars, pulumi.Sprintf(`$env:%v = '%v'; `, varName, varValue))
 	}
 
-	return buildCommand(command, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
+	return buildCommandString(command, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
 		return pulumi.Sprintf("%s %s", envVarsStr, command)
 	})
 }

@@ -55,13 +55,13 @@ func (unixOSCommand) CopyInlineFile(
 	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
 }
 
-func (fs unixOSCommand) CreateTemporaryFolder(runner *Runner, resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+func (fs unixOSCommand) CreateTemporaryDirectory(runner *Runner, resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
 	tempDir := path.Join(linuxTempDir, resourceName)
 	folderCmd, err := fs.CreateDirectory(runner, "create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
 	return folderCmd, tempDir, err
 }
 
-func (fs unixOSCommand) BuildCommand(command pulumi.StringInput, env pulumi.StringMap, sudo bool, user string) pulumi.StringInput {
+func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo bool, user string) pulumi.StringInput {
 	var prefix string
 
 	if sudo {
@@ -75,7 +75,7 @@ func (fs unixOSCommand) BuildCommand(command pulumi.StringInput, env pulumi.Stri
 		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
 	}
 
-	return buildCommand(command, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
+	return buildCommandString(command, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
 		commandEscaped := command.ToStringOutput().ApplyT(func(command string) string {
 			return shellescape.Quote(command)
 		}).(pulumi.StringOutput)

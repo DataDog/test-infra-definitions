@@ -9,7 +9,7 @@ import (
 
 // osCommand defines the commands which are OS specifics
 type osCommand interface {
-	CreateTemporaryFolder(
+	CreateTemporaryDirectory(
 		runner *Runner,
 		resourceName string,
 		opts ...pulumi.ResourceOption) (*remote.Command, string, error)
@@ -30,7 +30,7 @@ type osCommand interface {
 		append bool,
 		opts ...pulumi.ResourceOption) (*remote.Command, error)
 
-	BuildCommand(
+	BuildCommandString(
 		command pulumi.StringInput,
 		env pulumi.StringMap,
 		sudo bool,
@@ -80,7 +80,7 @@ func copyInlineFile(
 		}, opts...)
 }
 
-func buildCommand(
+func buildCommandString(
 	command pulumi.StringInput,
 	envVars pulumi.StringArray,
 	fct func(envVarsStr pulumi.StringOutput) pulumi.StringInput) pulumi.StringInput {

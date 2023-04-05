@@ -18,7 +18,7 @@ type Args struct {
 	Sudo        bool
 }
 
-func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand osCommand) *remote.CommandArgs {
+func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
 	return &remote.CommandArgs{
 		Connection: config.connection,
 		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
@@ -39,7 +39,7 @@ type Runner struct {
 	namer       namer.Namer
 	waitCommand *remote.Command
 	config      runnerConfiguration
-	osCommand   osCommand
+	osCommand   OSCommand
 }
 
 func WithUser(user string) func(*Runner) {
@@ -53,7 +53,7 @@ func NewRunner(
 	connName string,
 	conn remote.ConnectionInput,
 	readyFunc func(*Runner) (*remote.Command, error),
-	isWindows bool,
+	osCommand OSCommand,
 	options ...func(*Runner)) (*Runner, error) {
 	runner := &Runner{
 		e:     e,
@@ -61,7 +61,7 @@ func NewRunner(
 		config: runnerConfiguration{
 			connection: conn,
 		},
-		osCommand: getOSCommand(isWindows),
+		osCommand: osCommand,
 	}
 
 	for _, opt := range options {
@@ -87,18 +87,11 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), opts...)
 }
 
-func getOSCommand(isWindows bool) osCommand {
-	if isWindows {
-		return newWindowsOSCommand()
-	}
-	return newUnixOSCommand()
-}
-
 type LocalRunner struct {
 	e         config.CommonEnvironment
 	namer     namer.Namer
 	config    runnerConfiguration
-	osCommand osCommand
+	osCommand OSCommand
 }
 
 func WithLocalUser(user string) func(*LocalRunner) {
@@ -107,11 +100,11 @@ func WithLocalUser(user string) func(*LocalRunner) {
 	}
 }
 
-func NewLocalRunner(e config.CommonEnvironment, isWindows bool, options ...func(*LocalRunner)) *LocalRunner {
+func NewLocalRunner(e config.CommonEnvironment, osCommand OSCommand, options ...func(*LocalRunner)) *LocalRunner {
 	localRunner := &LocalRunner{
 		e:         e,
 		namer:     namer.NewNamer(e.Ctx, "local"),
-		osCommand: getOSCommand(isWindows),
+		osCommand: osCommand,
 	}
 
 	for _, opt := range options {
@@ -121,7 +114,7 @@ func NewLocalRunner(e config.CommonEnvironment, isWindows bool, options ...func(
 	return localRunner
 }
 
-func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand osCommand) *local.CommandArgs {
+func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
 	return &local.CommandArgs{
 		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
 		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),

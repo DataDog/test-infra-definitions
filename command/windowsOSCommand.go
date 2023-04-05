@@ -7,11 +7,11 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-var _ osCommand = (*windowsOSCommand)(nil)
+var _ OSCommand = (*windowsOSCommand)(nil)
 
 type windowsOSCommand struct{}
 
-func newWindowsOSCommand() osCommand {
+func NewWindowsOSCommand() OSCommand {
 	return windowsOSCommand{}
 }
 

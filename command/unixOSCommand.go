@@ -14,11 +14,11 @@ const (
 	linuxTempDir = "/tmp"
 )
 
-var _ osCommand = (*unixOSCommand)(nil)
+var _ OSCommand = (*unixOSCommand)(nil)
 
 type unixOSCommand struct{}
 
-func newUnixOSCommand() osCommand {
+func NewUnixOSCommand() OSCommand {
 	return unixOSCommand{}
 }
 

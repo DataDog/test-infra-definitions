@@ -16,7 +16,7 @@ import (
 
 type FileManager struct {
 	runner  *Runner
-	command osCommand
+	command OSCommand
 }
 
 func NewFileManager(runner *Runner) *FileManager {

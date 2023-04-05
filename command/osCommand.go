@@ -7,8 +7,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// osCommand defines the commands which are OS specifics
-type osCommand interface {
+// OSCommand defines the commands which are OS specifics
+type OSCommand interface {
 	CreateTemporaryDirectory(
 		runner *Runner,
 		resourceName string,

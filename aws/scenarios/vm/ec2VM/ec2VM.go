@@ -11,8 +11,16 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type EC2VM struct {
+type Infra struct {
 	env aws.Environment
+}
+
+func (infra *Infra) GetAwsEnvironment() aws.Environment {
+	return infra.env
+}
+
+type EC2VM struct {
+	Infra
 	commonvm.VM
 }
 
@@ -21,13 +29,9 @@ func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, erro
 	return newVM(ctx, options...)
 }
 
-func (vm *EC2VM) GetAwsEnvironment() aws.Environment {
-	return vm.env
-}
-
 type EC2UnixVM struct {
+	Infra
 	*commonvm.UnixVM
-	*EC2VM
 }
 
 // NewUnixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
@@ -44,7 +48,7 @@ func NewUnixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2Unix
 
 	return &EC2UnixVM{
 		UnixVM: unixVM,
-		EC2VM:  vm,
+		Infra:  vm.Infra,
 	}, nil
 }
 
@@ -93,8 +97,8 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) 
 	}
 
 	return &EC2VM{
-		VM:  vm,
-		env: env,
+		VM:    vm,
+		Infra: Infra{env: env},
 	}, nil
 }
 

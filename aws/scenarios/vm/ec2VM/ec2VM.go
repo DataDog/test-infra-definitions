@@ -11,23 +11,45 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type EC2VM struct {
+	env aws.Environment
+	commonvm.VM
+}
+
 // NewEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {
+func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) {
 	return newVM(ctx, options...)
+}
+
+func (vm *EC2VM) GetAwsEnvironment() aws.Environment {
+	return vm.env
+}
+
+type EC2UnixVM struct {
+	*commonvm.UnixVM
+	*EC2VM
 }
 
 // NewUnixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 // The returned vm provides additional methods compared to NewEc2VM
-func NewUnixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*commonvm.UnixVM, error) {
+func NewUnixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2UnixVM, error) {
 	vm, err := newVM(ctx, options...)
 	if err != nil {
 		return nil, err
 	}
-	return commonvm.NewUnixVM(vm)
+	unixVM, err := commonvm.NewUnixVM(vm.VM)
+	if err != nil {
+		return nil, err
+	}
+
+	return &EC2UnixVM{
+		UnixVM: unixVM,
+		EC2VM:  vm,
+	}, nil
 }
 
 // newVM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, error) {
+func newVM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
@@ -60,12 +82,20 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, er
 		return nil, err
 	}
 
-	return commonvm.NewGenericVM(
+	vm, err := commonvm.NewGenericVM(
 		params.common.InstanceName,
 		&env,
 		instance.PrivateIp,
 		os,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &EC2VM{
+		VM:  vm,
+		env: env,
+	}, nil
 }
 
 func GetOpenSSHInstallCmd(publicKeyPath string) (string, error) {

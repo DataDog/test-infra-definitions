@@ -9,10 +9,7 @@ import (
 
 // OSCommand defines the commands which are OS specifics
 type OSCommand interface {
-	CreateTemporaryDirectory(
-		runner *Runner,
-		resourceName string,
-		opts ...pulumi.ResourceOption) (*remote.Command, string, error)
+	GetTemporaryDirectory() string
 
 	CreateDirectory(
 		runner *Runner,

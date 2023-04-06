@@ -1,8 +1,6 @@
 package command
 
 import (
-	"path"
-
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -49,13 +47,8 @@ func (fs windowsOSCommand) CopyInlineFile(
 	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
 }
 
-func (fs windowsOSCommand) CreateTemporaryDirectory(
-	runner *Runner,
-	resourceName string,
-	opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	tempDir := path.Join("$env:TEMP", resourceName)
-	folderCmd, err := fs.CreateDirectory(runner, "create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
-	return folderCmd, tempDir, err
+func (fs windowsOSCommand) GetTemporaryDirectory() string {
+	return "$env:TEMP"
 }
 
 func (fs windowsOSCommand) BuildCommandString(

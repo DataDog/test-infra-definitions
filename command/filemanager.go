@@ -31,7 +31,10 @@ func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInpu
 }
 
 func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	return fm.command.CreateTemporaryDirectory(fm.runner, resourceName, opts...)
+	tempDir := path.Join(fm.command.GetTemporaryDirectory(), resourceName)
+	folderCmd, err := fm.CreateDirectory("create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
+	return folderCmd, tempDir, err
+
 }
 
 func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {

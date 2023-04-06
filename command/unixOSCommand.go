@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"path"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/alessio/shellescape"
@@ -55,10 +54,8 @@ func (unixOSCommand) CopyInlineFile(
 	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
 }
 
-func (fs unixOSCommand) CreateTemporaryDirectory(runner *Runner, resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	tempDir := path.Join(linuxTempDir, resourceName)
-	folderCmd, err := fs.CreateDirectory(runner, "create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
-	return folderCmd, tempDir, err
+func (fs unixOSCommand) GetTemporaryDirectory() string {
+	return linuxTempDir
 }
 
 func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo bool, user string) pulumi.StringInput {

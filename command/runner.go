@@ -68,12 +68,10 @@ func NewRunner(
 		opt(runner)
 	}
 
-	if readyFunc != nil {
-		var err error
-		runner.waitCommand, err = readyFunc(runner)
-		if err != nil {
-			return nil, err
-		}
+	var err error
+	runner.waitCommand, err = readyFunc(runner)
+	if err != nil {
+		return nil, err
 	}
 
 	return runner, nil

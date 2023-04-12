@@ -13,7 +13,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, err = docker.NewAgentDockerInstaller(vm, docker.WithAgent())
+	_, err = docker.NewAgentDockerInstaller(vm.UnixVM, docker.WithAgent())
 
 	return err
 }

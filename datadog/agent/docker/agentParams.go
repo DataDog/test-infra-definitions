@@ -14,7 +14,7 @@ type AgentParams struct {
 
 func newAgentParams(commonEnv *config.CommonEnvironment, options ...func(*AgentParams) error) (*AgentParams, error) {
 	version := &AgentParams{}
-	version.fullImagePath = agent.DockerFullImagePath(commonEnv)
+	version.fullImagePath = agent.DockerFullImagePath(commonEnv, "")
 	return common.ApplyOption(version, options)
 }
 

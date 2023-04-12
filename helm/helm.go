@@ -8,23 +8,33 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, repoURL, chartName, installName, namespace string, inlineValues pulumi.MapInput, valueFiles []string, opts ...pulumi.ResourceOption) (*helm.Release, error) {
-	valueAssets := make(pulumi.AssetOrArchiveArray, 0, len(valueFiles))
-	for _, valuePath := range valueFiles {
+type InstallArgs struct {
+	KubernetesProvider *kubernetes.Provider
+	RepoURL            string
+	ChartName          string
+	InstallName        string
+	Namespace          string
+	ValuesFilePaths    []string
+	Values             pulumi.Map
+}
+
+func NewInstallation(e config.CommonEnvironment, args InstallArgs, opts ...pulumi.ResourceOption) (*helm.Release, error) {
+	valueAssets := make(pulumi.AssetOrArchiveArray, 0, len(args.ValuesFilePaths))
+	for _, valuePath := range args.ValuesFilePaths {
 		valueAssets = append(valueAssets, pulumi.NewFileAsset(valuePath))
 	}
 
-	opts = append(opts, pulumi.Provider(kubeProvider))
-	return helm.NewRelease(e.Ctx, installName, &helm.ReleaseArgs{
-		Namespace: pulumi.StringPtr(namespace),
-		Name:      pulumi.StringPtr(installName),
+	opts = append(opts, pulumi.Provider(args.KubernetesProvider))
+	return helm.NewRelease(e.Ctx, args.InstallName, &helm.ReleaseArgs{
+		Namespace: pulumi.StringPtr(args.Namespace),
+		Name:      pulumi.StringPtr(args.InstallName),
 		RepositoryOpts: helm.RepositoryOptsArgs{
-			Repo: pulumi.StringPtr(repoURL),
+			Repo: pulumi.StringPtr(args.RepoURL),
 		},
-		Chart:            pulumi.String(chartName),
+		Chart:            pulumi.String(args.ChartName),
 		CreateNamespace:  pulumi.BoolPtr(true),
 		DependencyUpdate: pulumi.BoolPtr(true),
 		ValueYamlFiles:   valueAssets,
-		Values:           inlineValues,
+		Values:           args.Values,
 	}, opts...)
 }

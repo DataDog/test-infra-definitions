@@ -10,70 +10,49 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const (
-	linuxTempDir = "/tmp"
-)
-
 type FileManager struct {
-	runner *Runner
+	runner  *Runner
+	command OSCommand
 }
 
 func NewFileManager(runner *Runner) *FileManager {
 	return &FileManager{
-		runner: runner,
+		runner:  runner,
+		command: runner.osCommand,
 	}
 }
 
 func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInput, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.runner.Command(name,
-		&Args{
-			Create: pulumi.Sprintf("mkdir -p %s", remotePath),
-			Delete: pulumi.Sprintf("rm -rf %s", remotePath),
-			Sudo:   useSudo,
-		}, opts...)
+	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
 }
 
-func (fm *FileManager) TempDirectory(name string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	tempDir := path.Join(linuxTempDir, name)
-	folderCmd, err := fm.CreateDirectory("tmpdir-"+name, pulumi.String(tempDir), false, opts...)
+func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+	tempDir := path.Join(fm.command.GetTemporaryDirectory(), resourceName)
+	folderCmd, err := fm.CreateDirectory("create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
 	return folderCmd, tempDir, err
+
 }
 
 func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return remote.NewCopyFile(fm.runner.e.Ctx, fm.runner.namer.ResourceName("copy", utils.StrHash(localPath, remotePath)), &remote.CopyFileArgs{
+	return remote.NewCopyFile(fm.runner.e.Ctx, fm.runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
 		Connection: fm.runner.config.connection,
 		LocalPath:  pulumi.String(localPath),
 		RemotePath: pulumi.String(remotePath),
+		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
 	}, opts...)
 }
 
 func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.updateInlineFile(name, fileContent, remotePath, useSudo, utils.WriteStringCommand(remotePath, useSudo), opts...)
+
+	return fm.command.CopyInlineFile(fm.runner, name, fileContent, remotePath, useSudo, false, opts...)
 }
 
 func (fm *FileManager) AppendInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.updateInlineFile(name, fileContent, remotePath, useSudo, utils.AppendStringCommand(remotePath, useSudo), opts...)
-}
-
-func (fm *FileManager) updateInlineFile(
-	name string,
-	fileContent pulumi.StringInput,
-	remotePath string,
-	useSudo bool,
-	createCmd pulumi.StringInput,
-	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.runner.Command(name,
-		&Args{
-			Create:   createCmd,
-			Stdin:    fileContent,
-			Sudo:     useSudo,
-			Triggers: pulumi.Array{pulumi.String(remotePath), fileContent, pulumi.BoolPtr(useSudo)},
-		}, opts...)
+	return fm.command.CopyInlineFile(fm.runner, name, fileContent, remotePath, useSudo, true, opts...)
 }
 
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.
@@ -98,7 +77,8 @@ func (fm *FileManager) CopyRelativeFolder(relativeFolder string, remoteFolder st
 func (fm *FileManager) CopyAbsoluteFolder(absoluteFolder string, remoteFolder string, opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
 	baseFolder := filepath.Base(absoluteFolder)
 	rootWithoutBase := absoluteFolder[:len(absoluteFolder)-len(baseFolder)]
-	return fm.CopyFSFolder(absoluteFolder, os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
+	// Use remoteFolder as `absoluteFolder` may be a random file path that is different for each run.
+	return fm.CopyFSFolder(remoteFolder, os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
 }
 
 // CopyRelativeFile copies relative path to a remote path.
@@ -159,7 +139,7 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 		fileCommand, err := fm.CopyInlineFile(
-			resourceName+"-"+file,
+			resourceName+"-"+destFile, // Use destfile as `file` may be a random file path that is different for each run
 			pulumi.String(fileContent),
 			path.Join(remoteFolder, destFile),
 			useSudo,

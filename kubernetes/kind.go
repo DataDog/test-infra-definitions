@@ -45,7 +45,7 @@ func NewKindCluster(vm *vm.UnixVM, clusterName, arch string) (*remote.Command, e
 	}
 
 	clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", clusterName)
-	fileManager := command.NewFileManager(runner)
+	fileManager := vm.GetFileManager()
 	clusterConfig, err := fileManager.CopyInlineFile(
 		commonEnvironment.CommonNamer.ResourceName("kind-cluster-config", clusterName),
 		pulumi.String(kindClusterConfig),

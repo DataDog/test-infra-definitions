@@ -154,13 +154,14 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 			return nil, err
 		}
 
+		osCommand := command.NewUnixOSCommand()
 		instance.remoteRunner, err = command.NewRunner(*e.CommonEnvironment, instance.instanceNamer.ResourceName("conn"), instance.Connection, func(r *command.Runner) (*remote.Command, error) {
 			return command.WaitForCloudInit(r)
-		}, command.WithUser("libvirt-qemu"))
+		}, osCommand, command.WithUser("libvirt-qemu"))
 		if err != nil {
 			return nil, err
 		}
-		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment)
+		instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment, osCommand)
 
 		if shouldProvision {
 			waitProvision, err := provisionInstance(instance, &m)

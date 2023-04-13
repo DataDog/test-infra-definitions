@@ -22,13 +22,17 @@ services:
 	defaultAgentImageTag  = "latest"
 )
 
-func DockerFullImagePath(e *config.CommonEnvironment) string {
+func DockerFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
 	}
 
-	return utils.BuildDockerImagePath(DefaultAgentImageRepo, DockerImageTag(e))
+	if repositoryPath == "" {
+		repositoryPath = DefaultAgentImageRepo
+	}
+
+	return utils.BuildDockerImagePath(repositoryPath, DockerImageTag(e))
 }
 
 func DockerImageTag(e *config.CommonEnvironment) string {

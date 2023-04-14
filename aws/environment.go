@@ -29,6 +29,7 @@ const (
 
 	// AWS ECS
 	ddInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
+	ddInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
 	ddInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
 	ddInfraEcsTaskRole                      = "aws/ecs/taskRole"
 	ddInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
@@ -156,6 +157,10 @@ func (e *Environment) DefaultShutdownBehavior() string {
 // ECS
 func (e *Environment) ECSExecKMSKeyID() string {
 	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsExecKMSKeyID, e.envDefault.ddInfra.ecs.execKMSKeyID)
+}
+
+func (e *Environment) ECSFargateFakeintakeClusterArn() string {
+	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
 }
 
 func (e *Environment) ECSTaskExecutionRole() string {

@@ -29,6 +29,7 @@ type genericVM struct {
 	stackKey    string
 }
 
+// NewGenericVM creates a generic VM and registers it into a pulumi context
 func NewGenericVM(
 	name string,
 	env config.Environment,

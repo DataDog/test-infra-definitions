@@ -7,13 +7,15 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/os"
+	"github.com/DataDog/test-infra-definitions/datadog/fakeintake"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type Params struct {
 	version          os.AgentVersion
 	agentConfig      string
 	integrations     map[string]string
-	extraAgentConfig []string
+	extraAgentConfig []pulumi.StringInput
 }
 
 func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
@@ -94,7 +96,20 @@ func WithTelemetry() func(*Params) error {
     metrics:
       - "*"
 `
-		p.extraAgentConfig = append(p.extraAgentConfig, "telemetry.enabled: true")
+		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("telemetry.enabled: true"))
 		return WithIntegration("openmetrics.d", config)(p)
+	}
+}
+
+func WithFakeintake(fakeintake fakeintake.PulumiData) func(*Params) error {
+	return func(p *Params) error {
+		// configure metrics and check run intake
+		extraConfig := pulumi.Sprintf(`dd_url: http://%s:80
+logs_config.logs_dd_url: %s:80
+logs_config.logs_no_ssl: true
+logs_config.force_use_http: true
+logs_enabled: true`, fakeintake.Url, fakeintake.Url)
+		p.extraAgentConfig = append(p.extraAgentConfig, extraConfig)
+		return nil
 	}
 }

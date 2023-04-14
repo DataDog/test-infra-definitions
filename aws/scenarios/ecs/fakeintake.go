@@ -14,7 +14,7 @@ func NewEcsFakeintake(vm *ec2vm.EC2UnixVM) (exporter *ddfakeintake.PulumiExporte
 		return nil, err
 	}
 
-	exporter = ddfakeintake.NewExporter(vm.GetAwsEnvironment().Ctx, ddfakeintake.PulumiData{Url: ipAddress})
+	exporter = ddfakeintake.NewExporter(vm.GetAwsEnvironment().Ctx, ddfakeintake.PulumiData{URL: ipAddress})
 
 	return
 }

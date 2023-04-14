@@ -108,7 +108,7 @@ func WithFakeintake(fakeintake fakeintake.PulumiData) func(*Params) error {
 logs_config.logs_dd_url: %s:80
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true
-logs_enabled: true`, fakeintake.Url, fakeintake.Url)
+logs_enabled: true`, fakeintake.URL, fakeintake.URL)
 		p.extraAgentConfig = append(p.extraAgentConfig, extraConfig)
 		return nil
 	}

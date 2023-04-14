@@ -14,7 +14,7 @@ const (
 
 // PulumiData pulumi side data
 type PulumiData struct {
-	Url pulumi.StringInput
+	URL pulumi.StringInput
 }
 
 type exporter struct {
@@ -23,7 +23,7 @@ type exporter struct {
 
 // ClientData client side data
 type ClientData struct {
-	Url string
+	URL string
 }
 
 // GetClientDataDeserializer
@@ -37,7 +37,7 @@ func (exporter *exporter) GetClientDataDeserializer() func(auto.UpResult) (*Clie
 		if !ok {
 			return nil, fmt.Errorf("the type %v is not valid for the key %v", reflect.TypeOf(outputs.Value), exporter.stackKey)
 		}
-		return &ClientData{Url: url}, nil
+		return &ClientData{URL: url}, nil
 	}
 }
 
@@ -48,7 +48,7 @@ type PulumiExporter struct {
 
 // NewExporter registers a fakeintake url into a Pulumi context.
 func NewExporter(ctx *pulumi.Context, data PulumiData) *PulumiExporter {
-	ctx.Export(stackKey, data.Url)
+	ctx.Export(stackKey, data.URL)
 	return &PulumiExporter{
 		exporter: &exporter{
 			stackKey: stackKey,

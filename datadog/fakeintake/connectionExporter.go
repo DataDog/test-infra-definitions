@@ -12,12 +12,9 @@ const (
 	stackKey = "fakeintake-url"
 )
 
-// PulumiData pulumi side data
-type PulumiData struct {
-	URL pulumi.StringInput
-}
-
-type exporter struct {
+// ConnectionExporter contains pulumi side data and the export key
+type ConnectionExporter struct {
+	URL      pulumi.StringInput
 	stackKey string
 }
 
@@ -27,7 +24,7 @@ type ClientData struct {
 }
 
 // GetClientDataDeserializer
-func (exporter *exporter) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
+func (exporter *ConnectionExporter) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
 	return func(result auto.UpResult) (*ClientData, error) {
 		outputs, found := result.Outputs[exporter.stackKey]
 		if !found {
@@ -41,18 +38,11 @@ func (exporter *exporter) GetClientDataDeserializer() func(auto.UpResult) (*Clie
 	}
 }
 
-type PulumiExporter struct {
-	*exporter
-	PulumiData
-}
-
 // NewExporter registers a fakeintake url into a Pulumi context.
-func NewExporter(ctx *pulumi.Context, data PulumiData) *PulumiExporter {
-	ctx.Export(stackKey, data.URL)
-	return &PulumiExporter{
-		exporter: &exporter{
-			stackKey: stackKey,
-		},
-		PulumiData: data,
+func NewExporter(ctx *pulumi.Context, url pulumi.StringInput) *ConnectionExporter {
+	ctx.Export(stackKey, url)
+	return &ConnectionExporter{
+		stackKey: stackKey,
+		URL:      url,
 	}
 }

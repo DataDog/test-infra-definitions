@@ -101,15 +101,21 @@ func WithTelemetry() func(*Params) error {
 	}
 }
 
-func WithFakeintake(fakeintake fakeintake.PulumiData) func(*Params) error {
+func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
 	return func(p *Params) error {
 		// configure metrics and check run intake
 		extraConfig := pulumi.Sprintf(`dd_url: http://%s:80
 logs_config.logs_dd_url: %s:80
 logs_config.logs_no_ssl: true
-logs_config.force_use_http: true
-logs_enabled: true`, fakeintake.URL, fakeintake.URL)
+logs_config.force_use_http: true`, fakeintake.URL, fakeintake.URL)
 		p.extraAgentConfig = append(p.extraAgentConfig, extraConfig)
+		return nil
+	}
+}
+
+func WithLogs() func(*Params) error {
+	return func(p *Params) error {
+		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("logs_enabled: true"))
 		return nil
 	}
 }

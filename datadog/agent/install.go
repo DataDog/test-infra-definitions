@@ -43,8 +43,8 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, err
 	}
 
-	var configHash pulumi.StringInput
-	lastCommand, configHash, err = updateAgentConfig(
+	var updateConfigTriggers pulumi.StringArrayInput
+	lastCommand, updateConfigTriggers, err = updateAgentConfig(
 		commonNamer,
 		vm.GetFileManager(),
 		env,
@@ -72,7 +72,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 			restartAgentRes,
 			&command.Args{
 				Create:   cmdPulumiStr,
-				Triggers: pulumi.Array{utils.PulumiStrHash(cmdPulumiStr, configHash, pulumi.String(integsHash))},
+				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTriggers, pulumi.String(integsHash)},
 			}, utils.PulumiDependsOn(lastCommand))
 	}
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
@@ -85,7 +85,7 @@ func updateAgentConfig(
 	agentConfig string,
 	extraAgentConfig []pulumi.StringInput,
 	os os.OS,
-	lastCommand *remote.Command) (*remote.Command, pulumi.StringInput, error) {
+	lastCommand *remote.Command) (*remote.Command, pulumi.StringArrayInput, error) {
 	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
 	var err error
 	var parts = []pulumi.StringInput{pulumi.String(agentConfig)}
@@ -101,7 +101,7 @@ func updateAgentConfig(
 			true,
 			utils.PulumiDependsOn(lastCommand))
 		if err != nil {
-			return nil, pulumi.String(""), err
+			return nil, pulumi.StringArray{}, err
 		}
 	}
 
@@ -114,10 +114,10 @@ func updateAgentConfig(
 			true,
 			utils.PulumiDependsOn(lastCommand))
 		if err != nil {
-			return nil, pulumi.String(""), err
+			return nil, pulumi.StringArray{}, err
 		}
 	}
-	return lastCommand, utils.PulumiStrHash(parts...), nil
+	return lastCommand, pulumi.StringArray(parts), nil
 }
 
 func installIntegrations(

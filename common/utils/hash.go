@@ -5,8 +5,6 @@ import (
 	"hash/fnv"
 	"io"
 	"os"
-
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func FileHash(filePath string) (string, error) {
@@ -31,14 +29,4 @@ func StrHash(all ...string) string {
 	}
 
 	return fmt.Sprintf("%x", h.Sum64())
-}
-
-func PulumiStrHash(all ...pulumi.StringInput) pulumi.StringInput {
-	return pulumi.All(all).ApplyT(func(args []interface{}) string {
-		allStr := make([]string, len(args))
-		for i, arg := range args {
-			allStr[i] = fmt.Sprintf("%s", arg)
-		}
-		return StrHash(allStr...)
-	}).(pulumi.StringOutput)
 }

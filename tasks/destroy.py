@@ -1,10 +1,12 @@
 from invoke import task
 import subprocess
-from . import deploy
+from .deploy import get_stack_name_prefix
 from .tool import *
+from invoke.context import Context
+from typing import Optional, List
 
 @task(help={'stack': "The name of the stack to destroy."})
-def destroy(ctx, stack=None):
+def destroy(ctx: Context, stack:Optional[str]=None):
     """
     Destroy an environment
     """
@@ -38,14 +40,14 @@ def destroy(ctx, stack=None):
             ])
 
 
-def _get_existing_stacks():
+def _get_existing_stacks() -> List[str]:
     output = subprocess.check_output(["pulumi", "stack", "ls", "--all"])
     output = output.decode('utf-8')
     lines = output.splitlines()
     lines = lines[1:]  # skip headers
-    stacks = []
+    stacks: List[str] = []
     for line in lines:
         stack_name = line.split(" ")[0]
-        if stack_name.startswith(deploy.stack_name_prefix):
+        if stack_name.startswith(get_stack_name_prefix()):
             stacks.append(stack_name)
     return stacks

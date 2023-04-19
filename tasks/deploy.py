@@ -4,20 +4,22 @@ import invoke
 import getpass
 import subprocess
 import shlex
+from invoke.context import Context
+from typing import Optional, Dict, Any
 
 def deploy(
-          ctx, 
-          scenario_name, 
-          install_agent=None, 
-          agent_version=None):
+          ctx: Context, 
+          scenario_name: str, 
+          install_agent: Optional[bool]=None, 
+          agent_version: Optional[str]=None):
     flags = {}
     flags["scenario"] = scenario_name
     flags["ddagent:deploy"] = install_agent
-    flags["ddagent:version"] = agent_version
+    flags["ddagent:version"] = agent_version    
     _deploy_with_config(ctx, flags)
 
 
-def _deploy_with_config(ctx, flags):
+def _deploy_with_config(ctx: Context, flags: Dict[str, Any]) -> None:
     cfg = config.get_config()
     flags["ddinfra:aws/defaultKeyPairName"] = cfg["aws_key_pair"]
     flags["ddinfra:env"] = "aws/sandbox"
@@ -39,7 +41,7 @@ def _deploy_with_config(ctx, flags):
         raise invoke.Exit(f"Error when running {cmd_args}: {e}")
 
 
-def _get_api_key():    
+def _get_api_key() -> str:    
     api_key = os.getenv("DD_API_KEY")
     if api_key is None or len(api_key) != 32:
         raise invoke.Exit("Invalid API KEY. You must define the environment variable 'DD_API_KEY'. " +
@@ -47,9 +49,10 @@ def _get_api_key():
     return api_key
 
 
-stack_name_prefix = "invoke-"
+def get_stack_name_prefix() -> str:
+    return "invoke-"
 
 
-def _get_stack_name(scenario_name):    
+def _get_stack_name(scenario_name: str) -> str:    
     scenario_name = scenario_name.replace("/", "-")
-    return f"{stack_name_prefix}{scenario_name}-{getpass.getuser()}"
+    return f"{get_stack_name_prefix()}{scenario_name}-{getpass.getuser()}"

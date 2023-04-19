@@ -4,8 +4,9 @@ import os
 import json
 from pathlib import Path
 from .tool import *
+from typing import List, Any
 
-def get_config():
+def get_config() -> Any:
     config_filename = ".test-infra"
     config_path = Path.home().joinpath(config_filename)
     try:
@@ -24,7 +25,7 @@ def get_config():
         raise invoke.Exit(f"Cannot find the configuration located at {config_path}")
     
 
-def check_key_pair(key_pair_to_search):
+def check_key_pair(key_pair_to_search: str):
     output = ""
     try:
         output = subprocess.check_output(['ssh-add', '-L'])
@@ -32,7 +33,7 @@ def check_key_pair(key_pair_to_search):
         # if ssh-add is not there don't display a warnings     
         return
 
-    key_pairs = []
+    key_pairs: List[str] = []
     output = output.decode('utf-8')
     for line in output.splitlines():
         parts = line.split(' ')
@@ -42,6 +43,6 @@ def check_key_pair(key_pair_to_search):
             key_pairs.append(key_pair)
             
     if key_pair_to_search not in key_pairs:
-        warn(f"Your key pair value '{key_pair}' is not find in ssh-agent. " + 
+        warn(f"Your key pair value '{key_pair_to_search}' is not find in ssh-agent. " + 
                       f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}")
     

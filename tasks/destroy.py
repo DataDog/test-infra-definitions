@@ -29,7 +29,7 @@ def destroy(ctx: Context, stack: Optional[str] = None):
     if stack == None:
         error("Run this command with '--stack MY_STACK_NAME'. Available stacks are:")
         for stack_name in stacks:
-            error(" - " + stack_name)
+            error(f" {stack_name}")
     else:
         subprocess.call(
             [

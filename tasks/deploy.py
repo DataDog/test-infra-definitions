@@ -11,6 +11,7 @@ from typing import Optional, Dict, Any
 def deploy(
     ctx: Context,
     scenario_name: str,
+    stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
 ):
@@ -18,10 +19,12 @@ def deploy(
     flags["scenario"] = scenario_name
     flags["ddagent:deploy"] = install_agent
     flags["ddagent:version"] = agent_version
-    _deploy_with_config(ctx, flags)
+    _deploy_with_config(ctx, stack_name, flags)
 
 
-def _deploy_with_config(ctx: Context, flags: Dict[str, Any]) -> None:
+def _deploy_with_config(
+    ctx: Context, stack_name: Optional[str], flags: Dict[str, Any]
+) -> None:
     cfg = config.get_config()
     flags["ddinfra:aws/defaultKeyPairName"] = cfg.key_pair
     flags["ddinfra:env"] = "aws/sandbox"
@@ -34,7 +37,7 @@ def _deploy_with_config(ctx: Context, flags: Dict[str, Any]) -> None:
         if value is not None and value != "":
             cmd_args.append("-c")
             cmd_args.append(shlex.quote(f"{key}={value}"))
-    cmd_args.extend(["-s", _get_stack_name(flags["scenario"])])
+    cmd_args.extend(["-s", _get_stack_name(stack_name, flags["scenario"])])
 
     try:
         # use subprocess instead of context to allow interaction with pulumi up
@@ -57,6 +60,8 @@ def get_stack_name_prefix() -> str:
     return "invoke-"
 
 
-def _get_stack_name(scenario_name: str) -> str:
-    scenario_name = scenario_name.replace("/", "-")
-    return f"{get_stack_name_prefix()}{scenario_name}-{getpass.getuser()}"
+def _get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
+    if stack_name is None:
+        scenario_name = scenario_name.replace("/", "-")
+        stack_name = f"{scenario_name}-{getpass.getuser()}"
+    return f"{get_stack_name_prefix()}{stack_name}"

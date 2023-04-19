@@ -5,12 +5,13 @@ from .tool import *
 from invoke.context import Context
 from typing import Optional, List
 
-@task(help={'stack': "The name of the stack to destroy."})
-def destroy(ctx: Context, stack:Optional[str]=None):
+
+@task(help={"stack": "The name of the stack to destroy."})
+def destroy(ctx: Context, stack: Optional[str] = None):
     """
     Destroy an environment
     """
-    
+
     stacks = _get_existing_stacks()
 
     if len(stacks) == 0:
@@ -30,19 +31,25 @@ def destroy(ctx: Context, stack:Optional[str]=None):
         for stack_name in stacks:
             error(" - " + stack_name)
     else:
-        status = subprocess.call([
-            "aws-vault", "exec", "sandbox-account-admin", "--",
-            "pulumi", "destroy", "-s", stack
-        ])
+        status = subprocess.call(
+            [
+                "aws-vault",
+                "exec",
+                "sandbox-account-admin",
+                "--",
+                "pulumi",
+                "destroy",
+                "-s",
+                stack,
+            ]
+        )
         if status == 0:
-            status = subprocess.call([
-                "pulumi", "stack", "rm", "-s", stack, "-y"
-            ])
+            status = subprocess.call(["pulumi", "stack", "rm", "-s", stack, "-y"])
 
 
 def _get_existing_stacks() -> List[str]:
     output = subprocess.check_output(["pulumi", "stack", "ls", "--all"])
-    output = output.decode('utf-8')
+    output = output.decode("utf-8")
     lines = output.splitlines()
     lines = lines[1:]  # skip headers
     stacks: List[str] = []

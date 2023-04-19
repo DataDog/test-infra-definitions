@@ -6,6 +6,7 @@ import subprocess
 import shlex
 from invoke.context import Context
 from typing import Optional, Dict, Any
+import pathlib
 
 
 def deploy(
@@ -38,12 +39,18 @@ def _deploy_with_config(
             cmd_args.append("-c")
             cmd_args.append(shlex.quote(f"{key}={value}"))
     cmd_args.extend(["-s", _get_stack_name(stack_name, flags["scenario"])])
+    cmd_args.extend(["-C", _get_root_path()])
 
     try:
         # use subprocess instead of context to allow interaction with pulumi up
         subprocess.check_call(cmd_args)
     except Exception as e:
         raise invoke.Exit(f"Error when running {cmd_args}: {e}")
+
+
+def _get_root_path() -> str:
+    folder = pathlib.Path(__file__).parent.resolve()
+    return str(folder.parent)
 
 
 def _get_api_key() -> str:

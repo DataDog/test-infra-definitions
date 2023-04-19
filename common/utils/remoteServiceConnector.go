@@ -50,13 +50,13 @@ func NewRemoteServiceConnector[T any](ctx *pulumi.Context, initialValue T) *Remo
 // stackKeyName is the key in the stack name and should be unique
 // outputFieldName is the name of the field in the struct
 // value is the object to be saved in the stack
-func (s *RemoteServiceConnector[T]) Register(stackKeyName string, outputFieldName string, value pulumi.Input) {
-	s.ctx.Export(stackKeyName, value)
-	s.stackKeyFieldNameMap[stackKeyName] = outputFieldName
+func (c *RemoteServiceConnector[T]) Register(stackKeyName string, outputFieldName string, value pulumi.Input) {
+	c.ctx.Export(stackKeyName, value)
+	c.stackKeyFieldNameMap[stackKeyName] = outputFieldName
 }
 
-func (s *RemoteServiceConnector[T]) GetClientDataDeserializer() func(auto.UpResult) (*T, error) {
-	return s.deserializeFromUpResult
+func (c *RemoteServiceConnector[T]) GetClientDataDeserializer() func(auto.UpResult) (*T, error) {
+	return c.deserializeFromUpResult
 }
 
 func (c *RemoteServiceConnector[T]) deserializeFromUpResult(upResult auto.UpResult) (*T, error) {
@@ -80,7 +80,9 @@ func (c *RemoteServiceConnector[T]) deserializeFromUpResult(upResult auto.UpResu
 		}
 
 		if field.Kind() == reflect.Struct {
-			deserializeStruct(field, outputs)
+			if err := deserializeStruct(field, outputs); err != nil {
+				return nil, err
+			}
 		} else {
 			field.Set(reflect.ValueOf(outputs.Value))
 		}

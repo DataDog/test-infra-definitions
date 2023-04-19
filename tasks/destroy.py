@@ -31,7 +31,7 @@ def destroy(ctx: Context, stack: Optional[str] = None):
         for stack_name in stacks:
             error(" - " + stack_name)
     else:
-        status = subprocess.call(
+        subprocess.call(
             [
                 "aws-vault",
                 "exec",
@@ -39,12 +39,11 @@ def destroy(ctx: Context, stack: Optional[str] = None):
                 "--",
                 "pulumi",
                 "destroy",
+                "--remove",
                 "-s",
                 stack,
             ]
         )
-        if status == 0:
-            status = subprocess.call(["pulumi", "stack", "rm", "-s", stack, "-y"])
 
 
 def _get_existing_stacks() -> List[str]:

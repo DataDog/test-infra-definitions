@@ -33,6 +33,7 @@ type ddInfra struct {
 
 type ddInfraECS struct {
 	execKMSKeyID                  string
+	fargateFakeintakeClusterArn   string
 	taskExecutionRole             string
 	taskRole                      string
 	instanceProfile               string
@@ -79,15 +80,16 @@ func sandboxDefault() environmentDefault {
 			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
-				execKMSKeyID:               "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
-				taskExecutionRole:          "arn:aws:iam::601427279990:role/ecsExecTaskExecutionRole",
-				taskRole:                   "arn:aws:iam::601427279990:role/ecsExecTaskRole",
-				instanceProfile:            "arn:aws:iam::601427279990:instance-profile/ecsInstanceRole",
-				serviceAllocatePublicIP:    false,
-				fargateCapacityProvider:    true,
-				linuxECSOptimizedNodeGroup: true,
-				linuxBottlerocketNodeGroup: true,
-				windowsLTSCNodeGroup:       true,
+				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
+				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:601427279990:cluster/fakeintake-ecs",
+				taskExecutionRole:           "arn:aws:iam::601427279990:role/ecsExecTaskExecutionRole",
+				taskRole:                    "arn:aws:iam::601427279990:role/ecsExecTaskRole",
+				instanceProfile:             "arn:aws:iam::601427279990:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:     false,
+				fargateCapacityProvider:     true,
+				linuxECSOptimizedNodeGroup:  true,
+				linuxBottlerocketNodeGroup:  true,
+				windowsLTSCNodeGroup:        true,
 			},
 
 			eks: ddInfraEKS{
@@ -117,7 +119,9 @@ func agentQADefault() environmentDefault {
 			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
-				execKMSKeyID:               "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
+				execKMSKeyID: "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
+				// TODO add dedicated fargate cluster to agent/qa and add it here
+				// fargateFakeintakeClusterArn: "TODO",
 				taskExecutionRole:          "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
 				taskRole:                   "arn:aws:iam::669783387624:role/ecsTaskRole",
 				instanceProfile:            "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole-profile",

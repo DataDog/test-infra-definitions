@@ -14,7 +14,6 @@ const (
 )
 
 const (
-	FargateClusterArn     = "arn:aws:ecs:us-east-1:601427279990:cluster/fakeintake-ecs"
 	DefaultFakeintakePort = 80
 )
 

@@ -21,7 +21,7 @@ def deploy(
 
 def _deploy_with_config(ctx: Context, flags: Dict[str, Any]) -> None:
     cfg = config.get_config()
-    flags["ddinfra:aws/defaultKeyPairName"] = cfg["aws_key_pair"]
+    flags["ddinfra:aws/defaultKeyPairName"] = cfg.key_pair
     flags["ddinfra:env"] = "aws/sandbox"
     
     if "ddagent:deploy" in flags and flags["ddagent:deploy"] :

@@ -1,26 +1,30 @@
 import invoke
 import subprocess
 import os
-import json
+import yaml
 from pathlib import Path
 from .tool import *
-from typing import List, Any
+from typing import List
 
-def get_config() -> Any:
-    config_filename = ".test-infra"
+class Config:
+    key_pair: str
+
+def get_config() -> Config:
+    config_filename = ".test_infra_config.yaml"
     config_path = Path.home().joinpath(config_filename)
     try:
         with open(config_path) as f:
             content = f.read()
-            config = json.loads(content)
-            key = "aws_key_pair"
-            if key not in config:
-               raise invoke.Exit(f"Cannot find the mandatory key {key} in {config_path}")
-            else:
-                key_pair = config[key] 
-                check_key_pair(key_pair)                    
+            config_dict = yaml.load(content, Loader=yaml.Loader)
+            key_name = "ddinfra:aws/defaultKeyPairName"
+            if key_name not in config_dict:
+               raise invoke.Exit(f"Cannot find the mandatory key {key_name} in {config_path}")
+            key_pair = config_dict[key_name] 
+            check_key_pair(key_pair)                    
             
-            return config
+            c = Config()
+            c.key_pair = key_pair
+            return c
     except FileNotFoundError:
         raise invoke.Exit(f"Cannot find the configuration located at {config_path}")
     

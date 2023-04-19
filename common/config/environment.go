@@ -22,6 +22,7 @@ const (
 	// Infra namespace
 	ddInfraEnvironment       = "env"
 	ddInfraKubernetesVersion = "kubernetesVersion"
+	ddInfraOSType            = "osType"
 
 	// Agent Namespace
 	ddAgentDeployParamName        = "deploy"
@@ -51,6 +52,10 @@ func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 	envsStr := e.InfraConfig.Require(ddInfraEnvironment)
 	return strings.Split(envsStr, multiValueSeparator)
+}
+
+func (e *CommonEnvironment) InfraOSType() string {
+	return e.InfraConfig.Get(ddInfraOSType)
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {

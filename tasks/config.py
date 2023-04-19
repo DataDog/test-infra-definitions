@@ -9,6 +9,7 @@ from typing import List, Dict, Any, Optional
 
 class Config:
     key_pair: str
+    defaultPublicKeyPath: Optional[str]
 
 
 def get_config() -> Config:
@@ -27,8 +28,12 @@ def get_config() -> Config:
             if check_key_pair is not None and check_key_pair:
                 _check_key_pair(key_pair, config_path)
 
+            defaultPublicKeyPath = _get_optional_value(
+                "ddinfra:aws/defaultPublicKeyPath", config_dict
+            )
             c = Config()
             c.key_pair = key_pair
+            c.defaultPublicKeyPath = defaultPublicKeyPath
             return c
     except FileNotFoundError:
         raise invoke.Exit(f"Cannot find the configuration located at {config_path}")

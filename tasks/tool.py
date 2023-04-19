@@ -1,4 +1,5 @@
 from termcolor import colored
+from typing import List
 
 
 def info(msg: str):
@@ -11,3 +12,23 @@ def warn(msg: str):
 
 def error(msg: str):
     print(colored(msg, "red"))
+
+
+def get_os_types() -> List[str]:
+    return [
+        get_default_os_type(),
+        "Windows",
+        "AmazonLinux",
+        "Debian",
+        "RedHat",
+        "Suse",
+        "Fedora",
+    ]
+
+
+def get_default_os_type() -> str:
+    return "Ubuntu"
+
+
+def get_default_agent_install() -> bool:
+    return False

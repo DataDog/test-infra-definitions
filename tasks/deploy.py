@@ -1,4 +1,5 @@
 from . import config
+from .config import Config
 import os
 import invoke
 import getpass
@@ -7,6 +8,7 @@ import shlex
 from invoke.context import Context
 from typing import Optional, Dict, Any
 import pathlib
+from . import tool
 
 
 def deploy(
@@ -15,19 +17,44 @@ def deploy(
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
+    os_type: Optional[str] = None,
 ):
+    cfg = config.get_config()
     flags = {}
+
+    if install_agent is None:
+        install_agent = tool.get_default_agent_install()
+
+    os_type = _get_os_type(os_type)
+    default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
+    if os_type == "Windows" and cfg.defaultPublicKeyPath is None:
+        raise invoke.Exit(
+            f"You must set {default_public_path_key_name} when using this operating system"
+        )
+
+    flags[default_public_path_key_name] = cfg.defaultPublicKeyPath
     flags["scenario"] = scenario_name
     flags["ddagent:deploy"] = install_agent
     flags["ddagent:version"] = agent_version
-    _deploy_with_config(ctx, stack_name, flags)
+    flags["ddinfra:osType"] = os_type
+    _deploy(ctx, stack_name, cfg, flags)
 
 
-def _deploy_with_config(
-    ctx: Context, stack_name: Optional[str], flags: Dict[str, Any]
+def _get_os_type(os_type: Optional[str]) -> str:
+    os_types = tool.get_os_types()
+    if os_type is None:
+        os_type = tool.get_default_os_type()
+    if os_type not in os_types:
+        raise invoke.Exit(
+            f"the os type '{os_type}' is not supported. Possibles values are {os_types}"
+        )
+    return os_type
+
+
+def _deploy(
+    ctx: Context, stack_name: Optional[str], config: Config, flags: Dict[str, Any]
 ) -> None:
-    cfg = config.get_config()
-    flags["ddinfra:aws/defaultKeyPairName"] = cfg.key_pair
+    flags["ddinfra:aws/defaultKeyPairName"] = config.key_pair
     flags["ddinfra:env"] = "aws/sandbox"
 
     if "ddagent:deploy" in flags and flags["ddagent:deploy"]:

@@ -1,12 +1,8 @@
 package command
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/alessio/shellescape"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -22,44 +18,15 @@ type Args struct {
 	Sudo        bool
 }
 
-func (args *Args) toRemoteCommandArgs(config runnerConfiguration) *remote.CommandArgs {
-	var prefix string
-
-	if args.Sudo {
-		prefix = "sudo"
-	} else if config.user != "" {
-		prefix = fmt.Sprintf("sudo -u %s", config.user)
-	}
-
+func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
 	return &remote.CommandArgs{
 		Connection: config.connection,
-		Create:     args.buildCommandInput(args.Create, args.Environment, prefix),
-		Update:     args.buildCommandInput(args.Update, args.Environment, prefix),
-		Delete:     args.buildCommandInput(args.Delete, args.Environment, prefix),
+		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
+		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
+		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
 		Triggers:   args.Triggers,
 		Stdin:      args.Stdin,
 	}
-}
-
-func (args *Args) buildCommandInput(command pulumi.StringInput, env pulumi.StringMap, prefix string) pulumi.StringInput {
-	if command == nil {
-		return nil
-	}
-
-	var envVars pulumi.StringArray
-	for varName, varValue := range env {
-		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
-	}
-
-	envVarsStr := envVars.ToStringArrayOutput().ApplyT(func(inputs []string) string {
-		return strings.Join(inputs, " ")
-	}).(pulumi.StringOutput)
-
-	commandEscaped := command.ToStringOutput().ApplyT(func(command string) string {
-		return shellescape.Quote(command)
-	}).(pulumi.StringOutput)
-
-	return pulumi.Sprintf("%s %s bash -c %s", prefix, envVarsStr, commandEscaped)
 }
 
 type runnerConfiguration struct {
@@ -72,6 +39,7 @@ type Runner struct {
 	namer       namer.Namer
 	waitCommand *remote.Command
 	config      runnerConfiguration
+	osCommand   OSCommand
 }
 
 func WithUser(user string) func(*Runner) {
@@ -80,13 +48,20 @@ func WithUser(user string) func(*Runner) {
 	}
 }
 
-func NewRunner(e config.CommonEnvironment, connName string, conn remote.ConnectionInput, readyFunc func(*Runner) (*remote.Command, error), options ...func(*Runner)) (*Runner, error) {
+func NewRunner(
+	e config.CommonEnvironment,
+	connName string,
+	conn remote.ConnectionInput,
+	readyFunc func(*Runner) (*remote.Command, error),
+	osCommand OSCommand,
+	options ...func(*Runner)) (*Runner, error) {
 	runner := &Runner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx, "remote").WithPrefix(connName),
 		config: runnerConfiguration{
 			connection: conn,
 		},
+		osCommand: osCommand,
 	}
 
 	for _, opt := range options {
@@ -107,13 +82,14 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{r.waitCommand}))
 	}
 
-	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config), opts...)
+	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), opts...)
 }
 
 type LocalRunner struct {
-	e      config.CommonEnvironment
-	namer  namer.Namer
-	config runnerConfiguration
+	e         config.CommonEnvironment
+	namer     namer.Namer
+	config    runnerConfiguration
+	osCommand OSCommand
 }
 
 func WithLocalUser(user string) func(*LocalRunner) {
@@ -122,10 +98,11 @@ func WithLocalUser(user string) func(*LocalRunner) {
 	}
 }
 
-func NewLocalRunner(e config.CommonEnvironment, options ...func(*LocalRunner)) *LocalRunner {
+func NewLocalRunner(e config.CommonEnvironment, osCommand OSCommand, options ...func(*LocalRunner)) *LocalRunner {
 	localRunner := &LocalRunner{
-		e:     e,
-		namer: namer.NewNamer(e.Ctx, "local"),
+		e:         e,
+		namer:     namer.NewNamer(e.Ctx, "local"),
+		osCommand: osCommand,
 	}
 
 	for _, opt := range options {
@@ -135,23 +112,16 @@ func NewLocalRunner(e config.CommonEnvironment, options ...func(*LocalRunner)) *
 	return localRunner
 }
 
-func (args *Args) toLocalCommandArgs(config runnerConfiguration) *local.CommandArgs {
-	var prefix string
-	if args.Sudo {
-		prefix = "sudo"
-	} else if config.user != "" {
-		prefix = fmt.Sprintf("sudo -u %s", config.user)
-	}
-
+func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
 	return &local.CommandArgs{
-		Create:   args.buildCommandInput(args.Create, args.Environment, prefix),
-		Update:   args.buildCommandInput(args.Update, args.Environment, prefix),
-		Delete:   args.buildCommandInput(args.Delete, args.Environment, prefix),
+		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
+		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
+		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
 		Triggers: args.Triggers,
 		Stdin:    args.Stdin,
 	}
 }
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
-	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config), opts...)
+	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
 }

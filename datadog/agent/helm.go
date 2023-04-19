@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/helm"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
@@ -15,43 +16,7 @@ const (
 	DatadogHelmRepo = "https://helm.datadoghq.com"
 )
 
-var defaultAgentValues = pulumi.Map{
-	"datadog": pulumi.Map{
-		"apiKeyExistingSecret": pulumi.String("dd-datadog-credentials"),
-		"appKeyExistingSecret": pulumi.String("dd-datadog-credentials"),
-		"checksCardinality":    pulumi.String("high"),
-		"logs": pulumi.Map{
-			"enabled":             pulumi.Bool(true),
-			"containerCollectAll": pulumi.Bool(true),
-		},
-		"dogstatsd": pulumi.Map{
-			"originDetection": pulumi.Bool(true),
-			"tagCardinality":  pulumi.String("high"),
-			"useHostPort":     pulumi.Bool(true),
-		},
-		"apm": pulumi.Map{
-			"portEnabled": pulumi.Bool(true),
-		},
-		"processAgent": pulumi.Map{
-			"processCollection": pulumi.Bool(true),
-		},
-		"helmCheck": pulumi.Map{
-			"enabled": pulumi.Bool(true),
-		},
-	},
-	"clusterAgent": pulumi.Map{
-		"enabled": pulumi.Bool(true),
-		"metricsProvider": pulumi.Map{
-			"enabled":           pulumi.Bool(true),
-			"useDatadogMetrics": pulumi.Bool(true),
-		},
-	},
-	"clusterChecksRunner": pulumi.Map{
-		"enabled": pulumi.Bool(true),
-	},
-}
-
-func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, valueFiles []string) (*kubeHelm.Release, error) {
+func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, valuesFilepaths []string, opts ...pulumi.ResourceOption) (*kubeHelm.Release, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 
@@ -80,6 +45,64 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 		return nil, err
 	}
 
-	// Install Helm chart
-	return helm.NewInstallation(e, kubeProvider, DatadogHelmRepo, "datadog", "dd", namespace, defaultAgentValues, valueFiles, pulumi.DependsOn([]pulumi.Resource{ns, secret}))
+	// Compute some values
+	installName := "dda"
+	agentImagePath := DockerFullImagePath(&e, "")
+	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
+
+	opts = append(opts, utils.PulumiDependsOn(ns, secret))
+	return helm.NewInstallation(e, helm.InstallArgs{
+		KubernetesProvider: kubeProvider,
+		RepoURL:            DatadogHelmRepo,
+		ChartName:          "datadog",
+		InstallName:        installName,
+		Namespace:          namespace,
+		ValuesFilePaths:    valuesFilepaths,
+		Values:             buildDefaultHelmValues(installName, agentImagePath, agentImageTag),
+	}, opts...)
+}
+
+func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag string) pulumi.Map {
+	return pulumi.Map{
+		"datadog": pulumi.Map{
+			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
+			"appKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
+			"checksCardinality":    pulumi.String("high"),
+			"logs": pulumi.Map{
+				"enabled":             pulumi.Bool(true),
+				"containerCollectAll": pulumi.Bool(true),
+			},
+			"dogstatsd": pulumi.Map{
+				"originDetection": pulumi.Bool(true),
+				"tagCardinality":  pulumi.String("high"),
+				"useHostPort":     pulumi.Bool(true),
+			},
+			"apm": pulumi.Map{
+				"portEnabled": pulumi.Bool(true),
+			},
+			"processAgent": pulumi.Map{
+				"processCollection": pulumi.Bool(true),
+			},
+			"helmCheck": pulumi.Map{
+				"enabled": pulumi.Bool(true),
+			},
+		},
+		"agents": pulumi.Map{
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+		},
+		"clusterAgent": pulumi.Map{
+			"enabled": pulumi.Bool(true),
+			"metricsProvider": pulumi.Map{
+				"enabled":           pulumi.Bool(true),
+				"useDatadogMetrics": pulumi.Bool(true),
+			},
+		},
+		"clusterChecksRunner": pulumi.Map{
+			"enabled": pulumi.Bool(true),
+		},
+	}
 }

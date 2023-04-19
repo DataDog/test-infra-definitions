@@ -9,7 +9,6 @@ import (
 
 type UnixVM struct {
 	packageManager    command.PackageManager
-	fileManager       *command.FileManager
 	runner            *command.Runner
 	lazyDockerManager *command.DockerManager
 	VM
@@ -30,16 +29,11 @@ func NewUnixVM(vm VM) (*UnixVM, error) {
 		VM:             vm,
 		runner:         runner,
 		packageManager: packageManager,
-		fileManager:    command.NewFileManager(runner),
 	}, nil
 
 }
 func (vm *UnixVM) GetPackageManager() command.PackageManager {
 	return vm.packageManager
-}
-
-func (vm *UnixVM) GetFileManager() *command.FileManager {
-	return vm.fileManager
 }
 
 func (vm *UnixVM) GetLazyDocker() *command.DockerManager {

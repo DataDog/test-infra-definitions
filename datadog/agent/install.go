@@ -18,11 +18,10 @@ import (
 
 type Installer struct {
 	dependsOn pulumi.Resource
-	vm        *vm.UnixVM
+	vm        vm.VM
 }
 
-// Temporary requires vm.UnixVM until FileManager is available in VM
-func NewInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Installer, error) {
+func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) {
 	env := vm.GetCommonEnvironment()
 	params, err := newParams(env, options...)
 	if err != nil {

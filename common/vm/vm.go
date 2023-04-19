@@ -18,13 +18,15 @@ type VM interface {
 	GetCommonEnvironment() *config.CommonEnvironment
 	GetOS() commonos.OS
 	GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error)
+	GetFileManager() *command.FileManager
 }
 
 type genericVM struct {
-	runner   *command.Runner
-	env      *config.CommonEnvironment
-	os       commonos.OS
-	stackKey string
+	runner      *command.Runner
+	env         *config.CommonEnvironment
+	os          commonos.OS
+	fileManager *command.FileManager
+	stackKey    string
 }
 
 func NewGenericVM(
@@ -37,6 +39,7 @@ func NewGenericVM(
 	ctx := commonEnv.Ctx
 
 	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
+	var osCommand command.OSCommand
 	if os.GetType() == commonos.WindowsType {
 		readyFunc = func(r *command.Runner) (*remote.Command, error) {
 			// Wait until a command can be executed.
@@ -46,8 +49,12 @@ func NewGenericVM(
 					Create: pulumi.String(`Write-Host "Ready"`),
 				})
 		}
+		osCommand = command.NewWindowsOSCommand()
+	} else {
+		osCommand = command.NewUnixOSCommand()
 	}
-	connection, runner, err := createRunner(env, instanceIP, os.GetSSHUser(), readyFunc)
+
+	connection, runner, err := createRunner(env, instanceIP, os.GetSSHUser(), readyFunc, osCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -56,10 +63,11 @@ func NewGenericVM(
 	ctx.Export(stackKey, connection)
 
 	return &genericVM{
-		runner:   runner,
-		env:      commonEnv,
-		os:       os,
-		stackKey: stackKey,
+		runner:      runner,
+		env:         commonEnv,
+		os:          os,
+		stackKey:    stackKey,
+		fileManager: command.NewFileManager(runner),
 	}, nil
 }
 
@@ -86,11 +94,16 @@ func (vm *genericVM) GetOS() commonos.OS {
 	return vm.os
 }
 
+func (vm *genericVM) GetFileManager() *command.FileManager {
+	return vm.fileManager
+}
+
 func createRunner(
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	sshUser string,
 	readyFunc func(*command.Runner) (*remote.Command, error),
+	osCommand command.OSCommand,
 ) (remote.ConnectionOutput, *command.Runner, error) {
 	connection, err := createConnection(instanceIP, sshUser, env)
 	if err != nil {
@@ -102,7 +115,8 @@ func createRunner(
 		*commonEnv,
 		commonEnv.CommonNamer.ResourceName("connection"),
 		connection,
-		readyFunc)
+		readyFunc,
+		osCommand)
 	if err != nil {
 		return remote.ConnectionOutput{}, nil, err
 	}

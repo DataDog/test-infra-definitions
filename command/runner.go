@@ -1,6 +1,8 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
@@ -81,7 +83,9 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	if r.waitCommand != nil {
 		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{r.waitCommand}))
 	}
-
+	if args.Sudo && r.config.user != "" {
+		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
+	}
 	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), opts...)
 }
 

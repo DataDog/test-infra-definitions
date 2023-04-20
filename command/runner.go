@@ -1,12 +1,66 @@
 package command
 
 import (
+	"errors"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
+
+type AnywhereRunner struct {
+	remoteRunner *RemoteRunner
+	localRunner  *LocalRunner
+}
+
+func NewAnywhereRunner(options ...func(*AnywhereRunner)) *AnywhereRunner {
+	runner = AnywhereRunner{}
+
+	for _, opts := range options {
+		opts(&runner)
+	}
+
+	return &opts
+}
+
+func WithRemoteRunner(runner *RemoteRunner) func(*AnywhereRunner) {
+	return func(a *AnywhereRunner) {
+		a.remoteRunner = runner
+	}
+}
+
+func WithLocalRunner(runner *LocalRunner) func(*AnywhereRunner) {
+	return func(a *AnywhereRunner) {
+		a.localRunner = runner
+	}
+}
+
+func (a *AnywhereRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	if a.remoteRunner != nil {
+		return a.remoteRunner.Command(name, args, opts...)
+	}
+	if a.localRunner != nil {
+		return a.localRunner.Command(name, args, opts...)
+	}
+
+	panic("no runner initialized")
+}
+
+func (a *AnywhereRunner) RemoteCommand(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	if a.remoteRunner == nil {
+		return nil, errors.New("remote runner not initialized for AnywhereRunner instance")
+	}
+	return a.remoteRunner.Command(name, args, opts...)
+}
+
+func (a *AnywhereRunner) LocalCommand(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
+	if a.localRunner == nil {
+		return nil, errors.New("local runner not initialized for AnywhereRunner instance")
+	}
+	return a.localRunner.Command(name, args, opts...)
+}
 
 type Args struct {
 	Create      pulumi.StringInput
@@ -34,7 +88,7 @@ type runnerConfiguration struct {
 	connection remote.ConnectionInput
 }
 
-type Runner struct {
+type RemoteRunner struct {
 	e           config.CommonEnvironment
 	namer       namer.Namer
 	waitCommand *remote.Command
@@ -48,7 +102,7 @@ func WithUser(user string) func(*Runner) {
 	}
 }
 
-func NewRunner(
+func NewRemoteRunner(
 	e config.CommonEnvironment,
 	connName string,
 	conn remote.ConnectionInput,

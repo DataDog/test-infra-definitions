@@ -56,7 +56,7 @@ func getKernelVersionTestingWorkingDir(m *sconfig.DDMicroVMConfig) func() string
 	}
 }
 
-func downloadAndExtractKernelPackage(runner *command.Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func downloadAndExtractKernelPackage(runner *Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	kernelPackages := fmt.Sprintf("kernel-packages-%s.tar", arch)
 	kernelPackagesDownloadDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
 
@@ -80,7 +80,7 @@ func downloadAndExtractKernelPackage(runner *command.Runner, arch string, depend
 	return []pulumi.Resource{extractPackageDone}, nil
 }
 
-func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func copyKernelHeaders(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	kernelPackagesDownloadDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
 
 	copyKernelHeadersArgs := command.Args{
@@ -96,8 +96,12 @@ func copyKernelHeaders(runner *command.Runner, depends []pulumi.Resource) ([]pul
 	return []pulumi.Resource{copyKernelHeadersDone}, nil
 }
 
-func installPackages(runner *command.Runner) ([]pulumi.Resource, error) {
-	aptManager := os.NewAptManager(runner)
+func installPackages(runner *Runner) ([]pulumi.Resource, error) {
+	remoteRunner, err := runner.GetRemoteRunner()
+	if err != nil {
+		return []pulumi.Resource{}, fmt.Errorf("failed to install packages: %w", err)
+	}
+	aptManager := os.NewAptManager(remoteRunner)
 	installSocat, err := aptManager.Ensure("socat")
 	if err != nil {
 		return []pulumi.Resource{}, err
@@ -116,7 +120,7 @@ func installPackages(runner *command.Runner) ([]pulumi.Resource, error) {
 	return []pulumi.Resource{installLibVirt}, nil
 }
 
-func prepareLibvirtEnvironment(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func prepareLibvirtEnvironment(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	disableSELinux, err := runner.Command("disable-selinux-qemu", &disableSELinuxArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
@@ -130,7 +134,7 @@ func prepareLibvirtEnvironment(runner *command.Runner, depends []pulumi.Resource
 	return []pulumi.Resource{libvirtReady}, nil
 }
 
-func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	sshGenArgs := command.Args{
 		Create: pulumi.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", pair.privateKey, pair.publicKey, pair.privateKey, pair.publicKey),
 		Delete: pulumi.Sprintf("rm %s && rm %s", pair.privateKey, pair.publicKey),
@@ -159,7 +163,7 @@ func prepareLibvirtSSHKeys(runner *command.Runner, localRunner *command.LocalRun
 	return []pulumi.Resource{sshWrite}, nil
 }
 
-func buildDirectoryStructure(runner *command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func buildDirectoryStructure(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	kernelPackagesDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
 	rootfsDir := filepath.Join(GetWorkingDirectory(), "rootfs")
 
@@ -176,8 +180,8 @@ func buildDirectoryStructure(runner *command.Runner, depends []pulumi.Resource) 
 }
 
 // This function provisions the metal instance for setting up libvirt based micro-vms.
-func provisionInstance(instance *Instance, _ *sconfig.DDMicroVMConfig) ([]pulumi.Resource, error) {
-	runner := instance.remoteRunner
+func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
+	runner := instance.runner
 
 	packagesInstallDone, err := installPackages(runner)
 	if err != nil {
@@ -215,12 +219,12 @@ func provisionInstance(instance *Instance, _ *sconfig.DDMicroVMConfig) ([]pulumi
 }
 
 func setupKernelPackages(instance *Instance, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.remoteRunner, instance.Arch, depends)
+	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.runner, instance.Arch, depends)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	copyKernelHeadersDone, err := copyKernelHeaders(instance.remoteRunner, downloadKernelDone)
+	copyKernelHeadersDone, err := copyKernelHeaders(instance.runner, downloadKernelDone)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

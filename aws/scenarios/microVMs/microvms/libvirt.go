@@ -10,7 +10,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -58,7 +57,7 @@ func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) str
 	return fmt.Sprintf("%s-%s-%s-%d-%d", vmsetName, arch, tag, vcpu, memory)
 }
 
-func buildDomainSocket(runner *command.Runner, id, resourceName string, depends []pulumi.Resource) (*remote.Command, error) {
+func buildDomainSocket(runner *Runner, id, resourceName string, depends []pulumi.Resource) (pulumi.Resource, error) {
 	// build domain sockets for fetching logs
 	createDomainSocketArgs := command.Args{
 		Create: pulumi.Sprintf(domainSocketCreateCmd, id, id),
@@ -187,7 +186,7 @@ func buildDomainMatrices(instances map[string]*Instance, vmsets []vmconfig.VMSet
 		if err != nil {
 			return []*DomainMatrix{}, []pulumi.Resource{}, err
 		}
-		fsDone, err := fs.setupLibvirtFilesystem(instance.remoteRunner, depends)
+		fsDone, err := fs.setupLibvirtFilesystem(instance.runner, depends)
 		if err != nil {
 			return []*DomainMatrix{}, []pulumi.Resource{}, err
 		}
@@ -251,7 +250,7 @@ func setupLibvirtDomainMatrices(instances map[string]*Instance, vmsets []vmconfi
 		}
 		matrix.RecipeLibvirtDomainArgs.Volume = volume
 
-		createDomainSocketDone, err := buildDomainSocket(instance.remoteRunner,
+		createDomainSocketDone, err := buildDomainSocket(instance.runner,
 			matrix.domainID,
 			matrix.domainNamer.ResourceName("create-domain-socket"),
 			depends,

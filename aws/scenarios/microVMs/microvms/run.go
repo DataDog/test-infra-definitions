@@ -17,13 +17,13 @@ import (
 )
 
 type Instance struct {
+	e             *aws.Environment
 	ctx           *pulumi.Context
 	instance      *awsEc2.Instance
 	Connection    remote.ConnectionOutput
 	Arch          string
 	instanceNamer namer.Namer
-	remoteRunner  *command.Runner
-	localRunner   *command.LocalRunner
+	runner        *Runner
 	libvirtURI    pulumi.StringOutput
 	provider      *libvirt.Provider
 }
@@ -111,6 +111,7 @@ func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMCo
 	}
 
 	return &Instance{
+		e:             &e,
 		ctx:           e.Ctx,
 		instance:      awsInstance,
 		Connection:    conn.ToConnectionOutput(),
@@ -120,17 +121,18 @@ func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMCo
 }
 
 func newInstance(e aws.Environment, arch string, m config.DDMicroVMConfig) (*Instance, error) {
-	name = e.Ctx.Stack() + "-" + arch
+	name := e.Ctx.Stack() + "-" + arch
 	if arch != LocalVMSet {
 		return newMetalInstance(e, name, arch, m)
 	}
 
-	name := name.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
+	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
 	return &Instance{
+		e:             &e,
 		ctx:           e.Ctx,
 		Arch:          arch,
 		instanceNamer: namer,
-	}
+	}, nil
 }
 
 type ScenarioDone struct {
@@ -142,15 +144,17 @@ func defaultLibvirtSSHKey(keyname string) string {
 	return "/tmp/" + keyname
 }
 
-func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resource, error) {
+func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
-	var url pulumi.String
+	var url pulumi.StringOutput
+	var err error
 
+	env := *instance.e.CommonEnvironment
 	osCommand := command.NewUnixOSCommand()
-	instance.localRunner = command.NewLocalRunner(*e.CommonEnvironment, osCommand)
+	localRunner := command.NewLocalRunner(env, osCommand)
 	if instance.Arch != LocalVMSet {
-		instance.remoteRunner, err = command.NewRunner(
-			*e.CommonEnvironment,
+		remoteRunner, err := command.NewRunner(
+			env,
 			instance.instanceNamer.ResourceName("conn"),
 			instance.Connection,
 			func(r *command.Runner) (*remote.Command, error) {
@@ -162,11 +166,14 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 		if err != nil {
 			return nil, err
 		}
+		instance.runner = NewRunner(WithRemoteRunner(remoteRunner))
 	} else {
-		instance.remoteRunner = instance.localRunner
+		instance.runner = NewRunner(WithLocalRunner(localRunner))
 	}
+
+	shouldProvision := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionEC2Instance, true)
 	if shouldProvision {
-		waitProvision, err := provisionInstance(instance, &m)
+		waitProvision, err := provisionInstance(instance)
 		if err != nil {
 			return nil, err
 		}
@@ -175,10 +182,10 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 	}
 
 	if instance.Arch != LocalVMSet {
-		pair := getSSHKeyPairFiles(&m, instance.Arch)
+		pair := getSSHKeyPairFiles(m, instance.Arch)
 		prepareSSHKeysDone, err := prepareLibvirtSSHKeys(
-			instance.remoteRunner,
-			instance.localRunner,
+			instance.runner,
+			localRunner,
 			instance.instanceNamer,
 			pair,
 			[]pulumi.Resource{},
@@ -190,8 +197,8 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 
 		privkey := m.GetStringWithDefault(
 			m.MicroVMConfig,
-			config.SSHKeyConfigNames[arch],
-			defaultLibvirtSSHKey(SSHKeyFileNames[arch]),
+			config.SSHKeyConfigNames[instance.Arch],
+			defaultLibvirtSSHKey(SSHKeyFileNames[instance.Arch]),
 		)
 		url = pulumi.Sprintf(
 			"qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore",
@@ -200,7 +207,7 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 		)
 
 	} else {
-		url = pulumi.String("qemu:///system")
+		url = pulumi.Sprintf("qemu:///system")
 	}
 
 	instance.libvirtURI = url
@@ -210,6 +217,7 @@ func configureInstance(instance *Instance, shouldProvision bool) ([]pulumi.Resou
 }
 
 func run(e aws.Environment) (*ScenarioDone, error) {
+	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
 	m := config.NewMicroVMConfig(e)
@@ -221,7 +229,6 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 	}
 
 	GetWorkingDirectory = getKernelVersionTestingWorkingDir(&m)
-	shouldProvision := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionEC2Instance, true)
 
 	archs := make(map[string]bool)
 	for _, set := range cfg.VMSets {
@@ -242,13 +249,15 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 	}
 
 	for _, instance := range instances {
-		waitFor, err := configureInstance(instance, shouldProvision)
+		waitFor, err = configureInstance(instance, &m)
 		if err != nil {
 			return nil, fmt.Errorf("failed to configure instance: %w", err)
 		}
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
-		e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+		if instance.Arch != LocalVMSet {
+			e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+		}
 	}
 
 	var microVMIPMap map[string]string

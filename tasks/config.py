@@ -22,14 +22,14 @@ def get_config() -> Config:
             key_pair: str = _get_value(
                 "ddinfra:aws/defaultKeyPairName", config_dict, config_path
             )
-            check_key_pair: Optional[bool] = _get_optional_value(
-                "checkKeyPair", config_dict
+            should_check_key_pair: Optional[bool] = _get_optional_value(
+                "checkKeyPair", config_dict, False
             )
-            if check_key_pair is not None and check_key_pair:
+            if should_check_key_pair:
                 _check_key_pair(key_pair, config_path)
 
             defaultPublicKeyPath = _get_optional_value(
-                "ddinfra:aws/defaultPublicKeyPath", config_dict
+                "ddinfra:aws/defaultPublicKeyPath", config_dict, None
             )
             c = Config()
             c.key_pair = key_pair
@@ -45,9 +45,9 @@ def _get_value(key: str, config_dict: Dict[str, Any], config_path: Path) -> Any:
     return config_dict[key]
 
 
-def _get_optional_value(key: str, config_dict: Dict[str, Any]) -> Optional[Any]:
+def _get_optional_value(key: str, config_dict: Dict[str, Any], default: Any) -> Any:
     if key not in config_dict:
-        return None
+        return default
     return config_dict[key]
 
 

@@ -1,6 +1,8 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -32,19 +34,20 @@ func (fs windowsOSCommand) CreateDirectory(
 
 func (fs windowsOSCommand) CopyInlineFile(
 	runner *Runner,
-	name string,
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
-	append bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	flags := ""
-	if append {
-		flags = "-Append"
-	}
+	backupPath := remotePath + "." + backupExtension
+	backupCmd := fmt.Sprintf("if (Test-Path -Path '%v') { Move-Item -Force -Path '%v' -Destination '%v'}", remotePath, remotePath, backupPath)
+	createCmd := fmt.Sprintf(`%v; [System.Console]::In.ReadToEnd() | Out-File -FilePath '%v'`, backupCmd, remotePath)
 
-	createCmd := pulumi.Sprintf(`[System.Console]::In.ReadToEnd() | Out-File %v -FilePath %v`, flags, remotePath)
-	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
+	deleteMoveCmd := fmt.Sprintf(`Move-Item -Force -Path '%v' -Destination '%v'`, backupPath, remotePath)
+	deleteRemoveCmd := fmt.Sprintf(`Remove-Item -Force -Path '%v'`, remotePath)
+	deleteCmd := fmt.Sprintf("if (Test-Path -Path '%v') { %v } else { %v }", backupPath, deleteMoveCmd, deleteRemoveCmd)
+	// If the file was previously created, make sure to delete it before creating it.
+	opts = append(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
+	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs windowsOSCommand) GetTemporaryDirectory() string {

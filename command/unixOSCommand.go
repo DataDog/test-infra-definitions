@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/alessio/shellescape"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -39,19 +38,21 @@ func (unixOSCommand) CreateDirectory(
 
 func (unixOSCommand) CopyInlineFile(
 	runner *Runner,
-	name string,
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
-	append bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	var createCmd pulumi.StringInput
-	if append {
-		createCmd = utils.AppendStringCommand(remotePath, useSudo)
-	} else {
-		createCmd = utils.WriteStringCommand(remotePath, useSudo)
+
+	sudo := ""
+	if useSudo {
+		sudo = "sudo"
 	}
-	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
+	backupPath := remotePath + "." + backupExtension
+	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; fi", remotePath, sudo, remotePath, backupPath)
+	createCmd := fmt.Sprintf("(%v) && cat - | %s tee %s > /dev/null", backupCmd, sudo, remotePath)
+	deleteCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; else %v rm -f '%v'; fi", backupPath, sudo, backupPath, remotePath, sudo, remotePath)
+	opts = append(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
+	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs unixOSCommand) GetTemporaryDirectory() string {

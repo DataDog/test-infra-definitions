@@ -46,9 +46,9 @@ func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.Res
 	}, opts...)
 }
 
-func (fm *FileManager) CopyInlineFile(name string, fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	return fm.command.CopyInlineFile(fm.runner, name, fileContent, remotePath, useSudo, opts...)
+	return fm.command.CopyInlineFile(fm.runner, fileContent, remotePath, useSudo, opts...)
 }
 
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.
@@ -135,7 +135,6 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 		fileCommand, err := fm.CopyInlineFile(
-			resourceName+"-"+destFile, // Use destfile as `file` may be a random file path that is different for each run
 			pulumi.String(fileContent),
 			path.Join(remoteFolder, destFile),
 			useSudo,

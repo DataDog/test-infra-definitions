@@ -43,14 +43,9 @@ func (unixOSCommand) CopyInlineFile(
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
-	append bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	var createCmd pulumi.StringInput
-	if append {
-		createCmd = utils.AppendStringCommand(remotePath, useSudo)
-	} else {
-		createCmd = utils.WriteStringCommand(remotePath, useSudo)
-	}
+
+	createCmd := utils.WriteStringCommand(remotePath, useSudo)
 	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
 }
 

@@ -36,14 +36,8 @@ func (fs windowsOSCommand) CopyInlineFile(
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
-	append bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	flags := ""
-	if append {
-		flags = "-Append"
-	}
-
-	createCmd := pulumi.Sprintf(`[System.Console]::In.ReadToEnd() | Out-File %v -FilePath %v`, flags, remotePath)
+	createCmd := pulumi.Sprintf(`[System.Console]::In.ReadToEnd() | Out-File -FilePath %v`, remotePath)
 	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
 }
 

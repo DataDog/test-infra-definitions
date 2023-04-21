@@ -127,13 +127,24 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 		return nil, err
 	}
 
+	whoami, err := d.runner.Command(
+		d.namer.ResourceName("whoami"),
+		&Args{
+			Create: pulumi.String("whoami"),
+			Sudo:   false,
+		},
+		pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
+	if err != nil {
+		return nil, err
+	}
+
 	usermod, err := d.runner.Command(
 		d.namer.ResourceName("group"),
 		&Args{
-			Create: pulumi.String("usermod -a -G docker $(whoami)"),
+			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami),
 			Sudo:   true,
 		},
-		pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
+		pulumi.DependsOn([]pulumi.Resource{whoami}))
 	if err != nil {
 		return nil, err
 	}

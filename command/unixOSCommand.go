@@ -59,24 +59,29 @@ func (fs unixOSCommand) GetTemporaryDirectory() string {
 }
 
 func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo bool, user string) pulumi.StringInput {
-	var prefix string
-
-	if sudo {
-		prefix = "sudo"
-	} else if user != "" {
-		prefix = fmt.Sprintf("sudo -u %s", user)
-	}
+	formattedCommand := formatCommandIfNeeded(command, sudo, user)
 
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {
 		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
 	}
 
-	return buildCommandString(command, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
-		commandEscaped := command.ToStringOutput().ApplyT(func(command string) string {
-			return shellescape.Quote(command)
-		}).(pulumi.StringOutput)
-
-		return pulumi.Sprintf("%s %s bash -c %s", prefix, envVarsStr, commandEscaped)
+	return buildCommandString(formattedCommand, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
+		return pulumi.Sprintf("%s %s", envVarsStr, formattedCommand)
 	})
+}
+
+func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, user string) pulumi.StringInput {
+	if !sudo && user == "" {
+		return command
+	}
+	var formattedCommand pulumi.StringInput
+	if sudo {
+		formattedCommand = pulumi.Sprintf("sudo %s", command)
+	} else if user != "" {
+		formattedCommand = command.ToStringOutput().ApplyT(func(cmd string) string {
+			return fmt.Sprintf("sudo -u %s bash -c %s", user, shellescape.Quote(cmd))
+		}).(pulumi.StringOutput)
+	}
+	return formattedCommand
 }

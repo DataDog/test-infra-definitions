@@ -51,6 +51,7 @@ func (unixOSCommand) CopyInlineFile(
 	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; fi", remotePath, sudo, remotePath, backupPath)
 	createCmd := fmt.Sprintf("(%v) && cat - | %s tee %s > /dev/null", backupCmd, sudo, remotePath)
 	deleteCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; else %v rm -f '%v'; fi", backupPath, sudo, backupPath, remotePath, sudo, remotePath)
+	opts = append(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
 	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 

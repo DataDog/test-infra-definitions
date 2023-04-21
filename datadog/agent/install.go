@@ -43,7 +43,6 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 
 	var updateConfigTrigger pulumi.StringInput
 	lastCommand, updateConfigTrigger, err = updateAgentConfig(
-		commonNamer,
 		vm.GetFileManager(),
 		env,
 		params.agentConfig,

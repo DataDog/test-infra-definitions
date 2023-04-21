@@ -66,9 +66,6 @@ func copyInlineFile(
 	createCmd string,
 	deleteCmd string,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	// If the file was previously created, make sure to delete it before creating it.
-	opts = append(opts, pulumi.DeleteBeforeReplace(true))
-
 	return runner.Command(runner.namer.ResourceName("copy-file-support-only-single-call-per-path", name),
 		&Args{
 			Create:   pulumi.String(createCmd),

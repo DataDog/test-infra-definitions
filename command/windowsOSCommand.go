@@ -1,6 +1,8 @@
 package command
 
 import (
+	"fmt"
+
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -37,8 +39,14 @@ func (fs windowsOSCommand) CopyInlineFile(
 	remotePath string,
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	createCmd := pulumi.Sprintf(`[System.Console]::In.ReadToEnd() | Out-File -FilePath %v`, remotePath)
-	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, opts...)
+	backupPath := remotePath + "." + backupExtension
+	backupCmd := fmt.Sprintf("if (Test-Path -Path '%v') { Move-Item -Force -Path '%v' -Destination '%v'}", remotePath, remotePath, backupPath)
+	createCmd := fmt.Sprintf(`%v; [System.Console]::In.ReadToEnd() | Out-File -FilePath '%v'`, backupCmd, remotePath)
+
+	deleteMoveCmd := fmt.Sprintf(`Move-Item -Force -Path '%v' -Destination '%v'`, backupPath, remotePath)
+	deleteRemoveCmd := fmt.Sprintf(`Remove-Item -Force -Path '%v'`, remotePath)
+	deleteCmd := fmt.Sprintf("if (Test-Path -Path '%v') { %v } else { %v }", backupPath, deleteMoveCmd, deleteRemoveCmd)
+	return copyInlineFile(name, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs windowsOSCommand) GetTemporaryDirectory() string {

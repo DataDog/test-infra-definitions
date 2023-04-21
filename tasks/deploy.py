@@ -10,34 +10,38 @@ from typing import Optional, Dict, Any
 import pathlib
 from . import tool
 
+default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
+
 
 def deploy(
-    ctx: Context,
+    _: Context,
     scenario_name: str,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
     os_type: Optional[str] = None,
 ):
-    cfg = config.get_config()
     flags = {}
 
     if install_agent is None:
         install_agent = tool.get_default_agent_install()
+    flags["ddagent:deploy"] = install_agent
 
     os_type = _get_os_type(os_type)
-    default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
-    if os_type == "Windows" and cfg.defaultPublicKeyPath is None:
-        raise invoke.Exit(
-            f"You must set {default_public_path_key_name} when using this operating system"
-        )
-
-    flags[default_public_path_key_name] = cfg.defaultPublicKeyPath
-    flags["scenario"] = scenario_name
-    flags["ddagent:deploy"] = install_agent
-    flags["ddagent:version"] = agent_version
     flags["ddinfra:osType"] = os_type
-    _deploy(ctx, stack_name, cfg, flags)
+
+    cfg = config.get_config()
+    flags[default_public_path_key_name] = _default_public_path_key_name(cfg, os_type)
+    flags["scenario"] = scenario_name
+    flags["ddagent:version"] = agent_version
+
+    flags["ddinfra:aws/defaultKeyPairName"] = cfg.key_pair
+    flags["ddinfra:env"] = "aws/sandbox"
+
+    if install_agent:
+        flags["ddagent:apiKey"] = _get_api_key()
+
+    _deploy(stack_name, flags)
 
 
 def _get_os_type(os_type: Optional[str]) -> str:
@@ -51,15 +55,15 @@ def _get_os_type(os_type: Optional[str]) -> str:
     return os_type
 
 
-def _deploy(
-    ctx: Context, stack_name: Optional[str], config: Config, flags: Dict[str, Any]
-) -> None:
-    flags["ddinfra:aws/defaultKeyPairName"] = config.key_pair
-    flags["ddinfra:env"] = "aws/sandbox"
+def _default_public_path_key_name(cfg: Config, os_type: str) -> Optional[str]:
+    if os_type == "Windows" and cfg.defaultPublicKeyPath is None:
+        raise invoke.Exit(
+            f"You must set {default_public_path_key_name} when using this operating system"
+        )
+    return cfg.defaultPublicKeyPath
 
-    if "ddagent:deploy" in flags and flags["ddagent:deploy"]:
-        flags["ddagent:apiKey"] = _get_api_key()
 
+def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
     cmd_args = ["aws-vault", "exec", "sandbox-account-admin", "--", "pulumi", "up"]
     for key, value in flags.items():
         if value is not None and value != "":

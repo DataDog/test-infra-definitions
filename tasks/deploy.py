@@ -19,6 +19,7 @@ def deploy(
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
     os_type: Optional[str] = None,
+    debug: Optional[bool] = False,
 ):
     flags = {}
 
@@ -40,7 +41,7 @@ def deploy(
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key()
 
-    _deploy(stack_name, flags)
+    _deploy(stack_name, flags, debug)
 
 
 def _get_os_type(os_type: Optional[str]) -> str:
@@ -62,7 +63,7 @@ def _default_public_path_key_name(cfg: Config, os_type: str) -> Optional[str]:
     return cfg.defaultPublicKeyPath
 
 
-def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
+def _deploy(stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> None:
     cmd_args = ["aws-vault", "exec", "sandbox-account-admin", "--", "pulumi", "up"]
     for key, value in flags.items():
         if value is not None and value != "":
@@ -70,6 +71,9 @@ def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
             cmd_args.append(f"{key}={value}")
     cmd_args.extend(["-s", _get_stack_name(stack_name, flags["scenario"])])
     cmd_args.extend(["-C", _get_root_path()])
+
+    if debug:
+        cmd_args.extend(["-v", "3", "--debug"])
 
     try:
         # use subprocess instead of context to allow interaction with pulumi up

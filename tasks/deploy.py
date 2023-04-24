@@ -4,7 +4,6 @@ import os
 import invoke
 import getpass
 import subprocess
-import shlex
 from invoke.context import Context
 from typing import Optional, Dict, Any
 import pathlib
@@ -68,7 +67,7 @@ def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
     for key, value in flags.items():
         if value is not None and value != "":
             cmd_args.append("-c")
-            cmd_args.append(shlex.quote(f"{key}={value}"))
+            cmd_args.append(f"{key}={value}")
     cmd_args.extend(["-s", _get_stack_name(stack_name, flags["scenario"])])
     cmd_args.extend(["-C", _get_root_path()])
 

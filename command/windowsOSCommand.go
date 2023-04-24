@@ -56,9 +56,6 @@ func (fs windowsOSCommand) BuildCommandString(
 	env pulumi.StringMap,
 	_ bool,
 	_ string) pulumi.StringInput {
-	if command == nil {
-		return nil
-	}
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {
 		envVars = append(envVars, pulumi.Sprintf(`$env:%v = '%v'; `, varName, varValue))

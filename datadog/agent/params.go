@@ -40,22 +40,33 @@ func WithLatest() func(*Params) error {
 // WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0~rc.7-1`
 func WithVersion(version string) func(*Params) error {
 	return func(p *Params) error {
-		prefix := "7."
-		if strings.HasPrefix(version, prefix) {
-			p.version.Major = "7"
-		} else {
-			prefix = "6."
-			if strings.HasPrefix(version, prefix) {
-				p.version.Major = "6"
-			} else {
-				return fmt.Errorf("invalid version of the Agent: %v. The Agent version should starts with `7.` or `6.`", version)
-			}
-		}
+		v, err := parseVersion(version)
 
-		p.version.Minor = strings.TrimPrefix(version, prefix)
-		p.version.BetaChannel = strings.Contains(version, "~")
+		if err != nil {
+			return err
+		}
+		p.version = v
+
 		return nil
 	}
+}
+
+func parseVersion(s string) (os.AgentVersion, error) {
+	version := os.AgentVersion{}
+	prefix := "7."
+	if strings.HasPrefix(s, prefix) {
+		version.Major = "7"
+	} else {
+		prefix = "6."
+		if strings.HasPrefix(s, prefix) {
+			version.Major = "6"
+		} else {
+			return version, fmt.Errorf("invalid version of the Agent: %v. The Agent version should starts with `7.` or `6.`", s)
+		}
+	}
+	version.Minor = strings.TrimPrefix(s, prefix)
+	version.BetaChannel = strings.Contains(s, "~")
+	return version, nil
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.

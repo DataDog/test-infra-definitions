@@ -27,6 +27,7 @@ type genericVM struct {
 	os          commonos.OS
 	fileManager *command.FileManager
 	stackKey    string
+	*utils.RemoteServiceConnector[ClientData]
 }
 
 // NewGenericVM creates a generic VM and registers it into a pulumi context
@@ -61,26 +62,21 @@ func NewGenericVM(
 	}
 
 	stackKey := fmt.Sprintf("%v-connection", name)
-	ctx.Export(stackKey, connection)
 
+	remoteServiceConnector := utils.NewRemoteServiceConnector(ctx, ClientData{})
+	remoteServiceConnector.Register(stackKey, "Connection", connection)
 	return &genericVM{
-		runner:      runner,
-		env:         commonEnv,
-		os:          os,
-		stackKey:    stackKey,
-		fileManager: command.NewFileManager(runner),
+		runner:                 runner,
+		env:                    commonEnv,
+		os:                     os,
+		stackKey:               stackKey,
+		fileManager:            command.NewFileManager(runner),
+		RemoteServiceConnector: remoteServiceConnector,
 	}, nil
 }
 
 type ClientData struct {
 	Connection utils.Connection
-}
-
-func (vm *genericVM) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
-	return func(result auto.UpResult) (*ClientData, error) {
-		connection, err := utils.NewConnection(result, vm.stackKey)
-		return &ClientData{Connection: connection}, err
-	}
 }
 
 func (vm *genericVM) GetRunner() *command.Runner {

@@ -32,11 +32,16 @@ func getNextVMSubnet(ip net.IP) net.IP {
 	return ipv4
 }
 
-func generateNewUnicastMac(ctx *pulumi.Context, domainID string) (pulumi.StringOutput, error) {
+func generateNewUnicastMac(ctx *pulumi.Context, namer namer.Namer, domainID string) (pulumi.StringOutput, error) {
+	randomProvider, err := random.NewProvider(ctx, namer.ResourceName("random-provider-"+domainID), nil)
+	if err != nil {
+		return pulumi.StringOutput{}, err
+	}
+
 	pulumiRandStr, err := random.NewRandomString(ctx, "random-"+domainID, &random.RandomStringArgs{
 		Length:  pulumi.Int(6),
 		Special: pulumi.Bool(true),
-	})
+	}, pulumi.Provider(randomProvider))
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
@@ -142,7 +147,7 @@ func buildDomainMatrix(ctx *pulumi.Context, vcpu, memory int, setName, machine s
 	matrix.instance = instance
 	matrix.domainName = fmt.Sprintf("ddvm-%s", matrix.domainID)
 
-	mac, err := generateNewUnicastMac(ctx, matrix.domainID)
+	mac, err := generateNewUnicastMac(ctx, instance.instanceNamer, matrix.domainID)
 	if err != nil {
 		return nil, err
 	}

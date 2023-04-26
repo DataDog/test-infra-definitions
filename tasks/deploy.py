@@ -89,10 +89,10 @@ def _get_root_path() -> str:
 
 
 def _get_api_key() -> str:
-    api_key = os.getenv("DD_API_KEY")
+    api_key = os.getenv("E2E_API_KEY")
     if api_key is None or len(api_key) != 32:
         raise invoke.Exit(
-            "Invalid API KEY. You must define the environment variable 'DD_API_KEY'. "
+            "Invalid API KEY. You must define the environment variable 'E2E_API_KEY'. "
             + "If you don't want an agent installation add '--no-install-agent'."
         )
     return api_key

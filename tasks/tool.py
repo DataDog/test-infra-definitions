@@ -14,9 +14,9 @@ def error(msg: str):
     print(colored(msg, "red"))
 
 
-def get_os_types() -> List[str]:
+def get_os_families() -> List[str]:
     return [
-        get_default_os_type(),
+        get_default_os_family(),
         "Windows",
         "AmazonLinux",
         "Debian",
@@ -26,7 +26,7 @@ def get_os_types() -> List[str]:
     ]
 
 
-def get_default_os_type() -> str:
+def get_default_os_family() -> str:
     return "Ubuntu"
 
 

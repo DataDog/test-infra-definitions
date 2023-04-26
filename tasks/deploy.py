@@ -18,7 +18,7 @@ def deploy(
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
-    os_type: Optional[str] = None,
+    os_family: Optional[str] = None,
 ):
     flags = {}
 
@@ -26,11 +26,11 @@ def deploy(
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
 
-    os_type = _get_os_type(os_type)
-    flags["ddinfra:osType"] = os_type
+    os_family = _get_os_family(os_family)
+    flags["ddinfra:osFamily"] = os_family
 
     cfg = config.get_config()
-    flags[default_public_path_key_name] = _default_public_path_key_name(cfg, os_type)
+    flags[default_public_path_key_name] = _default_public_path_key_name(cfg, os_family)
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
@@ -43,10 +43,10 @@ def deploy(
     _deploy(stack_name, flags)
 
 
-def _get_os_type(os_type: Optional[str]) -> str:
-    os_types = tool.get_os_types()
+def _get_os_family(os_type: Optional[str]) -> str:
+    os_types = tool.get_os_families()
     if os_type is None:
-        os_type = tool.get_default_os_type()
+        os_type = tool.get_default_os_family()
     if os_type not in os_types:
         raise invoke.Exit(
             f"the os type '{os_type}' is not supported. Possibles values are {os_types}"

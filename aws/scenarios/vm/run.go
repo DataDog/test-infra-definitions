@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"strings"
 
 	ec2vm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm/ec2VM"
 	ec2os "github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
@@ -15,21 +16,21 @@ func Run(ctx *pulumi.Context) error {
 	env := config.NewCommonEnvironment(ctx)
 	var osType ec2os.Type
 
-	osTypeStr := env.InfraOSType()
+	osTypeStr := strings.ToLower(env.InfraOSFamily())
 	switch osTypeStr {
-	case "Windows":
+	case "windows":
 		osType = ec2os.WindowsOS
-	case "Ubuntu":
+	case "ubuntu":
 		osType = ec2os.UbuntuOS
-	case "AmazonLinux":
+	case "amazonlinux":
 		osType = ec2os.AmazonLinuxOS
-	case "Debian":
+	case "debian":
 		osType = ec2os.DebianOS
-	case "RedHat":
+	case "redhat":
 		osType = ec2os.RedHatOS
-	case "Suse":
+	case "suse":
 		osType = ec2os.SuseOS
-	case "Fedora":
+	case "fedora":
 		osType = ec2os.FedoraOS
 	default:
 		return fmt.Errorf("the os type '%v' is not valid", osTypeStr)

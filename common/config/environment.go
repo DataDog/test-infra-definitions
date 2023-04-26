@@ -22,7 +22,7 @@ const (
 	// Infra namespace
 	ddInfraEnvironment       = "env"
 	ddInfraKubernetesVersion = "kubernetesVersion"
-	ddInfraOSType            = "osType"
+	ddInfraOSFamily          = "osFamily"
 
 	// Agent Namespace
 	ddAgentDeployParamName        = "deploy"
@@ -54,8 +54,8 @@ func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 	return strings.Split(envsStr, multiValueSeparator)
 }
 
-func (e *CommonEnvironment) InfraOSType() string {
-	return e.InfraConfig.Get(ddInfraOSType)
+func (e *CommonEnvironment) InfraOSFamily() string {
+	return e.InfraConfig.Get(ddInfraOSFamily)
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {

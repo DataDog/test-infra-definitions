@@ -5,7 +5,7 @@ import invoke
 import getpass
 import subprocess
 from invoke.context import Context
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 import pathlib
 from . import tool
 
@@ -15,6 +15,7 @@ default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 def deploy(
     _: Context,
     scenario_name: str,
+    key_pair_required: bool = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
@@ -34,12 +35,15 @@ def deploy(
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
-    flags["ddinfra:aws/defaultKeyPairName"] = cfg.get_infra_aws().defaultKeyPairName
+    defaultKeyPairName = cfg.get_infra_aws().defaultKeyPairName
+    flags["ddinfra:aws/defaultKeyPairName"] = defaultKeyPairName
     flags["ddinfra:env"] = "aws/sandbox"
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key()
 
+    if key_pair_required and cfg.get_options().checkKeyPair:
+        _check_key_pair(defaultKeyPairName)
     _deploy(stack_name, flags)
 
 
@@ -92,6 +96,25 @@ def _get_api_key() -> str:
             + "If you don't want an agent installation add '--no-install-agent'."
         )
     return api_key
+
+
+def _check_key_pair(key_pair_to_search: Optional[str]):
+    output = subprocess.check_output(["ssh-add", "-L"])
+    key_pairs: List[str] = []
+    output = output.decode("utf-8")
+    for line in output.splitlines():
+        parts = line.split(" ")
+        if len(parts) > 0:
+            key_pair_path = os.path.basename(parts[-1])
+            key_pair = os.path.splitext(key_pair_path)[0]
+            key_pairs.append(key_pair)
+
+    if key_pair_to_search not in key_pairs:
+        raise invoke.Exit(
+            f"Your key pair value '{key_pair_to_search}' is not find in ssh-agent. "
+            + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
+            + f"You can skip this check by setting `checkKeyPair: false` in the config"
+        )
 
 
 def get_stack_name_prefix() -> str:

@@ -1,10 +1,8 @@
 import invoke
-import subprocess
-import os
 import yaml
 from pathlib import Path
 from .tool import *
-from typing import List, Optional
+from typing import Optional
 from pydantic import BaseModel, Extra, ValidationError
 
 
@@ -32,7 +30,9 @@ class Config(BaseModel, extra=Extra.forbid):
         return self.options
 
     def get_infra_aws(self) -> Params.DDInfra.Aws:
-        default = Config.Params.DDInfra.Aws(defaultKeyPairName=None, defaultPublicKeyPath=None)
+        default = Config.Params.DDInfra.Aws(
+            defaultKeyPairName=None, defaultPublicKeyPath=None
+        )
         if self.stackParams == None:
             return default
         if self.stackParams.ddinfra == None:
@@ -55,22 +55,3 @@ def get_config() -> Config:
         raise invoke.Exit(f"Cannot find the configuration located at {config_path}")
     except ValidationError as e:
         raise invoke.Exit(f"Error in config {config_path}:{e}")
-
-
-def _check_key_pair(key_pair_to_search: str, config_path: Path):
-    output = subprocess.check_output(["ssh-add", "-L"])
-    key_pairs: List[str] = []
-    output = output.decode("utf-8")
-    for line in output.splitlines():
-        parts = line.split(" ")
-        if len(parts) > 0:
-            key_pair_path = os.path.basename(parts[-1])
-            key_pair = os.path.splitext(key_pair_path)[0]
-            key_pairs.append(key_pair)
-
-    if key_pair_to_search not in key_pairs:
-        raise invoke.Exit(
-            f"Your key pair value '{key_pair_to_search}' is not find in ssh-agent. "
-            + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
-            + f"You can skip this check by setting `checkKeyPair: false` in {config_path}"
-        )

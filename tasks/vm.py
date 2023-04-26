@@ -26,6 +26,7 @@ def vm(
     deploy(
         ctx,
         "aws/vm",
+        key_pair_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
         agent_version=agent_version,

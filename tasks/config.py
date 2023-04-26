@@ -4,12 +4,41 @@ import os
 import yaml
 from pathlib import Path
 from .tool import *
-from typing import List, Dict, Any, Optional
+from typing import List, Optional
+from pydantic import BaseModel, Extra, ValidationError
 
 
-class Config:
-    key_pair: str
-    defaultPublicKeyPath: Optional[str]
+class Config(BaseModel, extra=Extra.forbid):
+    class Params(BaseModel, extra=Extra.forbid):
+        class DDInfra(BaseModel, extra=Extra.forbid):
+            class Aws(BaseModel, extra=Extra.forbid):
+                defaultKeyPairName: Optional[str]
+                defaultPublicKeyPath: Optional[str]
+
+            aws: Optional[Aws]
+
+        ddinfra: Optional[DDInfra]
+
+    stackParams: Optional[Params]
+
+    class Options(BaseModel, extra=Extra.forbid):
+        checkKeyPair: bool
+
+    options: Optional[Options]
+
+    def get_options(self) -> Options:
+        if self.options is None:
+            return Config.Options()
+        return self.options
+
+    def get_infra_aws(self) -> Params.DDInfra.Aws:
+        if self.stackParams == None:
+            return Config.Params.DDInfra.Aws()
+        if self.stackParams.ddinfra == None:
+            return Config.Params.DDInfra.Aws()
+        if self.stackParams.ddinfra.aws is None:
+            return Config.Params.DDInfra.Aws()
+        return self.stackParams.ddinfra.aws
 
 
 def get_config() -> Config:
@@ -19,36 +48,12 @@ def get_config() -> Config:
         with open(config_path) as f:
             content = f.read()
             config_dict = yaml.load(content, Loader=yaml.Loader)
-            key_pair: str = _get_value(
-                "ddinfra:aws/defaultKeyPairName", config_dict, config_path
-            )
-            should_check_key_pair: Optional[bool] = _get_optional_value(
-                "checkKeyPair", config_dict, False
-            )
-            if should_check_key_pair:
-                _check_key_pair(key_pair, config_path)
+            return Config.parse_obj(config_dict)
 
-            defaultPublicKeyPath = _get_optional_value(
-                "ddinfra:aws/defaultPublicKeyPath", config_dict, None
-            )
-            c = Config()
-            c.key_pair = key_pair
-            c.defaultPublicKeyPath = defaultPublicKeyPath
-            return c
     except FileNotFoundError:
         raise invoke.Exit(f"Cannot find the configuration located at {config_path}")
-
-
-def _get_value(key: str, config_dict: Dict[str, Any], config_path: Path) -> Any:
-    if key not in config_dict:
-        raise invoke.Exit(f"Cannot find the mandatory key {key} in {config_path}")
-    return config_dict[key]
-
-
-def _get_optional_value(key: str, config_dict: Dict[str, Any], default: Any) -> Any:
-    if key not in config_dict:
-        return default
-    return config_dict[key]
+    except ValidationError as e:
+        raise invoke.Exit(f"Error in config {config_path}:{e}")
 
 
 def _check_key_pair(key_pair_to_search: str, config_path: Path):

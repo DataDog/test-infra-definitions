@@ -34,7 +34,7 @@ def deploy(
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
-    flags["ddinfra:aws/defaultKeyPairName"] = cfg.key_pair
+    flags["ddinfra:aws/defaultKeyPairName"] = cfg.get_infra_aws().defaultKeyPairName
     flags["ddinfra:env"] = "aws/sandbox"
 
     if install_agent:
@@ -54,12 +54,13 @@ def _get_os_family(os_type: Optional[str]) -> str:
     return os_type
 
 
-def _default_public_path_key_name(cfg: Config, os_type: str) -> Optional[str]:
-    if os_type == "Windows" and cfg.defaultPublicKeyPath is None:
+def _default_public_path_key_name(cfg: Config, os_family: str) -> Optional[str]:
+    defaultPublicKeyPath = cfg.get_infra_aws().defaultPublicKeyPath
+    if os_family == "Windows" and defaultPublicKeyPath is None:
         raise invoke.Exit(
             f"You must set {default_public_path_key_name} when using this operating system"
         )
-    return cfg.defaultPublicKeyPath
+    return defaultPublicKeyPath
 
 
 def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:

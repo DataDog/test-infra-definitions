@@ -28,16 +28,17 @@ class Config(BaseModel, extra=Extra.forbid):
 
     def get_options(self) -> Options:
         if self.options is None:
-            return Config.Options()
+            return Config.Options(checkKeyPair=False)
         return self.options
 
     def get_infra_aws(self) -> Params.DDInfra.Aws:
+        default = Config.Params.DDInfra.Aws(defaultKeyPairName=None, defaultPublicKeyPath=None)
         if self.stackParams == None:
-            return Config.Params.DDInfra.Aws()
+            return default
         if self.stackParams.ddinfra == None:
-            return Config.Params.DDInfra.Aws()
+            return default
         if self.stackParams.ddinfra.aws is None:
-            return Config.Params.DDInfra.Aws()
+            return default
         return self.stackParams.ddinfra.aws
 
 

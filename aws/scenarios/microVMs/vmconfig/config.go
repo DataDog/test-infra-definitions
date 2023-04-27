@@ -1,5 +1,7 @@
 package vmconfig
 
+type VMSetID string
+
 type Kernel struct {
 	Dir         string            `json:"dir"`
 	Tag         string            `json:"tag"`
@@ -21,6 +23,7 @@ type VMSet struct {
 	Img     Image    `json:"image"`
 	Machine string   `json:"machine,omitempty"`
 	Arch    string
+	ID      VMSetID `json:"omitempty"`
 }
 
 type Config struct {

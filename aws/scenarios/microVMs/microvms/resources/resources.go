@@ -8,7 +8,6 @@ import (
 )
 
 const (
-	DomainName    = "domainName"
 	SharedFSMount = "sharedFSMount"
 	DomainID      = "domainID"
 	MACAddress    = "mac"

@@ -12,7 +12,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
-	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -25,7 +24,6 @@ type Instance struct {
 	instanceNamer namer.Namer
 	runner        *Runner
 	libvirtURI    pulumi.StringOutput
-	provider      *libvirt.Provider
 }
 
 type sshKeyPair struct {
@@ -260,12 +258,16 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		}
 	}
 
-	var microVMIPMap map[string]string
-	scenarioReady.Dependencies, microVMIPMap, err = setupLibvirtVMWithRecipe(instances, cfg.VMSets, waitFor)
+	vmCollections, waitFor, err := BuildVMCollections(instances, cfg.VMSets, waitFor)
+	if err != nil {
+		return nil, err
+	}
+	scenarioReady.Dependencies, err = LaunchVMCollections(vmCollections, waitFor)
 	if err != nil {
 		return nil, err
 	}
 
+	microVMIPMap := GetDomainIPMap(vmCollections)
 	for domainID, ip := range microVMIPMap {
 		e.Ctx.Export(domainID, pulumi.String(ip))
 	}

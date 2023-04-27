@@ -66,7 +66,7 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {
-		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
+		envVars = append(envVars, pulumi.Sprintf(`%v="%v"`, varName, varValue))
 	}
 
 	return buildCommandString(formattedCommand, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
@@ -84,10 +84,10 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, user string) p
 	}
 	var formattedCommand pulumi.StringInput
 	if sudo {
-		formattedCommand = pulumi.Sprintf("sudo %s", command)
+		formattedCommand = pulumi.Sprintf("sudo %v", command)
 	} else if user != "" {
 		formattedCommand = command.ToStringOutput().ApplyT(func(cmd string) string {
-			return fmt.Sprintf("sudo -u %s bash -c %s", user, shellescape.Quote(cmd))
+			return fmt.Sprintf("sudo -u %v bash -c %v", user, shellescape.Quote(cmd))
 		}).(pulumi.StringOutput)
 	}
 	return formattedCommand

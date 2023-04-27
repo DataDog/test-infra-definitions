@@ -26,11 +26,15 @@ func (unixOSCommand) CreateDirectory(
 	remotePath pulumi.StringInput,
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
+
+	createCmd := fmt.Sprintf("mkdir -p %v", remotePath)
+	deleteCmd := fmt.Sprintf("bash -c 'if [ -z '$(ls -A %v)' ]; then rm -d %v; fi'", remotePath, remotePath)
+	// check if directory already exist
 	return createDirectory(
 		runner,
 		name,
-		"mkdir -p %s",
-		"rm -rf %s",
+		createCmd,
+		deleteCmd,
 		remotePath,
 		useSudo,
 		opts...)

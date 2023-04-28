@@ -344,27 +344,5 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
-	//	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolName, &libvirt.PoolArgs{
-	//		Type: pulumi.String("dir"),
-	//		Path: pulumi.String(generatePoolPath(fs.poolName)),
-	//	}, pulumi.Provider(provider))
-	//	if err != nil {
-	//		return []pulumi.Resource{}, err
-	//	}
-	//	waitFor = append(waitFor, poolReady)
-	//
-	//	for _, fsImage := range fs.images {
-	//		stgvolReady, err := libvirt.NewVolume(fs.ctx, fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &libvirt.VolumeArgs{
-	//			Pool:   pulumi.String(fs.poolName),
-	//			Source: pulumi.String(fsImage.imagePath),
-	//			Xml:    pulumi.StringOutput(fsImage.volumeXML),
-	//		}, pulumi.Provider(provider))
-	//		if err != nil {
-	//			return []pulumi.Resource{}, err
-	//		}
-	//
-	//		waitFor = append(waitFor, stgvolReady)
-	//	}
-
 	return waitFor, nil
 }

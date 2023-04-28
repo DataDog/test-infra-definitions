@@ -37,7 +37,7 @@ type LibvirtFilesystem struct {
 }
 
 func generatePoolPath(name string) string {
-	return "/pool/" + name + "/"
+	return "/home/kernel-version-testing/libvirt/pools/" + name + "/"
 }
 
 func generateVolumeKey(pool, volName string) string {
@@ -165,8 +165,8 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 				downloadCmd = fmt.Sprintf("%s && mv %s %s", refreshCmd, url.Path, fsImage.imagePath)
 			} else {
 
-				downloadCmd = "true"
-				//		downloadCmd = refreshCmd
+				//			downloadCmd = "true"
+				downloadCmd = refreshCmd
 			}
 		} else {
 			downloadCmd = fmt.Sprintf("curl -o %s %s", fsImage.imagePath, fsImage.imageSource)

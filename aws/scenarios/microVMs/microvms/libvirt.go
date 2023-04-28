@@ -18,7 +18,7 @@ const (
 	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
 
-func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
+func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
 
 	// Collect all DHCP entries in a single string to be
 	// formatted in network XML.
@@ -45,7 +45,7 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, re
 		Xml: libvirt.NetworkXmlArgs{
 			Xslt: netXML,
 		},
-	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true))
+	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(depends))
 	if err != nil {
 		return nil, err
 	}
@@ -125,13 +125,13 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	return waitFor, nil
 }
 
-func (vm *VMCollection) SetupCollectionDomainConfigurations(ip *net.IP) error {
+func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource, ip *net.IP) error {
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
 			return fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.ctx, vm.libvirtProvider, &set, fs, ip)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.ctx, vm.libvirtProvider, depends, &set, fs, ip)
 		if err != nil {
 			return err
 		}
@@ -142,7 +142,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(ip *net.IP) error {
 	return nil
 }
 
-func (vm *VMCollection) SetupCollectionNetwork() error {
+func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error {
 	var dhcpEntries []interface{}
 	var err error
 
@@ -151,7 +151,7 @@ func (vm *VMCollection) SetupCollectionNetwork() error {
 
 	}
 
-	network, err := generateNetworkResource(vm.instance.ctx, vm.libvirtProvider, vm.instance.instanceNamer, dhcpEntries)
+	network, err := generateNetworkResource(vm.instance.ctx, vm.libvirtProvider, depends, vm.instance.instanceNamer, dhcpEntries)
 	if err != nil {
 		return err
 	}
@@ -206,7 +206,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		waitFor = append(waitFor, wait...)
 
 		// build the configurations for all the domains of this collection
-		if err := collection.SetupCollectionDomainConfigurations(&ip); err != nil {
+		if err := collection.SetupCollectionDomainConfigurations(waitFor, &ip); err != nil {
 			return vmCollections, waitFor, err
 		}
 
@@ -224,7 +224,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		}
 
 		// setup the network for each collection
-		if err := collection.SetupCollectionNetwork(); err != nil {
+		if err := collection.SetupCollectionNetwork(waitFor); err != nil {
 			return vmCollections, waitFor, err
 		}
 	}

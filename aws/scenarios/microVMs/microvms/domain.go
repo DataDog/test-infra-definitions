@@ -99,12 +99,12 @@ func newDomainConfiguration(ctx *pulumi.Context, vcpu, memory int, setName, mach
 	return domain, nil
 }
 
-func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
+func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
 	volume, err := libvirt.NewVolume(ctx, resourceName, &libvirt.VolumeArgs{
 		BaseVolumeId: pulumi.String(baseVolumeID),
 		Pool:         pulumi.String(poolName),
 		Format:       pulumi.String("qcow2"),
-	}, pulumi.Provider(provider))
+	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +112,7 @@ func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, baseVolu
 	return volume, nil
 }
 
-func GenerateDomainConfigurationsForVMSet(ctx *pulumi.Context, provider *libvirt.Provider, set *vmconfig.VMSet, fs *LibvirtFilesystem, ip *net.IP) ([]*Domain, error) {
+func GenerateDomainConfigurationsForVMSet(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, ip *net.IP) ([]*Domain, error) {
 	var domains []*Domain
 
 	for _, vcpu := range set.VCpu {
@@ -134,6 +134,7 @@ func GenerateDomainConfigurationsForVMSet(ctx *pulumi.Context, provider *libvirt
 				domain.RecipeLibvirtDomainArgs.Volume, err = setupDomainVolume(
 					ctx,
 					provider,
+					depends,
 					fs.baseVolumeMap[kernel.Tag].volumeKey,
 					fs.poolName,
 					domain.domainNamer.ResourceName("volume", domain.domainID),

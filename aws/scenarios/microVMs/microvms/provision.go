@@ -36,13 +36,13 @@ var (
 	}
 
 	buildSharedDirArgs = command.Args{
-		Create: pulumi.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", sharedFSMountPoint),
+		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g $USER %s", sharedFSMountPoint),
 		Delete: pulumi.Sprintf("rm -rf %s", sharedFSMountPoint),
 		Sudo:   true,
 	}
 
 	buildKernelHeadersDirArgs = command.Args{
-		Create: pulumi.Sprintf("install -d -m 0777 -o libvirt-qemu -g kvm %s", kernelHeadersDir),
+		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g $USER %s", kernelHeadersDir),
 		Delete: pulumi.Sprintf("rm -rf %s", kernelHeadersDir),
 		Sudo:   true,
 	}
@@ -168,7 +168,7 @@ func buildDirectoryStructure(runner *Runner, depends []pulumi.Resource) ([]pulum
 	rootfsDir := filepath.Join(GetWorkingDirectory(), "rootfs")
 
 	buildDirectoryStructureArgs := command.Args{
-		Create: pulumi.Sprintf("install -d -m 0755 -o libvirt-qemu -g kvm %s && install -d -m 0755 -o libvirt-qemu -g kvm %s", kernelPackagesDir, rootfsDir),
+		Create: pulumi.Sprintf("install -d -m 0755 -o $USER -g kvm %s && install -d -m 0755 -o $USER -g kvm %s", kernelPackagesDir, rootfsDir),
 		Sudo:   true,
 	}
 	buildDirectoryStructureDone, err := runner.Command("build-directory-structure", &buildDirectoryStructureArgs, pulumi.DependsOn(depends))

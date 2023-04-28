@@ -40,13 +40,13 @@ var (
 	}
 
 	buildSharedDirArgs = command.Args{
-		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g $USER %s", sharedFSMountPoint),
+		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g libvirt %s", sharedFSMountPoint),
 		Delete: pulumi.Sprintf("rm -rf %s", sharedFSMountPoint),
 		Sudo:   true,
 	}
 
 	buildKernelHeadersDirArgs = command.Args{
-		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g $USER %s", kernelHeadersDir),
+		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g libvirt %s", kernelHeadersDir),
 		Delete: pulumi.Sprintf("rm -rf %s", kernelHeadersDir),
 		Sudo:   true,
 	}
@@ -177,7 +177,7 @@ func buildDirectoryStructure(runner *Runner, depends []pulumi.Resource) ([]pulum
 	rootfsDir := filepath.Join(GetWorkingDirectory(), "rootfs")
 
 	buildDirectoryStructureArgs := command.Args{
-		Create: pulumi.Sprintf("install -d -m 0755 -o $USER -g kvm %s && install -d -m 0755 -o $USER -g kvm %s", kernelPackagesDir, rootfsDir),
+		Create: pulumi.Sprintf("install -d -m 0755 -o $USER -g libvirt %s && install -d -m 0755 -o $USER -g libvirt %s", kernelPackagesDir, rootfsDir),
 		Sudo:   true,
 	}
 	buildDirectoryStructureDone, err := runner.Command("build-directory-structure", &buildDirectoryStructureArgs, pulumi.DependsOn(depends))
@@ -207,7 +207,7 @@ func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
 		return []pulumi.Resource{}, err
 	}
 
-	// We need to wait until the libvirt-qemu user exists before doing this
+	// We need to wait until the libvirt group exists before doing this
 	// Hence, the dependency on the libvirt environment.
 	buildSharedDirDone, err := runner.Command("build-kernel-version-testing-dir", &buildSharedDirArgs, pulumi.DependsOn(prepareLibvirtEnvDone))
 	if err != nil {

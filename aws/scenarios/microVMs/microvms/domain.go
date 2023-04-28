@@ -76,7 +76,7 @@ func newDomainConfiguration(ctx *pulumi.Context, vcpu, memory int, setName, mach
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, arch)
 	domain.domainNamer = namer.NewNamer(ctx, domain.domainID)
 
-	domain.ip = fmt.Sprintf("%s", ip)
+	domain.ip = ip
 	domain.dhcpEntry, mac, err = generateDHCPEntry(ctx, ip, domain.domainID)
 	if err != nil {
 		return nil, err

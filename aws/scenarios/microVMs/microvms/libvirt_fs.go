@@ -165,7 +165,6 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 				downloadCmd = fmt.Sprintf("%s && mv %s %s", refreshCmd, url.Path, fsImage.imagePath)
 			} else {
 
-				//			downloadCmd = "true"
 				downloadCmd = refreshCmd
 			}
 		} else {

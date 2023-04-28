@@ -212,17 +212,21 @@ func setupLibvirtVMSetPool(fs *LibvirtFilesystem, runner *Runner, depends []pulu
 	poolBuildReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-build %s", fs.poolName),
 		Delete: pulumi.Sprintf("virsh pool-delete %s", fs.poolName),
+		Sudo:   true,
 	}
 	poolStartReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-start %s", fs.poolName),
 		Delete: pulumi.Sprintf("virsh pool-destroy %s", fs.poolName),
+		Sudo:   true,
 	}
 	poolRefreshDoneArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-refresh %s", fs.poolName),
+		Sudo:   true,
 	}
 
 	poolDefineReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-define %s", fs.poolXMLPath),
+		Sudo:   true,
 	}
 
 	poolDefineReady, err := runner.Command(fs.poolNamer.ResourceName("define-libvirt-pool"), &poolDefineReadyArgs, pulumi.DependsOn(depends))
@@ -255,9 +259,11 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 		baseVolumeReadyArgs := command.Args{
 			Create: pulumi.Sprintf("virsh vol-create %s %s", fs.poolName, fsImage.volumeXMLPath),
 			Delete: pulumi.Sprintf("virsh vol-delete %s --pool %s", fsImage.volumeKey, fs.poolName),
+			Sudo:   true,
 		}
 		uploadImageToVolumeReadyArgs := command.Args{
 			Create: pulumi.Sprintf("virsh vol-upload %s %s --pool %s", fsImage.volumeKey, fsImage.imagePath, fs.poolName),
+			Sudo:   true,
 		}
 
 		baseVolumeReady, err := runner.Command(fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &baseVolumeReadyArgs, pulumi.DependsOn(depends))

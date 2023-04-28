@@ -74,6 +74,7 @@ func newDomainConfiguration(ctx *pulumi.Context, vcpu, memory int, setName, mach
 
 	domain := new(Domain)
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, arch)
+	domain.domainNamer = namer.NewNamer(ctx, domain.domainID)
 
 	domain.ip = fmt.Sprintf("%s", ip)
 	domain.dhcpEntry, mac, err = generateDHCPEntry(ctx, ip, domain.domainID)
@@ -137,7 +138,7 @@ func GenerateDomainConfigurationsForVMSet(ctx *pulumi.Context, provider *libvirt
 					depends,
 					fs.baseVolumeMap[kernel.Tag].volumeKey,
 					fs.poolName,
-					domain.domainNamer.ResourceName("volume", domain.domainID),
+					domain.domainNamer.ResourceName("volume"),
 				)
 				if err != nil {
 					return []*Domain{}, err

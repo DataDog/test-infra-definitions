@@ -176,15 +176,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		}
 
 		waitFor = append(waitFor, waitProvision...)
-	} else {
-		cmd, err := instance.runner.Command("test-"+instance.Arch, &command.Args{
-			Create: pulumi.String("chown -R 1000:1000 /home/kernel-version-testing && chown -R 1000:1000 /opt/kernel-version-testing && sed --in-place 's/#unix_sock_group = \"libvirt\"/unix_sock_group = \"libvirt\"/g' /etc/libvirt/libvirtd.conf && sed --in-place 's/#unix_sock_ro_perms = \"0777\"/unix_sock_ro_perms = \"0777\"/g' /etc/libvirt/libvirtd.conf && sed --in-place 's/#unix_sock_rw_perms = \"0770\"/unix_sock_rw_perms = \"0770\"/g' /etc/libvirt/libvirtd.conf && systemctl restart libvirtd.service"),
-			Sudo:   true,
-		})
-		if err != nil {
-			return nil, err
-		}
-		waitFor = append(waitFor, cmd)
 	}
 
 	if instance.Arch != LocalVMSet {

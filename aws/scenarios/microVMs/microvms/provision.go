@@ -30,6 +30,10 @@ var (
 		Create: pulumi.String("sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"),
 		Sudo:   true,
 	}
+	libvirtSockPerms = command.Args{
+		Create: pulumi.String("sed --in-place 's/#unix_sock_group = \"libvirt\"/unix_sock_group = \"libvirt\"/g' /etc/libvirt/libvirtd.conf && sed --in-place 's/#unix_sock_ro_perms = \"0777\"/unix_sock_ro_perms = \"0777\"/g' /etc/libvirt/libvirtd.conf && sed --in-place 's/#unix_sock_rw_perms = \"0770\"/unix_sock_rw_perms = \"0770\"/g' /etc/libvirt/libvirtd.conf "),
+		Sudo:   true,
+	}
 	libvirtReadyArgs = command.Args{
 		Create: pulumi.String("systemctl restart libvirtd"),
 		Sudo:   true,
@@ -126,7 +130,12 @@ func prepareLibvirtEnvironment(runner *Runner, depends []pulumi.Resource) ([]pul
 		return []pulumi.Resource{}, err
 	}
 
-	libvirtReady, err := runner.Command("restart-libvirtd", &libvirtReadyArgs, pulumi.DependsOn([]pulumi.Resource{disableSELinux}))
+	setLibvirtSockPerms, err := runner.Command("libvirt-sock-perms", &libvirtSockPerms, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	libvirtReady, err := runner.Command("restart-libvirtd", &libvirtReadyArgs, pulumi.DependsOn([]pulumi.Resource{disableSELinux, setLibvirtSockPerms}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

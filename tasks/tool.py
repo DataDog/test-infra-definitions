@@ -17,17 +17,17 @@ def error(msg: str):
 def get_os_families() -> List[str]:
     return [
         get_default_os_family(),
-        "Windows",
-        "AmazonLinux",
-        "Debian",
-        "RedHat",
-        "Suse",
-        "Fedora",
+        "windows",
+        "amazonlinux",
+        "debian",
+        "redhat",
+        "suse",
+        "fedora",
     ]
 
 
 def get_default_os_family() -> str:
-    return "Ubuntu"
+    return "ubuntu"
 
 
 def get_default_agent_install() -> bool:

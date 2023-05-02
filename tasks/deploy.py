@@ -16,22 +16,22 @@ def deploy(
     _: Context,
     scenario_name: str,
     key_pair_required: bool = False,
+    public_key_required: bool = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
-    os_family: Optional[str] = None,
+    extra_flags: Dict[str, Any] = {},
 ):
-    flags = {}
+    flags = extra_flags
 
     if install_agent is None:
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
 
-    os_family = _get_os_family(os_family)
-    flags["ddinfra:osFamily"] = os_family
-
     cfg = config.get_config()
-    flags[default_public_path_key_name] = _default_public_path_key_name(cfg, os_family)
+    flags[default_public_path_key_name] = _get_public_path_key_name(
+        cfg, public_key_required
+    )
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
@@ -47,22 +47,11 @@ def deploy(
     _deploy(stack_name, flags)
 
 
-def _get_os_family(os_type: Optional[str]) -> str:
-    os_types = tool.get_os_families()
-    if os_type is None:
-        os_type = tool.get_default_os_family()
-    if os_type not in os_types:
-        raise invoke.Exit(
-            f"the os type '{os_type}' is not supported. Possibles values are {os_types}"
-        )
-    return os_type
-
-
-def _default_public_path_key_name(cfg: Config, os_family: str) -> Optional[str]:
+def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     defaultPublicKeyPath = cfg.get_infra_aws().defaultPublicKeyPath
-    if os_family == "Windows" and defaultPublicKeyPath is None:
+    if require and defaultPublicKeyPath is None:
         raise invoke.Exit(
-            f"You must set {default_public_path_key_name} when using this operating system"
+            f"Your scenario requires to define {default_public_path_key_name} in the configuration file"
         )
     return defaultPublicKeyPath
 

@@ -5,7 +5,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/pulumi/pulumi-command/sdk/go/command"
 	pulumiCommand "github.com/pulumi/pulumi-command/sdk/go/command"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -44,7 +43,7 @@ type Runner struct {
 	waitCommand *remote.Command
 	config      runnerConfiguration
 	osCommand   OSCommand
-	provider    *command.Provider
+	provider    *pulumiCommand.Provider
 }
 
 func WithUser(user string) func(*Runner) {

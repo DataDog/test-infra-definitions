@@ -38,7 +38,7 @@ func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) str
 	return fmt.Sprintf("ddvm-%s-%s-%s-%d-%d", vmsetName, arch, tag, vcpu, memory)
 }
 func generateNewUnicastMac(ctx *pulumi.Context, domainID string) (pulumi.StringOutput, error) {
-	r, err := utils.NewRandom(ctx)
+	r, err := utils.NewRandomGenerator(ctx)
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

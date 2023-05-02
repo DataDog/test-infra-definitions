@@ -18,7 +18,7 @@ func WithProvider(provider *random.Provider) func(*RandomGenerator) {
 	}
 }
 
-func NewRandom(ctx *pulumi.Context, options ...func(*RandomGenerator)) (*RandomGenerator, error) {
+func NewRandomGenerator(ctx *pulumi.Context, options ...func(*RandomGenerator)) (*RandomGenerator, error) {
 	var err error
 
 	rand := &RandomGenerator{
@@ -43,5 +43,5 @@ func (r *RandomGenerator) RandomString(name string, length int, special bool) (*
 	return random.NewRandomString(r.ctx, r.namer.ResourceName("random-string", name), &random.RandomStringArgs{
 		Length:  pulumi.Int(length),
 		Special: pulumi.Bool(special),
-	})
+	}, pulumi.Provider(r.provider))
 }

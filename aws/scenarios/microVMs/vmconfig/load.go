@@ -38,7 +38,7 @@ func loadFile(filename string) (*Config, error) {
 	}
 
 	vmids := make(map[VMSetID]bool)
-	for i, _ := range cfg.VMSets {
+	for i := range cfg.VMSets {
 		set := &cfg.VMSets[i]
 		set.ID = VMSetID(fmt.Sprintf("%s_%s", set.Name, set.Arch))
 		if _, ok := vmids[set.ID]; ok {

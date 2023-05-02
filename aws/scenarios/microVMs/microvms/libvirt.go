@@ -101,7 +101,6 @@ type VMCollection struct {
 	fs              map[vmconfig.VMSetID]*LibvirtFilesystem
 	domains         []*Domain
 	libvirtProvider *libvirt.Provider
-	libvirtURI      pulumi.StringOutput
 }
 
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {

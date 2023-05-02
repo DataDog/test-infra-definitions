@@ -82,6 +82,11 @@ func updateAgentConfig(
 	extraAgentConfig []pulumi.StringInput,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, pulumi.StringInput, error) {
+	if agentConfig == "" || len(extraAgentConfig) == 0 {
+		// no update in agent config, safely early return
+		return nil, nil, nil
+	}
+
 	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
 	var err error
 
@@ -90,16 +95,14 @@ func updateAgentConfig(
 		pulumiAgentString = pulumi.Sprintf("%v\n%v", pulumiAgentString, extraConfig)
 	}
 
-	if agentConfig != "" {
-		agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
-		lastCommand, err = fileManager.CopyInlineFile(
-			agentConfigWithAPIKEY,
-			agentConfigFullPath,
-			true,
-			utils.PulumiDependsOn(lastCommand))
-		if err != nil {
-			return nil, pulumiAgentString, err
-		}
+	agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
+	lastCommand, err = fileManager.CopyInlineFile(
+		agentConfigWithAPIKEY,
+		agentConfigFullPath,
+		true,
+		utils.PulumiDependsOn(lastCommand))
+	if err != nil {
+		return nil, pulumiAgentString, err
 	}
 
 	return lastCommand, pulumiAgentString, nil

@@ -149,7 +149,10 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 
 	env := *instance.e.CommonEnvironment
 	osCommand := command.NewUnixOSCommand()
-	localRunner := command.NewLocalRunner(env, osCommand)
+	localRunner, err := command.NewLocalRunner(env, osCommand)
+	if err != nil {
+		return waitFor, err
+	}
 	if instance.Arch != LocalVMSet {
 		remoteRunner, err := command.NewRunner(
 			env,

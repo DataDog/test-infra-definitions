@@ -24,6 +24,7 @@ func defaultValues() *Config {
 }
 
 func loadFile(filename string) (*Config, error) {
+
 	cfg := defaultValues()
 	if filename == "" {
 		return nil, fmt.Errorf("loadFile: no config file specified")
@@ -35,6 +36,18 @@ func loadFile(filename string) (*Config, error) {
 	if err := loadData(data, cfg); err != nil {
 		return nil, fmt.Errorf("loadFile: failed to load data: %w", err)
 	}
+
+	vmids := make(map[VMSetID]bool)
+	for i := range cfg.VMSets {
+		set := &cfg.VMSets[i]
+		set.ID = VMSetID(fmt.Sprintf("%s_%s", set.Name, set.Arch))
+		if _, ok := vmids[set.ID]; ok {
+			return nil, fmt.Errorf("loadFile: duplicated vmset id: %s", set.ID)
+		}
+
+		vmids[set.ID] = true
+	}
+
 	return cfg, nil
 }
 

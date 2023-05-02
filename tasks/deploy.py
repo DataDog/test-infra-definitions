@@ -42,7 +42,7 @@ def deploy(
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key()
 
-    if key_pair_required and cfg.get_options().checkKeyPair:
+    if key_pair_required:
         _check_key_pair(defaultKeyPairName)
     _deploy(stack_name, flags)
 
@@ -88,6 +88,8 @@ def _get_api_key() -> str:
 
 
 def _check_key_pair(key_pair_to_search: Optional[str]):
+    if key_pair_to_search is None or key_pair_to_search == "":
+        raise invoke.Exit("This scenario requires to define 'defaultKeyPairName' in the configuration file")
     output = subprocess.check_output(["ssh-add", "-L"])
     key_pairs: List[str] = []
     output = output.decode("utf-8")

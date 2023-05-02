@@ -52,6 +52,6 @@ def get_config() -> Config:
             return Config.parse_obj(config_dict)
 
     except FileNotFoundError:
-        raise invoke.Exit(f"Cannot find the configuration located at {config_path}")
+        return Config.parse_obj({})
     except ValidationError as e:
         raise invoke.Exit(f"Error in config {config_path}:{e}")

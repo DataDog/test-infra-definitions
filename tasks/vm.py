@@ -1,10 +1,14 @@
 from invoke import task
+
+from .destroy import destroy
 from .deploy import deploy
 from . import doc
 from typing import Optional
 from invoke.context import Context
 from . import tool
 import invoke
+
+scenario_name = "aws/vm"
 
 
 @task(
@@ -15,7 +19,7 @@ import invoke
         "os_family": doc.os_family,
     }
 )
-def vm(
+def create_vm(
     ctx: Context,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = False,
@@ -32,7 +36,7 @@ def vm(
 
     deploy(
         ctx,
-        "aws/vm",
+        scenario_name,
         key_pair_required=True,
         public_key_required=(os_family.lower() == "windows"),
         stack_name=stack_name,
@@ -40,6 +44,18 @@ def vm(
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
+
+
+@task(
+    help={
+        "stack_name": doc.stack_name,
+    }
+)
+def destroy_vm(ctx: Context, stack_name: Optional[str] = None):
+    """
+    Destroy a new virtual machine on the cloud.
+    """
+    destroy(scenario_name, stack_name)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

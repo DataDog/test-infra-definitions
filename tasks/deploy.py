@@ -2,7 +2,6 @@ from . import config
 from .config import Config
 import os
 import invoke
-import getpass
 import subprocess
 from invoke.context import Context
 from typing import List, Optional, Dict, Any
@@ -62,7 +61,7 @@ def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
         if value is not None and value != "":
             cmd_args.append("-c")
             cmd_args.append(f"{key}={value}")
-    cmd_args.extend(["-s", _get_stack_name(stack_name, flags["scenario"])])
+    cmd_args.extend(["-s", tool.get_stack_name(stack_name, flags["scenario"])])
     cmd_args.extend(["-C", _get_root_path()])
 
     try:
@@ -106,14 +105,3 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
             + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
             + f"You can skip this check by setting `checkKeyPair: false` in the config"
         )
-
-
-def get_stack_name_prefix() -> str:
-    return "invoke-"
-
-
-def _get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
-    if stack_name is None:
-        scenario_name = scenario_name.replace("/", "-")
-        stack_name = f"{scenario_name}-{getpass.getuser()}"
-    return f"{get_stack_name_prefix()}{stack_name}"

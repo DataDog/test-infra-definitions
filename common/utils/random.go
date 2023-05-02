@@ -12,6 +12,12 @@ type Random struct {
 	provider *random.Provider
 }
 
+func WithProvider(provider *random.Provider) func(*Random) {
+	return func(r *Random) {
+		r.provider = provider
+	}
+}
+
 func NewRandom(ctx *pulumi.Context, options ...func(*Random)) (*Random, error) {
 	var err error
 

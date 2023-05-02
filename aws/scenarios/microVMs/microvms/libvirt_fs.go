@@ -340,7 +340,7 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 	return setupLibvirtVMVolumeDone, nil
 }
 
-func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLocalLibvirtFilesystem(_ *LibvirtFilesystem, _ *libvirt.Provider, _ *Runner, _ []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
 	return waitFor, nil

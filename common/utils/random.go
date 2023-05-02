@@ -6,22 +6,22 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type Random struct {
+type RandomGenerator struct {
 	ctx      *pulumi.Context
 	namer    namer.Namer
 	provider *random.Provider
 }
 
-func WithProvider(provider *random.Provider) func(*Random) {
-	return func(r *Random) {
+func WithProvider(provider *random.Provider) func(*RandomGenerator) {
+	return func(r *RandomGenerator) {
 		r.provider = provider
 	}
 }
 
-func NewRandom(ctx *pulumi.Context, options ...func(*Random)) (*Random, error) {
+func NewRandom(ctx *pulumi.Context, options ...func(*RandomGenerator)) (*RandomGenerator, error) {
 	var err error
 
-	rand := &Random{
+	rand := &RandomGenerator{
 		ctx:   ctx,
 		namer: namer.NewNamer(ctx, "random"),
 	}
@@ -39,7 +39,7 @@ func NewRandom(ctx *pulumi.Context, options ...func(*Random)) (*Random, error) {
 	return rand, nil
 }
 
-func (r *Random) RandomString(name string, length int, special bool) (*random.RandomString, error) {
+func (r *RandomGenerator) RandomString(name string, length int, special bool) (*random.RandomString, error) {
 	return random.NewRandomString(r.ctx, r.namer.ResourceName("random-string", name), &random.RandomStringArgs{
 		Length:  pulumi.Int(length),
 		Special: pulumi.Bool(special),

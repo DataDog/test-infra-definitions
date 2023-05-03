@@ -171,21 +171,21 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	return defaultValue
 }
 
-func (e *CommonEnvironment) CommandProvider(namer namer.Namer, name string) (*command.Provider, error) {
+func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
 	var err error
 	if commandProvider != nil {
 		return commandProvider, nil
 	}
-	commandProvider, err = command.NewProvider(e.Ctx, namer.ResourceName("provider", name), &command.ProviderArgs{})
+	commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
 	return commandProvider, err
 }
 
-func (e *CommonEnvironment) RandomProvider(namer namer.Namer, name string) (*random.Provider, error) {
+func (e *CommonEnvironment) RandomProvider() (*random.Provider, error) {
 	var err error
 	if randomProvider != nil {
 		return randomProvider, nil
 	}
-	randomProvider, err = random.NewProvider(e.Ctx, namer.ResourceName("provider", name), &random.ProviderArgs{})
+	randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
 	return randomProvider, err
 }
 

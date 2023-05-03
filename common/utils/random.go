@@ -27,9 +27,9 @@ func NewRandomGenerator(e config.CommonEnvironment, name string, options ...func
 }
 
 func (r *RandomGenerator) RandomString(name string, length int, special bool) (*random.RandomString, error) {
-	provider, err := r.e.RandomProvider(r.namer, name)
+	provider, err := r.e.RandomProvider()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get random Provider: %w", err)
+		panic(fmt.Sprintf("failed to get random provider %s", err))
 	}
 	return random.NewRandomString(r.e.Ctx, r.namer.ResourceName("random-string", name), &random.RandomStringArgs{
 		Length:  pulumi.Int(length),

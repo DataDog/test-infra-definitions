@@ -18,12 +18,12 @@ func WithProvider(provider *random.Provider) func(*RandomGenerator) {
 	}
 }
 
-func NewRandomGenerator(ctx *pulumi.Context, options ...func(*RandomGenerator)) (*RandomGenerator, error) {
+func NewRandomGenerator(ctx *pulumi.Context, name string, options ...func(*RandomGenerator)) (*RandomGenerator, error) {
 	var err error
 
 	rand := &RandomGenerator{
 		ctx:   ctx,
-		namer: namer.NewNamer(ctx, "random"),
+		namer: namer.NewNamer(ctx, "random-"+name),
 	}
 	for _, opt := range options {
 		opt(rand)

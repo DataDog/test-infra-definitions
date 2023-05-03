@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/pulumi/pulumi-command/sdk/go/command"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -164,6 +166,14 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
+}
+
+func (e *CommonEnvironment) CommandProvider(namer namer.Namer, name string) (*command.Provider, error) {
+	return command.NewProvider(e.Ctx, namer.ResourceName("provider", name), &command.ProviderArgs{})
+}
+
+func (e *CommonEnvironment) RandomProvider(namer namer.Namer, name string) (*random.Provider, error) {
+	return random.NewProvider(e.Ctx, namer.ResourceName("provider", name), &random.ProviderArgs{})
 }
 
 type Environment interface {

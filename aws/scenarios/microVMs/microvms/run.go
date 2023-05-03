@@ -17,7 +17,6 @@ import (
 
 type Instance struct {
 	e             *aws.Environment
-	ctx           *pulumi.Context
 	instance      *awsEc2.Instance
 	Connection    remote.ConnectionOutput
 	Arch          string
@@ -110,7 +109,6 @@ func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMCo
 
 	return &Instance{
 		e:             &e,
-		ctx:           e.Ctx,
 		instance:      awsInstance,
 		Connection:    conn.ToConnectionOutput(),
 		Arch:          arch,
@@ -127,7 +125,6 @@ func newInstance(e aws.Environment, arch string, m config.DDMicroVMConfig) (*Ins
 	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
 	return &Instance{
 		e:             &e,
-		ctx:           e.Ctx,
 		Arch:          arch,
 		instanceNamer: namer,
 	}, nil
@@ -149,10 +146,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 
 	env := *instance.e.CommonEnvironment
 	osCommand := command.NewUnixOSCommand()
-	localRunner, err := command.NewLocalRunner(env, osCommand)
-	if err != nil {
-		return nil, err
-	}
+	localRunner := command.NewLocalRunner(env, osCommand)
 	if instance.Arch != LocalVMSet {
 		remoteRunner, err := command.NewRunner(
 			env,

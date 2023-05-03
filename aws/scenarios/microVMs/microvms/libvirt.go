@@ -107,7 +107,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	var waitFor []pulumi.Resource
 
 	for _, set := range vm.vmsets {
-		fs, err := newLibvirtFS(vm.instance.ctx, &set)
+		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
@@ -130,7 +130,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 		if !ok {
 			return fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.ctx, vm.libvirtProvider, depends, &set, fs, ip)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs, ip)
 		if err != nil {
 			return err
 		}
@@ -150,7 +150,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 
 	}
 
-	network, err := generateNetworkResource(vm.instance.ctx, vm.libvirtProvider, depends, vm.instance.instanceNamer, dhcpEntries)
+	network, err := generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProvider, depends, vm.instance.instanceNamer, dhcpEntries)
 	if err != nil {
 		return err
 	}
@@ -173,7 +173,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 
 	// Map instances and vmsets to VMCollections
 	for _, instance := range instances {
-		provider, err := libvirt.NewProvider(instance.ctx, instance.instanceNamer.ResourceName("provider"), &libvirt.ProviderArgs{
+		provider, err := libvirt.NewProvider(instance.e.Ctx, instance.instanceNamer.ResourceName("provider"), &libvirt.ProviderArgs{
 			Uri: instance.libvirtURI,
 		}, pulumi.DependsOn(depends))
 		if err != nil {
@@ -237,7 +237,7 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 
 	for _, collection := range vmCollections {
 		for _, domain := range collection.domains {
-			d, err := libvirt.NewDomain(collection.instance.ctx,
+			d, err := libvirt.NewDomain(collection.instance.e.Ctx,
 				domain.domainNamer.ResourceName("ddvm", domain.domainID),
 				domain.domainArgs,
 				pulumi.Provider(collection.libvirtProvider),

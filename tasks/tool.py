@@ -1,6 +1,8 @@
 import getpass
+import json
+import subprocess
 from termcolor import colored
-from typing import List, Optional
+from typing import Any, List, Optional
 
 
 def info(msg: str):
@@ -43,3 +45,18 @@ def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
 
 def get_stack_name_suffix() -> str:
     return f"-{getpass.getuser()}"
+
+
+def get_stack_json_outputs(full_stack_name: str) -> str:
+    output = subprocess.check_output(
+        ["pulumi", "stack", "output", "--json", "-s", full_stack_name]
+    )
+    output = output.decode("utf-8")
+    return json.loads(output)
+
+
+class Connection:
+    def __init__(self, stack_outputs: Any):
+        connection: Any = stack_outputs["vm-connection"]
+        self.host: str = connection["host"]
+        self.user: str = connection["user"]

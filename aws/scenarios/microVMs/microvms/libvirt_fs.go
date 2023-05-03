@@ -3,7 +3,9 @@ package microvms
 import (
 	"fmt"
 	"net/url"
+	"os/user"
 	"path/filepath"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
@@ -52,17 +54,27 @@ func getImagePath(name string) string {
 	return filepath.Join(rootFSDir(), name)
 }
 
-func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
+func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
 	var images []*filesystemImage
 
 	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolName := vmset.Name
 
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+	libvirtGroup, err := user.LookupGroup("libvirt")
+	if err != nil {
+		return nil, err
+	}
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
-			resources.PoolName: pulumi.String(poolName),
-			resources.PoolPath: pulumi.String(poolPath),
+			resources.PoolName:     pulumi.String(poolName),
+			resources.PoolPath:     pulumi.String(poolPath),
+			resources.User:         pulumi.String(currentUser.Uid),
+			resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
 		},
 	)
 	baseVolumeMap := make(map[string]*filesystemImage)
@@ -77,13 +89,15 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 			volumeKey:   volKey,
 			volumeXML: rc.GetVolumeXML(
 				map[string]pulumi.StringInput{
-					resources.ImageName:  pulumi.String(imageName),
-					resources.VolumeKey:  pulumi.String(volKey),
-					resources.VolumePath: pulumi.String(volKey),
+					resources.ImageName:    pulumi.String(imageName),
+					resources.VolumeKey:    pulumi.String(volKey),
+					resources.VolumePath:   pulumi.String(volKey),
+					resources.User:         pulumi.String(currentUser.Uid),
+					resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
 				},
 			),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
-			volumeNamer:   namer.NewNamer(ctx, volKey),
+			volumeNamer:   namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
 		}
 		images = append(images, img)
 		baseVolumeMap[k.Tag] = img
@@ -97,20 +111,29 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
 		poolNamer:     namer.NewNamer(ctx, poolName),
-	}
+	}, nil
 }
 
-func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
+func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
 	baseVolumeMap := make(map[string]*filesystemImage)
 	poolName := vmset.Name
 	imageName := vmset.Img.ImageName
-
+	currentUser, err := user.Current()
+	if err != nil {
+		return nil, err
+	}
+	libvirtGroup, err := user.LookupGroup("libvirt")
+	if err != nil {
+		return nil, err
+	}
 	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
-			resources.PoolName: pulumi.String(poolName),
-			resources.PoolPath: pulumi.String(poolPath),
+			resources.PoolName:     pulumi.String(poolName),
+			resources.PoolPath:     pulumi.String(poolPath),
+			resources.User:         pulumi.String(currentUser.Uid),
+			resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
 		},
 	)
 	volKey := generateVolumeKey(poolName, basefsName)
@@ -122,13 +145,15 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		volumeKey:   volKey,
 		volumeXML: rc.GetVolumeXML(
 			map[string]pulumi.StringInput{
-				resources.ImageName:  pulumi.String(basefsName),
-				resources.VolumeKey:  pulumi.String(volKey),
-				resources.VolumePath: pulumi.String(volKey),
+				resources.ImageName:    pulumi.String(basefsName),
+				resources.VolumeKey:    pulumi.String(volKey),
+				resources.VolumePath:   pulumi.String(volKey),
+				resources.User:         pulumi.String(currentUser.Gid),
+				resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
 			},
 		),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
-		volumeNamer:   namer.NewNamer(ctx, volKey),
+		volumeNamer:   namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
 	}
 	for _, k := range vmset.Kernels {
 		baseVolumeMap[k.Tag] = img
@@ -142,7 +167,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
 		poolNamer:     namer.NewNamer(ctx, poolName),
-	}
+	}, nil
 }
 
 func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -340,8 +365,35 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 	return setupLibvirtVMVolumeDone, nil
 }
 
-func setupLocalLibvirtFilesystem(_ *LibvirtFilesystem, _ *libvirt.Provider, _ *Runner, _ []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
+
+	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolName, &libvirt.PoolArgs{
+		Type: pulumi.String("dir"),
+		Path: pulumi.String(generatePoolPath(fs.poolName)),
+		Xml: libvirt.PoolXmlArgs{
+			Xslt: fs.poolXML,
+		},
+	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	waitFor = append(waitFor, poolReady)
+
+	for _, fsImage := range fs.images {
+		stgvolReady, err := libvirt.NewVolume(fs.ctx, fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &libvirt.VolumeArgs{
+			Pool:   pulumi.String(fs.poolName),
+			Source: pulumi.String(fsImage.imagePath),
+			Xml: libvirt.VolumeXmlArgs{
+				Xslt: fsImage.volumeXML,
+			},
+		}, pulumi.Provider(provider), pulumi.DependsOn(waitFor))
+		if err != nil {
+			return []pulumi.Resource{}, err
+		}
+
+		waitFor = append(waitFor, stgvolReady)
+	}
 
 	return waitFor, nil
 }

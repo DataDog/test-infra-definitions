@@ -55,14 +55,18 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, de
 
 func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
 	switch vmset.Recipe {
+	case "custom-local":
+		fallthrough
 	case "custom-arm64":
 		fallthrough
 	case "custom-amd64":
-		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
+		return NewLibvirtFSCustomRecipe(ctx, vmset)
+	case "distro-local":
+		fallthrough
 	case "distro-arm64":
 		fallthrough
 	case "distro-amd64":
-		return NewLibvirtFSDistroRecipe(ctx, vmset), nil
+		return NewLibvirtFSDistroRecipe(ctx, vmset)
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}

@@ -19,6 +19,7 @@ def deploy(
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
+    debug: Optional[bool] = False,
     extra_flags: Dict[str, Any] = {},
 ):
     flags = extra_flags
@@ -43,7 +44,7 @@ def deploy(
 
     if key_pair_required:
         _check_key_pair(defaultKeyPairName)
-    _deploy(stack_name, flags)
+    _deploy(stack_name, flags, debug)
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
@@ -55,7 +56,7 @@ def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     return defaultPublicKeyPath
 
 
-def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
+def _deploy(stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> None:
     cmd_args = ["aws-vault", "exec", "sandbox-account-admin", "--", "pulumi", "up"]
     for key, value in flags.items():
         if value is not None and value != "":
@@ -63,6 +64,9 @@ def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> None:
             cmd_args.append(f"{key}={value}")
     cmd_args.extend(["-s", tool.get_stack_name(stack_name, flags["scenario"])])
     cmd_args.extend(["-C", _get_root_path()])
+
+    if debug:
+        cmd_args.extend(["-v", "3", "--debug"])
 
     try:
         # use subprocess instead of context to allow interaction with pulumi up

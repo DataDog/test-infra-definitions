@@ -40,12 +40,16 @@ type CommonEnvironment struct {
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
-	return CommonEnvironment{
+	env := CommonEnvironment{
 		Ctx:         ctx,
 		InfraConfig: sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig: sdkconfig.New(ctx, DDAgentConfigNamespace),
 		CommonNamer: namer.NewNamer(ctx, ""),
 	}
+	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
+	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
+	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
+	return env
 }
 
 // Infra namespace

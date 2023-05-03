@@ -16,6 +16,7 @@ scenario_name = "aws/vm"
         "install_agent": doc.install_agent,
         "agent_version": doc.agent_version,
         "stack_name": doc.stack_name,
+        "debug": doc.debug,
         "os_family": doc.os_family,
     }
 )
@@ -24,6 +25,7 @@ def create_vm(
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = False,
     agent_version: Optional[str] = None,
+    debug: Optional[bool] = False,
     os_family: Optional[str] = None,
 ):
     """
@@ -42,6 +44,7 @@ def create_vm(
         stack_name=stack_name,
         install_agent=install_agent,
         agent_version=agent_version,
+        debug=debug
         extra_flags=extra_flags,
     )
 

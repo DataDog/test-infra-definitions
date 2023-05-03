@@ -13,7 +13,7 @@ scenario_name = "aws/dockervm"
 @task(
     help={
         "install_agent": doc.install_agent,
-        "agent_version": doc.agent_version,
+        "agent_version": doc.agent_docker_version,
         "stack_name": doc.stack_name,
     }
 )

@@ -44,7 +44,7 @@ def create_vm(
         stack_name=stack_name,
         install_agent=install_agent,
         agent_version=agent_version,
-        debug=debug
+        debug=debug,
         extra_flags=extra_flags,
     )
 

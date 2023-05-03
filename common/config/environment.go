@@ -33,6 +33,9 @@ const (
 	ddAgentAPPKeyParamName        = "appKey"
 )
 
+var randomProvider *random.Provider
+var commandProvider *command.Provider
+
 type CommonEnvironment struct {
 	Ctx         *pulumi.Context
 	InfraConfig *sdkconfig.Config
@@ -169,11 +172,21 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 }
 
 func (e *CommonEnvironment) CommandProvider(namer namer.Namer, name string) (*command.Provider, error) {
-	return command.NewProvider(e.Ctx, namer.ResourceName("provider", name), &command.ProviderArgs{})
+	var err error
+	if commandProvider != nil {
+		return commandProvider, nil
+	}
+	commandProvider, err = command.NewProvider(e.Ctx, namer.ResourceName("provider", name), &command.ProviderArgs{})
+	return commandProvider, err
 }
 
 func (e *CommonEnvironment) RandomProvider(namer namer.Namer, name string) (*random.Provider, error) {
-	return random.NewProvider(e.Ctx, namer.ResourceName("provider", name), &random.ProviderArgs{})
+	var err error
+	if randomProvider != nil {
+		return randomProvider, nil
+	}
+	randomProvider, err = random.NewProvider(e.Ctx, namer.ResourceName("provider", name), &random.ProviderArgs{})
+	return randomProvider, err
 }
 
 type Environment interface {

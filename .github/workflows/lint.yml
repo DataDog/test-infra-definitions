@@ -15,6 +15,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: '0'
       - uses: actions/setup-go@v3
         with:
           go-version-file: go.mod
@@ -34,4 +36,4 @@ jobs:
         # - https://github.com/golangci/golangci-lint-action/issues/442
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Run golangci-lint
-        run: golangci-lint version && golangci-lint run --new
+        run: golangci-lint version && golangci-lint run --new-from-rev=HEAD~ --out-format=github-actions --timeout=10m

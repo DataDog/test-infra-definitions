@@ -91,7 +91,6 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
 		writeCommand, err := d.fileManager.CopyInlineFile(
-			d.namer.ResourceName("copy-compose", manifest.Name),
 			manifest.Content,
 			remoteComposePath,
 			false,
@@ -127,13 +126,24 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 		return nil, err
 	}
 
+	whoami, err := d.runner.Command(
+		d.namer.ResourceName("whoami"),
+		&Args{
+			Create: pulumi.String("whoami"),
+			Sudo:   false,
+		},
+		pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
+	if err != nil {
+		return nil, err
+	}
+
 	usermod, err := d.runner.Command(
 		d.namer.ResourceName("group"),
 		&Args{
-			Create: pulumi.String("usermod -a -G docker $(whoami)"),
+			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami.Stdout),
 			Sudo:   true,
 		},
-		pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
+		pulumi.DependsOn([]pulumi.Resource{whoami}))
 	if err != nil {
 		return nil, err
 	}

@@ -62,7 +62,6 @@ Once you're finished with the test environment you've created, you can safely de
 To do this, we'll use the `destroy` operation referecing our `Stack` file:
 
 ```
-# You need to have a DD APIKey in variable DD_API_KEY
 aws-vault exec sandbox-account-admin -- pulumi destroy -s <your_name>-ecs-test
 ```
 

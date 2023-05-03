@@ -1,13 +1,10 @@
 package agent
 
 import (
-	"fmt"
 	"path"
-	"strings"
 
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/os"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/common/vm"
@@ -44,9 +41,8 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, err
 	}
 
-	var configHash string
-	lastCommand, configHash, err = updateAgentConfig(
-		commonNamer,
+	var updateConfigTrigger pulumi.StringInput
+	lastCommand, updateConfigTrigger, err = updateAgentConfig(
 		vm.GetFileManager(),
 		env,
 		params.agentConfig,
@@ -58,7 +54,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	}
 
 	var integsHash string
-	lastCommand, integsHash, err = installIntegrations(commonNamer, vm.GetFileManager(), params.integrations, os, lastCommand)
+	lastCommand, integsHash, err = installIntegrations(vm.GetFileManager(), params.integrations, os, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -68,60 +64,48 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	serviceManager := os.GetServiceManager()
 	for _, cmd := range serviceManager.RestartAgentCmd() {
 		restartAgentRes := commonNamer.ResourceName("restart-agent")
+		cmdPulumiStr := pulumi.String(cmd)
 		lastCommand, err = runner.Command(
 			restartAgentRes,
 			&command.Args{
-				Create:   pulumi.String(cmd),
-				Triggers: pulumi.Array{pulumi.String(utils.StrHash(cmd, configHash, integsHash))},
+				Create:   cmdPulumiStr,
+				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTrigger, pulumi.String(integsHash)},
 			}, utils.PulumiDependsOn(lastCommand))
 	}
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
 }
 
 func updateAgentConfig(
-	namer namer.Namer,
 	fileManager *command.FileManager,
 	env *config.CommonEnvironment,
 	agentConfig string,
-	extraAgentConfig []string,
+	extraAgentConfig []pulumi.StringInput,
 	os os.OS,
-	lastCommand *remote.Command) (*remote.Command, string, error) {
+	lastCommand *remote.Command) (*remote.Command, pulumi.StringInput, error) {
 	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
 	var err error
-	var parts = []string{agentConfig}
+
+	pulumiAgentString := pulumi.String(agentConfig).ToStringOutput()
+	for _, extraConfig := range extraAgentConfig {
+		pulumiAgentString = pulumi.Sprintf("%v\n%v", pulumiAgentString, extraConfig)
+	}
+
 	if agentConfig != "" {
-		agentConfigWithAPIKEY := env.AgentAPIKey().ApplyT(func(apiKey string) pulumi.String {
-			config := strings.ReplaceAll(agentConfig, "{{API_KEY}}", apiKey)
-			return pulumi.String(config)
-		}).(pulumi.StringInput)
+		agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
 		lastCommand, err = fileManager.CopyInlineFile(
-			namer.ResourceName("agent-config"),
 			agentConfigWithAPIKEY,
 			agentConfigFullPath,
 			true,
 			utils.PulumiDependsOn(lastCommand))
 		if err != nil {
-			return nil, "", err
+			return nil, pulumiAgentString, err
 		}
 	}
 
-	for _, extraConfig := range extraAgentConfig {
-		parts = append(parts, extraConfig)
-		lastCommand, err = fileManager.AppendInlineFile(
-			namer.ResourceName("config-append"),
-			pulumi.String(fmt.Sprintf("\n%v\n", extraConfig)),
-			agentConfigFullPath,
-			true,
-			utils.PulumiDependsOn(lastCommand))
-		if err != nil {
-			return nil, "", err
-		}
-	}
-	return lastCommand, utils.StrHash(parts...), nil
+	return lastCommand, pulumiAgentString, nil
 }
 
 func installIntegrations(
-	namer namer.Namer,
 	fileManager *command.FileManager,
 	integrations map[string]string,
 	os os.OS,
@@ -132,7 +116,6 @@ func installIntegrations(
 		var err error
 		confPath := path.Join(configFolder, "conf.d", folderName, "conf.yaml")
 		lastCommand, err = fileManager.CopyInlineFile(
-			namer.ResourceName("integration", folderName),
 			pulumi.String(content),
 			confPath, true, utils.PulumiDependsOn(lastCommand))
 		if err != nil {

@@ -8,8 +8,8 @@
   <target>
       <path>{poolPath}</path>
 	<permissions>
-      <owner>$(cat /etc/passwd | grep libvirt-qemu | cut -d ':' -f 3)</owner>
-	  <group>$(cat /etc/group | grep kvm | cut -d ':' -f 3)</group>
+      <owner>$(cat /etc/passwd | grep $USER | cut -d ':' -f 3)</owner>
+      <group>$(cat /etc/group | grep 'libvirt:' | cut -d ':' -f 3)</group>
       <mode>0777</mode>
     </permissions>
   </target>

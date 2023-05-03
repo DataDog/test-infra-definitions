@@ -1,11 +1,6 @@
 from invoke import Collection
-from .vm import vm
-from .destroy import destroy
+from .vm import create_vm, destroy_vm
 
 ns = Collection()
-
-deploy = Collection("create")
-deploy.add_task(vm)
-
-ns.add_collection(deploy)
-ns.add_task(destroy)
+ns.add_task(create_vm)
+ns.add_task(destroy_vm)

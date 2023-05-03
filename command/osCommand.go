@@ -20,11 +20,9 @@ type OSCommand interface {
 
 	CopyInlineFile(
 		runner *Runner,
-		resourceName string,
 		fileContent pulumi.StringInput,
 		remotePath string,
 		useSudo bool,
-		append bool,
 		opts ...pulumi.ResourceOption) (*remote.Command, error)
 
 	BuildCommandString(
@@ -37,6 +35,8 @@ type OSCommand interface {
 // ------------------------------
 // Helpers to implement osCommand
 // ------------------------------
+
+const backupExtension = "pulumi.backup"
 
 func createDirectory(
 	runner *Runner,
@@ -63,17 +63,16 @@ func copyInlineFile(
 	runner *Runner,
 	fileContent pulumi.StringInput,
 	useSudo bool,
-	createCmd pulumi.StringInput,
+	createCmd string,
+	deleteCmd string,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	// If the file was previously created, make sure to delete it before creating it.
-	opts = append(opts, pulumi.DeleteBeforeReplace(true))
-
-	return runner.Command(name,
+	return runner.Command(runner.namer.ResourceName("copy-file-support-only-single-call-per-path", name),
 		&Args{
-			Create:   createCmd,
+			Create:   pulumi.String(createCmd),
+			Delete:   pulumi.String(deleteCmd),
 			Stdin:    fileContent,
 			Sudo:     useSudo,
-			Triggers: pulumi.Array{createCmd, fileContent, pulumi.BoolPtr(useSudo)},
+			Triggers: pulumi.Array{pulumi.String(createCmd), fileContent, pulumi.BoolPtr(useSudo)},
 		}, opts...)
 }
 

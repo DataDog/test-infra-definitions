@@ -76,7 +76,7 @@ func isLocalRecipe(recipe string) bool {
 	return (recipe == CustomLocalRecipe) || (recipe == DistroLocalRecipe)
 }
 
-func getArchSpecificRecipe(recipe string) string {
+func getLocalArchRecipe(recipe string) string {
 	var prefix string
 
 	if !isLocalRecipe(recipe) {
@@ -101,7 +101,7 @@ func getArchSpecificRecipe(recipe string) string {
 }
 
 func NewResourceCollection(recipe string) ResourceCollection {
-	archSpecificRecipe := getArchSpecificRecipe(recipe)
+	archSpecificRecipe := getLocalArchRecipe(recipe)
 
 	switch archSpecificRecipe {
 	case "custom-arm64":

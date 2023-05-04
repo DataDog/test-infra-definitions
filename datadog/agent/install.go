@@ -84,7 +84,7 @@ func updateAgentConfig(
 	lastCommand *remote.Command) (*remote.Command, pulumi.StringInput, error) {
 	if agentConfig == "" && len(extraAgentConfig) == 0 {
 		// no update in agent config, safely early return
-		return nil, nil, nil
+		return lastCommand, nil, nil
 	}
 
 	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")

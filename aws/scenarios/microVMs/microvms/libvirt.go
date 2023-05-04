@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	microVMGroupSubnet    = "169.254.0.0/16"
+	microVMGroupSubnet    = "169.254.0.0/24"
 	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
 

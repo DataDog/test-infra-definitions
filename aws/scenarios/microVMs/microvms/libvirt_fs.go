@@ -62,10 +62,8 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
-			resources.PoolName:     pulumi.String(poolName),
-			resources.PoolPath:     pulumi.String(poolPath),
-			resources.User:         pulumi.String(currentUser.Uid),
-			resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
+			resources.PoolName: pulumi.String(poolName),
+			resources.PoolPath: pulumi.String(poolPath),
 		},
 	)
 	baseVolumeMap := make(map[string]*filesystemImage)
@@ -112,10 +110,8 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
-			resources.PoolName:     pulumi.String(poolName),
-			resources.PoolPath:     pulumi.String(poolPath),
-			resources.User:         pulumi.String(currentUser.Uid),
-			resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
+			resources.PoolName: pulumi.String(poolName),
+			resources.PoolPath: pulumi.String(poolPath),
 		},
 	)
 	volKey := generateVolumeKey(poolName, basefsName)

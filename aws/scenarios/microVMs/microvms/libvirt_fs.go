@@ -309,7 +309,7 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, runner *Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	switch arch {
 	case LocalVMSet:
-		return setupLocalLibvirtFilesystem(fs, provider, runner, depends)
+		return setupLocalLibvirtFilesystem(fs, provider, depends)
 	default:
 		return setupRemoteLibvirtFilesystem(fs, runner, depends)
 	}
@@ -365,7 +365,7 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 	return setupLibvirtVMVolumeDone, nil
 }
 
-func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
 	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolName, &libvirt.PoolArgs{

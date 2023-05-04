@@ -16,11 +16,8 @@ import (
 
 const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
 
-var subnetGroupMask = net.IPv4Mask(255, 255, 255, 255)
-
 func getNextVMSubnet(ip *net.IP) net.IP {
 	ipv4 := ip.To4()
-	ipv4 = ipv4.Mask(subnetGroupMask)
 	ipv4[3]++
 
 	return ipv4

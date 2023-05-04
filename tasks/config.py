@@ -16,6 +16,10 @@ class Config(BaseModel, extra=Extra.forbid):
             aws: Optional[Aws]
 
         ddinfra: Optional[DDInfra]
+        class DDAgent(BaseModel, extra=Extra.forbid):
+            apiKey: Optional[str]
+        
+        ddagent: Optional[DDAgent]
 
     stackParams: Optional[Params]
 
@@ -40,6 +44,16 @@ class Config(BaseModel, extra=Extra.forbid):
         if self.stackParams.ddinfra.aws is None:
             return default
         return self.stackParams.ddinfra.aws
+  
+    def get_agent(self) -> Params.DDAgent:
+        default = Config.Params.DDAgent(
+            apiKey=None
+        )
+        if self.stackParams == None:
+            return default
+        if self.stackParams.ddagent == None:
+            return default
+        return self.stackParams.ddagent
 
 
 def get_config() -> Config:
@@ -55,3 +69,5 @@ def get_config() -> Config:
         return Config.parse_obj({})
     except ValidationError as e:
         raise invoke.Exit(f"Error in config {config_path}:{e}")
+
+# @task 

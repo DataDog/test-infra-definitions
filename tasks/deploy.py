@@ -40,7 +40,7 @@ def deploy(
     flags["ddinfra:env"] = "aws/sandbox"
 
     if install_agent:
-        flags["ddagent:apiKey"] = _get_api_key()
+        flags["ddagent:apiKey"] = _get_api_key(cfg)
 
     if key_pair_required and cfg.get_options().checkKeyPair:
         _check_key_pair(defaultKeyPairName)
@@ -80,7 +80,11 @@ def _get_root_path() -> str:
     return str(folder.parent)
 
 
-def _get_api_key() -> str:
+def _get_api_key(cfg: Optional[Config]) -> str:
+    # first try in config
+    if cfg is not None and cfg.get_agent().apiKey is not None:
+        return cfg.get_agent().apiKey
+    # the try in env var
     api_key = os.getenv("E2E_API_KEY")
     if api_key is None or len(api_key) != 32:
         raise invoke.Exit(

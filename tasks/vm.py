@@ -39,7 +39,6 @@ def create_vm(
     deploy(
         ctx,
         scenario_name,
-        key_pair_required=True,
         public_key_required=(os_family.lower() == "windows"),
         stack_name=stack_name,
         install_agent=install_agent,

@@ -2,7 +2,7 @@
    "vmsets": [
         {
             "name": "custom_kernels_x86_64",
-            "recipe": "custom-amd64",
+            "recipe": "custom-local",
             "arch": "local",
             "kernels": [
                 {

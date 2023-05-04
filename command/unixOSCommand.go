@@ -35,7 +35,6 @@ func (unixOSCommand) CreateDirectory(
 		name,
 		createCmd,
 		deleteCmd,
-		remotePath,
 		useSudo,
 		opts...)
 }

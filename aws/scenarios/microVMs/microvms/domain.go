@@ -16,7 +16,7 @@ import (
 
 const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
 
-func getNextVMSubnet(ip *net.IP) net.IP {
+func getNextVMIP(ip *net.IP) net.IP {
 	ipv4 := ip.To4()
 	ipv4[3]++
 
@@ -116,7 +116,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
-				*ip = getNextVMSubnet(ip)
+				*ip = getNextVMIP(ip)
 				domain, err := newDomainConfiguration(
 					e, vcpu,
 					memory, set.Name,

@@ -3,7 +3,6 @@ package microvms
 import (
 	"fmt"
 	"net/url"
-	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -60,14 +59,6 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolName := vmset.Name
 
-	currentUser, err := user.Current()
-	if err != nil {
-		return nil, err
-	}
-	libvirtGroup, err := user.LookupGroup("libvirt")
-	if err != nil {
-		return nil, err
-	}
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
@@ -89,11 +80,9 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 			volumeKey:   volKey,
 			volumeXML: rc.GetVolumeXML(
 				map[string]pulumi.StringInput{
-					resources.ImageName:    pulumi.String(imageName),
-					resources.VolumeKey:    pulumi.String(volKey),
-					resources.VolumePath:   pulumi.String(volKey),
-					resources.User:         pulumi.String(currentUser.Uid),
-					resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
+					resources.ImageName:  pulumi.String(imageName),
+					resources.VolumeKey:  pulumi.String(volKey),
+					resources.VolumePath: pulumi.String(volKey),
 				},
 			),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
@@ -118,14 +107,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 	baseVolumeMap := make(map[string]*filesystemImage)
 	poolName := vmset.Name
 	imageName := vmset.Img.ImageName
-	currentUser, err := user.Current()
-	if err != nil {
-		return nil, err
-	}
-	libvirtGroup, err := user.LookupGroup("libvirt")
-	if err != nil {
-		return nil, err
-	}
+
 	rc := resources.NewResourceCollection(vmset.Recipe)
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
@@ -145,11 +127,9 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 		volumeKey:   volKey,
 		volumeXML: rc.GetVolumeXML(
 			map[string]pulumi.StringInput{
-				resources.ImageName:    pulumi.String(basefsName),
-				resources.VolumeKey:    pulumi.String(volKey),
-				resources.VolumePath:   pulumi.String(volKey),
-				resources.User:         pulumi.String(currentUser.Gid),
-				resources.LibvirtGroup: pulumi.String(libvirtGroup.Gid),
+				resources.ImageName:  pulumi.String(basefsName),
+				resources.VolumeKey:  pulumi.String(volKey),
+				resources.VolumePath: pulumi.String(volKey),
 			},
 		),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),

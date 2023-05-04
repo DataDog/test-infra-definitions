@@ -19,8 +19,6 @@ const (
 	VolumePath        = "volumePath"
 	PoolName          = "poolName"
 	PoolPath          = "poolPath"
-	User              = "user"
-	LibvirtGroup      = "libvirtGroup"
 	CustomLocalRecipe = "custom-local"
 	DistroLocalRecipe = "distro-local"
 )

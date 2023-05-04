@@ -84,7 +84,8 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 				},
 			),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
-			volumeNamer:   namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
+			// libvirt complains when volume name contains '/'. We replace with '-'
+			volumeNamer: namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
 		}
 		images = append(images, img)
 		baseVolumeMap[k.Tag] = img
@@ -129,7 +130,8 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 			},
 		),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
-		volumeNamer:   namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
+		// libvirt complains when volume name contains '/'. We replace with '-'
+		volumeNamer: namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
 	}
 	for _, k := range vmset.Kernels {
 		baseVolumeMap[k.Tag] = img

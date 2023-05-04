@@ -66,13 +66,13 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesyste
 	case "custom-arm64":
 		fallthrough
 	case "custom-amd64":
-		return NewLibvirtFSCustomRecipe(ctx, vmset)
+		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
 	case "distro-local":
 		fallthrough
 	case "distro-arm64":
 		fallthrough
 	case "distro-amd64":
-		return NewLibvirtFSDistroRecipe(ctx, vmset)
+		return NewLibvirtFSDistroRecipe(ctx, vmset), nil
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}

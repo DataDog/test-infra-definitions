@@ -53,7 +53,7 @@ func getImagePath(name string) string {
 	return filepath.Join(rootFSDir(), name)
 }
 
-func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
+func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	var images []*filesystemImage
 
 	rc := resources.NewResourceCollection(vmset.Recipe)
@@ -98,10 +98,10 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
 		poolNamer:     namer.NewNamer(ctx, poolName),
-	}, nil
+	}
 }
 
-func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
+func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	baseVolumeMap := make(map[string]*filesystemImage)
 	poolName := vmset.Name
 	imageName := vmset.Img.ImageName
@@ -143,7 +143,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*Libv
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
 		poolNamer:     namer.NewNamer(ctx, poolName),
-	}, nil
+	}
 }
 
 func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {

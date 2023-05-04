@@ -183,10 +183,12 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 
 func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
 	var err error
+	var initProviders sync.Once
+
 	if commandProvider != nil {
 		return commandProvider, nil
 	}
-	sync.Once(func() {
+	initProviders.Do(func() {
 		commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
 	})
 	return commandProvider, err
@@ -194,10 +196,12 @@ func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
 
 func (e *CommonEnvironment) RandomProvider() (*random.Provider, error) {
 	var err error
+	var initProviders sync.Once
+
 	if randomProvider != nil {
 		return randomProvider, nil
 	}
-	sync.Once(func() {
+	initProviders.Do(func() {
 		randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
 	})
 	return randomProvider, err

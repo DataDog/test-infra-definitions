@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/user"
 	"strings"
+	"sync"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command"
@@ -34,7 +35,10 @@ const (
 	ddAgentAPPKeyParamName        = "appKey"
 )
 
+var initRandomProvider sync.Once
 var randomProvider *random.Provider
+
+var initCommandProvider sync.Once
 var commandProvider *command.Provider
 
 type CommonEnvironment struct {
@@ -182,19 +186,25 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 
 func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
 	var err error
+
 	if commandProvider != nil {
 		return commandProvider, nil
 	}
-	commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
+	initCommandProvider.Do(func() {
+		commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
+	})
 	return commandProvider, err
 }
 
 func (e *CommonEnvironment) RandomProvider() (*random.Provider, error) {
 	var err error
+
 	if randomProvider != nil {
 		return randomProvider, nil
 	}
-	randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
+	initRandomProvider.Do(func() {
+		randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
+	})
 	return randomProvider, err
 }
 

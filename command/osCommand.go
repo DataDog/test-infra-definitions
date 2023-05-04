@@ -43,18 +43,16 @@ func createDirectory(
 	name string,
 	createCmd string,
 	deleteCmd string,
-	remotePath pulumi.StringInput,
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-
 	// If the folder was previously created, make sure to delete it before creating it.
 	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 	return runner.Command(name,
 		&Args{
-			Create:   pulumi.Sprintf(createCmd, remotePath),
-			Delete:   pulumi.Sprintf(deleteCmd, remotePath),
+			Create:   pulumi.String(createCmd),
+			Delete:   pulumi.String(deleteCmd),
 			Sudo:     useSudo,
-			Triggers: pulumi.Array{remotePath, pulumi.BoolPtr(useSudo)},
+			Triggers: pulumi.Array{pulumi.String(createCmd), pulumi.BoolPtr(useSudo)},
 		}, opts...)
 }
 

@@ -26,12 +26,15 @@ func (unixOSCommand) CreateDirectory(
 	remotePath pulumi.StringInput,
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
+
+	createCmd := fmt.Sprintf("mkdir -p %v", remotePath)
+	deleteCmd := fmt.Sprintf("bash -c 'if [ -z '$(ls -A %v)' ]; then rm -d %v; fi'", remotePath, remotePath)
+	// check if directory already exist
 	return createDirectory(
 		runner,
 		name,
-		"mkdir -p %s",
-		"rm -rf %s",
-		remotePath,
+		createCmd,
+		deleteCmd,
 		useSudo,
 		opts...)
 }
@@ -43,14 +46,10 @@ func (unixOSCommand) CopyInlineFile(
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	sudo := ""
-	if useSudo {
-		sudo = "sudo"
-	}
 	backupPath := remotePath + "." + backupExtension
-	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; fi", remotePath, sudo, remotePath, backupPath)
-	createCmd := fmt.Sprintf("(%v) && cat - | %s tee %s > /dev/null", backupCmd, sudo, remotePath)
-	deleteCmd := fmt.Sprintf("if [ -f '%v' ]; then %v mv -f '%v' '%v'; else %v rm -f '%v'; fi", backupPath, sudo, backupPath, remotePath, sudo, remotePath)
+	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then mv -f '%v' '%v'; fi", remotePath, remotePath, backupPath)
+	createCmd := fmt.Sprintf("bash -c '(%v) && cat - | tee %v > /dev/null'", backupCmd, remotePath)
+	deleteCmd := fmt.Sprintf("bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'", backupPath, backupPath, remotePath, remotePath)
 	opts = append(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
 	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
@@ -66,7 +65,7 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {
-		envVars = append(envVars, pulumi.Sprintf(`%s="%s"`, varName, varValue))
+		envVars = append(envVars, pulumi.Sprintf(`%v="%v"`, varName, varValue))
 	}
 
 	return buildCommandString(formattedCommand, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
@@ -84,10 +83,10 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, user string) p
 	}
 	var formattedCommand pulumi.StringInput
 	if sudo {
-		formattedCommand = pulumi.Sprintf("sudo %s", command)
+		formattedCommand = pulumi.Sprintf("sudo %v", command)
 	} else if user != "" {
 		formattedCommand = command.ToStringOutput().ApplyT(func(cmd string) string {
-			return fmt.Sprintf("sudo -u %s bash -c %s", user, shellescape.Quote(cmd))
+			return fmt.Sprintf("sudo -u %v bash -c %v", user, shellescape.Quote(cmd))
 		}).(pulumi.StringOutput)
 	}
 	return formattedCommand

@@ -36,15 +36,15 @@ func GetDefaultNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutpu
 func GetDefaultVolumeXML(args map[string]pulumi.StringInput, recipe string) pulumi.StringOutput {
 	if isLocalRecipe(recipe) {
 		return formatResourceXML(defaultLocalVolumeXLS, args)
-	} else {
-		return formatResourceXML(defaultVolumeXML, args)
 	}
+
+	return formatResourceXML(defaultVolumeXML, args)
 }
 
 func GetDefaultPoolXML(args map[string]pulumi.StringInput, recipe string) pulumi.StringOutput {
 	if isLocalRecipe(recipe) {
 		return formatResourceXML(defaultLocalPoolXLS, args)
-	} else {
-		return formatResourceXML(defaultPoolXML, args)
 	}
+
+	return formatResourceXML(defaultPoolXML, args)
 }

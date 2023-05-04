@@ -8,6 +8,8 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/pulumi/pulumi-command/sdk/go/command"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -31,6 +33,9 @@ const (
 	DDAgentAPIKeyParamName        = "apiKey"
 	ddAgentAPPKeyParamName        = "appKey"
 )
+
+var randomProvider *random.Provider
+var commandProvider *command.Provider
 
 type CommonEnvironment struct {
 	Ctx         *pulumi.Context
@@ -173,6 +178,24 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
+}
+
+func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
+	var err error
+	if commandProvider != nil {
+		return commandProvider, nil
+	}
+	commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
+	return commandProvider, err
+}
+
+func (e *CommonEnvironment) RandomProvider() (*random.Provider, error) {
+	var err error
+	if randomProvider != nil {
+		return randomProvider, nil
+	}
+	randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
+	return randomProvider, err
 }
 
 type Environment interface {

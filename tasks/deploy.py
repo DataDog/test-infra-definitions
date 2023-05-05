@@ -14,6 +14,7 @@ default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 def deploy(
     _: Context,
     scenario_name: str,
+    key_pair_required=False,
     public_key_required: bool = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
@@ -41,7 +42,7 @@ def deploy(
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key()
 
-    if cfg.get_options().checkKeyPair:
+    if key_pair_required and cfg.get_options().checkKeyPair:
         _check_key_pair(defaultKeyPairName)
     _deploy(stack_name, flags, debug)
 

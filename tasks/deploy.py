@@ -28,27 +28,27 @@ def deploy(
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
 
-    cfg = config.get_config()
+    localProfile = config.get_local_config()
     flags[default_public_path_key_name] = _get_public_path_key_name(
-        cfg, public_key_required
+        localProfile, public_key_required
     )
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
-    defaultKeyPairName = cfg.get_infra_aws().defaultKeyPairName
-    flags["ddinfra:aws/defaultKeyPairName"] = defaultKeyPairName
+    awsKeyPairName = localProfile.get_aws().keyPairName
+    flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
     flags["ddinfra:env"] = "aws/sandbox"
 
     if install_agent:
-        flags["ddagent:apiKey"] = _get_api_key(cfg)
+        flags["ddagent:apiKey"] = _get_api_key(localProfile)
 
-    if key_pair_required and cfg.get_options().checkKeyPair:
-        _check_key_pair(defaultKeyPairName)
+    if key_pair_required and localProfile.get_options().checkKeyPair:
+        _check_key_pair(awsKeyPairName)
     _deploy(stack_name, flags, debug)
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
-    defaultPublicKeyPath = cfg.get_infra_aws().defaultPublicKeyPath
+    defaultPublicKeyPath = cfg.get_aws().publicKeyPath
     if require and defaultPublicKeyPath is None:
         raise invoke.Exit(
             f"Your scenario requires to define {default_public_path_key_name} in the configuration file"

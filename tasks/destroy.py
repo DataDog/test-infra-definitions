@@ -56,6 +56,6 @@ def _get_existing_stacks() -> List[str]:
     for line in lines:
         stack_name = line.split(" ")[0]
         if stack_name.endswith(stack_name_suffix):
-            stack_name = stack_name.removesuffix(stack_name_suffix)
+            stack_name = stack_name[:-len(stack_name_suffix)]
             stacks.append(stack_name)
     return stacks

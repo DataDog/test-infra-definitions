@@ -28,22 +28,29 @@ def deploy(
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
 
-    localProfile = config.get_local_config()
+    cfg = config.get_local_config()
     flags[default_public_path_key_name] = _get_public_path_key_name(
-        localProfile, public_key_required
+        cfg, public_key_required
     )
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
-    awsKeyPairName = localProfile.get_aws().keyPairName
+    awsKeyPairName = cfg.get_aws().keyPairName
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
     flags["ddinfra:env"] = "aws/sandbox"
 
     if install_agent:
-        flags["ddagent:apiKey"] = _get_api_key(localProfile)
+        flags["ddagent:apiKey"] = _get_api_key(cfg)
 
-    if key_pair_required and localProfile.get_options().checkKeyPair:
+    if key_pair_required and cfg.get_options().checkKeyPair:
         _check_key_pair(awsKeyPairName)
+
+    # add stack params values
+    stackParams = cfg.get_stack_params()
+    for namespace in stackParams:
+        for key, value in stackParams[namespace].items():
+            flags[f"{namespace}:{key}"] = value
+            
     _deploy(stack_name, flags, debug)
 
 

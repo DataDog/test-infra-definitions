@@ -2,7 +2,7 @@ import invoke
 import yaml
 from pathlib import Path
 from .tool import *
-from typing import Optional
+from typing import Dict, Optional
 from pydantic import BaseModel, Extra, ValidationError
 
 
@@ -21,7 +21,7 @@ class Config(BaseModel, extra=Extra.forbid):
 
     configParams: Optional[Params]
 
-    stackParams: Optional[dict]
+    stackParams: Optional[Dict[str, Dict[str,str]]]
 
     class Options(BaseModel, extra=Extra.forbid):
         checkKeyPair: bool
@@ -52,6 +52,12 @@ class Config(BaseModel, extra=Extra.forbid):
         if self.configParams.agent == None:
             return default
         return self.configParams.agent
+    
+    def get_stack_params(self) -> Dict[str, Dict[str,str]]:
+        default = Dict[str, Dict[str,str]]
+        if self.stackParams == None:
+            return default
+        return self.stackParams
 
 
 def get_local_config() -> Config:

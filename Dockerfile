@@ -17,6 +17,7 @@ RUN apt-get update -y && \
   gnupg \
   software-properties-common \
   wget \
+  xsltproc \
   unzip && \
   # Get all of the signatures we need all at once.
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add - && \

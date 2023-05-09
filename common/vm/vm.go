@@ -9,15 +9,14 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
-	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type VM interface {
+	utils.RemoteServiceDeserializer[ClientData]
 	GetRunner() *command.Runner
 	GetCommonEnvironment() *config.CommonEnvironment
 	GetOS() commonos.OS
-	GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error)
 	GetFileManager() *command.FileManager
 }
 

@@ -53,6 +53,10 @@ func getImagePath(name string) string {
 	return filepath.Join(rootFSDir(), name)
 }
 
+func fsPathToLibvirtResource(path string) string {
+	return strings.TrimPrefix(strings.ReplaceAll(path, "/", "-"), "-")
+}
+
 func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	var images []*filesystemImage
 
@@ -85,7 +89,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 			),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
 			// libvirt complains when volume name contains '/'. We replace with '-'
-			volumeNamer: namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
+			volumeNamer: libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey)),
 		}
 		images = append(images, img)
 		baseVolumeMap[k.Tag] = img
@@ -98,7 +102,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
-		poolNamer:     namer.NewNamer(ctx, poolName),
+		poolNamer:     libvirtResourceNamer(ctx, poolName),
 	}
 }
 
@@ -131,7 +135,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
 		// libvirt complains when volume name contains '/'. We replace with '-'
-		volumeNamer: namer.NewNamer(ctx, strings.TrimPrefix(strings.ReplaceAll(volKey, "/", "-"), "-")),
+		volumeNamer: libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey)),
 	}
 	for _, k := range vmset.Kernels {
 		baseVolumeMap[k.Tag] = img
@@ -144,7 +148,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
-		poolNamer:     namer.NewNamer(ctx, poolName),
+		poolNamer:     libvirtResourceNamer(ctx, poolName),
 	}
 }
 
@@ -346,7 +350,7 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
-	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolName, &libvirt.PoolArgs{
+	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolNamer.ResourceName("create-libvirt-pool"), &libvirt.PoolArgs{
 		Type: pulumi.String("dir"),
 		Path: pulumi.String(generatePoolPath(fs.poolName)),
 		Xml: libvirt.PoolXmlArgs{

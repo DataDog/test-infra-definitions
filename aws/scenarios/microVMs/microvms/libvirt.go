@@ -24,6 +24,10 @@ const (
 	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
 
+func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
+	return namer.NewNamer(ctx, fmt.Sprintf("%s-%s", ctx.Stack(), identifier))
+}
+
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
 
 	// Collect all DHCP entries in a single string to be

@@ -55,11 +55,7 @@ func (c *RemoteServiceConnector[T]) Register(stackKeyName string, outputFieldNam
 	c.stackKeyFieldNameMap[stackKeyName] = outputFieldName
 }
 
-func (c *RemoteServiceConnector[T]) GetClientDataDeserializer() func(auto.UpResult) (*T, error) {
-	return c.deserializeFromUpResult
-}
-
-func (c *RemoteServiceConnector[T]) deserializeFromUpResult(upResult auto.UpResult) (*T, error) {
+func (c *RemoteServiceConnector[T]) Deserialize(upResult auto.UpResult) (*T, error) {
 	value := reflect.ValueOf(&c.value).Elem()
 	if value.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("the generic type T must be 'struct' whereas it is '%v'", value.Kind())

@@ -13,6 +13,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+var _ utils.RemoteServiceDeserializer[ClientData] = (*Installer)(nil)
+
 type Installer struct {
 	dependsOn pulumi.Resource
 	vm        vm.VM
@@ -134,15 +136,11 @@ type ClientData struct {
 	Connection utils.Connection
 }
 
-func (installer *Installer) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
-	vmDataDeserializer := installer.vm.GetClientDataDeserializer()
-	return func(result auto.UpResult) (*ClientData, error) {
-		vmData, err := vmDataDeserializer(result)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &ClientData{Connection: vmData.Connection}, nil
+func (installer *Installer) Deserialize(result auto.UpResult) (*ClientData, error) {
+	vmData, err := installer.vm.Deserialize(result)
+	if err != nil {
+		return nil, err
 	}
+
+	return &ClientData{Connection: vmData.Connection}, nil
 }

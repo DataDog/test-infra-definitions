@@ -16,12 +16,9 @@ import (
 
 const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
 
-var subnetGroupMask = net.IPv4Mask(255, 255, 255, 0)
-
-func getNextVMSubnet(ip *net.IP) net.IP {
+func getNextVMIP(ip *net.IP) net.IP {
 	ipv4 := ip.To4()
-	ipv4 = ipv4.Mask(subnetGroupMask)
-	ipv4[2]++
+	ipv4[3]++
 
 	return ipv4
 }
@@ -74,7 +71,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setNa
 
 	domain := new(Domain)
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, arch)
-	domain.domainNamer = namer.NewNamer(e.Ctx, domain.domainID)
+	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 
 	domain.ip = ip
 	domain.dhcpEntry, mac, err = generateDHCPEntry(e, ip, domain.domainID)
@@ -119,7 +116,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
-				*ip = getNextVMSubnet(ip)
+				*ip = getNextVMIP(ip)
 				domain, err := newDomainConfiguration(
 					e, vcpu,
 					memory, set.Name,

@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<xsl:stylesheet version="1.0"
+                xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+  <xsl:output omit-xml-declaration="yes" indent="yes"/>
+
+   <xsl:template match="@*|node()">
+    <xsl:copy>
+      <xsl:apply-templates select="@*|node()"/>
+    </xsl:copy>
+  </xsl:template>
+
+  <xsl:template match="/pool/name"><name>{poolName}</name></xsl:template>
+  <xsl:template match="/pool/target/path"><path>{poolPath}</path></xsl:template>
+  <xsl:template match="/pool/target/permissions/owner"><owner>{user}</owner></xsl:template>
+  <xsl:template match="/pool/target/permissions/group"><group>{libvirtGroup}</group></xsl:template>
+  <xsl:template match="/pool/target/permissions/mode"><mode>0777</mode></xsl:template>
+</xsl:stylesheet>

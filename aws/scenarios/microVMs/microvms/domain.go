@@ -71,7 +71,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setNa
 
 	domain := new(Domain)
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, arch)
-	domain.domainNamer = libvirtResourceNamer(ctx, domain.domainID)
+	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 
 	domain.ip = ip
 	domain.dhcpEntry, mac, err = generateDHCPEntry(e, ip, domain.domainID)

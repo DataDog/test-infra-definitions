@@ -73,5 +73,3 @@ def get_local_config() -> Config:
         return Config.parse_obj({})
     except ValidationError as e:
         raise invoke.Exit(f"Error in config {profile_path}:{e}")
-
-# @task 

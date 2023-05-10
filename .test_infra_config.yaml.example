@@ -1,30 +1,39 @@
 # Environments configuration, validated and passed to Pulumi
+
 configParams:
   # aws configuration
+
   aws:
     # aws key pair name
     # must be available in aws sandbox account
     # required to configure EC2 instances
+
     keyPairName: ""
     # local path to the public ssh key
     # use the public key you registered on aws sandbox account
     # required to configure Windows EC2 instances
+
     publicKeyPath: ""
   # agent related config
   agent:
     # Datadog API key
     # Required with real Datadog intake
     # Use dummy "00000000000000000000000000000000" with fakeintake
+
     apiKey: "00000000000000000000000000000000"
 # Raw stack parameters for Pulumi, passed as-is to the so called ConfigMap
 # There is no validation over these values, usefull to pass parameters not yet documented
+
 stackParams:
   # # namespace
+
   # <namespace>:
   #   # parameters
   #   <paramName>: ""
 # invoke task configuration
+
 options:
   # # enables checking defaultKeyPairName exists locally
   # # optional, default to false
+  
   # checkKeyPair: false

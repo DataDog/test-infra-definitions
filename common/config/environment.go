@@ -6,8 +6,11 @@ import (
 	"os"
 	"os/user"
 	"strings"
+	"sync"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/pulumi/pulumi-command/sdk/go/command"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -32,6 +35,12 @@ const (
 	ddAgentAPPKeyParamName        = "appKey"
 )
 
+var initRandomProvider sync.Once
+var randomProvider *random.Provider
+
+var initCommandProvider sync.Once
+var commandProvider *command.Provider
+
 type CommonEnvironment struct {
 	Ctx         *pulumi.Context
 	InfraConfig *sdkconfig.Config
@@ -40,12 +49,16 @@ type CommonEnvironment struct {
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
-	return CommonEnvironment{
+	env := CommonEnvironment{
 		Ctx:         ctx,
 		InfraConfig: sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig: sdkconfig.New(ctx, DDAgentConfigNamespace),
 		CommonNamer: namer.NewNamer(ctx, ""),
 	}
+	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
+	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
+	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
+	return env
 }
 
 // Infra namespace
@@ -169,6 +182,30 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
+}
+
+func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
+	var err error
+
+	if commandProvider != nil {
+		return commandProvider, nil
+	}
+	initCommandProvider.Do(func() {
+		commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
+	})
+	return commandProvider, err
+}
+
+func (e *CommonEnvironment) RandomProvider() (*random.Provider, error) {
+	var err error
+
+	if randomProvider != nil {
+		return randomProvider, nil
+	}
+	initRandomProvider.Do(func() {
+		randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
+	})
+	return randomProvider, err
 }
 
 type Environment interface {

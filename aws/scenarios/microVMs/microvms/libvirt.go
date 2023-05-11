@@ -14,9 +14,19 @@ import (
 )
 
 const (
-	microVMGroupSubnet    = "169.254.0.0/16"
+	// The microvm subnet changed from /16 to /24 because the underlying libvirt sdk would identify
+	// the incorrect network interface. It looks like it does not respect the subnet range when the subnet
+	// used is /16.
+	// Moreover the gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
+	// TODO: this problem only manifests when setting up VMs locally. Investigate the root cause to see what can
+	// be done. This solution may no longer work when the number of VMs exceeds the ips available in this subnet.
+	microVMGroupSubnet    = "169.254.0.1/24"
 	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
+
+func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
+	return namer.NewNamer(ctx, fmt.Sprintf("%s-%s", ctx.Stack(), identifier))
+}
 
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
 
@@ -55,10 +65,14 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, de
 
 func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
 	switch vmset.Recipe {
+	case "custom-local":
+		fallthrough
 	case "custom-arm64":
 		fallthrough
 	case "custom-amd64":
 		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
+	case "distro-local":
+		fallthrough
 	case "distro-arm64":
 		fallthrough
 	case "distro-amd64":
@@ -107,7 +121,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	var waitFor []pulumi.Resource
 
 	for _, set := range vm.vmsets {
-		fs, err := newLibvirtFS(vm.instance.ctx, &set)
+		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
@@ -130,7 +144,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 		if !ok {
 			return fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.ctx, vm.libvirtProvider, depends, &set, fs, ip)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs, ip)
 		if err != nil {
 			return err
 		}
@@ -150,7 +164,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 
 	}
 
-	network, err := generateNetworkResource(vm.instance.ctx, vm.libvirtProvider, depends, vm.instance.instanceNamer, dhcpEntries)
+	network, err := generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProvider, depends, vm.instance.instanceNamer, dhcpEntries)
 	if err != nil {
 		return err
 	}
@@ -173,7 +187,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 
 	// Map instances and vmsets to VMCollections
 	for _, instance := range instances {
-		provider, err := libvirt.NewProvider(instance.ctx, instance.instanceNamer.ResourceName("provider"), &libvirt.ProviderArgs{
+		provider, err := libvirt.NewProvider(instance.e.Ctx, instance.instanceNamer.ResourceName("provider"), &libvirt.ProviderArgs{
 			Uri: instance.libvirtURI,
 		}, pulumi.DependsOn(depends))
 		if err != nil {
@@ -237,7 +251,7 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 
 	for _, collection := range vmCollections {
 		for _, domain := range collection.domains {
-			d, err := libvirt.NewDomain(collection.instance.ctx,
+			d, err := libvirt.NewDomain(collection.instance.e.Ctx,
 				domain.domainNamer.ResourceName("ddvm", domain.domainID),
 				domain.domainArgs,
 				pulumi.Provider(collection.libvirtProvider),

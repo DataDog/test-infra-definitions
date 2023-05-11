@@ -86,7 +86,12 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	if args.Sudo && r.config.user != "" {
 		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
-	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), opts...)
+	provider, err := r.e.CommandProvider()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get command provider %s", err))
+	}
+	depends := append(opts, pulumi.Provider(provider))
+	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), depends...)
 }
 
 type LocalRunner struct {
@@ -127,5 +132,10 @@ func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCom
 }
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
-	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
+	provider, err := r.e.CommandProvider()
+	if err != nil {
+		panic(fmt.Sprintf("failed to get command provider %s", err))
+	}
+	depends := append(opts, pulumi.Provider(provider))
+	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), depends...)
 }

@@ -25,16 +25,12 @@ func (a *AMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInpu
 	return formatResourceXML(amd64DomainXLS, args)
 }
 
-func (a *AMD64ResourceCollection) GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return GetDefaultNetworkXLS(args)
-}
-
 func (a *AMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return GetDefaultVolumeXML(args)
+	return GetDefaultVolumeXML(args, a.recipe)
 }
 
 func (a *AMD64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return GetDefaultPoolXML(args)
+	return GetDefaultPoolXML(args, a.recipe)
 }
 
 func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {

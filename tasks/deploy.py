@@ -14,11 +14,12 @@ default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 def deploy(
     _: Context,
     scenario_name: str,
-    key_pair_required: bool = False,
+    key_pair_required=False,
     public_key_required: bool = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
+    debug: Optional[bool] = False,
     extra_flags: Dict[str, Any] = {},
 ) -> str:
     flags = extra_flags
@@ -41,9 +42,9 @@ def deploy(
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key()
 
-    if key_pair_required:
+    if key_pair_required and cfg.get_options().checkKeyPair:
         _check_key_pair(defaultKeyPairName)
-    return _deploy(stack_name, flags)
+    return _deploy(stack_name, flags, debug)
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
@@ -55,7 +56,7 @@ def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     return defaultPublicKeyPath
 
 
-def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> str:
+def _deploy(stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> str:
     cmd_args = ["aws-vault", "exec", "sandbox-account-admin", "--", "pulumi", "up", "--yes"]
     for key, value in flags.items():
         if value is not None and value != "":
@@ -64,6 +65,9 @@ def _deploy(stack_name: Optional[str], flags: Dict[str, Any]) -> str:
     full_stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     cmd_args.extend(["-s", full_stack_name])
     cmd_args.extend(["-C", _get_root_path()])
+
+    if debug:
+        cmd_args.extend(["-v", "3", "--debug"])
 
     try:
         # use subprocess instead of context to allow interaction with pulumi up

@@ -13,6 +13,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+var _ utils.RemoteServiceDeserializer[ClientData] = (*Installer)(nil)
+
 type Installer struct {
 	dependsOn pulumi.Resource
 	vm        vm.VM
@@ -82,6 +84,11 @@ func updateAgentConfig(
 	extraAgentConfig []pulumi.StringInput,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, pulumi.StringInput, error) {
+	if agentConfig == "" && len(extraAgentConfig) == 0 {
+		// no update in agent config, safely early return
+		return lastCommand, nil, nil
+	}
+
 	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
 	var err error
 
@@ -90,16 +97,14 @@ func updateAgentConfig(
 		pulumiAgentString = pulumi.Sprintf("%v\n%v", pulumiAgentString, extraConfig)
 	}
 
-	if agentConfig != "" {
-		agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
-		lastCommand, err = fileManager.CopyInlineFile(
-			agentConfigWithAPIKEY,
-			agentConfigFullPath,
-			true,
-			utils.PulumiDependsOn(lastCommand))
-		if err != nil {
-			return nil, pulumiAgentString, err
-		}
+	agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
+	lastCommand, err = fileManager.CopyInlineFile(
+		agentConfigWithAPIKEY,
+		agentConfigFullPath,
+		true,
+		utils.PulumiDependsOn(lastCommand))
+	if err != nil {
+		return nil, pulumiAgentString, err
 	}
 
 	return lastCommand, pulumiAgentString, nil
@@ -131,15 +136,11 @@ type ClientData struct {
 	Connection utils.Connection
 }
 
-func (installer *Installer) GetClientDataDeserializer() func(auto.UpResult) (*ClientData, error) {
-	vmDataDeserializer := installer.vm.GetClientDataDeserializer()
-	return func(result auto.UpResult) (*ClientData, error) {
-		vmData, err := vmDataDeserializer(result)
-
-		if err != nil {
-			return nil, err
-		}
-
-		return &ClientData{Connection: vmData.Connection}, nil
+func (installer *Installer) Deserialize(result auto.UpResult) (*ClientData, error) {
+	vmData, err := installer.vm.Deserialize(result)
+	if err != nil {
+		return nil, err
 	}
+
+	return &ClientData{Connection: vmData.Connection}, nil
 }

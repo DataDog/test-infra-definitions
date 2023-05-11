@@ -1,6 +1,8 @@
 package resources
 
 import (
+	"fmt"
+	"runtime"
 	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -8,15 +10,17 @@ import (
 )
 
 const (
-	SharedFSMount = "sharedFSMount"
-	DomainID      = "domainID"
-	MACAddress    = "mac"
-	DHCPEntries   = "dhcpEntries"
-	ImageName     = "imageName"
-	VolumeKey     = "volumeKey"
-	VolumePath    = "volumePath"
-	PoolName      = "poolName"
-	PoolPath      = "poolPath"
+	SharedFSMount     = "sharedFSMount"
+	DomainID          = "domainID"
+	MACAddress        = "mac"
+	DHCPEntries       = "dhcpEntries"
+	ImageName         = "imageName"
+	VolumeKey         = "volumeKey"
+	VolumePath        = "volumePath"
+	PoolName          = "poolName"
+	PoolPath          = "poolPath"
+	CustomLocalRecipe = "custom-local"
+	DistroLocalRecipe = "distro-local"
 )
 
 var kernelCmdlines = []map[string]interface{}{
@@ -29,7 +33,6 @@ var kernelCmdlines = []map[string]interface{}{
 
 type ResourceCollection interface {
 	GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
-	GetNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
@@ -69,8 +72,38 @@ func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.St
 	return pulumiXML
 }
 
+func isLocalRecipe(recipe string) bool {
+	return (recipe == CustomLocalRecipe) || (recipe == DistroLocalRecipe)
+}
+
+func getLocalArchRecipe(recipe string) string {
+	var prefix string
+
+	if !isLocalRecipe(recipe) {
+		return recipe
+	}
+
+	if strings.HasPrefix(recipe, "distro") {
+		prefix = "distro"
+	} else if strings.HasPrefix(recipe, "custom") {
+		prefix = "custom"
+	} else {
+		panic("unknown recipe " + recipe)
+	}
+
+	if runtime.GOARCH == "amd64" {
+		return fmt.Sprintf("%s-amd64", prefix)
+	} else if runtime.GOARCH == "arm64" {
+		return fmt.Sprintf("%s-arm64", prefix)
+	}
+
+	panic("unknown recipe " + recipe)
+}
+
 func NewResourceCollection(recipe string) ResourceCollection {
-	switch recipe {
+	archSpecificRecipe := getLocalArchRecipe(recipe)
+
+	switch archSpecificRecipe {
 	case "custom-arm64":
 		return NewARM64ResourceCollection(recipe)
 	case "custom-amd64":
@@ -80,6 +113,6 @@ func NewResourceCollection(recipe string) ResourceCollection {
 	case "distro-amd64":
 		return NewDistroAMD64ResourceCollection(recipe)
 	default:
-		panic("unknown recipe: " + recipe)
+		panic("unknown recipe: " + archSpecificRecipe)
 	}
 }

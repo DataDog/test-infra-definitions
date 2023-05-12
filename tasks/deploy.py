@@ -28,27 +28,34 @@ def deploy(
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
 
-    cfg = config.get_config()
+    cfg = config.get_local_config()
     flags[default_public_path_key_name] = _get_public_path_key_name(
         cfg, public_key_required
     )
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
 
-    defaultKeyPairName = cfg.get_infra_aws().defaultKeyPairName
-    flags["ddinfra:aws/defaultKeyPairName"] = defaultKeyPairName
+    awsKeyPairName = cfg.get_aws().keyPairName
+    flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
     flags["ddinfra:env"] = "aws/sandbox"
 
     if install_agent:
-        flags["ddagent:apiKey"] = _get_api_key()
+        flags["ddagent:apiKey"] = _get_api_key(cfg)
 
     if key_pair_required and cfg.get_options().checkKeyPair:
-        _check_key_pair(defaultKeyPairName)
+        _check_key_pair(awsKeyPairName)
+
+    # add stack params values
+    stackParams = cfg.get_stack_params()
+    for namespace in stackParams:
+        for key, value in stackParams[namespace].items():
+            flags[f"{namespace}:{key}"] = value
+            
     _deploy(stack_name, flags, debug)
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
-    defaultPublicKeyPath = cfg.get_infra_aws().defaultPublicKeyPath
+    defaultPublicKeyPath = cfg.get_aws().publicKeyPath
     if require and defaultPublicKeyPath is None:
         raise invoke.Exit(
             f"Your scenario requires to define {default_public_path_key_name} in the configuration file"
@@ -80,7 +87,11 @@ def _get_root_path() -> str:
     return str(folder.parent)
 
 
-def _get_api_key() -> str:
+def _get_api_key(cfg: Optional[Config]) -> str:
+    # first try in config
+    if cfg is not None and cfg.get_agent().apiKey is not None:
+        return cfg.get_agent().apiKey
+    # the try in env var
     api_key = os.getenv("E2E_API_KEY")
     if api_key is None or len(api_key) != 32:
         raise invoke.Exit(

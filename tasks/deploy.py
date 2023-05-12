@@ -14,14 +14,14 @@ default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 def deploy(
     _: Context,
     scenario_name: str,
-    key_pair_required=False,
+    key_pair_required: bool = False,
     public_key_required: bool = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Dict[str, Any] = {},
-):
+) -> str:
     flags = extra_flags
 
     if install_agent is None:
@@ -50,8 +50,8 @@ def deploy(
     for namespace in stackParams:
         for key, value in stackParams[namespace].items():
             flags[f"{namespace}:{key}"] = value
-            
-    _deploy(stack_name, flags, debug)
+
+    return _deploy(stack_name, flags, debug)
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
@@ -63,13 +63,24 @@ def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     return defaultPublicKeyPath
 
 
-def _deploy(stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> None:
-    cmd_args = ["aws-vault", "exec", "sandbox-account-admin", "--", "pulumi", "up"]
+def _deploy(
+    stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]
+) -> str:
+    cmd_args = [
+        "aws-vault",
+        "exec",
+        "sandbox-account-admin",
+        "--",
+        "pulumi",
+        "up",
+        "--yes",
+    ]
     for key, value in flags.items():
         if value is not None and value != "":
             cmd_args.append("-c")
             cmd_args.append(f"{key}={value}")
-    cmd_args.extend(["-s", tool.get_stack_name(stack_name, flags["scenario"])])
+    full_stack_name = tool.get_stack_name(stack_name, flags["scenario"])
+    cmd_args.extend(["-s", full_stack_name])
     cmd_args.extend(["-C", _get_root_path()])
 
     if debug:
@@ -78,6 +89,7 @@ def _deploy(stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bo
     try:
         # use subprocess instead of context to allow interaction with pulumi up
         subprocess.check_call(cmd_args)
+        return full_stack_name
     except Exception as e:
         raise invoke.Exit(f"Error when running {cmd_args}: {e}")
 
@@ -103,7 +115,9 @@ def _get_api_key(cfg: Optional[Config]) -> str:
 
 def _check_key_pair(key_pair_to_search: Optional[str]):
     if key_pair_to_search is None or key_pair_to_search == "":
-        raise invoke.Exit("This scenario requires to define 'defaultKeyPairName' in the configuration file")
+        raise invoke.Exit(
+            "This scenario requires to define 'defaultKeyPairName' in the configuration file"
+        )
     output = subprocess.check_output(["ssh-add", "-L"])
     key_pairs: List[str] = []
     output = output.decode("utf-8")

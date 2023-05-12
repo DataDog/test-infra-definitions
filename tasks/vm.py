@@ -7,6 +7,7 @@ from typing import Optional
 from invoke.context import Context
 from . import tool
 import invoke
+import pyperclip
 
 scenario_name = "aws/vm"
 
@@ -36,7 +37,7 @@ def create_vm(
     os_family = _get_os_family(os_family)
     extra_flags["ddinfra:osFamily"] = os_family
 
-    deploy(
+    full_stack_name = deploy(
         ctx,
         scenario_name,
         key_pair_required=True,
@@ -46,6 +47,20 @@ def create_vm(
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
+    )
+    _show_connection_message(full_stack_name)
+
+
+def _show_connection_message(full_stack_name: str):
+    outputs = tool.get_stack_json_outputs(full_stack_name)
+    connection = tool.Connection(outputs)
+    host = connection.host
+    user = connection.user
+
+    command = f"ssh {user}@{host}"
+    pyperclip.copy(command)
+    print(
+        f"\nYou can run the following command to connect to the host `{command}`. This command was copied to the clipboard\n"
     )
 
 

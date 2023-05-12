@@ -23,16 +23,16 @@ const (
 	DDAgentConfigNamespace = "ddagent"
 
 	// Infra namespace
-	ddInfraEnvironment       = "env"
-	ddInfraKubernetesVersion = "kubernetesVersion"
-	ddInfraOSFamily          = "osFamily"
+	DDInfraEnvironment       = "env"
+	DDInfraKubernetesVersion = "kubernetesVersion"
+	DDInfraOSFamily          = "osFamily"
 
 	// Agent Namespace
-	ddAgentDeployParamName        = "deploy"
-	ddAgentVersionParamName       = "version"
-	ddAgentFullImagePathParamName = "fullImagePath"
+	DDAgentDeployParamName        = "deploy"
+	DDAgentVersionParamName       = "version"
+	DDAgentFullImagePathParamName = "fullImagePath"
 	DDAgentAPIKeyParamName        = "apiKey"
-	ddAgentAPPKeyParamName        = "appKey"
+	DDAgentAPPKeyParamName        = "appKey"
 )
 
 var initRandomProvider sync.Once
@@ -63,16 +63,16 @@ func NewCommonEnvironment(ctx *pulumi.Context) CommonEnvironment {
 
 // Infra namespace
 func (e *CommonEnvironment) InfraEnvironmentNames() []string {
-	envsStr := e.InfraConfig.Require(ddInfraEnvironment)
+	envsStr := e.InfraConfig.Require(DDInfraEnvironment)
 	return strings.Split(envsStr, multiValueSeparator)
 }
 
 func (e *CommonEnvironment) InfraOSFamily() string {
-	return e.InfraConfig.Get(ddInfraOSFamily)
+	return e.InfraConfig.Get(DDInfraOSFamily)
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraKubernetesVersion, "1.23")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.23")
 }
 
 func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
@@ -100,15 +100,15 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 
 // Agent Namespace
 func (e *CommonEnvironment) AgentDeploy() bool {
-	return e.GetBoolWithDefault(e.AgentConfig, ddAgentDeployParamName, true)
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployParamName, true)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {
-	return e.AgentConfig.Get(ddAgentVersionParamName)
+	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
 
 func (e *CommonEnvironment) AgentFullImagePath() string {
-	return e.AgentConfig.Get(ddAgentFullImagePathParamName)
+	return e.AgentConfig.Get(DDAgentFullImagePathParamName)
 }
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {
@@ -116,7 +116,7 @@ func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {
 }
 
 func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
-	return e.AgentConfig.RequireSecret(ddAgentAPPKeyParamName)
+	return e.AgentConfig.RequireSecret(DDAgentAPPKeyParamName)
 }
 
 func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {

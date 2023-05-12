@@ -44,7 +44,8 @@ def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
 
 
 def get_stack_name_suffix() -> str:
-    return f"-{getpass.getuser()}"
+    user_name = f"-{getpass.getuser()}"
+    return user_name.replace(".", "-") # EKS doesn't support '.'
 
 
 def get_stack_json_outputs(full_stack_name: str) -> str:

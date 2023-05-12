@@ -40,11 +40,13 @@ def get_default_agent_install() -> bool:
 def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
     if stack_name is None:
         stack_name = scenario_name.replace("/", "-")
-    return f"{stack_name}{get_stack_name_suffix()}"
+    # The scenario name cannot start with the stack name because ECS 
+    # stack name cannot start with 'ecs' or 'aws'
+    return f"{get_stack_name_prefix()}{stack_name}"
 
 
-def get_stack_name_suffix() -> str:
-    user_name = f"-{getpass.getuser()}"
+def get_stack_name_prefix() -> str:
+    user_name = f"{getpass.getuser()}-"
     return user_name.replace(".", "-") # EKS doesn't support '.'
 
 

@@ -6,7 +6,6 @@ import (
 	"os"
 	"os/user"
 	"strings"
-	"sync"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-command/sdk/go/command"
@@ -35,10 +34,10 @@ const (
 	DDAgentAPPKeyParamName        = "appKey"
 )
 
-var initRandomProvider sync.Once
+//var initRandomProvider sync.Once
 var randomProvider *random.Provider
 
-var initCommandProvider sync.Once
+//var initCommandProvider sync.Once
 var commandProvider *command.Provider
 
 type CommonEnvironment struct {
@@ -190,9 +189,9 @@ func (e *CommonEnvironment) CommandProvider() (*command.Provider, error) {
 	if commandProvider != nil {
 		return commandProvider, nil
 	}
-	initCommandProvider.Do(func() {
-		commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
-	})
+	//	initCommandProvider.Do(func() {
+	commandProvider, err = command.NewProvider(e.Ctx, "command-provider", &command.ProviderArgs{})
+	//	})
 	return commandProvider, err
 }
 
@@ -202,9 +201,9 @@ func (e *CommonEnvironment) RandomProvider() (*random.Provider, error) {
 	if randomProvider != nil {
 		return randomProvider, nil
 	}
-	initRandomProvider.Do(func() {
-		randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
-	})
+	//initRandomProvider.Do(func() {
+	randomProvider, err = random.NewProvider(e.Ctx, "random-provider", &random.ProviderArgs{})
+	//	})
 	return randomProvider, err
 }
 

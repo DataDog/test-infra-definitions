@@ -20,7 +20,7 @@ const (
 
 	windowsInitUserData = `<powershell>
 [string]$EKSBootstrapScriptFile = "$env:ProgramFiles\Amazon\EKS\Start-EKSBootstrap.ps1"
-& $EKSBootstrapScriptFile -EKSClusterName %s 3>&1 4>&1 5>&1 6>&1
+& $EKSBootstrapScriptFile -EKSClusterName %s -KubeletExtraArgs "--register-with-taints=node.kubernetes.io/os=windows:NoSchedule" 3>&1 4>&1 5>&1 6>&1
 </powershell>
 `
 )

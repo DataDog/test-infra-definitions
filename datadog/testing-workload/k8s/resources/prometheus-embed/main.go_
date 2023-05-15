@@ -1,0 +1,64 @@
+package main
+
+import (
+	"log"
+	"math"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+)
+
+const period = 5 * time.Minute
+const nbSeries = 10
+
+func main() {
+	counter := prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "prom_counter",
+		Help: "Prometheus Counter",
+	})
+
+	gauges := prometheus.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "prom_gauge",
+		Help: "Prometheus Gauge",
+	},
+		[]string{"series"},
+	)
+
+	registry := prometheus.NewRegistry()
+
+	registry.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+		counter,
+		gauges,
+	)
+
+	go func() {
+		for {
+			counter.Inc()
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	go func() {
+		for {
+			for i := 0; i < nbSeries; i++ {
+				gauges.WithLabelValues(strconv.Itoa(i)).Set(math.Sin(2 * math.Pi * (float64(time.Now().Unix())/period.Seconds() + float64(i)/nbSeries)))
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	http.Handle("/metrics", promhttp.HandlerFor(
+		registry,
+		promhttp.HandlerOpts{
+			Registry:          registry,
+			EnableOpenMetrics: true,
+		}),
+	)
+	log.Fatal(http.ListenAndServe(":8080", nil))
+}

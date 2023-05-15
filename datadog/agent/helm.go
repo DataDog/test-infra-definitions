@@ -30,11 +30,13 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 		return nil, err
 	}
 
+	installName := "dda"
+
 	// Create secret if necessary
-	secret, err := corev1.NewSecret(e.Ctx, "dd-datadog-credentials", &corev1.SecretArgs{
+	secret, err := corev1.NewSecret(e.Ctx, installName+"-datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
-			Name:      pulumi.String("dd-datadog-credentials"),
+			Name:      pulumi.String(installName + "-datadog-credentials"),
 		},
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
@@ -46,7 +48,6 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 	}
 
 	// Compute some values
-	installName := "dda"
 	agentImagePath := DockerFullImagePath(&e, "")
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
@@ -84,6 +85,9 @@ func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag st
 				"processCollection": pulumi.Bool(true),
 			},
 			"helmCheck": pulumi.Map{
+				"enabled": pulumi.Bool(true),
+			},
+			"prometheusScrape": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
 		},

@@ -17,28 +17,33 @@ import (
 const (
 	multiValueSeparator = ","
 
-	namerNamespace         = "common"
-	DDInfraConfigNamespace = "ddinfra"
-	DDAgentConfigNamespace = "ddagent"
+	namerNamespace             = "common"
+	DDInfraConfigNamespace     = "ddinfra"
+	DDAgentConfigNamespace     = "ddagent"
+	DDTestingWorkloadNamespace = "ddtestworkload"
 
 	// Infra namespace
 	DDInfraEnvironment       = "env"
 	DDInfraKubernetesVersion = "kubernetesVersion"
 	DDInfraOSFamily          = "osFamily"
 
-	// Agent Namespace
+	// Agent namespace
 	DDAgentDeployParamName        = "deploy"
 	DDAgentVersionParamName       = "version"
 	DDAgentFullImagePathParamName = "fullImagePath"
 	DDAgentAPIKeyParamName        = "apiKey"
 	DDAgentAPPKeyParamName        = "appKey"
+
+	// Testing workload namerNamespace
+	DDTestingWorkloadDeployParamName = "deploy"
 )
 
 type CommonEnvironment struct {
-	Ctx         *pulumi.Context
-	InfraConfig *sdkconfig.Config
-	AgentConfig *sdkconfig.Config
-	CommonNamer namer.Namer
+	Ctx                   *pulumi.Context
+	InfraConfig           *sdkconfig.Config
+	AgentConfig           *sdkconfig.Config
+	TestingWorkloadConfig *sdkconfig.Config
+	CommonNamer           namer.Namer
 
 	RandomProvider  *random.Provider
 	CommandProvider *command.Provider
@@ -54,12 +59,13 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		return CommonEnvironment{}, err
 	}
 	env := CommonEnvironment{
-		Ctx:             ctx,
-		InfraConfig:     sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig:     sdkconfig.New(ctx, DDAgentConfigNamespace),
-		CommonNamer:     namer.NewNamer(ctx, ""),
-		RandomProvider:  randomProvider,
-		CommandProvider: commandProvider,
+		Ctx:                   ctx,
+		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
+		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
+		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		CommonNamer:           namer.NewNamer(ctx, ""),
+		RandomProvider:        randomProvider,
+		CommandProvider:       commandProvider,
 	}
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
@@ -196,4 +202,9 @@ type Environment interface {
 	GetCommonEnvironment() *CommonEnvironment
 	DefaultPrivateKeyPath() string
 	DefaultPrivateKeyPassword() string
+}
+
+// Testing workload namespace
+func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
 }

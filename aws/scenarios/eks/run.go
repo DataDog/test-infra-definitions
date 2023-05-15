@@ -5,6 +5,7 @@ import (
 	localEks "github.com/DataDog/test-infra-definitions/aws/eks"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
+	testingWorkload "github.com/DataDog/test-infra-definitions/datadog/testing-workload/k8s"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -183,6 +184,29 @@ func Run(ctx *pulumi.Context) error {
 
 		ctx.Export("agent-helm-install-name", helmRelease.Name)
 		ctx.Export("agent-helm-install-status", helmRelease.Status)
+	}
+
+	// Deploy testing workload
+	if awsEnv.TestingWorkloadDeploy() {
+		_, err := testingWorkload.NginxWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx")
+		if err != nil {
+			return err
+		}
+
+		_, err = testingWorkload.RedisWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis")
+		if err != nil {
+			return err
+		}
+
+		_, _, err = testingWorkload.DogstatsdWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd")
+		if err != nil {
+			return err
+		}
+
+		_, err = testingWorkload.PrometheusWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus")
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

@@ -25,7 +25,7 @@ scenario_name = "aws/ecs"
 def create_ecs(
     ctx: Context,
     stack_name: Optional[str] = None,
-    install_agent: Optional[bool] = False,
+    install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
     use_fargate: bool = True,
     linux_node_group: bool = True,

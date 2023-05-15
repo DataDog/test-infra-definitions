@@ -61,14 +61,14 @@ def _show_connection_message(full_stack_name: str):
     outputs = tool.get_stack_json_outputs(full_stack_name)
     kubeconfig = outputs["kubeconfig"]
     kubeconfig_content = yaml.dump(kubeconfig)
-
+    config = f"{full_stack_name}-config.yaml"
     f = os.open(
-        path="config.yaml", flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600
+        path=config, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600
     )
     with open(f, "w") as f:
         f.write(kubeconfig_content)
 
-    command = "KUBECONFIG=config.yaml aws-vault exec sandbox-account-admin -- kubectl get nodes"
+    command = f"KUBECONFIG={config} aws-vault exec sandbox-account-admin -- kubectl get nodes"
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

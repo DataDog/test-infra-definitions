@@ -1,8 +1,8 @@
 package command
 
 import (
-	"crypto/rand"
 	"fmt"
+	"math/rand"
 	"strconv"
 
 	"github.com/DataDog/test-infra-definitions/common/config"

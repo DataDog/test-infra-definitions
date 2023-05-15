@@ -3,6 +3,7 @@ package command
 import (
 	"crypto/rand"
 	"fmt"
+	"strconv"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -141,7 +142,7 @@ func NewLocalRunner(e config.CommonEnvironment, osCommand OSCommand, options ...
 	// set default provider if none set
 	var err error
 	if localRunner.provider == nil {
-		localRunner.provider, err = pulumiCommand.NewProvider(e.Ctx, localRunner.namer.ResourceName("provider", strings.Itoa(rand.Int())), &pulumiCommand.ProviderArgs{})
+		localRunner.provider, err = pulumiCommand.NewProvider(e.Ctx, localRunner.namer.ResourceName("provider", strconv.Itoa(rand.Int())), &pulumiCommand.ProviderArgs{})
 		if err != nil {
 			return nil, err
 		}

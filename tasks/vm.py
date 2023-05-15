@@ -24,7 +24,7 @@ scenario_name = "aws/vm"
 def create_vm(
     ctx: Context,
     stack_name: Optional[str] = None,
-    install_agent: Optional[bool] = False,
+    install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,

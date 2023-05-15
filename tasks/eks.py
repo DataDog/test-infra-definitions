@@ -26,7 +26,7 @@ scenario_name = "aws/eks"
 def create_eks(
     ctx: Context,
     stack_name: Optional[str] = None,
-    install_agent: Optional[bool] = False,
+    install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
     eks_linux_node_group: bool = True,
     eks_linux_arm_node_group: bool = False,

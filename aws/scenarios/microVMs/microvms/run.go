@@ -146,16 +146,19 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 
 	env := *instance.e.CommonEnvironment
 	osCommand := command.NewUnixOSCommand()
-	localRunner := command.NewLocalRunner(env, osCommand)
+	localRunner := command.NewLocalRunner(env, command.LocalRunnerArgs{
+		OSCommand: osCommand,
+	})
 	if instance.Arch != LocalVMSet {
 		remoteRunner, err := command.NewRunner(
 			env,
-			instance.instanceNamer.ResourceName("conn"),
-			instance.Connection,
-			func(r *command.Runner) (*remote.Command, error) {
-				return command.WaitForCloudInit(r)
+			command.RunnerArgs{
+				ParentResource: instance.instance,
+				Connection:     instance.Connection,
+				ConnectionName: instance.instanceNamer.ResourceName("conn"),
+				ReadyFunc:      command.WaitForCloudInit,
+				OSCommand:      osCommand,
 			},
-			osCommand,
 		)
 		if err != nil {
 			return nil, err
@@ -207,7 +210,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	instance.libvirtURI = url
 
 	return waitFor, err
-
 }
 
 func run(e aws.Environment) (*ScenarioDone, error) {

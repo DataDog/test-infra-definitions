@@ -8,4 +8,4 @@ containerdConfigPatches:
       endpoint = ["https://mirror.gcr.io", "https://registry-1.docker.io"]
 networking:
   apiServerAddress: "0.0.0.0"
-  apiServerPort: 6443
+  apiServerPort: 8443

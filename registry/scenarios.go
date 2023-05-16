@@ -6,6 +6,7 @@ import (
 	dockervm "github.com/DataDog/test-infra-definitions/aws/scenarios/dockerVM"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/ecs"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/eks"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/kindvm"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms"
 	awsvm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm"
 	"github.com/DataDog/test-infra-definitions/azure/scenarios/aks"
@@ -23,6 +24,7 @@ func Scenarios() ScenarioRegistry {
 		"aws/ecs":      ecs.Run,
 		"aws/eks":      eks.Run,
 		"aws/microvms": microvms.Run,
+		"aws/kind":     kindvm.Run,
 		"az/vm":        azvm.Run,
 		"az/aks":       aks.Run,
 	}

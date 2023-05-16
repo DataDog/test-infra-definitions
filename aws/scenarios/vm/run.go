@@ -13,7 +13,10 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	env := config.NewCommonEnvironment(ctx)
+	env, err := config.NewCommonEnvironment(ctx)
+	if err != nil {
+		return err
+	}
 	var osType ec2os.Type
 
 	osTypeStr := strings.ToLower(env.InfraOSFamily())

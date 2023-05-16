@@ -14,7 +14,10 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	env := config.NewCommonEnvironment(ctx)
+	env, err := config.NewCommonEnvironment(ctx)
+	if err != nil {
+		return err
+	}
 	var options []func(*docker.Params) error
 	if env.AgentDeploy() {
 		options = append(options, docker.WithAgent())

@@ -4,11 +4,28 @@ This repository contains IaC code based on Pulumi to provision dynamic test infr
 
 ## Quick start guide
 
-The first step is to download and install Pulumi CLI. Information can be found [here](https://www.pulumi.com/docs/get-started/install/).
+1. Clone this repository
 
-For instance, on MacOS:
+```bash
+cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git 
 ```
-brew install pulumi/tap/pulumi
+
+1. Install Python dependencies
+
+```bash
+cd ~/dd/test-infra-definitions && pip install --requirement requirements.txt
+```
+
+1. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file
+
+```bash
+export PULUMI_CONFIG_PASSPHRASE=citest
+```
+
+1. Run and follow the setup script
+
+```bash
+inv setup
 ```
 
 ### Stack & Storage

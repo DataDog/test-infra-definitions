@@ -1,3 +1,4 @@
+import os
 import os.path
 from pathlib import Path
 import getpass
@@ -13,6 +14,13 @@ def setup(ctx: Context):
     """
     Setup a local environment interactively
     """
+    info("🤖 Install Pulumi")
+    os.system("brew install pulumi/tap/pulumi")
+    os.system("pulumi login --local")
+    os.system("pulumi --non-interactive stack init -s plugins && \
+pulumi --non-interactive preview -s plugins -c scenario=dummy && \
+pulumi --non-interactive stack rm -s plugins -y")
+
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     config = Config()
     config.configParams = Config.Params()

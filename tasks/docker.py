@@ -13,14 +13,14 @@ scenario_name = "aws/dockervm"
 @task(
     help={
         "install_agent": doc.install_agent,
-        "agent_version": doc.agent_docker_version,
+        "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
     }
 )
 def create_docker(
     ctx: Context,
     stack_name: Optional[str] = None,
-    install_agent: Optional[bool] = False,
+    install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
 ):
     """

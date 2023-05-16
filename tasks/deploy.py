@@ -4,7 +4,7 @@ import os
 import invoke
 import subprocess
 from invoke.context import Context
-from typing import List, Optional, Dict, Any
+from typing import Callable, List, Optional, Dict, Any
 import pathlib
 from . import tool
 
@@ -16,6 +16,7 @@ def deploy(
     scenario_name: str,
     key_pair_required: bool = False,
     public_key_required: bool = False,
+    app_key_required: bool = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
@@ -50,6 +51,10 @@ def deploy(
     for namespace in stackParams:
         for key, value in stackParams[namespace].items():
             flags[f"{namespace}:{key}"] = value
+
+
+    if app_key_required:
+        flags["ddagent:appKey"] = _get_app_key(cfg)
 
     return _deploy(stack_name, flags, debug)
 
@@ -100,17 +105,27 @@ def _get_root_path() -> str:
 
 
 def _get_api_key(cfg: Optional[Config]) -> str:
+    return _get_key("API KEY", cfg, lambda c: c.get_agent().apiKey, "E2E_API_KEY", 32)
+
+
+def _get_app_key(cfg: Optional[Config]) -> str:
+    return _get_key("APP KEY", cfg, lambda c: c.get_agent().appKey, "E2E_APP_KEY", 40)
+
+
+def _get_key(key_name: str, cfg: Optional[Config], get_key: Callable[[Config], Optional[str]], env_key_name: str, expected_size: int) -> str:
+    key: Optional[str] = None
+
     # first try in config
-    if cfg is not None and cfg.get_agent().apiKey is not None:
-        return cfg.get_agent().apiKey
-    # the try in env var
-    api_key = os.getenv("E2E_API_KEY")
-    if api_key is None or len(api_key) != 32:
+    if cfg is not None:
+        key = get_key(cfg)
+    if key is None or len(key) == 0:
+        # the try in env var
+        key = os.getenv(env_key_name)
+    if key is None or len(key) != expected_size:
         raise invoke.Exit(
-            "Invalid API KEY. You must define the environment variable 'E2E_API_KEY'. "
-            + "If you don't want an agent installation add '--no-install-agent'."
+            f"The scenario requires a valid {key_name} with a length of {expected_size} characters but none was found. You must define it in the config file"
         )
-    return api_key
+    return key
 
 
 def _check_key_pair(key_pair_to_search: Optional[str]):

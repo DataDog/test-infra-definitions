@@ -16,6 +16,7 @@ class Config(BaseModel, extra=Extra.forbid):
 
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
+            appKey: Optional[str]
         
         agent: Optional[Agent]
 
@@ -45,7 +46,8 @@ class Config(BaseModel, extra=Extra.forbid):
   
     def get_agent(self) -> Params.Agent:
         default = Config.Params.Agent(
-            apiKey=None
+            apiKey=None,
+            appKey=None
         )
         if self.configParams == None:
             return default
@@ -53,10 +55,9 @@ class Config(BaseModel, extra=Extra.forbid):
             return default
         return self.configParams.agent
     
-    def get_stack_params(self) -> Dict[str, Optional[any]]:
-        default = {}
+    def get_stack_params(self) -> Dict[str, Dict[str,str]]:
         if self.stackParams == None:
-            return default
+            return {}
         return self.stackParams
 
 

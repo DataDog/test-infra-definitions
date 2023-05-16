@@ -30,7 +30,7 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
         for stack_name in stacks:
             error(f" {stack_name}")
     else:
-        stack = f"{stack}{get_stack_name_suffix()}"
+        stack = f"{get_stack_name_prefix()}{stack}"
         subprocess.call(
             [
                 "aws-vault",
@@ -52,10 +52,10 @@ def _get_existing_stacks() -> List[str]:
     lines = output.splitlines()
     lines = lines[1:]  # skip headers
     stacks: List[str] = []
-    stack_name_suffix = get_stack_name_suffix()
+    stack_name_prefix = get_stack_name_prefix()
     for line in lines:
         stack_name = line.split(" ")[0]
-        if stack_name.endswith(stack_name_suffix):
-            stack_name = stack_name[:-len(stack_name_suffix)]
+        if stack_name.startswith(stack_name_prefix):
+            stack_name = stack_name[len(stack_name_prefix):]
             stacks.append(stack_name)
     return stacks

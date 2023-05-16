@@ -36,4 +36,4 @@ options:
   # # enables checking defaultKeyPairName exists locally
   # # optional, default to false
   
-  # checkKeyPair: false
+  # checkKeyPair: true

@@ -27,11 +27,13 @@ const (
 	DDInfraOSFamily          = "osFamily"
 
 	// Agent Namespace
-	DDAgentDeployParamName        = "deploy"
-	DDAgentVersionParamName       = "version"
-	DDAgentFullImagePathParamName = "fullImagePath"
-	DDAgentAPIKeyParamName        = "apiKey"
-	DDAgentAPPKeyParamName        = "appKey"
+	DDAgentDeployParamName               = "deploy"
+	DDAgentVersionParamName              = "version"
+	DDAgentFullImagePathParamName        = "fullImagePath"
+	DDClusterAgentVersionParamName       = "clusterAgentVersion"
+	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
+	DDAgentAPIKeyParamName               = "apiKey"
+	DDAgentAPPKeyParamName               = "appKey"
 )
 
 type CommonEnvironment struct {
@@ -113,8 +115,16 @@ func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
 
+func (e *CommonEnvironment) ClusterAgentVersion() string {
+	return e.AgentConfig.Get(DDClusterAgentVersionParamName)
+}
+
 func (e *CommonEnvironment) AgentFullImagePath() string {
 	return e.AgentConfig.Get(DDAgentFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) ClusterAgentFullImagePath() string {
+	return e.AgentConfig.Get(DDClusterAgentFullImagePathParamName)
 }
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {

@@ -24,11 +24,18 @@ func SetConfigDefaultValue(config auto.ConfigMap, key, value string) {
 	}
 }
 
-func AgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
-	version := e.AgentVersion()
+func anyAgentSemverVersion(version string) (*semver.Version, error) {
 	if version == "" {
 		return nil, nil
 	}
 
 	return semver.NewVersion(version)
+}
+
+func AgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
+	return anyAgentSemverVersion(e.AgentVersion())
+}
+
+func ClusterAgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
+	return anyAgentSemverVersion(e.ClusterAgentVersion())
 }

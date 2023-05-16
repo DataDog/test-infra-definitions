@@ -30,11 +30,13 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 		return nil, err
 	}
 
+	installName := "dda"
+
 	// Create secret if necessary
-	secret, err := corev1.NewSecret(e.Ctx, "dd-datadog-credentials", &corev1.SecretArgs{
+	secret, err := corev1.NewSecret(e.Ctx, installName+"-datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
-			Name:      pulumi.String("dd-datadog-credentials"),
+			Name:      pulumi.String(installName + "-datadog-credentials"),
 		},
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
@@ -46,9 +48,11 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 	}
 
 	// Compute some values
-	installName := "dda"
-	agentImagePath := DockerFullImagePath(&e, "")
+	agentImagePath := DockerAgentFullImagePath(&e, "")
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
+
+	clusterAgentImagePath := DockerClusterAgentFullImagePath(&e, "")
+	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	opts = append(opts, utils.PulumiDependsOn(ns, secret))
 	return helm.NewInstallation(e, helm.InstallArgs{
@@ -58,11 +62,11 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 		InstallName:        installName,
 		Namespace:          namespace,
 		ValuesFilePaths:    valuesFilepaths,
-		Values:             buildDefaultHelmValues(installName, agentImagePath, agentImageTag),
+		Values:             buildDefaultHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
 	}, opts...)
 }
 
-func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag string) pulumi.Map {
+func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string) pulumi.Map {
 	return pulumi.Map{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -96,6 +100,11 @@ func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag st
 		},
 		"clusterAgent": pulumi.Map{
 			"enabled": pulumi.Bool(true),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(clusterAgentImagePath),
+				"tag":           pulumi.String(clusterAgentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),
@@ -103,6 +112,11 @@ func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag st
 		},
 		"clusterChecksRunner": pulumi.Map{
 			"enabled": pulumi.Bool(true),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
 		},
 	}
 }

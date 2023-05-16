@@ -11,7 +11,7 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, apiKeySSMPar
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.StringPtr("datadog-agent"),
-		Image:     pulumi.Sprintf(DockerFullImagePath(&e, "public.ecr.aws/datadog/agent")),
+		Image:     pulumi.Sprintf(DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent")),
 		Essential: pulumi.BoolPtr(true),
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{

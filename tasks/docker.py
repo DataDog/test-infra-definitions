@@ -20,7 +20,7 @@ scenario_name = "aws/dockervm"
 def create_docker(
     ctx: Context,
     stack_name: Optional[str] = None,
-    install_agent: Optional[bool] = False,
+    install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
 ):
     """

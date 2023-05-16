@@ -34,7 +34,10 @@ type Environment struct {
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	commonEnv := config.NewCommonEnvironment(ctx)
+	commonEnv, err := config.NewCommonEnvironment(ctx)
+	if err != nil {
+		return Environment{}, err
+	}
 
 	env := Environment{
 		CommonEnvironment: &commonEnv,
@@ -42,7 +45,6 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace)),
 	}
 
-	var err error
 	env.Provider, err = sdkazure.NewProvider(ctx, "azure", &sdkazure.ProviderArgs{
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
 		SubscriptionId:         pulumi.StringPtr(env.envDefault.azure.subscriptionID),

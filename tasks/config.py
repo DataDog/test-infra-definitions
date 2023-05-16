@@ -55,7 +55,7 @@ class Config(BaseModel, extra=Extra.forbid):
             return default
         return self.configParams.agent
     
-    def get_stack_params(self) -> Dict[str, Dict[str,str]]:        
+    def get_stack_params(self) -> Dict[str, Dict[str,str]]:
         if self.stackParams == None:
             return {}
         return self.stackParams

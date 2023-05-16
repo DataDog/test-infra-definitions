@@ -34,7 +34,7 @@ def get_default_os_family() -> str:
 
 
 def get_default_agent_install() -> bool:
-    return False
+    return True
 
 
 def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:

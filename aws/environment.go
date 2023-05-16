@@ -61,7 +61,10 @@ type Environment struct {
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	commonEnv := config.NewCommonEnvironment(ctx)
+	commonEnv, err := config.NewCommonEnvironment(ctx)
+	if err != nil {
+		return Environment{}, err
+	}
 
 	env := Environment{
 		CommonEnvironment: &commonEnv,
@@ -70,7 +73,6 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), awsConfigNamespace)),
 	}
 
-	var err error
 	env.awsProvider, err = sdkaws.NewProvider(ctx, "aws", &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{

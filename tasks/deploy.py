@@ -106,7 +106,6 @@ def _get_root_path() -> str:
 
 def _get_api_key(cfg: Optional[Config]) -> str:
     return _get_key("API KEY", cfg, lambda c: c.get_agent().apiKey, "E2E_API_KEY", 32)
-    
 
 
 def _get_app_key(cfg: Optional[Config]) -> str:

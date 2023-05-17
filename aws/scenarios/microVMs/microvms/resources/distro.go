@@ -38,6 +38,7 @@ func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 
 func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	domainArgs := libvirt.DomainArgs{
+		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),
@@ -88,6 +89,7 @@ func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 
 func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	domainArgs := libvirt.DomainArgs{
+		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),

@@ -2,6 +2,15 @@ package vmconfig
 
 type VMSetID string
 
+const (
+	RecipeCustomAMD64 = "custom-x86_64"
+	RecipeCustomARM64 = "custom-arm64"
+	RecipeDistroAMD64 = "distro-x86_64"
+	RecipeDistroARM64 = "distro-arm64"
+	RecipeCustomLocal = "custom-local"
+	RecipeDistroLocal = "distro-local"
+)
+
 type Kernel struct {
 	Dir         string            `json:"dir"`
 	Tag         string            `json:"tag"`

@@ -93,6 +93,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setNa
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = machine
 	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = kernel.ExtraParams
+	domain.RecipeLibvirtDomainArgs.DomainName = domain.domainID
 
 	return domain, nil
 }

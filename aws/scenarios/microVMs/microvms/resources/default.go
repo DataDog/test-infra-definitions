@@ -16,9 +16,6 @@ var defaultNetworkXLS string
 //go:embed default/pool.xml
 var defaultPoolXML string
 
-//go:embed default/pool_local.xls
-var defaultLocalPoolXLS string
-
 //go:embed default/volume.xml
 var defaultVolumeXML string
 
@@ -42,9 +39,5 @@ func GetDefaultVolumeXML(args map[string]pulumi.StringInput, recipe string) pulu
 }
 
 func GetDefaultPoolXML(args map[string]pulumi.StringInput, recipe string) pulumi.StringOutput {
-	if isLocalRecipe(recipe) {
-		return formatResourceXML(defaultLocalPoolXLS, args)
-	}
-
 	return formatResourceXML(defaultPoolXML, args)
 }

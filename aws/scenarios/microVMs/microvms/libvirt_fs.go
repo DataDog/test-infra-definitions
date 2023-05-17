@@ -353,9 +353,6 @@ func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provid
 		Type: pulumi.String("dir"),
 		Name: pulumi.String(fs.poolName),
 		Path: pulumi.String(generatePoolPath(fs.poolName)),
-		//		Xml: libvirt.PoolXmlArgs{
-		//			Xslt: fs.poolXML,
-		//		},
 	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err

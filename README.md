@@ -2,6 +2,13 @@
 
 This repository contains IaC code based on Pulumi to provision dynamic test infrastructures for testing.
 
+## Prerequisites
+
+To run scripts and code in this repository, you will need:
+
+ * [Go](https://golang.org/doc/install) 1.19 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
+ * Python 3.7+ along with development libraries for tooling.
+
 ## Quick start guide
 
 1. Clone this repository
@@ -16,10 +23,10 @@ cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git
 cd ~/dd/test-infra-definitions && pip install --requirement requirements.txt
 ```
 
-1. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file
+1. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file. Create a random password using 1Password and store it there
 
 ```bash
-export PULUMI_CONFIG_PASSPHRASE=citest
+export PULUMI_CONFIG_PASSPHRASE=<random password stored in 1Password>
 ```
 
 1. Run and follow the setup script

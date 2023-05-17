@@ -17,9 +17,6 @@ def setup(ctx: Context):
     info("🤖 Install Pulumi")
     os.system("brew install pulumi/tap/pulumi")
     os.system("pulumi login --local")
-    os.system("pulumi --non-interactive stack init -s plugins && \
-pulumi --non-interactive preview -s plugins -c scenario=dummy && \
-pulumi --non-interactive stack rm -s plugins -y")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     config = Config()
@@ -32,7 +29,7 @@ pulumi --non-interactive stack rm -s plugins -y")
     if len(keyPairName) > 0:
         config.configParams.aws.keyPairName = keyPairName
 
-    checkKeyPair = ask("Did you create your SSH key on AWS and want me to check it is loaded on your ssh agent [Y/N]? Default No: ")
+    checkKeyPair = ask("Did you create your SSH key on AWS and want me to check it is loaded on your ssh agent when creating manual environments or running e2e tests [Y/N]? Default No: ")
     if len(checkKeyPair) > 0:
         config.options = Config.Options()
         config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"

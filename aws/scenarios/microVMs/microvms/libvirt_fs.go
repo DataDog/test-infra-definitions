@@ -14,7 +14,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const basefsName = "custom-fsbase"
 const refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
 
 type filesystemImage struct {
@@ -38,11 +37,11 @@ type LibvirtFilesystem struct {
 }
 
 func generatePoolPath(name string) string {
-	return "/home/kernel-version-testing/libvirt/pools/" + name + "/"
+	return "/home/kernel-version-testing/libvirt/pools/" + name
 }
 
 func generateVolumeKey(pool, volName string) string {
-	return generatePoolPath(pool) + volName
+	return fmt.Sprintf("%s/%s", generatePoolPath(pool), volName)
 }
 
 func rootFSDir() string {
@@ -119,7 +118,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 			resources.PoolPath: pulumi.String(poolPath),
 		},
 	)
-	volKey := generateVolumeKey(poolName, basefsName)
+	volKey := generateVolumeKey(poolName, imageName)
 
 	img := &filesystemImage{
 		imageName:   imageName,
@@ -128,7 +127,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		volumeKey:   volKey,
 		volumeXML: rc.GetVolumeXML(
 			map[string]pulumi.StringInput{
-				resources.ImageName:  pulumi.String(basefsName),
+				resources.ImageName:  pulumi.String(imageName),
 				resources.VolumeKey:  pulumi.String(volKey),
 				resources.VolumePath: pulumi.String(volKey),
 			},
@@ -352,10 +351,11 @@ func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provid
 
 	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolNamer.ResourceName("create-libvirt-pool"), &libvirt.PoolArgs{
 		Type: pulumi.String("dir"),
+		Name: pulumi.String(fs.poolName),
 		Path: pulumi.String(generatePoolPath(fs.poolName)),
-		Xml: libvirt.PoolXmlArgs{
-			Xslt: fs.poolXML,
-		},
+		//		Xml: libvirt.PoolXmlArgs{
+		//			Xslt: fs.poolXML,
+		//		},
 	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
@@ -364,6 +364,7 @@ func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provid
 
 	for _, fsImage := range fs.images {
 		stgvolReady, err := libvirt.NewVolume(fs.ctx, fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &libvirt.VolumeArgs{
+			Name:   pulumi.String(fsImage.imageName),
 			Pool:   pulumi.String(fs.poolName),
 			Source: pulumi.String(fsImage.imagePath),
 			Xml: libvirt.VolumeXmlArgs{

@@ -5,22 +5,21 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const (
-	SharedFSMount     = "sharedFSMount"
-	DomainID          = "domainID"
-	MACAddress        = "mac"
-	DHCPEntries       = "dhcpEntries"
-	ImageName         = "imageName"
-	VolumeKey         = "volumeKey"
-	VolumePath        = "volumePath"
-	PoolName          = "poolName"
-	PoolPath          = "poolPath"
-	CustomLocalRecipe = "custom-local"
-	DistroLocalRecipe = "distro-local"
+	SharedFSMount = "sharedFSMount"
+	DomainID      = "domainID"
+	MACAddress    = "mac"
+	DHCPEntries   = "dhcpEntries"
+	ImageName     = "imageName"
+	VolumeKey     = "volumeKey"
+	VolumePath    = "volumePath"
+	PoolName      = "poolName"
+	PoolPath      = "poolPath"
 )
 
 var kernelCmdlines = []map[string]interface{}{
@@ -39,6 +38,7 @@ type ResourceCollection interface {
 }
 
 type RecipeLibvirtDomainArgs struct {
+	DomainName        string
 	Vcpu              int
 	Memory            int
 	Xls               pulumi.StringOutput
@@ -73,7 +73,7 @@ func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.St
 }
 
 func isLocalRecipe(recipe string) bool {
-	return (recipe == CustomLocalRecipe) || (recipe == DistroLocalRecipe)
+	return (recipe == vmconfig.RecipeCustomLocal) || (recipe == vmconfig.RecipeDistroLocal)
 }
 
 func getLocalArchRecipe(recipe string) string {
@@ -92,7 +92,7 @@ func getLocalArchRecipe(recipe string) string {
 	}
 
 	if runtime.GOARCH == "amd64" {
-		return fmt.Sprintf("%s-amd64", prefix)
+		return fmt.Sprintf("%s-x86_64", prefix)
 	} else if runtime.GOARCH == "arm64" {
 		return fmt.Sprintf("%s-arm64", prefix)
 	}
@@ -104,13 +104,13 @@ func NewResourceCollection(recipe string) ResourceCollection {
 	archSpecificRecipe := getLocalArchRecipe(recipe)
 
 	switch archSpecificRecipe {
-	case "custom-arm64":
+	case vmconfig.RecipeCustomARM64:
 		return NewARM64ResourceCollection(recipe)
-	case "custom-amd64":
+	case vmconfig.RecipeCustomAMD64:
 		return NewAMD64ResourceCollection(recipe)
-	case "distro-arm64":
+	case vmconfig.RecipeDistroARM64:
 		return NewDistroARM64ResourceCollection(recipe)
-	case "distro-amd64":
+	case vmconfig.RecipeDistroAMD64:
 		return NewDistroAMD64ResourceCollection(recipe)
 	default:
 		panic("unknown recipe: " + archSpecificRecipe)

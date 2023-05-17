@@ -74,7 +74,7 @@ func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 }
 
 func (e *CommonEnvironment) InfraOSFamily() string {
-	return e.InfraConfig.Get(DDInfraOSFamily)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSFamily, "")
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {

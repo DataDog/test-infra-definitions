@@ -20,7 +20,7 @@ cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git
 1. Install Python dependencies
 
 ```bash
-cd ~/dd/test-infra-definitions && pip install --requirement requirements.txt
+cd ~/dd/test-infra-definitions && pip3 install --requirement requirements.txt
 ```
 
 1. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file. Create a random password using 1Password and store it there

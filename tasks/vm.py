@@ -19,6 +19,7 @@ scenario_name = "aws/vm"
         "stack_name": doc.stack_name,
         "debug": doc.debug,
         "os_family": doc.os_family,
+        "use_fakeintake": doc.fakeintake, 
     }
 )
 def create_vm(
@@ -28,6 +29,7 @@ def create_vm(
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
+    use_fakeintake: Optional[bool] = True,
 ):
     """
     Create a new virtual machine on the cloud.
@@ -47,6 +49,7 @@ def create_vm(
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
+        use_fakeintake=use_fakeintake,
     )
     _show_connection_message(full_stack_name)
 

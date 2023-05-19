@@ -43,7 +43,9 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 	cmdlines = append(cmdlines, kernelCmdlines...)
 
 	domainArgs := libvirt.DomainArgs{
-		Name: pulumi.String(args.DomainName),
+		Arch:     pulumi.String("aarch64"),
+		Emulator: pulumi.String("/usr/bin/qemu-system-aarch64"),
+		Name:     pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),
@@ -56,7 +58,6 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 				VolumeId: args.Volume.ID(),
 			},
 		},
-		Machine:  pulumi.String("virt"),
 		Kernel:   pulumi.String(args.KernelPath),
 		Cmdlines: pulumi.ToMapArray(cmdlines),
 		Memory:   pulumi.Int(args.Memory),

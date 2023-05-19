@@ -228,7 +228,7 @@ func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
 }
 
 func setupKernelPackages(instance *Instance, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.runner, instance.Arch, depends)
+	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.runner, instance.arch, depends)
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

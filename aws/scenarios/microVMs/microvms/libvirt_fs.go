@@ -59,7 +59,7 @@ func fsPathToLibvirtResource(path string) string {
 func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	var images []*filesystemImage
 
-	rc := resources.NewResourceCollection(vmset.Recipe)
+	rc := resources.NewResourceCollection(vmset.Recipe, vmset.Arch)
 	poolName := vmset.Name
 
 	poolPath := generatePoolPath(poolName)
@@ -110,7 +110,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 	poolName := vmset.Name
 	imageName := vmset.Img.ImageName
 
-	rc := resources.NewResourceCollection(vmset.Recipe)
+	rc := resources.NewResourceCollection(vmset.Recipe, vmset.Arch)
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
@@ -287,13 +287,11 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 	return waitFor, nil
 }
 
-func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, runner *Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	switch arch {
-	case LocalVMSet:
+func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, runner *Runner, local bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	if local {
 		return setupLocalLibvirtFilesystem(fs, provider, depends)
-	default:
-		return setupRemoteLibvirtFilesystem(fs, runner, depends)
 	}
+	return setupRemoteLibvirtFilesystem(fs, runner, depends)
 }
 
 func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {

@@ -79,7 +79,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setNa
 		return nil, err
 	}
 
-	rc := resources.NewResourceCollection(recipe)
+	rc := resources.NewResourceCollection(recipe, arch)
 	domain.RecipeLibvirtDomainArgs.Resources = rc
 	domain.RecipeLibvirtDomainArgs.Vcpu = vcpu
 	domain.RecipeLibvirtDomainArgs.Memory = memory

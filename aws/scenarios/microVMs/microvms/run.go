@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/config"
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
 	"github.com/DataDog/test-infra-definitions/command"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -18,11 +19,12 @@ import (
 type Instance struct {
 	e             *aws.Environment
 	instance      *awsEc2.Instance
-	Connection    remote.ConnectionOutput
-	Arch          string
+	connection    remote.ConnectionOutput
+	arch          string
 	instanceNamer namer.Namer
 	runner        *Runner
 	libvirtURI    pulumi.StringOutput
+	local         bool
 }
 
 type sshKeyPair struct {
@@ -110,8 +112,8 @@ func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMCo
 	return &Instance{
 		e:             &e,
 		instance:      awsInstance,
-		Connection:    conn.ToConnectionOutput(),
-		Arch:          arch,
+		connection:    conn.ToConnectionOutput(),
+		arch:          arch,
 		instanceNamer: namer,
 	}, nil
 }
@@ -125,8 +127,9 @@ func newInstance(e aws.Environment, arch string, m config.DDMicroVMConfig) (*Ins
 	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
 	return &Instance{
 		e:             &e,
-		Arch:          arch,
+		arch:          arch,
 		instanceNamer: namer,
+		local:         true,
 	}, nil
 }
 
@@ -147,11 +150,11 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	env := *instance.e.CommonEnvironment
 	osCommand := command.NewUnixOSCommand()
 	localRunner := command.NewLocalRunner(env, osCommand)
-	if instance.Arch != LocalVMSet {
+	if !instance.local {
 		remoteRunner, err := command.NewRunner(
 			env,
 			instance.instanceNamer.ResourceName("conn"),
-			instance.Connection,
+			instance.connection,
 			func(r *command.Runner) (*remote.Command, error) {
 				return command.WaitForCloudInit(r)
 			},
@@ -175,8 +178,8 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		waitFor = append(waitFor, waitProvision...)
 	}
 
-	if instance.Arch != LocalVMSet {
-		pair := getSSHKeyPairFiles(m, instance.Arch)
+	if !instance.local {
+		pair := getSSHKeyPairFiles(m, instance.arch)
 		prepareSSHKeysDone, err := prepareLibvirtSSHKeys(
 			instance.runner,
 			localRunner,
@@ -191,8 +194,8 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 
 		privkey := m.GetStringWithDefault(
 			m.MicroVMConfig,
-			config.SSHKeyConfigNames[instance.Arch],
-			defaultLibvirtSSHKey(SSHKeyFileNames[instance.Arch]),
+			config.SSHKeyConfigNames[instance.arch],
+			defaultLibvirtSSHKey(SSHKeyFileNames[instance.arch]),
 		)
 		url = pulumi.Sprintf(
 			"qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore",
@@ -229,17 +232,21 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		if _, ok := archs[set.Arch]; ok {
 			continue
 		}
-		archs[set.Arch] = true
+		if resources.IsLocalRecipe(set.Recipe) {
+			archs[LocalVMSet] = true
+		} else {
+			archs[set.Arch] = true
+		}
 	}
 
-	instances := make(map[string]*Instance)
+	instances := []*Instance{}
 	for arch := range archs {
 		instance, err := newInstance(e, arch, m)
 		if err != nil {
 			return nil, err
 		}
 
-		instances[arch] = instance
+		instances = append(instances, instance)
 	}
 
 	for _, instance := range instances {
@@ -249,8 +256,8 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		}
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
-		if instance.Arch != LocalVMSet {
-			e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+		if !instance.local {
+			e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.arch), instance.instance.PrivateIp)
 		}
 	}
 

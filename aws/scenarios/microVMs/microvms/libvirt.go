@@ -96,7 +96,8 @@ func buildDomainSocket(runner *Runner, domainID, resourceName string, depends []
 
 func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 	for _, set := range vmsets {
-		if set.Arch == collection.instance.Arch {
+		if (set.Arch == collection.instance.arch) ||
+			(collection.instance.local && resources.IsLocalRecipe(set.Recipe)) {
 			collection.vmsets = append(collection.vmsets, set)
 		}
 	}
@@ -115,6 +116,7 @@ type VMCollection struct {
 	fs              map[vmconfig.VMSetID]*LibvirtFilesystem
 	domains         []*Domain
 	libvirtProvider *libvirt.Provider
+	local           bool
 }
 
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -126,7 +128,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 			return []pulumi.Resource{}, err
 		}
 
-		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProvider, vm.instance.runner, set.Arch, depends)
+		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProvider, vm.instance.runner, resources.IsLocalRecipe(set.Recipe), depends)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
@@ -181,7 +183,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 	return nil
 }
 
-func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*VMCollection, []pulumi.Resource, error) {
+func BuildVMCollections(instances []*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*VMCollection, []pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var vmCollections []*VMCollection
 

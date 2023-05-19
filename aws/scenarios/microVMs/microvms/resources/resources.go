@@ -2,7 +2,6 @@ package resources
 
 import (
 	"fmt"
-	"runtime"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/vmconfig"
@@ -72,14 +71,14 @@ func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.St
 	return pulumiXML
 }
 
-func isLocalRecipe(recipe string) bool {
+func IsLocalRecipe(recipe string) bool {
 	return (recipe == vmconfig.RecipeCustomLocal) || (recipe == vmconfig.RecipeDistroLocal)
 }
 
-func getLocalArchRecipe(recipe string) string {
+func getLocalArchRecipe(recipe, arch string) string {
 	var prefix string
 
-	if !isLocalRecipe(recipe) {
+	if !IsLocalRecipe(recipe) {
 		return recipe
 	}
 
@@ -91,17 +90,11 @@ func getLocalArchRecipe(recipe string) string {
 		panic("unknown recipe " + recipe)
 	}
 
-	if runtime.GOARCH == "amd64" {
-		return fmt.Sprintf("%s-x86_64", prefix)
-	} else if runtime.GOARCH == "arm64" {
-		return fmt.Sprintf("%s-arm64", prefix)
-	}
-
-	panic("unknown recipe " + recipe)
+	return fmt.Sprintf("%s-%s", prefix, arch)
 }
 
-func NewResourceCollection(recipe string) ResourceCollection {
-	archSpecificRecipe := getLocalArchRecipe(recipe)
+func NewResourceCollection(recipe, arch string) ResourceCollection {
+	archSpecificRecipe := getLocalArchRecipe(recipe, arch)
 
 	switch archSpecificRecipe {
 	case vmconfig.RecipeCustomARM64:

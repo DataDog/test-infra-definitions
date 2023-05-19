@@ -104,7 +104,6 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		},
 		Memory:   pulumi.Int(args.Memory),
 		Vcpu:     pulumi.Int(args.Vcpu),
-		Machine:  pulumi.String("virt"),
 		Firmware: pulumi.String("/home/kernel-version-testing/efi.fd"),
 		Nvram: libvirt.DomainNvramArgs{
 			File: pulumi.String("/home/kernel-version-testing/varstore.fd"),

@@ -1,25 +1,25 @@
 {
    "vmsets": [
-        {
-            "name": "custom_kernels_x86_64",
-            "recipe": "custom-local",
-            "arch": "local",
-            "kernels": [
-                {
-                    "dir": "kernel-v5.15.x86.pkg",
-                    "tag": "5.15",
-                    "extra_params": {
-                        "console": "ttyS0"
-                    }
-                }
-            ],
-            "vcpu": [4],
-            "memory": [8192],
-            "image": {
-                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV"
-            }
-        },
+#        {
+#            "name": "custom_kernels_x86_64",
+#            "recipe": "custom-local",
+#            "arch": "local",
+#            "kernels": [
+#                {
+#                    "dir": "kernel-v5.15.x86.pkg",
+#                    "tag": "5.15",
+#                    "extra_params": {
+#                        "console": "ttyS0"
+#                    }
+#                }
+#            ],
+#            "vcpu": [4],
+#            "memory": [8192],
+#            "image": {
+#                "image_path": "bullseye.qcow2.amd64-DEV",
+#                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-DEV"
+#            }
+#        },
         {
             "name": "custom_kernels_x86_64_lte4.14",
             "recipe": "custom-x86_64",
@@ -37,8 +37,8 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "buster.qcow2.amd64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/buster.qcow2.amd64-0.1-DEV"
+                "image_path": "buster.qcow2.amd64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/buster.qcow2.amd64-DEV"
             }
         },
         {
@@ -204,8 +204,8 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV"
+                "image_path": "bullseye.qcow2.amd64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-DEV"
             }
         },
         # Commented out since 4.14 kernels for arm64 are not ready.
@@ -228,7 +228,7 @@
         #    "memory": [8192],
         #    "image": {
         #        "image_path": "buster.qcow2",
-        #        "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-0.1-DEV.tar.gz"
+        #        "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-DEV.tar.gz"
         #    }
         #},
         {
@@ -395,8 +395,8 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "bullseye.qcow2.arm64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.arm64-0.1-DEV"
+                "image_path": "bullseye.qcow2.arm64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.arm64-DEV"
             }
         },
         {
@@ -422,30 +422,30 @@
             ],
             "vcpu": [4],
             "memory": [4096]
-        },
-        {
-            "name": "ubuntu_arm64",
-            "recipe": "distro-arm64",
-            "arch": "arm64",
-            "kernels": [
-                {
-                    "dir": "jammy-server-cloudimg-arm64.qcow2",
-                    "tag": "jammy_22",
-                    "image_source": "file:///home/kernel-version-testing/rootfs/jammy-server-cloudimg-arm64.qcow2"
-                },
-                {
-                    "dir": "focal-server-cloudimg-arm64.qcow2",
-                    "tag": "focal_20",
-                    "image_source": "file:///home/kernel-version-testing/rootfs/focal-server-cloudimg-arm64.qcow2"
-                },
-                {
-                    "dir": "bionic-server-cloudimg-arm64.qcow2",
-                    "tag": "bionic_18",
-                    "image_source": "file:///home/kernel-version-testing/rootfs/bionic-server-cloudimg-arm64.qcow2"
-                }
-            ],
-            "vcpu": [4],
-            "memory": [4096]
         }
+#        {
+#            "name": "ubuntu_arm64",
+#            "recipe": "distro-arm64",
+#            "arch": "arm64",
+#            "kernels": [
+#                {
+#                    "dir": "jammy-server-cloudimg-arm64.qcow2",
+#                    "tag": "jammy_22",
+#                    "image_source": "file:///home/kernel-version-testing/rootfs/jammy-server-cloudimg-arm64.qcow2"
+#                },
+#                {
+#                    "dir": "focal-server-cloudimg-arm64.qcow2",
+#                    "tag": "focal_20",
+#                    "image_source": "file:///home/kernel-version-testing/rootfs/focal-server-cloudimg-arm64.qcow2"
+#                },
+#                {
+#                    "dir": "bionic-server-cloudimg-arm64.qcow2",
+#                    "tag": "bionic_18",
+#                    "image_source": "file:///home/kernel-version-testing/rootfs/bionic-server-cloudimg-arm64.qcow2"
+#                }
+#            ],
+#            "vcpu": [4],
+#            "memory": [4096]
+#        }
    ]
 }

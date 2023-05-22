@@ -1,1 +1,0 @@
-../prometheus-embed/main.go_

@@ -1,1 +1,0 @@
-../query-embed/go.mod_

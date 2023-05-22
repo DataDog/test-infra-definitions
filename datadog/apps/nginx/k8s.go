@@ -1,8 +1,6 @@
-package k8s
+package nginx
 
 import (
-	// import embed
-	_ "embed"
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -18,17 +16,19 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed resources/redis/query-embed/go.mod_
-var redis_go_mod string
+type K8sComponent struct {
+	pulumi.ResourceState
+}
 
-//go:embed resources/redis/query-embed/go.sum_
-var redis_go_sum string
-
-//go:embed resources/redis/query-embed/main.go_
-var redis_main_go string
-
-func RedisWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*appsv1.Deployment, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider))
+
+	k8sComponent := &K8sComponent{}
+	if err := e.Ctx.RegisterComponentResource("dd:apps", "nginx", k8sComponent, opts...); err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, pulumi.Parent(k8sComponent))
 
 	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
@@ -41,31 +41,45 @@ func RedisWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kubernete
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	deploy, err := appsv1.NewDeployment(e.Ctx, "redis", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, "nginx", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
+			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+				"app": pulumi.String("nginx"),
 			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{
-					"app": pulumi.String("redis"),
+					"app": pulumi.String("nginx"),
 				},
 			},
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app": pulumi.String("redis"),
+						"app": pulumi.String("nginx"),
+					},
+					Annotations: pulumi.StringMap{
+						"ad.datadoghq.com/nginx.checks": pulumi.String(jsonMustMarshal(
+							map[string]interface{}{
+								"nginx": map[string]interface{}{
+									"init_config": map[string]interface{}{},
+									"instances": []map[string]interface{}{
+										{
+											"nginx_status_url": "http://%%host%%/nginx_status",
+										},
+									},
+								},
+							},
+						)),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:  pulumi.String("redis"),
-							Image: pulumi.String("redis:latest"),
+							Name:  pulumi.String("nginx"),
+							Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),
@@ -78,73 +92,91 @@ func RedisWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kubernete
 							},
 							Ports: &corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
-									Name:          pulumi.String("redis"),
-									ContainerPort: pulumi.Int(6379),
+									Name:          pulumi.String("http"),
+									ContainerPort: pulumi.Int(80),
 								},
 							},
 							LivenessProbe: &corev1.ProbeArgs{
-								TcpSocket: &corev1.TCPSocketActionArgs{
-									Port: pulumi.Int(6379),
+								HttpGet: &corev1.HTTPGetActionArgs{
+									Port: pulumi.Int(80),
 								},
 							},
 							ReadinessProbe: &corev1.ProbeArgs{
-								TcpSocket: &corev1.TCPSocketActionArgs{
-									Port: pulumi.Int(6379),
+								HttpGet: &corev1.HTTPGetActionArgs{
+									Port: pulumi.Int(80),
 								},
 							},
+							VolumeMounts: &corev1.VolumeMountArray{
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("cache"),
+									MountPath: pulumi.String("/var/cache/nginx"),
+								},
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("var-run"),
+									MountPath: pulumi.String("/var/run"),
+								},
+							},
+						},
+					},
+					Volumes: corev1.VolumeArray{
+						&corev1.VolumeArgs{
+							Name:     pulumi.String("cache"),
+							EmptyDir: &corev1.EmptyDirVolumeSourceArgs{},
+						},
+						&corev1.VolumeArgs{
+							Name:     pulumi.String("var-run"),
+							EmptyDir: &corev1.EmptyDirVolumeSourceArgs{},
 						},
 					},
 				},
 			},
 		},
-	}, opts...)
-	if err != nil {
+	}, opts...); err != nil {
 		return nil, err
 	}
 
-	_, err = policyv1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1.PodDisruptionBudgetArgs{
+	if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "nginx", &policyv1.PodDisruptionBudgetArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
+			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+				"app": pulumi.String("nginx"),
 			},
 		},
 		Spec: &policyv1.PodDisruptionBudgetSpecArgs{
 			MaxUnavailable: pulumi.Int(1),
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{
-					"app": pulumi.String("redis"),
+					"app": pulumi.String("nginx"),
 				},
 			},
 		},
-	}, opts...)
-	if err != nil {
+	}, opts...); err != nil {
 		return nil, err
 	}
 
-	ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis", &ddv1alpha1.DatadogMetricArgs{
+	ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "nginx", &ddv1alpha1.DatadogMetricArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
+			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+				"app": pulumi.String("nginx"),
 			},
 		},
 		Spec: &ddv1alpha1.DatadogMetricSpecArgs{
-			Query: pulumi.String(fmt.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace)),
+			Query: pulumi.String(fmt.Sprintf("avg:nginx.net.request_per_s{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:nginx}.rollup(60)", namespace)),
 		},
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
+	if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "nginx", &autoscalingv2.HorizontalPodAutoscalerArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
+			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+				"app": pulumi.String("nginx"),
 			},
 		},
 		Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
@@ -153,14 +185,14 @@ func RedisWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kubernete
 			ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
 				ApiVersion: pulumi.String("apps/v1"),
 				Kind:       pulumi.String("Deployment"),
-				Name:       pulumi.String("redis"),
+				Name:       pulumi.String("nginx"),
 			},
 			Metrics: &autoscalingv2.MetricSpecArray{
 				&autoscalingv2.MetricSpecArgs{
 					Type: pulumi.String("External"),
 					External: &autoscalingv2.ExternalMetricSourceArgs{
 						Metric: &autoscalingv2.MetricIdentifierArgs{
-							Name: pulumi.String("datadogmetric@" + namespace + ":redis"),
+							Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
 						},
 						Target: &autoscalingv2.MetricTargetArgs{
 							Type:         pulumi.String("AverageValue"),
@@ -170,119 +202,94 @@ func RedisWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kubernete
 				},
 			},
 		},
-	}, append(opts, utils.PulumiDependsOn(ddm))...)
-	if err != nil {
+	}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
 		return nil, err
 	}
 
-	_, err = corev1.NewService(e.Ctx, "redis", &corev1.ServiceArgs{
+	if _, err := corev1.NewService(e.Ctx, "nginx", &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
+			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+				"app": pulumi.String("nginx"),
+			},
+			Annotations: pulumi.StringMap{
+				"ad.datadoghq.com/service.checks": pulumi.String(jsonMustMarshal(
+					map[string]interface{}{
+						"http_check": map[string]interface{}{
+							"init_config": map[string]interface{}{},
+							"instances": []map[string]interface{}{
+								{
+									"name":    "My Nginx",
+									"url":     "http://%%host%%",
+									"timeout": 1,
+								},
+							},
+						},
+					},
+				)),
 			},
 		},
 		Spec: &corev1.ServiceSpecArgs{
 			Selector: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+				"app": pulumi.String("nginx"),
 			},
 			Ports: &corev1.ServicePortArray{
 				&corev1.ServicePortArgs{
-					Name:       pulumi.String("redis"),
-					Port:       pulumi.Int(6379),
-					TargetPort: pulumi.String("redis"),
+					Name:       pulumi.String("http"),
+					Port:       pulumi.Int(80),
+					TargetPort: pulumi.String("http"),
 				},
 			},
 		},
-	}, opts...)
-	if err != nil {
+	}, opts...); err != nil {
 		return nil, err
 	}
 
-	cm, err := corev1.NewConfigMap(e.Ctx, "redis-query", &corev1.ConfigMapArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, "nginx-query", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis-query"),
+			Name:      pulumi.String("nginx-query"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis-query"),
-			},
-		},
-		Data: pulumi.StringMap{
-			"go.mod":  pulumi.String(redis_go_mod),
-			"go.sum":  pulumi.String(redis_go_sum),
-			"main.go": pulumi.String(redis_main_go),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = appsv1.NewDeployment(e.Ctx, "redis-query", &appsv1.DeploymentArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis-query"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis-query"),
+				"app": pulumi.String("nginx-query"),
 			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
 			Replicas: pulumi.Int(1),
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{
-					"app": pulumi.String("redis-query"),
+					"app": pulumi.String("nginx-query"),
 				},
 			},
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app": pulumi.String("redis-query"),
+						"app": pulumi.String("nginx-query"),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:       pulumi.String("query"),
-							Image:      pulumi.String("golang:1.20"),
-							WorkingDir: pulumi.String("/usr/src/redis-query"),
-							Command: pulumi.StringArray{
-								pulumi.String("go"),
-								pulumi.String("run"),
-								pulumi.String("."),
-							},
+							Name:  pulumi.String("query"),
+							Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
-									"cpu":    pulumi.String("1000m"),
-									"memory": pulumi.String("512Mi"),
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("32Mi"),
 								},
 								Requests: pulumi.StringMap{
-									"cpu":    pulumi.String("100m"),
-									"memory": pulumi.String("512Mi"),
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
 								},
-							},
-							VolumeMounts: &corev1.VolumeMountArray{
-								&corev1.VolumeMountArgs{
-									Name:      pulumi.String("prog"),
-									MountPath: pulumi.String("/usr/src/redis-query"),
-								},
-							},
-						},
-					},
-					Volumes: corev1.VolumeArray{
-						&corev1.VolumeArgs{
-							Name: pulumi.String("prog"),
-							ConfigMap: &corev1.ConfigMapVolumeSourceArgs{
-								Name: pulumi.String("redis-query"),
 							},
 						},
 					},
 				},
 			},
 		},
-	}, append(opts, utils.PulumiDependsOn(cm))...)
-	if err != nil {
+	}, opts...); err != nil {
 		return nil, err
 	}
 
-	return deploy, nil
+	return k8sComponent, nil
 }

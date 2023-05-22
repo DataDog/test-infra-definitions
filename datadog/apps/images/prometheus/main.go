@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -12,10 +14,12 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-const period = 5 * time.Minute
-const nbSeries = 10
-
 func main() {
+	port := flag.Uint64("port", 8080, "TCP port number of the OpenMetrics server")
+	period := flag.Duration("period", 5*time.Minute, "Period of the sine wave data")
+	nbSeries := flag.Uint64("nb-series", 10, "Number of time series to emit")
+	flag.Parse()
+
 	counter := prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "prom_counter",
 		Help: "Prometheus Counter",
@@ -46,8 +50,8 @@ func main() {
 
 	go func() {
 		for {
-			for i := 0; i < nbSeries; i++ {
-				gauges.WithLabelValues(strconv.Itoa(i)).Set(math.Sin(2 * math.Pi * (float64(time.Now().Unix())/period.Seconds() + float64(i)/nbSeries)))
+			for i := uint64(0); i < *nbSeries; i++ {
+				gauges.WithLabelValues(strconv.FormatUint(i, 10)).Set(math.Sin(2 * math.Pi * (float64(time.Now().Unix())/period.Seconds() + float64(i)/float64(*nbSeries))))
 			}
 			time.Sleep(1 * time.Second)
 		}
@@ -60,5 +64,5 @@ func main() {
 			EnableOpenMetrics: true,
 		}),
 	)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", *port), nil))
 }

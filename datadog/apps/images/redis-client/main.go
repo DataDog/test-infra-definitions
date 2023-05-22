@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"math"
 	"time"
@@ -9,18 +10,19 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-const addr = "redis:6379"
-const minTPS = 10.0
-const maxTPS = 50.0
-const period = 30 * time.Minute
-
 func main() {
-	const amplitude float64 = (maxTPS - minTPS) / 2.0
+	addr := flag.String("addr", "redis:6379", "Redis server address")
+	minTPS := flag.Float64("min-tps", 10.0, "minimum number of queries per second")
+	maxTPS := flag.Float64("max-tps", 50.0, "maximum number of queries per second")
+	period := flag.Duration("period", 30*time.Minute, "period of the sine wave of queries TPS")
+	flag.Parse()
+
+	amplitude := (*maxTPS - *minTPS) / 2.0
 
 	for {
 		go func() {
 			rdb := redis.NewClient(&redis.Options{
-				Addr:     addr,
+				Addr:     *addr,
 				Password: "", // no password set
 				DB:       0,  // use default DB
 			})
@@ -42,7 +44,7 @@ func main() {
 		}()
 
 		s := math.Sin(2 * math.Pi * float64(time.Now().Unix()) / period.Seconds())
-		p := 2 * time.Duration(1000000000/(minTPS+amplitude+amplitude*s))
+		p := 2 * time.Duration(1000000000/(*minTPS+amplitude+amplitude*s))
 		time.Sleep(p)
 	}
 }

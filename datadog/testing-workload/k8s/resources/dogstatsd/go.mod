@@ -1,1 +1,0 @@
-../dogstatsd-embed/go.mod_

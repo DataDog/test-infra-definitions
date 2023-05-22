@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -12,21 +13,14 @@ import (
 	"github.com/DataDog/datadog-go/v5/statsd"
 )
 
-const period = 5 * time.Minute
-const nbSeries = 10
-
 func main() {
+	sleep := flag.Duration("sleep", 1*time.Second, "Sleep duration between each dogstatsd data point")
+	period := flag.Duration("period", 5*time.Minute, "Period of the sine wave data")
+	nbSeries := flag.Uint("nb-series", 10, "Number of time series to emit")
+	flag.Parse()
+
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGUSR1, syscall.SIGUSR2)
-
-	sleepString, sleepOK := os.LookupEnv("SLEEP")
-	var sleepDuration time.Duration
-	if sleepOK {
-		var err error
-		if sleepDuration, err = time.ParseDuration(sleepString); err != nil {
-			log.Fatalf("Failed to convert SLEEP value %s into int: %s\n", sleepString, err)
-		}
-	}
 
 	statsdClient, err := statsd.New(os.Getenv("STATSD_URL"))
 	if err != nil {
@@ -34,9 +28,9 @@ func main() {
 	}
 
 	for {
-		for i := 0; i < nbSeries; i++ {
+		for i := uint(0); i < *nbSeries; i++ {
 			statsdClient.Gauge("custom.metric",
-				math.Sin(2*math.Pi*(float64(time.Now().Unix())/period.Seconds()+float64(i)/nbSeries)),
+				math.Sin(2*math.Pi*(float64(time.Now().Unix())/period.Seconds()+float64(i)/float64(*nbSeries))),
 				[]string{fmt.Sprintf("series:%d", i)},
 				1)
 		}
@@ -62,8 +56,6 @@ func main() {
 		default:
 		}
 
-		if sleepOK {
-			time.Sleep(sleepDuration)
-		}
+		time.Sleep(*sleep)
 	}
 }

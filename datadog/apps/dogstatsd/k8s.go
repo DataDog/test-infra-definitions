@@ -1,9 +1,6 @@
-package k8s
+package dogstatsd
 
 import (
-	// import embed
-	_ "embed"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
@@ -14,17 +11,19 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed resources/dogstatsd-embed/go.mod_
-var dogstatsd_go_mod string
+type K8sComponent struct {
+	pulumi.ResourceState
+}
 
-//go:embed resources/dogstatsd-embed/go.sum_
-var dogstatsd_go_sum string
-
-//go:embed resources/dogstatsd-embed/main.go_
-var dogstatsd_main_go string
-
-func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*appsv1.Deployment, *appsv1.Deployment, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider))
+
+	k8sComponent := &K8sComponent{}
+	if err := e.Ctx.RegisterComponentResource("dd:apps", "dogstatsd", k8sComponent, opts...); err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, pulumi.Parent(k8sComponent))
 
 	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
@@ -32,32 +31,12 @@ func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kuber
 		},
 	}, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	cm, err := corev1.NewConfigMap(e.Ctx, "dogstatsd", &corev1.ConfigMapArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("dogstatsd"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("dogstatsd"),
-			},
-		},
-		Data: pulumi.StringMap{
-			"go.mod":  pulumi.String(dogstatsd_go_mod),
-			"go.sum":  pulumi.String(dogstatsd_go_sum),
-			"main.go": pulumi.String(dogstatsd_main_go),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	opts = append(opts, utils.PulumiDependsOn(cm))
-
-	uds, err := appsv1.NewDeployment(e.Ctx, "dogstatsd-uds", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, "dogstatsd-uds", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-uds"),
 			Namespace: pulumi.String(namespace),
@@ -81,39 +60,25 @@ func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kuber
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:       pulumi.String("dogstatsd"),
-							Image:      pulumi.String("golang:1.20"),
-							WorkingDir: pulumi.String("/usr/src/dogstatsd"),
-							Command: pulumi.StringArray{
-								pulumi.String("go"),
-								pulumi.String("run"),
-								pulumi.String("."),
-							},
+							Name:  pulumi.String("dogstatsd"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("STATSD_URL"),
 									Value: pulumi.StringPtr("unix:///var/run/datadog/dsd.socket"),
 								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("SLEEP"),
-									Value: pulumi.StringPtr("1s"),
-								},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
-									"cpu":    pulumi.String("10m"),
-									"memory": pulumi.String("256Mi"),
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("32Mi"),
 								},
 								Requests: pulumi.StringMap{
-									"cpu":    pulumi.String("2m"),
-									"memory": pulumi.String("256Mi"),
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
 								},
 							},
 							VolumeMounts: &corev1.VolumeMountArray{
-								&corev1.VolumeMountArgs{
-									Name:      pulumi.String("prog"),
-									MountPath: pulumi.String("/usr/src/dogstatsd"),
-								},
 								&corev1.VolumeMountArgs{
 									Name:      pulumi.String("var-run-datadog"),
 									MountPath: pulumi.String("/var/run/datadog"),
@@ -122,12 +87,6 @@ func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kuber
 						},
 					},
 					Volumes: corev1.VolumeArray{
-						&corev1.VolumeArgs{
-							Name: pulumi.String("prog"),
-							ConfigMap: &corev1.ConfigMapVolumeSourceArgs{
-								Name: pulumi.String("dogstatsd"),
-							},
-						},
 						&corev1.VolumeArgs{
 							Name: pulumi.String("var-run-datadog"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
@@ -139,12 +98,11 @@ func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kuber
 				},
 			},
 		},
-	}, append(opts, utils.PulumiDependsOn(cm))...)
-	if err != nil {
-		return nil, nil, err
+	}, opts...); err != nil {
+		return nil, err
 	}
 
-	udp, err := appsv1.NewDeployment(e.Ctx, "dogstatsd-udp", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, "dogstatsd-udp", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-udp"),
 			Namespace: pulumi.String(namespace),
@@ -168,14 +126,8 @@ func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kuber
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:       pulumi.String("dogstatsd"),
-							Image:      pulumi.String("golang:1.20"),
-							WorkingDir: pulumi.String("/usr/src/dogstatsd"),
-							Command: pulumi.StringArray{
-								pulumi.String("go"),
-								pulumi.String("run"),
-								pulumi.String("."),
-							},
+							Name:  pulumi.String("dogstatsd"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name: pulumi.String("HOST_IP"),
@@ -197,44 +149,25 @@ func DogstatsdWorkloadDefinition(e config.CommonEnvironment, kubeProvider *kuber
 										},
 									},
 								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("SLEEP"),
-									Value: pulumi.StringPtr("1s"),
-								},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("10m"),
-									"memory": pulumi.String("256Mi"),
+									"memory": pulumi.String("32Mi"),
 								},
 								Requests: pulumi.StringMap{
 									"cpu":    pulumi.String("2m"),
-									"memory": pulumi.String("256Mi"),
+									"memory": pulumi.String("32Mi"),
 								},
-							},
-							VolumeMounts: &corev1.VolumeMountArray{
-								&corev1.VolumeMountArgs{
-									Name:      pulumi.String("prog"),
-									MountPath: pulumi.String("/usr/src/dogstatsd"),
-								},
-							},
-						},
-					},
-					Volumes: corev1.VolumeArray{
-						&corev1.VolumeArgs{
-							Name: pulumi.String("prog"),
-							ConfigMap: &corev1.ConfigMapVolumeSourceArgs{
-								Name: pulumi.String("dogstatsd"),
 							},
 						},
 					},
 				},
 			},
 		},
-	}, append(opts, utils.PulumiDependsOn(cm))...)
-	if err != nil {
-		return nil, nil, err
+	}, opts...); err != nil {
+		return nil, err
 	}
 
-	return uds, udp, nil
+	return k8sComponent, nil
 }

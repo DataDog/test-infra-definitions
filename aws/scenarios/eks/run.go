@@ -5,7 +5,10 @@ import (
 	localEks "github.com/DataDog/test-infra-definitions/aws/eks"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
-	testingWorkload "github.com/DataDog/test-infra-definitions/datadog/testing-workload/k8s"
+	"github.com/DataDog/test-infra-definitions/datadog/apps/dogstatsd"
+	"github.com/DataDog/test-infra-definitions/datadog/apps/nginx"
+	"github.com/DataDog/test-infra-definitions/datadog/apps/prometheus"
+	"github.com/DataDog/test-infra-definitions/datadog/apps/redis"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -188,23 +191,19 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		_, err := testingWorkload.NginxWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx")
-		if err != nil {
+		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx"); err != nil {
 			return err
 		}
 
-		_, err = testingWorkload.RedisWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis")
-		if err != nil {
+		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis"); err != nil {
 			return err
 		}
 
-		_, _, err = testingWorkload.DogstatsdWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd")
-		if err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd"); err != nil {
 			return err
 		}
 
-		_, err = testingWorkload.PrometheusWorkloadDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus")
-		if err != nil {
+		if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {
 			return err
 		}
 	}

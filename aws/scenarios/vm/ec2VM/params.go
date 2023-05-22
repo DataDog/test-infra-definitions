@@ -1,6 +1,9 @@
 package ec2vm
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/vm/os"
 	"github.com/DataDog/test-infra-definitions/common"
@@ -22,7 +25,8 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		common: commonParams,
 	}
 
-	if err := WithOS(os.UbuntuOS)(params); err != nil {
+	// Can be overrided later if the caller uses WithOS.
+	if err := params.UseDefaultOS(); err != nil {
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
@@ -34,6 +38,34 @@ func (p *Params) GetCommonParams() *vm.Params[os.OS] {
 
 func (p *Params) GetOS(osType os.Type) (os.OS, error) {
 	return os.GetOS(p.env, osType)
+}
+
+func (p *Params) UseDefaultOS() error {
+	var osType os.Type
+
+	osTypeStr := strings.ToLower(p.env.InfraOSFamily())
+	switch osTypeStr {
+	case "windows":
+		osType = os.WindowsOS
+	case "ubuntu":
+		osType = os.UbuntuOS
+	case "amazonlinux":
+		osType = os.AmazonLinuxOS
+	case "debian":
+		osType = os.DebianOS
+	case "redhat":
+		osType = os.RedHatOS
+	case "suse":
+		osType = os.SuseOS
+	case "fedora":
+		osType = os.FedoraOS
+	case "":
+		osType = os.UbuntuOS // Default
+	default:
+		return fmt.Errorf("the os type '%v' is not valid", osTypeStr)
+	}
+
+	return WithOS(osType)(p)
 }
 
 // WithOS sets the instance type and the AMI.

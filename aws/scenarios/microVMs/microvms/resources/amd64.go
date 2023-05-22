@@ -43,6 +43,7 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 	cmdlines = append(cmdlines, kernelCmdlines...)
 
 	domainArgs := libvirt.DomainArgs{
+		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("pty"),

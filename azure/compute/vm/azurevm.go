@@ -34,20 +34,20 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (commonvm.VM, er
 		return nil, err
 	}
 
-	_, publicIP, _, err := compute.NewLinuxInstance(
+	vm, publicIP, _, err := compute.NewLinuxInstance(
 		env,
 		env.CommonNamer.ResourceName(params.common.InstanceName),
 		params.common.ImageName,
 		params.common.InstanceType,
 		pulumi.StringPtr(params.common.UserData),
 	)
-
 	if err != nil {
 		return nil, err
 	}
 
 	return commonvm.NewGenericVM(
 		params.common.InstanceName,
+		vm,
 		&env,
 		publicIP.IpAddress.Elem(),
 		params.common.OS,

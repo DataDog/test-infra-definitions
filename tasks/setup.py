@@ -39,7 +39,7 @@ def setup(ctx: Context):
     if len(publicKeyPath) > 0:
         config.configParams.aws.publicKeyPath = publicKeyPath
     while not os.path.isfile(config.configParams.aws.publicKeyPath):
-        warn(f"{config.configParams.aws.publicKeyPath} is not a falid ssh key")
+        warn(f"{config.configParams.aws.publicKeyPath} is not a valid ssh key")
         config.configParams.aws.publicKeyPath = ask("Path to your public ssh key: ")
     
     config.configParams.agent.apiKey = "00000000000000000000000000000000"

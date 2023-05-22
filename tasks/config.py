@@ -27,7 +27,7 @@ class Config(BaseModel, extra=Extra.forbid):
     stackParams: Optional[Dict[str, Dict[str,str]]]
 
     class Options(BaseModel, extra=Extra.forbid):
-        checkKeyPair: bool
+        checkKeyPair: Optional[bool]
 
     options: Optional[Options]
 
@@ -63,7 +63,7 @@ class Config(BaseModel, extra=Extra.forbid):
         return self.stackParams
 
     def save_to_local_config(self):
-        profile_path = Path.home().joinpath(profile_filename)
+        profile_path = get_full_profile_path()
         try:
             with open(profile_path, 'w') as outfile:
                 yaml.dump(self.dict(), outfile)
@@ -72,7 +72,7 @@ class Config(BaseModel, extra=Extra.forbid):
         info(f"Configuration file saved at {profile_path}")
 
 def get_local_config() -> Config:
-    profile_path = Path.home().joinpath(profile_filename)
+    profile_path = get_full_profile_path()
     try:
         with open(profile_path) as f:
             content = f.read()
@@ -82,3 +82,6 @@ def get_local_config() -> Config:
         return Config.parse_obj({})
     except ValidationError as e:
         raise invoke.Exit(f"Error in config {profile_path}:{e}")
+    
+def get_full_profile_path() -> str:
+    return Path.home().joinpath(profile_filename)

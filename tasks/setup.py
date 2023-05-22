@@ -2,12 +2,13 @@ import os
 import os.path
 from pathlib import Path
 import getpass
+import pyperclip
 
 from invoke import task
 from invoke.context import Context
 
-from .config import Config, profile_filename
-from .tool import ask, debug, info, warn
+from .config import Config, get_full_profile_path
+from .tool import ask, info, warn
 
 @task
 def setup(ctx: Context):
@@ -34,30 +35,43 @@ def setup(ctx: Context):
         config.options = Config.Options()
         config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"
 
-    config.configParams.aws.publicKeyPath = Path.home().joinpath(".ssh", "id_ed25519.pub")
-    publicKeyPath = ask(f"🔑 Path to your public ssh key: default [{config.configParams.aws.publicKeyPath}]")
-    if len(publicKeyPath) > 0:
-        config.configParams.aws.publicKeyPath = publicKeyPath
+    config.configParams.aws.publicKeyPath = ""
     while not os.path.isfile(config.configParams.aws.publicKeyPath):
-        warn(f"{config.configParams.aws.publicKeyPath} is not a valid ssh key")
-        config.configParams.aws.publicKeyPath = ask("Path to your public ssh key: ")
+        config.configParams.aws.publicKeyPath = Path.home().joinpath(".ssh", "id_ed25519.pub")
+        publicKeyPath = ask(f"🔑 Path to your public ssh key, default [{config.configParams.aws.publicKeyPath}]: ")
+        if len(publicKeyPath) > 0:
+            config.configParams.aws.publicKeyPath = publicKeyPath
+        if not os.path.isfile(config.configParams.aws.publicKeyPath):
+            warn(f"{config.configParams.aws.publicKeyPath} is not a valid ssh key")
     
-    config.configParams.agent.apiKey = "00000000000000000000000000000000"
-    apiKey = ask("🐶 Datadog API key - default [00000000000000000000000000000000]: ")
-    if len(apiKey) == 32:
-        config.configParams.agent.apiKey = apiKey
+    config.configParams.agent.apiKey = ""
+    while len(config.configParams.agent.apiKey) != 32:
+        config.configParams.agent.apiKey = "00000000000000000000000000000000"
+        apiKey = ask("🐶 Datadog API key - default [00000000000000000000000000000000]: ")
+        if len(apiKey) > 0:
+            config.configParams.agent.apiKey = apiKey
+        if len(config.configParams.agent.apiKey) != 32:
+            warn(f"Expecting API key of length 32, got {len(config.configParams.agent.apiKey)}")
+        
+    config.configParams.agent.appKey = ""
+    while len(config.configParams.agent.appKey) != 40:
+        config.configParams.agent.appKey = "0000000000000000000000000000000000000000"
+        appKey = ask("🐶 Datadog APP key - default [0000000000000000000000000000000000000000]: ")
+        if len(appKey) > 0:
+            config.configParams.agent.appKey = appKey
+        if len(config.configParams.agent.appKey) != 40:
+            warn(f"Expecting APP key of length 40, got {len(config.configParams.agent.appKey)}")
     
-    config.configParams.agent.appKey = "0000000000000000000000000000000000000000"
-    appKey = ask("🐶 Datadog APP key - default [0000000000000000000000000000000000000000]: ")
-    if len(appKey) == 40:
-        config.configParams.agent.appKey = appKey
-    
+
+    config.stackParams = {}
+
     config.save_to_local_config()
-    profile_path = Path.home().joinpath(profile_filename)
-    debug("=========================================")
-    with open(profile_path, 'r') as f:
-        debug(f.read())
-    debug("=========================================")
+    cat_profile_command = f"cat {get_full_profile_path()}"
+    pyperclip.copy(cat_profile_command)
+    print(
+        f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
+    )
+    
       
     
 

@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"github.com/DataDog/test-infra-definitions/aws/scenarios/ecs"
 	ec2vm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm/ec2VM"
 	"github.com/DataDog/test-infra-definitions/datadog/agent"
 
@@ -14,7 +15,16 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if vm.GetCommonEnvironment().AgentDeploy() {
-		_, err = agent.NewInstaller(vm)
+		agentOptions := []func(*agent.Params) error{}
+		if vm.GetCommonEnvironment().AgentUseFakeintake() {
+			fakeintake, err := ecs.NewEcsFakeintake(vm.Infra)
+			if err != nil {
+				return err
+			}
+			agentOptions = append(agentOptions, agent.WithFakeintake(fakeintake))
+		}
+
+		_, err = agent.NewInstaller(vm, agentOptions...)
 		return err
 	}
 

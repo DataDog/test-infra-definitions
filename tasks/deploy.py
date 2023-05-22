@@ -22,6 +22,7 @@ def deploy(
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Dict[str, Any] = {},
+    use_fakeintake: Optional[bool] = False,
 ) -> str:
     flags = extra_flags
 
@@ -35,6 +36,7 @@ def deploy(
     )
     flags["scenario"] = scenario_name
     flags["ddagent:version"] = agent_version
+    flags["ddagent:fakeintake"] = use_fakeintake
 
     awsKeyPairName = cfg.get_aws().keyPairName
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName

@@ -30,6 +30,7 @@ type Domain struct {
 	domainArgs  *libvirt.DomainArgs
 	domainNamer namer.Namer
 	ip          string
+	mac         pulumi.StringOutput
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) string {
@@ -56,28 +57,35 @@ func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.
 	return macAddr, nil
 }
 
-func generateDHCPEntry(e *config.CommonEnvironment, ip, domainID string) (pulumi.StringOutput, pulumi.StringOutput, error) {
+func generateMACAddress(e *config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
 	mac, err := generateNewUnicastMac(*e, domainID)
 	if err != nil {
-		return pulumi.StringOutput{}, mac, err
+		return mac, err
 	}
 
-	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip), mac, nil
+	return mac, err
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setName, machine, arch, ip string, kernel vmconfig.Kernel, recipe string) (*Domain, error) {
-	var mac pulumi.StringOutput
+func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.StringOutput {
+	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
+}
+
+func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setName, machine, arch, recipe string, kernel vmconfig.Kernel) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 
-	domain.ip = ip
-	domain.dhcpEntry, mac, err = generateDHCPEntry(e, ip, domain.domainID)
+	domain.mac, err = generateMACAddress(e, domain.domainID)
 	if err != nil {
 		return nil, err
 	}
+	//domain.ip = ip
+	//domain.dhcpEntry, mac, err = generateDHCPEntry(e, ip, domain.domainID)
+	//if err != nil {
+	//	return nil, err
+	//}
 
 	rc := resources.NewResourceCollection(recipe)
 	domain.RecipeLibvirtDomainArgs.Resources = rc
@@ -88,7 +96,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setNa
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
 			resources.DomainID:      pulumi.String(domain.domainID),
-			resources.MACAddress:    mac,
+			resources.MACAddress:    domain.mac,
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = machine
@@ -111,19 +119,17 @@ func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, depends 
 	return volume, nil
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider *libvirt.Provider, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, ip *net.IP) ([]*Domain, error) {
+func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider *libvirt.Provider, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
 	var domains []*Domain
 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
-				*ip = getNextVMIP(ip)
 				domain, err := newDomainConfiguration(
 					e, vcpu,
 					memory, set.Name,
-					set.Machine, set.Arch,
-					fmt.Sprintf("%s", ip), kernel,
-					set.Recipe,
+					set.Machine, set.Arch, set.Recipe,
+					kernel,
 				)
 				if err != nil {
 					return []*Domain{}, err

@@ -9,6 +9,8 @@ To run scripts and code in this repository, you will need:
  * [Go](https://golang.org/doc/install) 1.19 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
  * Python 3.7+ along with development libraries for tooling.
 
+This guide is tested on **MacOS**.
+
 ## Quick start guide
 
 1. Clone this repository

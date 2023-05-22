@@ -3,7 +3,7 @@ import yaml
 from pathlib import Path
 from .tool import *
 from typing import Dict, Optional
-from pydantic import BaseModel, Extra, ValidationError
+from pydantic import BaseModel, Extra
 
 
 profile_filename = ".test_infra_config.yaml"
@@ -67,7 +67,7 @@ class Config(BaseModel, extra=Extra.forbid):
         try:
             with open(profile_path, 'w') as outfile:
                 yaml.dump(self.dict(), outfile)
-        except e:
+        except Exception as e:
             raise invoke.Exit(f"Error saving config file {profile_path}: {e}")
         info(f"Configuration file saved at {profile_path}")
 
@@ -80,8 +80,6 @@ def get_local_config() -> Config:
             return Config.parse_obj(config_dict)
     except FileNotFoundError:
         return Config.parse_obj({})
-    except ValidationError as e:
-        raise invoke.Exit(f"Error in config {profile_path}:{e}")
     
 def get_full_profile_path() -> str:
     return Path.home().joinpath(profile_filename)

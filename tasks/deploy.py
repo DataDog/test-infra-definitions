@@ -1,5 +1,6 @@
+from pydantic import ValidationError
 from . import config
-from .config import Config
+from .config import Config, get_full_profile_path
 import os
 import invoke
 import subprocess
@@ -29,7 +30,11 @@ def deploy(
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
 
-    cfg = config.get_local_config()
+    try:
+        cfg = config.get_local_config()
+    except ValidationError as e:
+        raise invoke.Exit(f"Error in config {get_full_profile_path()}:{e}")
+    
     flags[default_public_path_key_name] = _get_public_path_key_name(
         cfg, public_key_required
     )

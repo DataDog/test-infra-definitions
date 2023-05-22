@@ -16,6 +16,7 @@ const (
 	DDMicroVMArm64AmiID           = "arm64AmiID"
 	DDMicroVMConfigFile           = "microVMConfigFile"
 	DDMicroVMWorkingDirectory     = "workingDir"
+	DDMicroVMShutdownPeriod       = "shutdownPeriod"
 )
 
 var SSHKeyConfigNames = map[string]string{

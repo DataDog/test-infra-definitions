@@ -70,28 +70,33 @@ func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.Stri
 	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setName, machine, arch, recipe string, kernel vmconfig.Kernel) (*Domain, error) {
+type domainConfiguration struct {
+	vcpu    int
+	memory  int
+	setName string
+	machine string
+	arch    string
+	recipe  string
+	kernel  vmconfig.Kernel
+}
+
+func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
-	domain.domainID = generateDomainIdentifier(vcpu, memory, setName, kernel.Tag, arch)
+	domain.domainID = generateDomainIdentifier(cfg.vcpu, cfg.memory, cfg.setName, cfg.kernel.Tag, cfg.arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 
 	domain.mac, err = generateMACAddress(e, domain.domainID)
 	if err != nil {
 		return nil, err
 	}
-	//domain.ip = ip
-	//domain.dhcpEntry, mac, err = generateDHCPEntry(e, ip, domain.domainID)
-	//if err != nil {
-	//	return nil, err
-	//}
 
-	rc := resources.NewResourceCollection(recipe)
+	rc := resources.NewResourceCollection(cfg.recipe)
 	domain.RecipeLibvirtDomainArgs.Resources = rc
-	domain.RecipeLibvirtDomainArgs.Vcpu = vcpu
-	domain.RecipeLibvirtDomainArgs.Memory = memory
-	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
+	domain.RecipeLibvirtDomainArgs.Vcpu = cfg.vcpu
+	domain.RecipeLibvirtDomainArgs.Memory = cfg.memory
+	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", cfg.kernel.Dir, "bzImage")
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
@@ -99,8 +104,8 @@ func newDomainConfiguration(e *config.CommonEnvironment, vcpu, memory int, setNa
 			resources.MACAddress:    domain.mac,
 		},
 	)
-	domain.RecipeLibvirtDomainArgs.Machine = machine
-	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = kernel.ExtraParams
+	domain.RecipeLibvirtDomainArgs.Machine = cfg.machine
+	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = cfg.kernel.ExtraParams
 	domain.RecipeLibvirtDomainArgs.DomainName = fmt.Sprintf("%s-%s", e.Ctx.Stack(), domain.domainID)
 
 	return domain, nil
@@ -126,10 +131,16 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
 				domain, err := newDomainConfiguration(
-					e, vcpu,
-					memory, set.Name,
-					set.Machine, set.Arch, set.Recipe,
-					kernel,
+					e,
+					domainConfiguration{
+						vcpu:    vcpu,
+						memory:  memory,
+						setName: set.Name,
+						machine: set.Machine,
+						arch:    set.Arch,
+						recipe:  set.Recipe,
+						kernel:  kernel,
+					},
 				)
 				if err != nil {
 					return []*Domain{}, err

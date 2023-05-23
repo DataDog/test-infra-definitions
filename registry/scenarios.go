@@ -3,14 +3,14 @@ package registry
 import (
 	"strings"
 
-	dockervm "github.com/DataDog/test-infra-definitions/aws/scenarios/dockerVM"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/ecs"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/eks"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/kindvm"
-	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms"
-	awsvm "github.com/DataDog/test-infra-definitions/aws/scenarios/vm"
-	"github.com/DataDog/test-infra-definitions/azure/scenarios/aks"
-	azvm "github.com/DataDog/test-infra-definitions/azure/scenarios/vm"
+	dockervm "github.com/DataDog/test-infra-definitions/scenarios/aws/dockerVM"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/ecs"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/eks"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/kindvm"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms"
+	awsvm "github.com/DataDog/test-infra-definitions/scenarios/aws/vm"
+	"github.com/DataDog/test-infra-definitions/scenarios/azure/aks"
+	azvm "github.com/DataDog/test-infra-definitions/scenarios/azure/vm"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )

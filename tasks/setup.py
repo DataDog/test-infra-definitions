@@ -46,7 +46,7 @@ def setup(ctx: Context):
         config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"
 
     if config.configParams.aws.publicKeyPath is None:
-        config.configParams.aws.publicKeyPath = Path.home().joinpath(".ssh", "id_ed25519.pub")
+        config.configParams.aws.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
     while True:
         publicKeyPath = ask(f"🔑 Path to your public ssh key, default [{config.configParams.aws.publicKeyPath}]: ")
         if len(publicKeyPath) > 0:

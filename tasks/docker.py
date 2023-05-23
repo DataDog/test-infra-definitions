@@ -63,6 +63,6 @@ def _show_connection_message(full_stack_name: str):
 )
 def destroy_docker(ctx: Context, stack_name: Optional[str] = None):
     """
-    Destroy an environemnt created by invoke create_docker.
+    Destroy an environment created by invoke create_docker.
     """
     destroy(scenario_name, stack_name)

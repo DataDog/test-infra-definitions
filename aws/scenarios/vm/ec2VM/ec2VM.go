@@ -88,6 +88,7 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) 
 
 	vm, err := commonvm.NewGenericVM(
 		params.common.InstanceName,
+		instance,
 		&env,
 		instance.PrivateIp,
 		os,

@@ -5,8 +5,9 @@ import (
 )
 
 const (
-	sandboxEnv = "aws/sandbox"
-	agentQAEnv = "aws/agent-qa"
+	sandboxEnv      = "aws/sandbox"
+	agentSandboxEnv = "aws/agent-sandbox"
+	agentQAEnv      = "aws/agent-qa"
 )
 
 type environmentDefault struct {
@@ -58,6 +59,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 	switch envName {
 	case sandboxEnv:
 		return sandboxDefault()
+	case agentSandboxEnv:
+		return agentSandboxDefault()
 	case agentQAEnv:
 		return agentQADefault()
 	default:
@@ -104,6 +107,45 @@ func sandboxDefault() environmentDefault {
 	}
 }
 
+func agentSandboxDefault() environmentDefault {
+	return environmentDefault{
+		aws: awsProvider{
+			region: string(aws.RegionUSEast1),
+		},
+		ddInfra: ddInfra{
+			defaultVPCID:               "vpc-029c0faf8f49dee8d",
+			defaultSubnets:             []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
+			defaultSecurityGroups:      []string{"sg-038231b976eb13d44"},
+			defaultInstanceType:        "t3.xlarge",
+			defaultARMInstanceType:     "t4g.xlarge",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
+
+			ecs: ddInfraECS{
+				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
+				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs",
+				taskExecutionRole:           "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",
+				taskRole:                    "arn:aws:iam::376334461865:role/ecsTaskRole",
+				instanceProfile:             "arn:aws:iam::376334461865:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:     false,
+				fargateCapacityProvider:     true,
+				linuxECSOptimizedNodeGroup:  true,
+				linuxBottlerocketNodeGroup:  true,
+				windowsLTSCNodeGroup:        true,
+			},
+
+			eks: ddInfraEKS{
+				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44"},
+				fargateNamespace:             "fargate",
+				linuxNodeGroup:               true,
+				linuxARMNodeGroup:            true,
+				linuxBottlerocketNodeGroup:   true,
+				windowsLTSCNodeGroup:         true,
+			},
+		},
+	}
+}
+
 func agentQADefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
@@ -119,17 +161,16 @@ func agentQADefault() environmentDefault {
 			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
-				execKMSKeyID: "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
-				// TODO add dedicated fargate cluster to agent/qa and add it here
-				// fargateFakeintakeClusterArn: "TODO",
-				taskExecutionRole:          "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
-				taskRole:                   "arn:aws:iam::669783387624:role/ecsTaskRole",
-				instanceProfile:            "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole-profile",
-				serviceAllocatePublicIP:    false,
-				fargateCapacityProvider:    true,
-				linuxECSOptimizedNodeGroup: true,
-				linuxBottlerocketNodeGroup: true,
-				windowsLTSCNodeGroup:       true,
+				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
+				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs",
+				taskExecutionRole:           "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
+				taskRole:                    "arn:aws:iam::669783387624:role/ecsTaskRole",
+				instanceProfile:             "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:     false,
+				fargateCapacityProvider:     true,
+				linuxECSOptimizedNodeGroup:  true,
+				linuxBottlerocketNodeGroup:  true,
+				windowsLTSCNodeGroup:        true,
 			},
 
 			eks: ddInfraEKS{

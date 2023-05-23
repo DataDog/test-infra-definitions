@@ -5,6 +5,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -18,6 +19,16 @@ type Args struct {
 	Stdin       pulumi.StringPtrInput
 	Environment pulumi.StringMap
 	Sudo        bool
+}
+
+func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
+	return &local.CommandArgs{
+		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
+		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
+		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
+		Triggers: args.Triggers,
+		Stdin:    args.Stdin,
+	}
 }
 
 func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
@@ -42,47 +53,45 @@ type Runner struct {
 	waitCommand *remote.Command
 	config      runnerConfiguration
 	osCommand   OSCommand
+	options     []pulumi.ResourceOption
 }
 
-func WithUser(user string) func(*Runner) {
-	return func(r *Runner) {
-		r.config.user = user
-	}
+type RunnerArgs struct {
+	ParentResource pulumi.Resource
+	ConnectionName string
+	Connection     remote.ConnectionInput
+	ReadyFunc      func(*Runner) (*remote.Command, error)
+	User           string
+	OSCommand      OSCommand
 }
 
-func NewRunner(
-	e config.CommonEnvironment,
-	connName string,
-	conn remote.ConnectionInput,
-	readyFunc func(*Runner) (*remote.Command, error),
-	osCommand OSCommand,
-	options ...func(*Runner)) (*Runner, error) {
+func NewRunner(e config.CommonEnvironment, args RunnerArgs) (*Runner, error) {
 	runner := &Runner{
 		e:     e,
-		namer: namer.NewNamer(e.Ctx, "remote").WithPrefix(connName),
+		namer: namer.NewNamer(e.Ctx, "remote").WithPrefix(args.ConnectionName),
 		config: runnerConfiguration{
-			connection: conn,
+			connection: args.Connection,
+			user:       args.User,
 		},
-		osCommand: osCommand,
+		osCommand: args.OSCommand,
 	}
 
-	for _, opt := range options {
-		opt(runner)
+	if args.ParentResource != nil {
+		runner.options = append(runner.options, pulumi.Parent(args.ParentResource), pulumi.DeletedWith(args.ParentResource))
 	}
 
 	var err error
-	runner.waitCommand, err = readyFunc(runner)
+	runner.waitCommand, err = args.ReadyFunc(runner)
 	if err != nil {
 		return nil, err
 	}
+	runner.options = append(runner.options, utils.PulumiDependsOn(runner.waitCommand))
 
 	return runner, nil
 }
 
 func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	if r.waitCommand != nil {
-		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{r.waitCommand}))
-	}
+	opts = append(opts, r.options...)
 	if args.Sudo && r.config.user != "" {
 		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
@@ -97,34 +106,22 @@ type LocalRunner struct {
 	osCommand OSCommand
 }
 
-func WithLocalUser(user string) func(*LocalRunner) {
-	return func(l *LocalRunner) {
-		l.config.user = user
-	}
+type LocalRunnerArgs struct {
+	User      string
+	OSCommand OSCommand
 }
 
-func NewLocalRunner(e config.CommonEnvironment, osCommand OSCommand, options ...func(*LocalRunner)) *LocalRunner {
+func NewLocalRunner(e config.CommonEnvironment, args LocalRunnerArgs) *LocalRunner {
 	localRunner := &LocalRunner{
 		e:         e,
 		namer:     namer.NewNamer(e.Ctx, "local"),
-		osCommand: osCommand,
-	}
-
-	for _, opt := range options {
-		opt(localRunner)
+		osCommand: args.OSCommand,
+		config: runnerConfiguration{
+			user: args.User,
+		},
 	}
 
 	return localRunner
-}
-
-func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
-	return &local.CommandArgs{
-		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
-		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
-		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
-		Triggers: args.Triggers,
-		Stdin:    args.Stdin,
-	}
 }
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {

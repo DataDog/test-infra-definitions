@@ -8,13 +8,13 @@ import (
 
 // NewEcsFakeintake creates a new instance of fakeintake service on a dedicated fargate cluster
 // and registers it into the pulumi context
-func NewEcsFakeintake(vm *ec2vm.EC2UnixVM) (exporter *ddfakeintake.ConnectionExporter, err error) {
-	ipAddress, err := ecs.FargateServiceFakeintake(vm.GetAwsEnvironment())
+func NewEcsFakeintake(infra ec2vm.Infra) (exporter *ddfakeintake.ConnectionExporter, err error) {
+	ipAddress, err := ecs.FargateServiceFakeintake(infra.GetAwsEnvironment())
 	if err != nil {
 		return nil, err
 	}
 
-	exporter = ddfakeintake.NewExporter(vm.GetAwsEnvironment().Ctx, ipAddress)
+	exporter = ddfakeintake.NewExporter(infra.GetAwsEnvironment().Ctx, ipAddress)
 
 	return
 }

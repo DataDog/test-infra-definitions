@@ -18,9 +18,13 @@ type VM interface {
 	GetCommonEnvironment() *config.CommonEnvironment
 	GetOS() commonos.OS
 	GetFileManager() *command.FileManager
+
+	// TODO: Have a WAY better output interface
+	GetIP() pulumi.StringOutput
 }
 
 type genericVM struct {
+	instanceIP  pulumi.StringInput
 	runner      *command.Runner
 	env         *config.CommonEnvironment
 	os          commonos.OS
@@ -32,6 +36,7 @@ type genericVM struct {
 // NewGenericVM creates a generic VM and registers it into a pulumi context
 func NewGenericVM(
 	name string,
+	vmResource pulumi.Resource,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	os commonos.OS,
@@ -55,7 +60,7 @@ func NewGenericVM(
 		osCommand = command.NewUnixOSCommand()
 	}
 
-	connection, runner, err := createRunner(env, instanceIP, os.GetSSHUser(), readyFunc, osCommand)
+	connection, runner, err := createRunner(vmResource, env, instanceIP, os.GetSSHUser(), readyFunc, osCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -65,6 +70,7 @@ func NewGenericVM(
 	remoteServiceConnector := utils.NewRemoteServiceConnector(ctx, ClientData{})
 	remoteServiceConnector.Register(stackKey, "Connection", connection)
 	return &genericVM{
+		instanceIP:             instanceIP,
 		runner:                 runner,
 		env:                    commonEnv,
 		os:                     os,
@@ -94,7 +100,12 @@ func (vm *genericVM) GetFileManager() *command.FileManager {
 	return vm.fileManager
 }
 
+func (vm *genericVM) GetIP() pulumi.StringOutput {
+	return vm.instanceIP.ToStringOutput()
+}
+
 func createRunner(
+	vm pulumi.Resource,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
 	sshUser string,
@@ -109,10 +120,13 @@ func createRunner(
 	commonEnv := env.GetCommonEnvironment()
 	runner, err := command.NewRunner(
 		*commonEnv,
-		commonEnv.CommonNamer.ResourceName("connection"),
-		connection,
-		readyFunc,
-		osCommand)
+		command.RunnerArgs{
+			ConnectionName: "connection",
+			ParentResource: vm,
+			Connection:     connection,
+			ReadyFunc:      readyFunc,
+			OSCommand:      osCommand,
+		})
 	if err != nil {
 		return remote.ConnectionOutput{}, nil, err
 	}

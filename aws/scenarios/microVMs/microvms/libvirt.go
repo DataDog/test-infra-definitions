@@ -3,6 +3,7 @@ package microvms
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/aws/scenarios/microVMs/microvms/resources"
@@ -17,10 +18,9 @@ const (
 	// The microvm subnet changed from /16 to /24 because the underlying libvirt sdk would identify
 	// the incorrect network interface. It looks like it does not respect the subnet range when the subnet
 	// used is /16.
-	// Moreover the gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
 	// TODO: this problem only manifests when setting up VMs locally. Investigate the root cause to see what can
 	// be done. This solution may no longer work when the number of VMs exceeds the ips available in this subnet.
-	microVMGroupSubnet    = "169.254.0.1/24"
+	microVMGroupSubnet    = "169.254.0.0/24"
 	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 )
 
@@ -65,17 +65,17 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, de
 
 func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
 	switch vmset.Recipe {
-	case "custom-local":
+	case vmconfig.RecipeCustomLocal:
 		fallthrough
-	case "custom-arm64":
+	case vmconfig.RecipeCustomARM64:
 		fallthrough
-	case "custom-amd64":
+	case vmconfig.RecipeCustomAMD64:
 		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
-	case "distro-local":
+	case vmconfig.RecipeDistroLocal:
 		fallthrough
-	case "distro-arm64":
+	case vmconfig.RecipeDistroARM64:
 		fallthrough
-	case "distro-amd64":
+	case vmconfig.RecipeDistroAMD64:
 		return NewLibvirtFSDistroRecipe(ctx, vmset), nil
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
@@ -138,13 +138,13 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	return waitFor, nil
 }
 
-func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource, ip *net.IP) error {
+func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource) error {
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
 			return fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs, ip)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs)
 		if err != nil {
 			return err
 		}
@@ -209,7 +209,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 
 	// Setup filesystems, domain configurations, and network
 	// for each collection.
-	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
 	for _, collection := range vmCollections {
 		// setup libvirt filesystem for each collection
 		wait, err := collection.SetupCollectionFilesystems(depends)
@@ -219,7 +218,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		waitFor = append(waitFor, wait...)
 
 		// build the configurations for all the domains of this collection
-		if err := collection.SetupCollectionDomainConfigurations(waitFor, &ip); err != nil {
+		if err := collection.SetupCollectionDomainConfigurations(waitFor); err != nil {
 			return vmCollections, waitFor, err
 		}
 
@@ -236,6 +235,36 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			waitFor = append(waitFor, createDomainSocketDone)
 		}
 
+	}
+
+	// map domains to ips
+	var domains []*Domain
+	for _, collection := range vmCollections {
+		domains = append(domains, collection.domains...)
+	}
+	// Sort the domains so the ips are mapped deterministically across updates
+	// Otherwise an update could compute the mapping to be different even if nothing
+	// changed. This will result in updated DHCP entries in the network. This breaks
+	// the CI since the mapping is saved once on setup and not refreshed after pulumi update.
+	// If the ips drift across instances the CI job will end up attempting to connect
+	// to VMs that do no exist on the target instance.
+	sort.Slice(domains, func(i, j int) bool {
+		return domains[i].domainID < domains[j].domainID
+	})
+
+	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
+	// The first ip address is derived from the microvm subnet.
+	// The gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
+	// Therefore we call getNextVMIP consecutively to move start from xxx.yyy.zzz.2
+	ip = getNextVMIP(&ip)
+	for _, d := range domains {
+		ip = getNextVMIP(&ip)
+		d.ip = fmt.Sprintf("%s", ip)
+		d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
+	}
+
+	// Network setup has to be done after the dhcp entries have been generated for each domain
+	for _, collection := range vmCollections {
 		// setup the network for each collection
 		if err := collection.SetupCollectionNetwork(waitFor); err != nil {
 			return vmCollections, waitFor, err

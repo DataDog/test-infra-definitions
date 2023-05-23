@@ -34,6 +34,7 @@ const (
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
+	DDAgentFakeintake                    = "fakeintake"
 )
 
 type CommonEnvironment struct {
@@ -76,7 +77,7 @@ func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 }
 
 func (e *CommonEnvironment) InfraOSFamily() string {
-	return e.InfraConfig.Get(DDInfraOSFamily)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSFamily, "")
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
@@ -133,6 +134,10 @@ func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {
 
 func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
 	return e.AgentConfig.RequireSecret(DDAgentAPPKeyParamName)
+}
+
+func (e *CommonEnvironment) AgentUseFakeintake() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
 }
 
 func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {

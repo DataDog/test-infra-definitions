@@ -3,6 +3,7 @@ package microvms
 import (
 	"fmt"
 	"net"
+	"sort"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -137,13 +138,13 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	return waitFor, nil
 }
 
-func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource, ip *net.IP) error {
+func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource) error {
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
 			return fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs, ip)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs)
 		if err != nil {
 			return err
 		}
@@ -208,11 +209,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 
 	// Setup filesystems, domain configurations, and network
 	// for each collection.
-	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
-	// The first ip address is derived from the microvm subnet.
-	// The gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
-	// Therefore we call getNextVMIP to move start from xxx.yyy.zzz.2
-	ip = getNextVMIP(&ip)
 	for _, collection := range vmCollections {
 		// setup libvirt filesystem for each collection
 		wait, err := collection.SetupCollectionFilesystems(depends)
@@ -222,7 +218,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		waitFor = append(waitFor, wait...)
 
 		// build the configurations for all the domains of this collection
-		if err := collection.SetupCollectionDomainConfigurations(waitFor, &ip); err != nil {
+		if err := collection.SetupCollectionDomainConfigurations(waitFor); err != nil {
 			return vmCollections, waitFor, err
 		}
 
@@ -239,6 +235,36 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			waitFor = append(waitFor, createDomainSocketDone)
 		}
 
+	}
+
+	// map domains to ips
+	var domains []*Domain
+	for _, collection := range vmCollections {
+		domains = append(domains, collection.domains...)
+	}
+	// Sort the domains so the ips are mapped deterministically across updates
+	// Otherwise an update could compute the mapping to be different even if nothing
+	// changed. This will result in updated DHCP entries in the network. This breaks
+	// the CI since the mapping is saved once on setup and not refreshed after pulumi update.
+	// If the ips drift across instances the CI job will end up attempting to connect
+	// to VMs that do no exist on the target instance.
+	sort.Slice(domains, func(i, j int) bool {
+		return domains[i].domainID < domains[j].domainID
+	})
+
+	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
+	// The first ip address is derived from the microvm subnet.
+	// The gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
+	// Therefore we call getNextVMIP consecutively to move start from xxx.yyy.zzz.2
+	ip = getNextVMIP(&ip)
+	for _, d := range domains {
+		ip = getNextVMIP(&ip)
+		d.ip = fmt.Sprintf("%s", ip)
+		d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
+	}
+
+	// Network setup has to be done after the dhcp entries have been generated for each domain
+	for _, collection := range vmCollections {
 		// setup the network for each collection
 		if err := collection.SetupCollectionNetwork(waitFor); err != nil {
 			return vmCollections, waitFor, err

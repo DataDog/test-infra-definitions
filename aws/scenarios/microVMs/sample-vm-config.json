@@ -16,8 +16,8 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV"
+                "image_path": "bullseye.qcow2.amd64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-DEV"
             }
         },
         {
@@ -37,8 +37,8 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "buster.qcow2.amd64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/buster.qcow2.amd64-0.1-DEV"
+                "image_path": "buster.qcow2.amd64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/buster.qcow2.amd64-DEV"
             }
         },
         {
@@ -204,8 +204,8 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "bullseye.qcow2.amd64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-0.1-DEV"
+                "image_path": "bullseye.qcow2.amd64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.amd64-DEV"
             }
         },
         # Commented out since 4.14 kernels for arm64 are not ready.
@@ -228,7 +228,7 @@
         #    "memory": [8192],
         #    "image": {
         #        "image_path": "buster.qcow2",
-        #        "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-0.1-DEV.tar.gz"
+        #        "image_uri": "https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/rootfs/buster.qcow2.arm64-DEV.tar.gz"
         #    }
         #},
         {
@@ -395,13 +395,13 @@
             "vcpu": [4],
             "memory": [8192],
             "image": {
-                "image_path": "bullseye.qcow2.arm64-0.1-DEV",
-                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.arm64-0.1-DEV"
+                "image_path": "bullseye.qcow2.arm64-DEV",
+                "image_uri": "file:///home/kernel-version-testing/rootfs/bullseye.qcow2.arm64-DEV"
             }
         },
         {
-            "name": "ubuntu_amd64",
-            "recipe": "distro-amd64",
+            "name": "ubuntu_x86_64",
+            "recipe": "distro-x86_64",
             "arch": "x86_64",
             "kernels": [
                 {

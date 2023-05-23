@@ -2,6 +2,7 @@ package microvms
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/DataDog/test-infra-definitions/aws"
 	"github.com/DataDog/test-infra-definitions/aws/ec2"
@@ -30,7 +31,10 @@ type sshKeyPair struct {
 	publicKey  string
 }
 
-const LocalVMSet = "local"
+const (
+	LocalVMSet            = "local"
+	defaultShutdownPeriod = 360 // minutes
+)
 
 func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	var pair sshKeyPair
@@ -139,6 +143,23 @@ func defaultLibvirtSSHKey(keyname string) string {
 	return "/tmp/" + keyname
 }
 
+func setShutdownTimer(instance *Instance, m *config.DDMicroVMConfig) (pulumi.Resource, error) {
+	var shutdownRegisterDone pulumi.Resource
+	shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
+	shutdownRegisterArgs := command.Args{
+		Create: pulumi.Sprintf(
+			"shutdown -P +%.0f", shutdownPeriod.Minutes(),
+		),
+		Sudo: true,
+	}
+	shutdownRegisterDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("shutdown"), &shutdownRegisterArgs)
+	if err != nil {
+		return shutdownRegisterDone, fmt.Errorf("failed to schedule shutdown: %w", err)
+	}
+
+	return shutdownRegisterDone, nil
+}
+
 func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var url pulumi.StringOutput
@@ -146,16 +167,19 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 
 	env := *instance.e.CommonEnvironment
 	osCommand := command.NewUnixOSCommand()
-	localRunner := command.NewLocalRunner(env, osCommand)
+	localRunner := command.NewLocalRunner(env, command.LocalRunnerArgs{
+		OSCommand: osCommand,
+	})
 	if instance.Arch != LocalVMSet {
 		remoteRunner, err := command.NewRunner(
 			env,
-			instance.instanceNamer.ResourceName("conn"),
-			instance.Connection,
-			func(r *command.Runner) (*remote.Command, error) {
-				return command.WaitForCloudInit(r)
+			command.RunnerArgs{
+				ParentResource: instance.instance,
+				Connection:     instance.Connection,
+				ConnectionName: instance.instanceNamer.ResourceName("conn"),
+				ReadyFunc:      command.WaitForCloudInit,
+				OSCommand:      osCommand,
 			},
-			osCommand,
 		)
 		if err != nil {
 			return nil, err
@@ -200,6 +224,13 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			privkey,
 		)
 
+		if instance.e.DefaultShutdownBehavior() == "terminate" {
+			shutdownTimerDone, err := setShutdownTimer(instance, m)
+			if err != nil {
+				return []pulumi.Resource{}, err
+			}
+			waitFor = append(waitFor, shutdownTimerDone)
+		}
 	} else {
 		url = pulumi.Sprintf("qemu:///system")
 	}
@@ -207,7 +238,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	instance.libvirtURI = url
 
 	return waitFor, err
-
 }
 
 func run(e aws.Environment) (*ScenarioDone, error) {

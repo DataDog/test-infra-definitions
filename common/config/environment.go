@@ -33,6 +33,7 @@ const (
 	DDAgentFullImagePathParamName = "fullImagePath"
 	DDAgentAPIKeyParamName        = "apiKey"
 	DDAgentAPPKeyParamName        = "appKey"
+	DDAgentFakeintake             = "fakeintake"
 
 	// Testing workload namerNamespace
 	DDTestingWorkloadDeployParamName = "deploy"
@@ -129,6 +130,10 @@ func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {
 
 func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
 	return e.AgentConfig.RequireSecret(DDAgentAPPKeyParamName)
+}
+
+func (e *CommonEnvironment) AgentUseFakeintake() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
 }
 
 func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {

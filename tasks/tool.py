@@ -4,6 +4,11 @@ import subprocess
 from termcolor import colored
 from typing import Any, List, Optional
 
+def ask(question: str) -> str:
+    return input(colored(question, "blue"))
+
+def debug(msg: str) -> str:
+    print(colored(msg, "white"))
 
 def info(msg: str):
     print(colored(msg, "green"))

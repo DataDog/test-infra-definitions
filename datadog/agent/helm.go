@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/helm"
@@ -16,33 +18,39 @@ const (
 	DatadogHelmRepo = "https://helm.datadoghq.com"
 )
 
-func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, valuesFilepaths []string, opts ...pulumi.ResourceOption) (*kubeHelm.Release, error) {
+type HelmInstallationArgs struct {
+	KubeProvider *kubernetes.Provider
+	Namespace    string
+	ValuesYAML   pulumi.AssetOrArchiveArrayInput
+}
+
+func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*kubeHelm.Release, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
+	installName := "dda"
+	opts = append(opts, pulumi.Provider(args.KubeProvider), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
 
 	// Create namespace if necessary
-	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx, args.Namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
-			Name: pulumi.String(namespace),
+			Name: pulumi.String(args.Namespace),
 		},
-	}, pulumi.Provider(kubeProvider))
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	installName := "dda"
-
 	// Create secret if necessary
-	secret, err := corev1.NewSecret(e.Ctx, installName+"-datadog-credentials", &corev1.SecretArgs{
+	secret, err := corev1.NewSecret(e.Ctx, "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
-			Name:      pulumi.String(installName + "-datadog-credentials"),
+			Name:      pulumi.String(fmt.Sprintf("%s-datadog-credentials", installName)),
 		},
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
 			"app-key": appKey,
 		},
-	}, pulumi.Provider(kubeProvider))
+	}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,13 +61,12 @@ func NewHelmInstallation(e config.CommonEnvironment, kubeProvider *kubernetes.Pr
 
 	opts = append(opts, utils.PulumiDependsOn(ns, secret))
 	return helm.NewInstallation(e, helm.InstallArgs{
-		KubernetesProvider: kubeProvider,
-		RepoURL:            DatadogHelmRepo,
-		ChartName:          "datadog",
-		InstallName:        installName,
-		Namespace:          namespace,
-		ValuesFilePaths:    valuesFilepaths,
-		Values:             buildDefaultHelmValues(installName, agentImagePath, agentImageTag),
+		RepoURL:     DatadogHelmRepo,
+		ChartName:   "datadog",
+		InstallName: installName,
+		Namespace:   args.Namespace,
+		ValuesYAML:  args.ValuesYAML,
+		Values:      buildDefaultHelmValues(installName, agentImagePath, agentImageTag),
 	}, opts...)
 }
 

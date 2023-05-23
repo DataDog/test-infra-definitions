@@ -38,12 +38,7 @@ func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.Resourc
 }
 
 func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return remote.NewCopyFile(fm.runner.e.Ctx, fm.runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
-		Connection: fm.runner.config.connection,
-		LocalPath:  pulumi.String(localPath),
-		RemotePath: pulumi.String(remotePath),
-		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
-	}, opts...)
+	return fm.runner.NewCopyFile(localPath, remotePath, opts...)
 }
 
 func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {

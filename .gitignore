@@ -20,9 +20,6 @@ Pulumi.*.yaml
 # Vim swap files
 *.swp
 
-# VSCode files
-.vscode
-
 # MacOS files
 .DS_Store
 

@@ -31,6 +31,7 @@ type OS interface {
 	GetAgentConfigFolder() string
 	GetSSHUser() string
 	GetAgentInstallCmd(AgentVersion) (string, error)
+	GetRunAgentCmd(parameters string) string
 	GetType() Type
 	CreatePackageManager(runner *command.Runner) (command.PackageManager, error)
 }

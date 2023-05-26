@@ -11,6 +11,19 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// Params defines the parameters for the Agent installation.
+// The Params configuration uses the [Functional options pattern].
+//
+// The available options are:
+//   - [WithLatest]
+//   - [WithVersion]
+//   - [WithAgentConfig]
+//   - [WithIntegration]
+//   - [WithTelemetry]
+//   - [WithFakeintake]
+//   - [WithLogs]
+//
+// [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type Params struct {
 	version          os.AgentVersion
 	agentConfig      string
@@ -87,6 +100,7 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 	}
 }
 
+// WithTelemetry enables the Agent telemetry go_expvar and openmetrics.
 func WithTelemetry() func(*Params) error {
 	return func(p *Params) error {
 		config := `instances:
@@ -112,6 +126,7 @@ func WithTelemetry() func(*Params) error {
 	}
 }
 
+// WithFakeintake installs the fake intake and configures the Agent to use it.
 func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
 	return func(p *Params) error {
 		// configure metrics and check run intake
@@ -124,6 +139,7 @@ logs_config.force_use_http: true`, fakeintake.URL, fakeintake.URL)
 	}
 }
 
+// WithLogs enables the log agent
 func WithLogs() func(*Params) error {
 	return func(p *Params) error {
 		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("logs_enabled: true"))

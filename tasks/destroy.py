@@ -26,7 +26,7 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
         stack = None
 
     if stack is None:
-        error("Run this command with '--stack MY_STACK_NAME'. Available stacks are:")
+        error("Run this command with '--stack-name MY_STACK_NAME'. Available stacks are:")
         for stack_name in stacks:
             error(f" {stack_name}")
     else:

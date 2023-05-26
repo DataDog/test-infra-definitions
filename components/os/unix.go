@@ -29,6 +29,10 @@ func (*Unix) GetType() Type {
 	return UnixType
 }
 
+func (*Unix) GetRunAgentCmd(parameters string) string {
+	return "sudo datadog-agent " + parameters
+}
+
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	switch arch {
 	case AMD64Arch:

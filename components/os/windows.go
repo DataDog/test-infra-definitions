@@ -58,6 +58,10 @@ func (*Windows) GetType() Type {
 	return WindowsType
 }
 
+func (*Windows) GetRunAgentCmd(parameters string) string {
+	return `& "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" ` + parameters
+}
+
 func getAgentURL(version AgentVersion) (string, error) {
 	minor := strings.ReplaceAll(version.Minor, "~", "-")
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)

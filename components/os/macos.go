@@ -21,3 +21,7 @@ func (*MacOS) GetAgentInstallCmd(version AgentVersion) (string, error) {
 func (*MacOS) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
 	return NewBrewManager(runner), nil
 }
+
+func (*MacOS) GetRunAgentCmd(parameters string) string {
+	return "datadog-agent " + parameters
+}

@@ -146,3 +146,7 @@ func (installer *Installer) Deserialize(result auto.UpResult) (*ClientData, erro
 
 	return &ClientData{Connection: vmData.Connection}, nil
 }
+
+func (installer *Installer) VM() vm.VM {
+	return installer.vm
+}

@@ -35,7 +35,7 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
             [
                 "aws-vault",
                 "exec",
-                "sandbox-account-admin",
+                "agent-sandbox-account-admin",
                 "--",
                 "pulumi",
                 "destroy",

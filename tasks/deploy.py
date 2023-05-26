@@ -154,5 +154,5 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
         raise invoke.Exit(
             f"Your key pair value '{key_pair_to_search}' is not find in ssh-agent. "
             + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
-            + f"You can skip this check by setting `checkKeyPair: false` in the config"
+            + "You can skip this check by setting `checkKeyPair: false` in the config"
         )

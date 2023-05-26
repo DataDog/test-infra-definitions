@@ -1,7 +1,7 @@
 import invoke
 import yaml
 from pathlib import Path
-from .tool import *
+from .tool import info
 from typing import Dict, Optional
 from pydantic import BaseModel, Extra
 
@@ -40,7 +40,7 @@ class Config(BaseModel, extra=Extra.forbid):
         default = Config.Params.Aws(
             keyPairName=None, publicKeyPath=None
         )
-        if self.configParams == None:
+        if self.configParams is None:
             return default
         if self.configParams.aws is None:
             return default
@@ -51,14 +51,14 @@ class Config(BaseModel, extra=Extra.forbid):
             apiKey=None,
             appKey=None
         )
-        if self.configParams == None:
+        if self.configParams is None:
             return default
-        if self.configParams.agent == None:
+        if self.configParams.agent is None:
             return default
         return self.configParams.agent
     
     def get_stack_params(self) -> Dict[str, Dict[str,str]]:
-        if self.stackParams == None:
+        if self.stackParams is None:
             return {}
         return self.stackParams
 
@@ -82,4 +82,4 @@ def get_local_config() -> Config:
         return Config.parse_obj({})
     
 def get_full_profile_path() -> str:
-    return Path.home().joinpath(profile_filename)
+    return str(Path.home().joinpath(profile_filename))

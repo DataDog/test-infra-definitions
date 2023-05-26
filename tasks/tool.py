@@ -7,7 +7,7 @@ from typing import Any, List, Optional
 def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
-def debug(msg: str) -> str:
+def debug(msg: str):
     print(colored(msg, "white"))
 
 def info(msg: str):
@@ -55,7 +55,7 @@ def get_stack_name_prefix() -> str:
     return user_name.replace(".", "-") # EKS doesn't support '.'
 
 
-def get_stack_json_outputs(full_stack_name: str) -> str:
+def get_stack_json_outputs(full_stack_name: str) -> Any:
     output = subprocess.check_output(
         ["pulumi", "stack", "output", "--json", "-s", full_stack_name]
     )

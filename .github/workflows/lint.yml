@@ -37,3 +37,15 @@ jobs:
         run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
       - name: Run golangci-lint
         run: golangci-lint version && golangci-lint run --new-from-rev=HEAD~ --out-format=github-actions --timeout=10m
+  lint-python-type:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Install Python requirements
+        run: pip3 install -r requirements.txt
+      - name: Install pyright
+        run: pip3 install pyright
+      - name: Run pyright
+        run: pyright tasks
+  

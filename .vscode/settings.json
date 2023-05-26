@@ -1,0 +1,7 @@
+{
+  "python.linting.enabled": true,
+  "python.analysis.typeCheckingMode": "basic",
+  "python.languageServer": "Pylance",
+  "python.formatting.provider": "black",
+  "python.analysis.diagnosticMode": "workspace",
+}

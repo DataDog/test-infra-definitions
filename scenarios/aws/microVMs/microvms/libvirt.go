@@ -1,66 +1,26 @@
 package microvms
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"sort"
-	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const (
-	// The microvm subnet changed from /16 to /24 because the underlying libvirt sdk would identify
-	// the incorrect network interface. It looks like it does not respect the subnet range when the subnet
-	// used is /16.
-	// TODO: this problem only manifests when setting up VMs locally. Investigate the root cause to see what can
-	// be done. This solution may no longer work when the number of VMs exceeds the ips available in this subnet.
-	microVMGroupSubnet    = "169.254.0.0/24"
-	domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
-)
+const domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 
-func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
-	return namer.NewNamer(ctx, fmt.Sprintf("%s-%s", ctx.Stack(), identifier))
+func libvirtResourceName(stack, identifier string) string {
+	return fmt.Sprintf("%s-ddvm-%s", stack, identifier)
 }
 
-func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
-
-	// Collect all DHCP entries in a single string to be
-	// formatted in network XML.
-	dhcpEntriesJoined := pulumi.All(dhcpEntries...).ApplyT(
-		func(promises []interface{}) (string, error) {
-			var sb strings.Builder
-
-			for _, promise := range promises {
-				sb.WriteString(promise.(string))
-			}
-
-			return sb.String(), nil
-		},
-	).(pulumi.StringInput)
-
-	netXML := resources.GetDefaultNetworkXLS(
-		map[string]pulumi.StringInput{
-			resources.DHCPEntries: dhcpEntriesJoined,
-		},
-	)
-	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network"), &libvirt.NetworkArgs{
-		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
-		Mode:      pulumi.String("nat"),
-		Xml: libvirt.NetworkXmlArgs{
-			Xslt: netXML,
-		},
-	}, pulumi.Provider(provider), pulumi.DeleteBeforeReplace(true), pulumi.DependsOn(depends))
-	if err != nil {
-		return nil, err
-	}
-
-	return network, nil
+func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
+	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), identifier))
 }
 
 func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {

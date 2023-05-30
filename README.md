@@ -11,7 +11,7 @@ To run scripts and code in this repository, you will need:
 * `account-admin` role on AWS `agent-sandbox` account. Ensure it by running
   
   ```bash
-  aws-vault login agent-sandbox-account-admin
+  aws-vault login sso-agent-sandbox-account-admin
   ```
 
 This guide is tested on **MacOS**.
@@ -24,19 +24,19 @@ This guide is tested on **MacOS**.
 cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git 
 ```
 
-1. Install Python dependencies
+2. Install Python dependencies
 
 ```bash
 cd ~/dd/test-infra-definitions && pip3 install --requirement requirements.txt
 ```
 
-1. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file. Create a random password using 1Password and store it there
+3. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file. Create a random password using 1Password and store it there
 
 ```bash
 export PULUMI_CONFIG_PASSPHRASE=<random password stored in 1Password>
 ```
 
-1. Run and follow the setup script
+4. Run and follow the setup script
 
 ```bash
 inv setup

@@ -1,7 +1,6 @@
 package microvms
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"strings"
@@ -60,7 +59,7 @@ func getMicroVMGroupSubnet() (string, error) {
 		}
 	}
 
-	return "", errors.New("getMicroVMGroupSubnet: could not find subnet")
+	return "", fmt.Errorf("getMicroVMGroupSubnet: could not find subnet")
 }
 
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {

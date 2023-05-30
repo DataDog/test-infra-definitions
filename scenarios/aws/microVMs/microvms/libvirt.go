@@ -1,7 +1,6 @@
 package microvms
 
 import (
-	"errors"
 	"fmt"
 	"net"
 	"sort"
@@ -220,7 +219,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		microVMGroupSubnet, err = getMicroVMGroupSubnet()
 	})
 	if err != nil {
-		return vmCollections, waitFor, errors.New("generateNetworkResource: unable to find any free subnet")
+		return vmCollections, waitFor, fmt.Errorf("generateNetworkResource: unable to find any free subnet")
 	}
 	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
 	// The first ip address is derived from the microvm subnet.

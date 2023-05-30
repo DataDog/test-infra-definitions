@@ -47,7 +47,7 @@ def _show_connection_message(full_stack_name: str):
     command = (
         f'\nssh {user}@{host} "sudo usermod -aG docker {user} && sudo reboot"\n'
         + f'docker context create pulumi-{host} --docker "host=ssh://{user}@{host}"\n'
-        + f'echo "Wait host to restart. If the next command fails, please wait and retry"; sleep 30\n'
+        + 'echo "Wait host to restart. If the next command fails, please wait and retry"; sleep 30\n'
         + f"docker --context pulumi-{host} container ls\n"
     )
     pyperclip.copy(command)

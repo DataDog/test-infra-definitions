@@ -212,6 +212,16 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		return domains[i].domainID < domains[j].domainID
 	})
 
+	// Discover subnet to use for the network.
+	// This is done dynamically so we can have concurrent micro-vm groups
+	// active, without the network conflicting.
+	var err error
+	initMicroVMGroupSubnet.Do(func() {
+		microVMGroupSubnet, err = getMicroVMGroupSubnet()
+	})
+	if err != nil {
+		return vmCollections, waitFor, errors.New("generateNetworkResource: unable to find any free subnet")
+	}
 	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
 	// The first ip address is derived from the microvm subnet.
 	// The gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
@@ -241,7 +251,7 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 	for _, collection := range vmCollections {
 		for _, domain := range collection.domains {
 			d, err := libvirt.NewDomain(collection.instance.e.Ctx,
-				domain.domainNamer.ResourceName("ddvm", domain.domainID),
+				domain.domainNamer.ResourceName(domain.domainID),
 				domain.domainArgs,
 				pulumi.Provider(collection.libvirtProvider),
 				pulumi.ReplaceOnChanges([]string{"*"}),

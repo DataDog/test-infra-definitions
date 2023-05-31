@@ -56,8 +56,11 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	// Compute some values
-	agentImagePath := DockerFullImagePath(&e, "")
+	agentImagePath := DockerAgentFullImagePath(&e, "")
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
+
+	clusterAgentImagePath := DockerClusterAgentFullImagePath(&e, "")
+	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	opts = append(opts, utils.PulumiDependsOn(ns, secret))
 	return helm.NewInstallation(e, helm.InstallArgs{
@@ -66,11 +69,11 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		InstallName: installName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  args.ValuesYAML,
-		Values:      buildDefaultHelmValues(installName, agentImagePath, agentImageTag),
+		Values:      buildDefaultHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
 	}, opts...)
 }
 
-func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag string) pulumi.Map {
+func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string) pulumi.Map {
 	return pulumi.Map{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -104,6 +107,11 @@ func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag st
 		},
 		"clusterAgent": pulumi.Map{
 			"enabled": pulumi.Bool(true),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(clusterAgentImagePath),
+				"tag":           pulumi.String(clusterAgentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),
@@ -111,6 +119,11 @@ func buildDefaultHelmValues(installName string, agentImagePath, agentImageTag st
 		},
 		"clusterChecksRunner": pulumi.Map{
 			"enabled": pulumi.Bool(true),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
 		},
 	}
 }

@@ -3,10 +3,12 @@ package microvms
 import (
 	"fmt"
 	"net"
+	"path/filepath"
 	"sort"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -97,21 +99,44 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	return waitFor, nil
 }
 
-func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource) error {
+func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
-			return fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
+			return []pulumi.Resource{}, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
 		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs)
 		if err != nil {
-			return err
+			return []pulumi.Resource{}, err
+		}
+
+		// Setup individual Nvram disk for arm64 distro images
+		if resources.GetLocalArchRecipe(set.Recipe) == vmconfig.RecipeDistroARM64 {
+			for _, domain := range domains {
+				varstorePath := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domain.DomainName))
+				varstoreArgs := command.Args{
+					Create: pulumi.Sprintf("truncate -s 64m %s", varstorePath),
+					Delete: pulumi.Sprintf("rm -f %s", varstorePath),
+				}
+				varstoreDone, err := vm.instance.runner.Command(
+					domain.domainNamer.ResourceName("create-nvram"),
+					&varstoreArgs,
+					pulumi.DependsOn(depends),
+				)
+				if err != nil {
+					return []pulumi.Resource{}, err
+				}
+
+				waitFor = append(waitFor, varstoreDone)
+			}
 		}
 
 		vm.domains = append(vm.domains, domains...)
 	}
 
-	return nil
+	return waitFor, nil
 }
 
 func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error {
@@ -177,9 +202,11 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		waitFor = append(waitFor, wait...)
 
 		// build the configurations for all the domains of this collection
-		if err := collection.SetupCollectionDomainConfigurations(waitFor); err != nil {
+		wait, err = collection.SetupCollectionDomainConfigurations(waitFor)
+		if err != nil {
 			return vmCollections, waitFor, err
 		}
+		waitFor = append(waitFor, wait...)
 
 		// setup domain sockets for communicating with the domains
 		for _, domain := range collection.domains {

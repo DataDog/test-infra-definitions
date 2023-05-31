@@ -60,7 +60,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 	var images []*filesystemImage
 
 	rc := resources.NewResourceCollection(vmset.Recipe)
-	poolName := vmset.Name
+	poolName := libvirtResourceName(ctx.Stack(), vmset.Name)
 
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
@@ -107,7 +107,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 
 func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
 	baseVolumeMap := make(map[string]*filesystemImage)
-	poolName := vmset.Name
+	poolName := libvirtResourceName(ctx.Stack(), vmset.Name)
 	imageName := vmset.Img.ImageName
 
 	rc := resources.NewResourceCollection(vmset.Recipe)

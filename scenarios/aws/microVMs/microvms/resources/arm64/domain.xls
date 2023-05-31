@@ -16,9 +16,6 @@
       </xsl:copy>
       <gic version='3'/>
   </xsl:template>
-
-  <xsl:template match="/domain/name"><name>{domainID}</name></xsl:template>
-
   <xsl:template match="/domain/features">
        <xsl:copy>
            <xsl:apply-templates select="@*|node()"/>

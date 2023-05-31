@@ -106,7 +106,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = cfg.machine
 	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = cfg.kernel.ExtraParams
-	domain.RecipeLibvirtDomainArgs.DomainName = fmt.Sprintf("%s-%s", e.Ctx.Stack(), domain.domainID)
+	domain.RecipeLibvirtDomainArgs.DomainName = libvirtResourceName(e.Ctx.Stack(), domain.domainID)
 
 	return domain, nil
 }

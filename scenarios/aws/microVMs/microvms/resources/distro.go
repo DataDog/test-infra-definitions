@@ -3,8 +3,6 @@ package resources
 import (
 	// import embed
 	_ "embed"
-	"fmt"
-	"path/filepath"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -90,8 +88,6 @@ func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 }
 
 func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
-	efi := filepath.Join(args.WorkingDirectory, "efi.fd")
-	varstore := filepath.Join(args.WorkingDirectory, fmt.Sprintf("varstore.%s", args.DomainName))
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
@@ -106,13 +102,9 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 				VolumeId: args.Volume.ID(),
 			},
 		},
-		Memory:   pulumi.Int(args.Memory),
-		Vcpu:     pulumi.Int(args.Vcpu),
-		Machine:  pulumi.String("virt"),
-		Firmware: pulumi.String(efi),
-		Nvram: libvirt.DomainNvramArgs{
-			File: pulumi.String(varstore),
-		},
+		Memory:  pulumi.Int(args.Memory),
+		Vcpu:    pulumi.Int(args.Vcpu),
+		Machine: pulumi.String("virt"),
 		Xml: libvirt.DomainXmlArgs{
 			Xslt: args.Xls,
 		},

@@ -22,6 +22,10 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
+	if version.CustomImage {
+		scriptName := "install_script_agent" + version.RepoComponent + ".sh"
+		return getUnixInstallFormatString(scriptName, version), nil
+	}
 	return getUnixInstallFormatString("install_script.sh", version), nil
 }
 
@@ -45,6 +49,14 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
+	if version.CustomImage {
+		commandLine := fmt.Sprintf(`TESTING_APT_URL=apttesting.datad0g.com TESTING_APT_REPO_VERSION="%v %v" `, version.RepoBranch, version.RepoComponent)
+		return fmt.Sprintf(
+			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
+			commandLine,
+			scriptName)
+	}
+
 	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
 
 	if version.Minor != "" {

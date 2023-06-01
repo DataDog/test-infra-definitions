@@ -19,9 +19,12 @@ const (
 )
 
 type AgentVersion struct {
-	Major       string
-	Minor       string // Empty means latest
-	BetaChannel bool
+	Major         string
+	Minor         string // Empty means latest
+	BetaChannel   bool
+	RepoBranch    string
+	RepoComponent string
+	CustomImage   bool
 }
 
 type OS interface {

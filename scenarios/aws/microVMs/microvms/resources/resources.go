@@ -20,6 +20,8 @@ const (
 	VolumePath    = "volumePath"
 	PoolName      = "poolName"
 	PoolPath      = "poolPath"
+	Nvram         = "nvram"
+	Efi           = "efi"
 )
 
 var kernelCmdlines = []map[string]interface{}{
@@ -47,7 +49,6 @@ type RecipeLibvirtDomainArgs struct {
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 	Machine           string
-	WorkingDirectory  string
 }
 
 func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {

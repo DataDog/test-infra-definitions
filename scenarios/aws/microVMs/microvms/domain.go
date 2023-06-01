@@ -97,17 +97,22 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	domain.RecipeLibvirtDomainArgs.Vcpu = cfg.vcpu
 	domain.RecipeLibvirtDomainArgs.Memory = cfg.memory
 	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", cfg.kernel.Dir, "bzImage")
+
+	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
+	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
+	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
 			resources.DomainID:      pulumi.String(domain.domainID),
 			resources.MACAddress:    domain.mac,
+			resources.Nvram:         pulumi.String(varstore),
+			resources.Efi:           pulumi.String(efi),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = cfg.machine
 	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = cfg.kernel.ExtraParams
-	domain.RecipeLibvirtDomainArgs.DomainName = libvirtResourceName(e.Ctx.Stack(), domain.domainID)
-	domain.RecipeLibvirtDomainArgs.WorkingDirectory = GetWorkingDirectory()
+	domain.RecipeLibvirtDomainArgs.DomainName = domainName
 
 	return domain, nil
 }

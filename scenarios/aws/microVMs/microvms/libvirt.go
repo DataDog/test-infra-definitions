@@ -283,6 +283,8 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 				pulumi.ReplaceOnChanges([]string{"*"}),
 				pulumi.DeleteBeforeReplace(true),
 				pulumi.DependsOn(depends),
+				// Pulumi incorrectly detects these as changing everytime.
+				pulumi.IgnoreChanges([]string{"filesystems", "firmware", "nvram"}),
 			)
 			if err != nil {
 				return libvirtDomains, err

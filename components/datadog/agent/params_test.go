@@ -30,8 +30,8 @@ func TestParams(t *testing.T) {
 		version, err := parseVersion("pipeline-16362517-a7")
 		assert.NoError(t, err)
 		assert.Equal(t, version, os.AgentVersion{
-			RepoBranch:  "pipeline-16362517-a7",
-			CustomImage: true,
+			RepoBranch:    "pipeline-16362517-a7",
+			IsCustomImage: true,
 		})
 	})
 }

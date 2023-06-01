@@ -22,8 +22,8 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
-	if version.CustomImage {
-		scriptName := "install_script_agent" + version.RepoBranch[len(version.RepoBranch)-1:] + ".sh"
+	if version.IsCustomImage {
+		scriptName := "install_script_agent" + getAgentMajorVersion(version) + ".sh"
 		return getUnixInstallFormatString(scriptName, version), nil
 	}
 	return getUnixInstallFormatString("install_script.sh", version), nil
@@ -35,6 +35,10 @@ func (*Unix) GetType() Type {
 
 func (*Unix) GetRunAgentCmd(parameters string) string {
 	return "sudo datadog-agent " + parameters
+}
+
+func getAgentMajorVersion(version AgentVersion) string {
+	return string(version.RepoBranch[len(version.RepoBranch)-1])
 }
 
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {
@@ -49,8 +53,8 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
-	if version.CustomImage {
-		commandLine := fmt.Sprintf(`TESTING_APT_URL=apttesting.datad0g.com TESTING_APT_REPO_VERSION="%v %v" `, version.RepoBranch, version.RepoBranch[len(version.RepoBranch)-1:])
+	if version.IsCustomImage {
+		commandLine := fmt.Sprintf(`TESTING_APT_URL=apttesting.datad0g.com TESTING_APT_REPO_VERSION="%v %v" `, version.RepoBranch, getAgentMajorVersion(version))
 		return fmt.Sprintf(
 			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
 			commandLine,

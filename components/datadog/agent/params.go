@@ -66,28 +66,12 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-func parseCustomAgent(s string) (os.AgentVersion, error) {
-	version := os.AgentVersion{}
-	userCommand := strings.Split(s, "~")
-	if len(userCommand) != 2 {
-		return version, fmt.Errorf("invalid custom version of the Agent: %v. Unable to parse user command, check the use of '~'", s)
-	}
-
-	version.RepoBranch = userCommand[0]
-	version.RepoComponent = userCommand[1]
-
-	// validate that repo component matches the repo branch.
-	if !strings.HasSuffix(version.RepoBranch, "a"+version.RepoComponent) {
-		return version, fmt.Errorf("invalid custom version of the Agent: %v. The Agent repo branch should be as the repo comptent version", s)
-	}
-	version.CustomImage = true
-	return version, nil
-}
-
 func parseVersion(s string) (os.AgentVersion, error) {
 	version := os.AgentVersion{}
 	if strings.HasPrefix(s, "pipeline") {
-		return parseCustomAgent(s)
+		version.CustomImage = true
+		version.RepoBranch = s
+		return version, nil
 	}
 
 	prefix := "7."

@@ -27,16 +27,11 @@ func TestParams(t *testing.T) {
 		})
 	})
 	t.Run("parseVersion should correctly parse custom agent version", func(t *testing.T) {
-		version, err := parseVersion("pipeline-16362517-a7~7")
+		version, err := parseVersion("pipeline-16362517-a7")
 		assert.NoError(t, err)
 		assert.Equal(t, version, os.AgentVersion{
-			RepoBranch:    "pipeline-16362517-a7",
-			RepoComponent: "7",
-			CustomImage:   true,
+			RepoBranch:  "pipeline-16362517-a7",
+			CustomImage: true,
 		})
-	})
-	t.Run("parseVersion should not parse custom agent version", func(t *testing.T) {
-		_, err := parseVersion("pipeline-16362517-a7~6")
-		assert.Error(t, err)
 	})
 }

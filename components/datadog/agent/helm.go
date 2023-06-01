@@ -3,6 +3,8 @@ package agent
 import (
 	"fmt"
 
+	"golang.org/x/exp/maps"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
@@ -19,9 +21,10 @@ const (
 )
 
 type HelmInstallationArgs struct {
-	KubeProvider *kubernetes.Provider
-	Namespace    string
-	ValuesYAML   pulumi.AssetOrArchiveArrayInput
+	KubeProvider  *kubernetes.Provider
+	Namespace     string
+	ValuesYAML    pulumi.AssetOrArchiveArrayInput
+	DeployWindows bool
 }
 
 type HelmComponent struct {
@@ -83,10 +86,15 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	clusterAgentImagePath := DockerClusterAgentFullImagePath(&e, "")
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
+	linuxInstallName := installName
+	if args.DeployWindows {
+		linuxInstallName += "-linux"
+	}
+
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
 		ChartName:   "datadog",
-		InstallName: installName + "-linux",
+		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  args.ValuesYAML,
 		Values:      buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
@@ -98,27 +106,36 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	helmComponent.LinuxHelmReleaseName = linux.Name
 	helmComponent.LinuxHelmReleaseStatus = linux.Status
 
-	windows, err := helm.NewInstallation(e, helm.InstallArgs{
-		RepoURL:     DatadogHelmRepo,
-		ChartName:   "datadog",
-		InstallName: installName + "-windows",
-		Namespace:   args.Namespace,
-		ValuesYAML:  args.ValuesYAML,
-		Values:      buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
-	}, opts...)
-	if err != nil {
-		return nil, err
+	resourceOutputs := pulumi.Map{
+		"linuxHelmReleaseName":   linux.Name,
+		"linuxHelmReleaseStatus": linux.Status,
 	}
 
-	helmComponent.WindowsHelmReleaseName = windows.Name
-	helmComponent.WindowsHelmReleaseStatus = windows.Status
+	if args.DeployWindows {
+		windows, err := helm.NewInstallation(e, helm.InstallArgs{
+			RepoURL:     DatadogHelmRepo,
+			ChartName:   "datadog",
+			InstallName: installName + "-windows",
+			Namespace:   args.Namespace,
+			ValuesYAML:  args.ValuesYAML,
+			Values:      buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
 
-	e.Ctx.RegisterResourceOutputs(helmComponent, pulumi.Map{
-		"linuxHelmReleaseName":     linux.Name,
-		"linuxHelmReleaseStatus":   linux.Status,
-		"windowsHelmReleaseName":   windows.Name,
-		"windowsHelmReleaseStatus": windows.Status,
-	})
+		helmComponent.WindowsHelmReleaseName = windows.Name
+		helmComponent.WindowsHelmReleaseStatus = windows.Status
+
+		maps.Copy(resourceOutputs, pulumi.Map{
+			"windowsHelmReleaseName":   windows.Name,
+			"windowsHelmReleaseStatus": windows.Status,
+		})
+	}
+
+	if err := e.Ctx.RegisterResourceOutputs(helmComponent, resourceOutputs); err != nil {
+		return nil, err
+	}
 
 	return helmComponent, nil
 }
@@ -178,7 +195,7 @@ func buildLinuxHelmValues(installName string, agentImagePath, agentImageTag, clu
 	}
 }
 
-func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string) pulumi.Map {
+func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _, _ string) pulumi.Map {
 	return pulumi.Map{
 		"targetSystem": pulumi.String("windows"),
 		"datadog": pulumi.Map{

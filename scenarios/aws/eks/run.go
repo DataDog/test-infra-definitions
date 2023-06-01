@@ -176,16 +176,21 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy the Agent
 	if awsEnv.AgentDeploy() {
-		helmRelease, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
-			KubeProvider: eksKubeProvider,
-			Namespace:    "datadog",
+		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
+			KubeProvider:  eksKubeProvider,
+			Namespace:     "datadog",
+			DeployWindows: awsEnv.EKSWindowsNodeGroup(),
 		}, nil)
 		if err != nil {
 			return err
 		}
 
-		ctx.Export("agent-helm-install-name", helmRelease.Name)
-		ctx.Export("agent-helm-install-status", helmRelease.Status)
+		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
+		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
+		if awsEnv.EKSWindowsNodeGroup() {
+			ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
+			ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
+		}
 	}
 
 	return nil

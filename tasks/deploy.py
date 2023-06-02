@@ -81,7 +81,7 @@ def _deploy(
     cmd_args = [
         "aws-vault",
         "exec",
-        "sandbox-account-admin",
+        "sso-sandbox-account-admin",
         "--",
         "pulumi",
         "up",

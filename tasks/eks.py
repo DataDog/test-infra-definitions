@@ -68,7 +68,7 @@ def _show_connection_message(full_stack_name: str):
     with open(f, "w") as f:
         f.write(kubeconfig_content)
 
-    command = f"KUBECONFIG={config} aws-vault exec sandbox-account-admin -- kubectl get nodes"
+    command = f"KUBECONFIG={config} aws-vault exec sso-sandbox-account-admin -- kubectl get nodes"
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

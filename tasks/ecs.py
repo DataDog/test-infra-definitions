@@ -58,7 +58,7 @@ def _show_connection_message(full_stack_name: str):
     outputs = tool.get_stack_json_outputs(full_stack_name)
     cluster_name = outputs["ecs-cluster-name"]
 
-    command = f"aws-vault exec sandbox-account-admin -- aws ecs list-tasks --cluster {cluster_name}"
+    command = f"aws-vault exec sso-sandbox-account-admin -- aws ecs list-tasks --cluster {cluster_name}"
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

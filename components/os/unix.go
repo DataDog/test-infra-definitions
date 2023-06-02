@@ -23,10 +23,7 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
-	if version.PipelineID != "" {
-		return getUnixInstallFormatString("install_script_agent7.sh", version), nil
-	}
-	return getUnixInstallFormatString("install_script.sh", version), nil
+	return getUnixInstallFormatString("install_script_agent7.sh", version), nil
 }
 
 func (*Unix) GetType() Type {
@@ -46,6 +43,13 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	default:
 		panic("Architecture not supported")
 	}
+}
+
+func getUnixRepositoryURL(version AgentVersion) string {
+	if version.Repository == "staging" {
+		return "datad0g.com"
+	}
+	return "datadoghq.com"
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
@@ -73,8 +77,12 @@ func getUnixInstallFormatString(scriptName string, version AgentVersion) string 
 		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
 	}
 
-	if version.BetaChannel {
-		commandLine += "REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=beta "
+	if version.Repository != "" {
+		commandLine += fmt.Sprintf("DD_REPO_URL=%v ", getUnixRepositoryURL(version))
+	}
+
+	if version.Channel != "" {
+		commandLine += fmt.Sprintf("DD_AGENT_DIST_CHANNEL=%v ", version.Channel)
 	}
 
 	return fmt.Sprintf(

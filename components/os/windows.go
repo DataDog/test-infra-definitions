@@ -62,28 +62,36 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 	return `& "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" ` + parameters
 }
 
+func getWindowsRepositoryURL(version AgentVersion) string {
+	baseURL := "https://ddagent-windows-stable.s3.amazonaws.com"
+	if version.Repository == "staging" {
+		baseURL = "https://s3.amazonaws.com/dd-agent-mstesting"
+	}
+
+	if version.Channel != "stable" {
+		return fmt.Sprintf("%v/builds/%v", baseURL, version.Channel)
+	}
+	return baseURL
+}
+
 func getAgentURL(version AgentVersion) (string, error) {
 	minor := strings.ReplaceAll(version.Minor, "~", "-")
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
-	if version.BetaChannel {
-		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
-		if err != nil {
-			return "", err
-		}
 
+	finder, err := newAgentURLFinder(fmt.Sprintf("%v/installers_v2.json", getWindowsRepositoryURL(version)))
+	if err != nil {
+		return "", err
+	}
+
+	if version.Repository == "staging" {
 		url, err := finder.findVersion(fullVersion)
 		if err != nil {
 			// Try to handle custom build
 			minor = strings.TrimSuffix(minor, "-1")
-			return fmt.Sprintf("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/ddagent-cli-%v.%v.msi", version.Major, minor), nil
+			return fmt.Sprintf("%v/ddagent-cli-%v.%v.msi", getWindowsRepositoryURL(version), version.Major, minor), nil
 		}
 
 		return url, nil
-	}
-
-	finder, err := newAgentURLFinder("https://ddagent-windows-stable.s3.amazonaws.com/installers_v2.json")
-	if err != nil {
-		return "", err
 	}
 
 	fullVersion += "-1"

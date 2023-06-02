@@ -22,7 +22,17 @@ type AgentVersion struct {
 	Major       string
 	Minor       string // Empty means latest
 	BetaChannel bool
+	Repository  string
+	Channel     string
 	PipelineID  string
+}
+
+func DefaultAgentVersion() AgentVersion {
+	return AgentVersion{
+		Major: "7",
+		Repository: "prod",
+		Channel: "stable",
+	}
 }
 
 type OS interface {

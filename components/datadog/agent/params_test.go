@@ -12,18 +12,20 @@ func TestParams(t *testing.T) {
 		version, err := parseVersion("7.43")
 		assert.NoError(t, err)
 		assert.Equal(t, version, os.AgentVersion{
-			Major:       "7",
-			Minor:       "43",
-			BetaChannel: false,
+			Major:      "7",
+			Minor:      "43",
+			Repository: "prod",
+			Channel:    "stable",
 		})
 	})
 	t.Run("parseVersion should correctly parse rc version", func(t *testing.T) {
 		version, err := parseVersion("7.45~rc.1")
 		assert.NoError(t, err)
 		assert.Equal(t, version, os.AgentVersion{
-			Major:       "7",
-			Minor:       "45~rc.1",
-			BetaChannel: true,
+			Major:      "7",
+			Minor:      "45~rc.1",
+			Repository: "staging",
+			Channel:    "beta",
 		})
 	})
 	t.Run("parsePipelineVersion should correctly parse a pipeline ID and format the agent version pipeline", func(t *testing.T) {

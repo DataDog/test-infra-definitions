@@ -51,7 +51,8 @@ func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
 		p.version.Major = "7"
-		p.version.BetaChannel = false
+		p.version.Repository = "prod"
+		p.version.Channel = "stable"
 		return nil
 	}
 }
@@ -80,8 +81,7 @@ func WithPipelineID(version string) func(*Params) error {
 }
 
 func parseVersion(s string) (os.AgentVersion, error) {
-	version := os.AgentVersion{}
-
+	version := os.DefaultAgentVersion()
 	prefix := "7."
 	if strings.HasPrefix(s, prefix) {
 		version.Major = "7"
@@ -94,7 +94,10 @@ func parseVersion(s string) (os.AgentVersion, error) {
 		}
 	}
 	version.Minor = strings.TrimPrefix(s, prefix)
-	version.BetaChannel = strings.Contains(s, "~")
+	if strings.Contains(s, "~") {
+		version.Repository = "staging"
+		version.Channel = "beta"
+	}
 	return version, nil
 }
 

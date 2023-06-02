@@ -15,11 +15,13 @@ import (
 
 var _ utils.RemoteServiceDeserializer[ClientData] = (*Installer)(nil)
 
+// Installer is an installer for the Agent on a virtual machine
 type Installer struct {
 	dependsOn pulumi.Resource
 	vm        vm.VM
 }
 
+// NewInstaller creates a new instance of [*Installer]
 func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) {
 	env := vm.GetCommonEnvironment()
 	params, err := newParams(env, options...)
@@ -143,4 +145,8 @@ func (installer *Installer) Deserialize(result auto.UpResult) (*ClientData, erro
 	}
 
 	return &ClientData{Connection: vmData.Connection}, nil
+}
+
+func (installer *Installer) VM() vm.VM {
+	return installer.vm
 }

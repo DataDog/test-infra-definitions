@@ -63,6 +63,8 @@ Available tasks:
   setup            Setup a local environment interactively
 ```
 
+Run any `-h` on any of the available tasks for more information
+
 ### Pulumi: Stack & Storage
 
 Pulumi requires to store/retrieve the state of your `Stack`.

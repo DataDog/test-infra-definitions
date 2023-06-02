@@ -10,6 +10,18 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/os"
 )
 
+// Params defines the parameters for a virtual machine.
+// The Params configuration uses the [Functional options pattern].
+//
+// The available options are:
+//   - [WithOS]
+//   - [WithImageName]
+//   - [WithArch]
+//   - [WithInstanceType]
+//   - [WithUserData]
+//   - [WithName]
+//
+// [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type Params struct {
 	env    aws.Environment
 	common *vm.Params[os.OS]
@@ -26,7 +38,7 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 	}
 
 	// Can be overrided later if the caller uses WithOS.
-	if err := params.UseDefaultOS(); err != nil {
+	if err := params.useDefaultOS(); err != nil {
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
@@ -40,7 +52,7 @@ func (p *Params) GetOS(osType os.Type) (os.OS, error) {
 	return os.GetOS(p.env, osType)
 }
 
-func (p *Params) UseDefaultOS() error {
+func (p *Params) useDefaultOS() error {
 	var osType os.Type
 
 	osTypeStr := strings.ToLower(p.env.InfraOSFamily())
@@ -68,20 +80,20 @@ func (p *Params) UseDefaultOS() error {
 	return WithOS(osType)(p)
 }
 
-// WithOS sets the instance type and the AMI.
+// WithOS sets the instance type and the AMI. See [vm.WithOS] for parameters.
 var WithOS = vm.WithOS[os.OS, os.Type, *Params]
 
-// WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
+// WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements. See [vm.WithImageName] for parameters.
 var WithImageName = vm.WithImageName[os.OS, os.Type, *Params]
 
-// WithArch set the architecture and the operating system.
+// WithArch set the architecture and the operating system. See [vm.WithArch] for parameters.
 var WithArch = vm.WithArch[os.OS, os.Type, *Params]
 
-// WithInstanceType set the instance type.
+// WithInstanceType set the instance type. See [vm.WithInstanceType] for parameters.
 var WithInstanceType = vm.WithInstanceType[os.OS, os.Type, *Params]
 
-// WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
+// WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance. See [vm.WithUserData] for parameters.
 var WithUserData = vm.WithUserData[os.OS, os.Type, *Params]
 
-// WithName set the VM name
+// WithName set the VM name. See [vm.WithName] for parameters.
 var WithName = vm.WithName[os.OS, os.Type, *Params]

@@ -4,14 +4,12 @@
   <xsl:output omit-xml-declaration="yes" indent="yes"/>
   <xsl:template match="@firmware" />
 
+  
   <xsl:template match="node()|@*">
       <xsl:copy>
          <xsl:apply-templates select="node()|@*"/>
       </xsl:copy>
    </xsl:template>
-
-  <xsl:template match="/domain/name"><name>{domainID}</name></xsl:template>
-
   <xsl:template match="/domain/features">
        <xsl:copy>
            <xsl:apply-templates select="@*|node()"/>
@@ -21,6 +19,14 @@
        </cpu>
   </xsl:template>
 
+  <xsl:template match="/domain/os">
+        <xsl:copy>
+            <xsl:copy-of select="@*"/>
+            <xsl:copy-of select="node()"/>
+            <loader readonly='yes' secure='no' type='pflash'>{efi}</loader>
+            <nvram>{nvram}</nvram>
+        </xsl:copy>
+  </xsl:template>
 
   <xsl:template match="/domain/devices/disk">
       <filesystem type='mount' accessmode='passthrough'>

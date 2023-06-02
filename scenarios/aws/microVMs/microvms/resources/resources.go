@@ -20,6 +20,8 @@ const (
 	VolumePath    = "volumePath"
 	PoolName      = "poolName"
 	PoolPath      = "poolPath"
+	Nvram         = "nvram"
+	Efi           = "efi"
 )
 
 var kernelCmdlines = []map[string]interface{}{
@@ -76,7 +78,7 @@ func isLocalRecipe(recipe string) bool {
 	return (recipe == vmconfig.RecipeCustomLocal) || (recipe == vmconfig.RecipeDistroLocal)
 }
 
-func getLocalArchRecipe(recipe string) string {
+func GetLocalArchRecipe(recipe string) string {
 	var prefix string
 
 	if !isLocalRecipe(recipe) {
@@ -101,7 +103,7 @@ func getLocalArchRecipe(recipe string) string {
 }
 
 func NewResourceCollection(recipe string) ResourceCollection {
-	archSpecificRecipe := getLocalArchRecipe(recipe)
+	archSpecificRecipe := GetLocalArchRecipe(recipe)
 
 	switch archSpecificRecipe {
 	case vmconfig.RecipeCustomARM64:

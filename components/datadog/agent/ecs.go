@@ -74,7 +74,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 		Cpu:       pulumi.IntPtr(100),
 		Memory:    pulumi.IntPtr(512),
 		Name:      pulumi.StringPtr("datadog-agent"),
-		Image:     pulumi.StringPtr(DockerFullImagePath(&e, "public.ecr.aws/datadog/agent")),
+		Image:     pulumi.StringPtr(DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent")),
 		Essential: pulumi.BoolPtr(true),
 		LinuxParameters: ecs.TaskDefinitionLinuxParametersArgs{
 			Capabilities: ecs.TaskDefinitionKernelCapabilitiesArgs{

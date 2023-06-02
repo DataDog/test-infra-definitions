@@ -6,8 +6,13 @@ This repository contains IaC code based on Pulumi to provision dynamic test infr
 
 To run scripts and code in this repository, you will need:
 
- * [Go](https://golang.org/doc/install) 1.19 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
- * Python 3.7+ along with development libraries for tooling.
+* [Go](https://golang.org/doc/install) 1.19 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
+* Python 3.7+ along with development libraries for tooling.
+* `account-admin` role on AWS `sandbox` account. Ensure it by running
+  
+  ```bash
+  aws-vault login sso-sandbox-account-admin
+  ```
 
 This guide is tested on **MacOS**.
 
@@ -37,7 +42,30 @@ export PULUMI_CONFIG_PASSPHRASE=<random password stored in 1Password>
 inv setup
 ```
 
-### Stack & Storage
+### Create an environment for manual tests
+
+
+Invoke tasks help deploying most common environments - VMs, Docker, ECS, EKS. Run `inv -l` to learn more.
+
+```bash
+inv -l
+
+Available tasks:
+
+  create-docker    Create a docker environment.
+  create-ecs       Create a new ECS environment.
+  create-eks       Create a new EKS environment. It lasts around 20 minutes.
+  create-vm        Create a new virtual machine on the cloud.
+  destroy-docker   Destroy an environment created by invoke create_docker.
+  destroy-ecs      Destroy a ECS environment created with invoke create-ecs.
+  destroy-eks      Destroy a EKS environment created with invoke create-eks.
+  destroy-vm       Destroy a new virtual machine on the cloud.
+  setup            Setup a local environment interactively
+```
+
+Run any `-h` on any of the available tasks for more information
+
+### Pulumi: Stack & Storage
 
 Pulumi requires to store/retrieve the state of your `Stack`.
 In Pulumi, `Stack` objects represent your actual deployment:
@@ -68,7 +96,7 @@ More information about state can be retrieved at: https://www.pulumi.com/docs/in
 Finally, Pulumi is encrypting secrets in your `Pulumi.<stack_name>.yaml` (if entered as such).
 To do that, it requires a password. For dev purposes, you can simply store the password in the `PULUMI_CONFIG_PASSPHRASE` variable in your `~/.zshrc`.
 
-### Creating a stack
+### Creating a stack with `pulumi up`
 
 In this example, we're going to create an ECS Cluster:
 

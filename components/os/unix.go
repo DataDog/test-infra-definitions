@@ -2,6 +2,7 @@ package os
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 )
@@ -22,7 +23,7 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
-	if version.IsCustomImage {
+	if version.PipelineId != "" {
 		scriptName := "install_script_agent" + getAgentMajorVersion(version) + ".sh"
 		return getUnixInstallFormatString(scriptName, version), nil
 	}
@@ -38,7 +39,7 @@ func (*Unix) GetRunAgentCmd(parameters string) string {
 }
 
 func getAgentMajorVersion(version AgentVersion) string {
-	return string(version.RepoBranch[len(version.RepoBranch)-1])
+	return string(version.PipelineId[len(version.PipelineId)-1])
 }
 
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {
@@ -53,8 +54,17 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
-	if version.IsCustomImage {
-		commandLine := fmt.Sprintf(`TESTING_APT_URL=apttesting.datad0g.com TESTING_APT_REPO_VERSION="%v %v" `, version.RepoBranch, getAgentMajorVersion(version))
+	if version.PipelineId != "" {
+		testEnvVars := []string{}
+		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
+		// apt testing repo
+		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
+		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v %v"`, version.PipelineId, getAgentMajorVersion(version)))
+		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
+		// yum testing repo
+		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v/%v", version.PipelineId, getAgentMajorVersion(version)))
+		commandLine := strings.Join(testEnvVars, " ")
 		return fmt.Sprintf(
 			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
 			commandLine,

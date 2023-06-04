@@ -69,8 +69,7 @@ func WithVersion(version string) func(*Params) error {
 func parseVersion(s string) (os.AgentVersion, error) {
 	version := os.AgentVersion{}
 	if strings.HasPrefix(s, "pipeline") {
-		version.IsCustomImage = true
-		version.RepoBranch = s
+		version.PipelineId = s
 		return version, nil
 	}
 

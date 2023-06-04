@@ -22,7 +22,7 @@ type AgentVersion struct {
 	Major       string
 	Minor       string // Empty means latest
 	BetaChannel bool
-	PipelineId  string
+	PipelineID  string
 }
 
 type OS interface {

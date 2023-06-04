@@ -69,7 +69,7 @@ func WithVersion(version string) func(*Params) error {
 func parseVersion(s string) (os.AgentVersion, error) {
 	version := os.AgentVersion{}
 	if strings.HasPrefix(s, "pipeline") {
-		version.PipelineId = s
+		version.PipelineID = s
 		return version, nil
 	}
 

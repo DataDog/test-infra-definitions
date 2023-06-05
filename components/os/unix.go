@@ -49,7 +49,7 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	case ARM64Arch:
 		return env.DefaultARMInstanceType()
 	default:
-		panic("Architecture not supportede")
+		panic("Architecture not supported")
 	}
 }
 

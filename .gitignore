@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+venv
 
 # Test binary, built with `go test -c`
 *.test
@@ -19,9 +20,6 @@ Pulumi.*.yaml
 
 # Vim swap files
 *.swp
-
-# VSCode files
-.vscode
 
 # MacOS files
 .DS_Store

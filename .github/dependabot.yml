@@ -22,46 +22,46 @@ updates:
       interval: daily
 
   - package-ecosystem: docker
-    directory: /datadog/apps/images/prometheus
+    directory: /components/datadog/apps/dogstatsd/images/dogstatsd
     schedule:
       interval: daily
 
   - package-ecosystem: gomod
-    directory: /datadog/apps/images/prometheus
+    directory: /components/datadog/apps/dogstatsd/images/dogstatsd
     schedule:
       interval: daily
 
   - package-ecosystem: docker
-    directory: /datadog/apps/images/nginx-server
-    schedule:
-      interval: daily
-
-  - package-ecosystem: docker
-    directory: /datadog/apps/images/http-client
+    directory: /components/datadog/apps/nginx/images/http-client
     schedule:
       interval: daily
 
   - package-ecosystem: gomod
-    directory: /datadog/apps/images/http-client
+    directory: /components/datadog/apps/nginx/images/http-client
     schedule:
       interval: daily
 
   - package-ecosystem: docker
-    directory: /datadog/apps/images/dogstatsd
-    schedule:
-      interval: daily
-
-  - package-ecosystem: gomod
-    directory: /datadog/apps/images/dogstatsd
+    directory: /components/datadog/apps/nginx/images/nginx-server
     schedule:
       interval: daily
 
   - package-ecosystem: docker
-    directory: /datadog/apps/images/redis-client
+    directory: /components/datadog/apps/prometheus/images/prometheus
     schedule:
       interval: daily
 
   - package-ecosystem: gomod
-    directory: /datadog/apps/images/redis-client
+    directory: /components/datadog/apps/prometheus/images/prometheus
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/redis/images/redis-client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /components/datadog/apps/redis/images/redis-client
     schedule:
       interval: daily

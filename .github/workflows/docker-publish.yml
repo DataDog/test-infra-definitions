@@ -13,12 +13,12 @@ on:
     tags:
       - v*.*.*
     paths:
-      - datadog/apps/images/**
+      - components/datadog/apps/*/images/**
   pull_request:
     branches:
       - main
     paths:
-      - datadog/apps/images/**
+      - components/datadog/apps/*/images/**
 
 env:
   # Use docker.io for Docker Hub if empty
@@ -41,12 +41,17 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        apps:
-          - dogstatsd
-          - http-client
-          - nginx-server
-          - prometheus
-          - redis-client
+        include:
+          - app: dogstatsd
+            image: dogstatsd
+          - app: nginx
+            image: http-client
+          - app: nginx
+            image: nginx-server
+          - app: prometheus
+            image: prometheus
+          - app: redis
+            image: redis-client
 
     steps:
       - name: Checkout repository
@@ -81,7 +86,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@98669ae865ea3cffbcbaa878cf57c20bbf1c6c38
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/apps-${{ matrix.apps }}
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/apps-${{ matrix.image }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
@@ -89,7 +94,7 @@ jobs:
         id: build-and-push
         uses: docker/build-push-action@ac9327eae2b366085ac7f6a2d02df8aa8ead720a
         with:
-          context: datadog/apps/images/${{ matrix.apps }}
+          context: components/datadog/apps/${{ matrix.app }}/images/${{ matrix.image }}
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}

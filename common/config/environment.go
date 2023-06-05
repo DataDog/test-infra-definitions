@@ -27,13 +27,15 @@ const (
 	DDInfraKubernetesVersion = "kubernetesVersion"
 	DDInfraOSFamily          = "osFamily"
 
-	// Agent namespace
-	DDAgentDeployParamName        = "deploy"
-	DDAgentVersionParamName       = "version"
-	DDAgentFullImagePathParamName = "fullImagePath"
-	DDAgentAPIKeyParamName        = "apiKey"
-	DDAgentAPPKeyParamName        = "appKey"
-	DDAgentFakeintake             = "fakeintake"
+	// Agent Namespace
+	DDAgentDeployParamName               = "deploy"
+	DDAgentVersionParamName              = "version"
+	DDAgentFullImagePathParamName        = "fullImagePath"
+	DDClusterAgentVersionParamName       = "clusterAgentVersion"
+	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
+	DDAgentAPIKeyParamName               = "apiKey"
+	DDAgentAPPKeyParamName               = "appKey"
+	DDAgentFakeintake                    = "fakeintake"
 
 	// Testing workload namerNamespace
 	DDTestingWorkloadDeployParamName = "deploy"
@@ -120,8 +122,16 @@ func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
 
+func (e *CommonEnvironment) ClusterAgentVersion() string {
+	return e.AgentConfig.Get(DDClusterAgentVersionParamName)
+}
+
 func (e *CommonEnvironment) AgentFullImagePath() string {
 	return e.AgentConfig.Get(DDAgentFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) ClusterAgentFullImagePath() string {
+	return e.AgentConfig.Get(DDClusterAgentFullImagePathParamName)
 }
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {

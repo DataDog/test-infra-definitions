@@ -1,9 +1,11 @@
 from . import tool
 
 install_agent: str = f"Install the Agent (default {tool.get_default_agent_install()})."
+agent_version: str = "The version of the Agent for example '7.42.0~rc.1-1' or '6.39.0' (default `latest`)"
+agent_repository: str = f"The package repository where the Agent is fetched. Possible values are {tool.get_repositories()}. Default '{tool.get_default_repository()}'."
+agent_channel: str = "The channel within a package repository where the Agent is fetched, for example 'stable' or 'beta' (default `stable`)."
 pipeline_id: str = "The pipeline id of the custom Agent build for example '16497585' (may be taken form the gitlab url)'"
-agent_version: str = "The version of the Agent for example '7.42.0~rc.1-1' or '6.39.0 (default `latest`)'"
-container_agent_version: str = "The container version of the Agent for example '7.45.0-rc.3' (default `latest`)'"
+container_agent_version: str = "The container version of the Agent for example '7.45.0-rc.3' (default `latest`)"
 stack_name: str = "An optional name for the stack. This parameter is useful when you need to create several environments. Note: 'invoke destroy' may not work properly"
 debug: str = "Launch pulumi with debug mode. Default False"
 stack_name: str = "An optional name for the stack. This parameter is useful when you need to create several environments."

@@ -23,6 +23,7 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
+	// install_script_agent7.sh, despite its name, can also install Agent 6
 	return getUnixInstallFormatString("install_script_agent7.sh", version), nil
 }
 
@@ -45,11 +46,22 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	}
 }
 
-func getUnixRepositoryURL(version AgentVersion) string {
-	if version.Repository == "staging" {
-		return "datad0g.com"
+func getUnixRepositoryParams(version AgentVersion) string {
+	if version.Repository == TrialRepository {
+		return fmt.Sprintf(
+			"TESTING_APT_URL=\"%v\" TESTING_APT_REPO_VERSION=\"%v %v\" TESTING_YUM_URL=\"%v\" TESTING_YUM_VERSION_PATH=\"%v/%v\"",
+			"apttrial.datad0g.com",
+			version.Channel,
+			version.Major,
+			"yumtrial.datad0g.com",
+			version.Channel,
+			version.Major,
+		)
 	}
-	return "datadoghq.com"
+	if version.Repository == StagingRepository {
+		return fmt.Sprintf("DD_REPO_URL=\"%v\" DD_AGENT_DIST_CHANNEL=\"%v\" ", "datad0g.com", version.Channel)
+	}
+	return fmt.Sprintf("DD_REPO_URL=\"%v\" DD_AGENT_DIST_CHANNEL=\"%v\" ", "datadoghq.com", version.Channel)
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
@@ -76,15 +88,9 @@ func getUnixInstallFormatString(scriptName string, version AgentVersion) string 
 	if version.Minor != "" {
 		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
 	}
-
-	if version.Repository != "" {
-		commandLine += fmt.Sprintf("DD_REPO_URL=%v ", getUnixRepositoryURL(version))
-	}
-
-	if version.Channel != "" {
-		commandLine += fmt.Sprintf("DD_AGENT_DIST_CHANNEL=%v ", version.Channel)
-	}
-
+	
+	commandLine += getUnixRepositoryParams(version)
+	
 	return fmt.Sprintf(
 		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
 		commandLine,

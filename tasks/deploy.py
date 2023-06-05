@@ -22,6 +22,8 @@ def deploy(
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
+    agent_repository: Optional[str] = None,
+    agent_channel: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Dict[str, Any] = {},
     use_fakeintake: Optional[bool] = False,
@@ -43,6 +45,8 @@ def deploy(
     flags["scenario"] = scenario_name
     flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
+    flags["ddagent:repository"] = agent_repository
+    flags["ddagent:channel"] = agent_channel
     flags["ddagent:fakeintake"] = use_fakeintake
 
     awsKeyPairName = cfg.get_aws().keyPairName

@@ -9,6 +9,22 @@ const (
 	ARM64Arch = Architecture("arm64")
 )
 
+type Repository string
+
+const (
+	ProdRepository = Repository("prod")
+	StagingRepository = Repository("staging")
+	TrialRepository = Repository("trial")
+)
+
+type Channel string
+
+const (
+	StableChannel = Channel("stable")
+	BetaChannel = Channel("beta")
+)
+
+
 // The types of OSes that are common
 type Type int
 
@@ -21,17 +37,16 @@ const (
 type AgentVersion struct {
 	Major       string
 	Minor       string // Empty means latest
-	BetaChannel bool
-	Repository  string
-	Channel     string
+	Repository  string // Empty means prod
+	Channel     string // Empty means stable
 	PipelineID  string
 }
 
-func DefaultAgentVersion() AgentVersion {
+func LatestAgentVersion() AgentVersion {
 	return AgentVersion{
 		Major: "7",
-		Repository: "prod",
-		Channel: "stable",
+		Repository: ProdRepository,
+		Channel: StableChannel,
 	}
 }
 

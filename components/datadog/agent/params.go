@@ -43,16 +43,25 @@ func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipelineID(env.PipelineID())
 	}
-	options = append([]func(*Params) error{defaultVersion}, options...)
+	versionOptions := []func(*Params) error{defaultVersion}
+
+
+	// If repository and/or channel are specified, force-set them:
+	if env.AgentRepository() != "" {
+		versionOptions = append(versionOptions, WithRepository(env.AgentRepository()))
+	}
+	if env.AgentChannel() != "" {
+		versionOptions = append(versionOptions, WithChannel(env.AgentChannel()))
+	}
+
+	options = append(versionOptions, options...)
 	return common.ApplyOption(p, options)
 }
 
 // WithLatest uses the latest Agent 7 version in the stable channel.
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
-		p.version.Major = "7"
-		p.version.Repository = "prod"
-		p.version.Channel = "stable"
+		p.version = os.LatestAgentVersion()
 		return nil
 	}
 }
@@ -75,13 +84,28 @@ func WithVersion(version string) func(*Params) error {
 func WithPipelineID(version string) func(*Params) error {
 	return func(p *Params) error {
 		p.version = parsePipelineVersion(version)
+		return nil
+	}
+}
 
+// WithRepository use a specific repository of the Agent. For example: `staging` or `trial`
+func WithRepository(repository string) func(*Params) error {
+	return func(p *Params) error {
+		p.version.Repository = os.Repository(repository)
+		return nil
+	}
+}
+
+// WithChannel use a specific channel of the Agent repositories. For example: `beta` or `nightly`
+func WithChannel(channel string) func(*Params) error {
+	return func(p *Params) error {
+		p.version.Channel = os.Channel(channel)
 		return nil
 	}
 }
 
 func parseVersion(s string) (os.AgentVersion, error) {
-	version := os.DefaultAgentVersion()
+	version := os.LatestAgentVersion()
 	prefix := "7."
 	if strings.HasPrefix(s, prefix) {
 		version.Major = "7"
@@ -93,10 +117,12 @@ func parseVersion(s string) (os.AgentVersion, error) {
 			return version, fmt.Errorf("invalid version of the Agent: %v. The Agent version should starts with `7.` or `6.`", s)
 		}
 	}
+
+	// Best-effort attempt to detect betas / RCs, and redirect them to the staging/beta location.
 	version.Minor = strings.TrimPrefix(s, prefix)
 	if strings.Contains(s, "~") {
-		version.Repository = "staging"
-		version.Channel = "beta"
+		version.Repository = os.StagingRepository
+		version.Channel = os.BetaChannel
 	}
 	return version, nil
 }

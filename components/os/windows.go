@@ -64,41 +64,49 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 
 func getWindowsRepositoryURL(version AgentVersion) string {
 	baseURL := "https://ddagent-windows-stable.s3.amazonaws.com"
-	if version.Repository == "staging" {
-		baseURL = "https://s3.amazonaws.com/dd-agent-mstesting"
+
+	if version.Repository == TrialRepository {
+		baseURL = "https://ddagent-windows-trial.s3.amazonaws.com"
+	}
+	if version.Repository == StagingRepository {
+		baseURL = "https://dd-agent-mstesting.s3.amazonaws.com/builds"
+	}
+	// The prod repository is an outlier: the stable channel is at the root of the repository,
+	// not prefixed by the channel name
+	if version.Repository == ProdRepository && version.Channel == StableChannel {
+		return baseURL
 	}
 
-	if version.Channel != "stable" {
-		return fmt.Sprintf("%v/builds/%v", baseURL, version.Channel)
-	}
-	return baseURL
+	return fmt.Sprintf("%v/%v", baseURL, version.Channel)
 }
 
 func getAgentURL(version AgentVersion) (string, error) {
-	minor := strings.ReplaceAll(version.Minor, "~", "-")
-	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
+	// Verify that -1 is present at the end of the version. If not, add it.
+	// Replace ~ with -, the ~ are only used in Linux versioning.
+	minor := strings.TrimSuffix(version.Minor, "-1")
+	minor = strings.ReplaceAll(minor, "~", "-")
+	fullVersion := fmt.Sprintf("%v.%v-1", version.Major, minor)
 
 	finder, err := newAgentURLFinder(fmt.Sprintf("%v/installers_v2.json", getWindowsRepositoryURL(version)))
 	if err != nil {
 		return "", err
 	}
 
-	if version.Repository == "staging" {
-		url, err := finder.findVersion(fullVersion)
-		if err != nil {
-			// Try to handle custom build
-			minor = strings.TrimSuffix(minor, "-1")
-			return fmt.Sprintf("%v/ddagent-cli-%v.%v.msi", getWindowsRepositoryURL(version), version.Major, minor), nil
-		}
-
-		return url, nil
-	}
-
-	fullVersion += "-1"
 	if version.Minor == "" { // Use latest
 		if fullVersion, err = finder.getLatestVersion(); err != nil {
 			return "", err
 		}
+	}
+
+	if version.Repository == "staging" {
+		url, err := finder.findVersion(fullVersion)
+		if err != nil {
+			// Try to handle custom builds
+			// use the version without the ending -1, it's not part of the package URL
+			return fmt.Sprintf("%v/ddagent-cli-%v.%v.msi", getWindowsRepositoryURL(version), version.Major, minor), nil
+		}
+
+		return url, nil
 	}
 
 	return finder.findVersion(fullVersion)

@@ -102,7 +102,7 @@ In this example, we're going to create an ECS Cluster:
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-sso-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs-test
+aws-vault exec sso-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs-test
 ```
 
 In case of failure, you may update some parameters or configuration and run the command again.

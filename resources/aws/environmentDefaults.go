@@ -76,7 +76,7 @@ func sandboxDefault() environmentDefault {
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-d1aac1a8",
 			defaultSubnets:             []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
-			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a"},
+			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a", "sg-019a8e84384954381"},
 			defaultInstanceType:        "t3.xlarge",
 			defaultARMInstanceType:     "t4g.xlarge",
 			defaultInstanceStorageSize: 200,

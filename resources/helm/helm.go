@@ -13,7 +13,7 @@ type InstallArgs struct {
 	InstallName string
 	Namespace   string
 	ValuesYAML  pulumi.AssetOrArchiveArrayInput
-	Values      pulumi.Map
+	Values      pulumi.MapInput
 }
 
 // Important: set relevant Kubernetes provider in `opts`

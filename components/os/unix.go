@@ -24,8 +24,7 @@ func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
 	if version.PipelineID != "" {
-		scriptName := "install_script_agent" + getAgentMajorVersion(version) + ".sh"
-		return getUnixInstallFormatString(scriptName, version), nil
+		return getUnixInstallFormatString("install_script_agent7.sh", version), nil
 	}
 	return getUnixInstallFormatString("install_script.sh", version), nil
 }
@@ -36,10 +35,6 @@ func (*Unix) GetType() Type {
 
 func (*Unix) GetRunAgentCmd(parameters string) string {
 	return "sudo datadog-agent " + parameters
-}
-
-func getAgentMajorVersion(version AgentVersion) string {
-	return string(version.PipelineID[len(version.PipelineID)-1])
 }
 
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {
@@ -59,12 +54,16 @@ func getUnixInstallFormatString(scriptName string, version AgentVersion) string 
 		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
 		// apt testing repo
 		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v %v"`, version.PipelineID, getAgentMajorVersion(version)))
+		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v-a7 7"`, version.PipelineID))
 		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v/%v", version.PipelineID, getAgentMajorVersion(version)))
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v-a7/7", version.PipelineID))
 		commandLine := strings.Join(testEnvVars, " ")
+		fmt.Printf(`the full conmmand is: DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
+			commandLine,
+			scriptName)
+
 		return fmt.Sprintf(
 			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
 			commandLine,

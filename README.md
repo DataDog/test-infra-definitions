@@ -116,7 +116,7 @@ Once you're finished with the test environment you've created, you can safely de
 To do this, we'll use the `destroy` operation referecing our `Stack` file:
 
 ```
-aws-vault exec agent-sandbox-account-admin -- pulumi destroy -s <your_name>-ecs-test
+aws-vault exec sso-agent-sandbox-account-admin -- pulumi destroy -s <your_name>-ecs-test
 ```
 
 Note that we don't need to use `-c` again as the configuration values were put into the `Stack` file.
@@ -131,19 +131,19 @@ pulumi stack rm <your_name>-ecs-test
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec agent-sandbox-account-admin -- pulumi up -c scenario=aws/dockervm -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa -s <your_name>-docker
+aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/dockervm -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa -s <your_name>-docker
 ```
 
 ## Quick start: Create an ECS EC2 (Windows/Linux) + Fargate (Linux) Cluster
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs
+aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs
 ```
 
 ## Quick start: Create an EKS (Linux/Windows) + Fargate (Linux) Cluster + Agent (Helm)
 
 ```
 # You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
-aws-vault exec agent-sandbox-account-admin -- pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
+aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
 ```

@@ -255,7 +255,7 @@ func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionE
 		values["agents"].(pulumi.Map)["useConfigMap"] = pulumi.Bool(true)
 		values["agents"].(pulumi.Map)["customAgentConfig"] = pulumi.Map{
 			"additional_endpoints": pulumi.Map{
-				fmt.Sprintf("http://%s", ipAddress): pulumi.String("FAKE"),
+				fmt.Sprintf("http://%s", ipAddress): pulumi.String("FAKEAPIKEY"),
 			},
 			"logs_config": pulumi.Map{
 				"additional_endpoints": pulumi.Array{

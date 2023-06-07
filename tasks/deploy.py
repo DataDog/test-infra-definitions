@@ -45,7 +45,7 @@ def deploy(
 
     awsKeyPairName = cfg.get_aws().keyPairName
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
-    flags["ddinfra:env"] = "aws/sandbox"
+    flags["ddinfra:env"] = "aws/agent-sandbox"
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
@@ -81,7 +81,7 @@ def _deploy(
     cmd_args = [
         "aws-vault",
         "exec",
-        "sandbox-account-admin",
+        "sso-agent-sandbox-account-admin",
         "--",
         "pulumi",
         "up",

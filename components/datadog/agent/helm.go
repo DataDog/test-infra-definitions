@@ -164,6 +164,9 @@ func buildLinuxHelmValues(installName string, agentImagePath, agentImageTag, clu
 			"helmCheck": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
+			"prometheusScrape": pulumi.Map{
+				"enabled": pulumi.Bool(true),
+			},
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{
@@ -216,6 +219,9 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 			},
 			"processAgent": pulumi.Map{
 				"processCollection": pulumi.Bool(true),
+			},
+			"prometheusScrape": pulumi.Map{
+				"enabled": pulumi.Bool(true),
 			},
 		},
 		"agents": pulumi.Map{

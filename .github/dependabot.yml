@@ -1,0 +1,67 @@
+version: 2
+updates:
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/dogstatsd/images/dogstatsd
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /components/datadog/apps/dogstatsd/images/dogstatsd
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/nginx/images/http-client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /components/datadog/apps/nginx/images/http-client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/nginx/images/nginx-server
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/prometheus/images/prometheus
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /components/datadog/apps/prometheus/images/prometheus
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/redis/images/redis-client
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /components/datadog/apps/redis/images/redis-client
+    schedule:
+      interval: daily

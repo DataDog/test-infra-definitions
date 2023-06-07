@@ -250,23 +250,21 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 	}
 }
 
-func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionExporter) pulumi.MapOutput {
-	return fakeintake.IPAddress.ToStringOutput().ApplyT(func(ipAddress string) pulumi.Map {
-		values["agents"].(pulumi.Map)["useConfigMap"] = pulumi.Bool(true)
-		values["agents"].(pulumi.Map)["customAgentConfig"] = pulumi.Map{
-			"additional_endpoints": pulumi.Map{
-				fmt.Sprintf("http://%s", ipAddress): pulumi.String("FAKE"),
-			},
-			"logs_config": pulumi.Map{
-				"additional_endpoints": pulumi.Array{
-					pulumi.Map{
-						"host":        pulumi.String(ipAddress),
-						"is_reliable": pulumi.Bool(true),
-						"use_ssl":     pulumi.Bool(false),
-					},
-				},
-			},
-		}
-		return values
-	}).(pulumi.MapOutput)
+func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionExporter) {
+	additionalEndpointsEnvVar := pulumi.MapArray{
+		pulumi.Map{
+			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf("{\"http://%s\": [\"FAKEAPIKEY\"]}", fakeintake.IPAddress),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf("[{\"host\": \"%s\", \"port\": 80, \"is_reliable\": true, \"usessl\": false}]", fakeintake.IPAddress),
+		},
+	}
+
+	if values["datadog"].(pulumi.Map)["env"] == nil {
+		values["datadog"].(pulumi.Map)["env"] = additionalEndpointsEnvVar
+	} else {
+		values["datadog"].(pulumi.Map)["env"] = append(values["datadog"].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)
+	}
 }

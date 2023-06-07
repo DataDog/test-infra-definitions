@@ -17,6 +17,7 @@ import (
 // The available options are:
 //   - [WithLatest]
 //   - [WithVersion]
+//   - [WithPipelineID]
 //   - [WithAgentConfig]
 //   - [WithIntegration]
 //   - [WithTelemetry]
@@ -38,6 +39,9 @@ func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
+	}
+	if env.PipelineID() != "" {
+		defaultVersion = WithPipelineID(env.PipelineID())
 	}
 	options = append([]func(*Params) error{defaultVersion}, options...)
 	return common.ApplyOption(p, options)
@@ -66,12 +70,22 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
+// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` returns `pipeline-16497585`
+func WithPipelineID(version string) func(*Params) error {
+	return func(p *Params) error {
+		v, err := parsePipelineVersion(version)
+
+		if err != nil {
+			return err
+		}
+		p.version = v
+
+		return nil
+	}
+}
+
 func parseVersion(s string) (os.AgentVersion, error) {
 	version := os.AgentVersion{}
-	if strings.HasPrefix(s, "pipeline") {
-		version.PipelineID = s
-		return version, nil
-	}
 
 	prefix := "7."
 	if strings.HasPrefix(s, prefix) {
@@ -86,6 +100,12 @@ func parseVersion(s string) (os.AgentVersion, error) {
 	}
 	version.Minor = strings.TrimPrefix(s, prefix)
 	version.BetaChannel = strings.Contains(s, "~")
+	return version, nil
+}
+
+func parsePipelineVersion(s string) (os.AgentVersion, error) {
+	version := os.AgentVersion{}
+	version.PipelineID = "pipeline-" + s
 	return version, nil
 }
 

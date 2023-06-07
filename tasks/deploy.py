@@ -19,6 +19,7 @@ def deploy(
     public_key_required: bool = False,
     app_key_required: bool = False,
     stack_name: Optional[str] = None,
+    pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
@@ -40,6 +41,7 @@ def deploy(
         cfg, public_key_required
     )
     flags["scenario"] = scenario_name
+    flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
     flags["ddagent:fakeintake"] = use_fakeintake
 

@@ -60,9 +60,6 @@ func getUnixInstallFormatString(scriptName string, version AgentVersion) string 
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
 		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v-a7/7", version.PipelineID))
 		commandLine := strings.Join(testEnvVars, " ")
-		fmt.Printf(`the full conmmand is: DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-			commandLine,
-			scriptName)
 
 		return fmt.Sprintf(
 			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,

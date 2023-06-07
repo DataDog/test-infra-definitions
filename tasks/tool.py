@@ -47,6 +47,7 @@ def get_repositories() -> List[str]:
     return [
         get_default_repository(),
         "staging",
+        "testing",
         "trial",
     ]
 

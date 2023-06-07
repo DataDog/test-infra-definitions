@@ -2,7 +2,6 @@ package os
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 )
@@ -47,14 +46,20 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 }
 
 func getUnixRepositoryParams(version AgentVersion) string {
-	if version.Repository == TrialRepository {
+	if version.Repository == TrialRepository || version.Repository == TestingRepository {
+		aptChannel := version.Channel
+		yumChannel := version.Channel
+		if version.Repository == TestingRepository {
+			aptChannel = Channel(fmt.Sprintf("pipeline-%v-a%v", version.PipelineID, version.Major))
+			yumChannel = Channel(fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major))
+		}
 		return fmt.Sprintf(
 			"TESTING_APT_URL=\"%v\" TESTING_APT_REPO_VERSION=\"%v %v\" TESTING_YUM_URL=\"%v\" TESTING_YUM_VERSION_PATH=\"%v/%v\"",
-			"apttrial.datad0g.com",
-			version.Channel,
+			fmt.Sprintf("apt%v.datad0g.com", version.Repository),
+			aptChannel,
 			version.Major,
-			"yumtrial.datad0g.com",
-			version.Channel,
+			fmt.Sprintf("yum%v.datad0g.com", version.Repository),
+			yumChannel,
 			version.Major,
 		)
 	}
@@ -65,32 +70,14 @@ func getUnixRepositoryParams(version AgentVersion) string {
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
-	if version.PipelineID != "" {
-		testEnvVars := []string{}
-		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
-		// apt testing repo
-		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v-a7 7"`, version.PipelineID))
-		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
-		// yum testing repo
-		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v-a7/7", version.PipelineID))
-		commandLine := strings.Join(testEnvVars, " ")
-
-		return fmt.Sprintf(
-			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-			commandLine,
-			scriptName)
-	}
-
 	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
 
 	if version.Minor != "" {
 		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
 	}
-	
+
 	commandLine += getUnixRepositoryParams(version)
-	
+
 	return fmt.Sprintf(
 		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
 		commandLine,

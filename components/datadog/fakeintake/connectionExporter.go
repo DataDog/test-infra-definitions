@@ -14,13 +14,13 @@ const (
 
 // ConnectionExporter contains pulumi side data and the export key
 type ConnectionExporter struct {
-	IPAddress pulumi.StringInput
-	stackKey  string
+	Host     pulumi.StringInput
+	stackKey string
 }
 
 // ClientData client side data
 type ClientData struct {
-	IPAddress string
+	Host string
 }
 
 func (exporter *ConnectionExporter) Deserialize(result auto.UpResult) (*ClientData, error) {
@@ -28,18 +28,18 @@ func (exporter *ConnectionExporter) Deserialize(result auto.UpResult) (*ClientDa
 	if !found {
 		return nil, fmt.Errorf("cannot find %v in the stack result", exporter.stackKey)
 	}
-	ipAddress, ok := outputs.Value.(string)
+	host, ok := outputs.Value.(string)
 	if !ok {
 		return nil, fmt.Errorf("the type %v is not valid for the key %v", reflect.TypeOf(outputs.Value), exporter.stackKey)
 	}
-	return &ClientData{IPAddress: ipAddress}, nil
+	return &ClientData{Host: host}, nil
 }
 
 // NewExporter registers a fakeintake url into a Pulumi context.
-func NewExporter(ctx *pulumi.Context, ipAddress pulumi.StringInput) *ConnectionExporter {
-	ctx.Export(stackKey, ipAddress)
+func NewExporter(ctx *pulumi.Context, host pulumi.StringInput) *ConnectionExporter {
+	ctx.Export(stackKey, host)
 	return &ConnectionExporter{
-		stackKey:  stackKey,
-		IPAddress: ipAddress,
+		stackKey: stackKey,
+		Host:     host,
 	}
 }

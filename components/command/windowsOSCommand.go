@@ -15,6 +15,7 @@ func NewWindowsOSCommand() OSCommand {
 	return windowsOSCommand{}
 }
 
+// CreateDirectory if it does not exist
 func (fs windowsOSCommand) CreateDirectory(
 	runner *Runner,
 	name string,

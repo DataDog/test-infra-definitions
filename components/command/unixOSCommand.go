@@ -20,6 +20,7 @@ func NewUnixOSCommand() OSCommand {
 	return unixOSCommand{}
 }
 
+// CreateDirectory if it does not exist
 func (unixOSCommand) CreateDirectory(
 	runner *Runner,
 	name string,

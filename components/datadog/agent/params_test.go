@@ -27,8 +27,7 @@ func TestParams(t *testing.T) {
 		})
 	})
 	t.Run("parseVersion should correctly parse custom agent version", func(t *testing.T) {
-		version, err := parsePipelineVersion("16362517")
-		assert.NoError(t, err)
+		version := parsePipelineVersion("16362517")
 		assert.Equal(t, version, os.AgentVersion{
 			PipelineID: "pipeline-16362517",
 		})

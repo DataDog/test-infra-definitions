@@ -73,12 +73,7 @@ func WithVersion(version string) func(*Params) error {
 // WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` returns `pipeline-16497585`
 func WithPipelineID(version string) func(*Params) error {
 	return func(p *Params) error {
-		v, err := parsePipelineVersion(version)
-
-		if err != nil {
-			return err
-		}
-		p.version = v
+		p.version = parsePipelineVersion(version)
 
 		return nil
 	}
@@ -103,10 +98,10 @@ func parseVersion(s string) (os.AgentVersion, error) {
 	return version, nil
 }
 
-func parsePipelineVersion(s string) (os.AgentVersion, error) {
+func parsePipelineVersion(s string) os.AgentVersion {
 	version := os.AgentVersion{}
 	version.PipelineID = "pipeline-" + s
-	return version, nil
+	return version
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.

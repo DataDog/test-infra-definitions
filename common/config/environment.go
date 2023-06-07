@@ -29,7 +29,7 @@ const (
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
 	DDAgentVersionParamName              = "version"
-	DDAgentPipelineID                    = "pipeline_id"
+	DDAgentPipelineIDParamName           = "pipelineID"
 	DDAgentRepositoryParamName           = "repository"
 	DDAgentChannelParamName              = "channel"
 	DDAgentFullImagePathParamName        = "fullImagePath"
@@ -68,7 +68,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		CommandProvider: commandProvider,
 	}
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
-	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
+	ctx.Log.Debug(fmt.Sprintf("agent pipeline id: %s", env.AgentPipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("agent repository: %s", env.AgentRepository()), nil)
 	ctx.Log.Debug(fmt.Sprintf("agent channel: %s", env.AgentChannel()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
@@ -122,8 +122,8 @@ func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
 
-func (e *CommonEnvironment) PipelineID() string {
-	return e.AgentConfig.Get(DDAgentPipelineID)
+func (e *CommonEnvironment) AgentPipelineID() string {
+	return e.AgentConfig.Get(DDAgentPipelineIDParamName)
 }
 
 func (e *CommonEnvironment) AgentRepository() string {

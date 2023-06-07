@@ -12,18 +12,18 @@ const (
 type Repository string
 
 const (
-	ProdRepository = Repository("prod")
+	ProdRepository    = Repository("prod")
 	StagingRepository = Repository("staging")
-	TrialRepository = Repository("trial")
+	TestingRepository = Repository("testing")
+	TrialRepository   = Repository("trial")
 )
 
 type Channel string
 
 const (
 	StableChannel = Channel("stable")
-	BetaChannel = Channel("beta")
+	BetaChannel   = Channel("beta")
 )
-
 
 // The types of OSes that are common
 type Type int
@@ -35,18 +35,18 @@ const (
 )
 
 type AgentVersion struct {
-	Major       string
-	Minor       string // Empty means latest
-	Repository  string // Empty means prod
-	Channel     string // Empty means stable
-	PipelineID  string
+	Major      string
+	Minor      string     // Empty means latest
+	Repository Repository // Empty means prod
+	Channel    Channel    // Empty means stable
+	PipelineID string     // Used instead of Channel when targeting the testing repository
 }
 
 func LatestAgentVersion() AgentVersion {
 	return AgentVersion{
-		Major: "7",
+		Major:      "7",
 		Repository: ProdRepository,
-		Channel: StableChannel,
+		Channel:    StableChannel,
 	}
 }
 

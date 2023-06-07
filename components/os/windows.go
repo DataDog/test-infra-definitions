@@ -68,6 +68,7 @@ func getWindowsRepositoryURL(version AgentVersion) string {
 	if version.Repository == TrialRepository {
 		baseURL = "https://ddagent-windows-trial.s3.amazonaws.com"
 	}
+
 	if version.Repository == StagingRepository {
 		baseURL = "https://dd-agent-mstesting.s3.amazonaws.com/builds"
 	}
@@ -81,6 +82,14 @@ func getWindowsRepositoryURL(version AgentVersion) string {
 }
 
 func getAgentURL(version AgentVersion) (string, error) {
+	// TODO: using the testing repository on Windows will require more work
+	// - there is no installers_v2.json file to use
+	// - the pipeline ID is not enough to find the exact filename to use, as it is structured like:
+	// datadog-agent-<last tag>.git.<number of commits since tag>.<commit short sha>.pipeline.<pipeline id>-1-x86_64.msi
+	if version.Repository == TestingRepository {
+		return "", fmt.Errorf("targeting the testing repositoiries is not available yet on Windows")
+	}
+
 	// Verify that -1 is present at the end of the version. If not, add it.
 	// Replace ~ with -, the ~ are only used in Linux versioning.
 	minor := strings.TrimSuffix(version.Minor, "-1")

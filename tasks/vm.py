@@ -15,7 +15,7 @@ scenario_name = "aws/vm"
 @task(
     help={
         "install_agent": doc.install_agent,
-        "pipeline_id": doc.pipeline_id,
+        "agent_pipeline_id": doc.agent_pipeline_id,
         "agent_version": doc.agent_version,
         "agent_repository": doc.agent_repository,
         "agent_channel": doc.agent_channel,
@@ -28,7 +28,7 @@ scenario_name = "aws/vm"
 def create_vm(
     ctx: Context,
     stack_name: Optional[str] = None,
-    pipeline_id: Optional[str] = None,
+    agent_pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
     agent_repository: Optional[str] = None,
@@ -51,7 +51,7 @@ def create_vm(
         key_pair_required=True,
         public_key_required=(os_family.lower() == "windows"),
         stack_name=stack_name,
-        pipeline_id=pipeline_id,
+        agent_pipeline_id=agent_pipeline_id,
         install_agent=install_agent,
         agent_version=agent_version,
         agent_repository=agent_repository,

@@ -18,6 +18,8 @@ import (
 //   - [WithLatest]
 //   - [WithVersion]
 //   - [WithPipelineID]
+//   - [WithRepository]
+//   - [WithChannel]
 //   - [WithAgentConfig]
 //   - [WithIntegration]
 //   - [WithTelemetry]
@@ -40,18 +42,19 @@ func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
-	if env.PipelineID() != "" {
-		defaultVersion = WithPipelineID(env.PipelineID())
-	}
 	versionOptions := []func(*Params) error{defaultVersion}
 
-
-	// If repository and/or channel are specified, force-set them:
+	// If repository and/or channel are specified, force-set them
 	if env.AgentRepository() != "" {
 		versionOptions = append(versionOptions, WithRepository(env.AgentRepository()))
 	}
 	if env.AgentChannel() != "" {
 		versionOptions = append(versionOptions, WithChannel(env.AgentChannel()))
+	}
+
+	// If pipeline ID is specified, force-set parameters to testing repositories
+	if env.AgentPipelineID() != "" {
+		versionOptions = append(versionOptions, WithPipelineID(env.AgentPipelineID()))
 	}
 
 	options = append(versionOptions, options...)
@@ -80,15 +83,16 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` returns `pipeline-16497585`
-func WithPipelineID(version string) func(*Params) error {
+// WithPipelineID uses a specific testing pipeline ID of the datadog-agent CI. For example: `16497585`
+func WithPipelineID(pipelineID string) func(*Params) error {
 	return func(p *Params) error {
-		p.version = parsePipelineVersion(version)
+		p.version.Repository = os.TestingRepository
+		p.version.PipelineID = pipelineID
 		return nil
 	}
 }
 
-// WithRepository use a specific repository of the Agent. For example: `staging` or `trial`
+// WithRepository uses a specific repository of the Agent. For example: `staging` or `trial`
 func WithRepository(repository string) func(*Params) error {
 	return func(p *Params) error {
 		p.version.Repository = os.Repository(repository)
@@ -96,7 +100,7 @@ func WithRepository(repository string) func(*Params) error {
 	}
 }
 
-// WithChannel use a specific channel of the Agent repositories. For example: `beta` or `nightly`
+// WithChannel uses a specific channel of the Agent repositories. For example: `beta` or `nightly`
 func WithChannel(channel string) func(*Params) error {
 	return func(p *Params) error {
 		p.version.Channel = os.Channel(channel)
@@ -125,12 +129,6 @@ func parseVersion(s string) (os.AgentVersion, error) {
 		version.Channel = os.BetaChannel
 	}
 	return version, nil
-}
-
-func parsePipelineVersion(s string) os.AgentVersion {
-	version := os.AgentVersion{}
-	version.PipelineID = "pipeline-" + s
-	return version
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.

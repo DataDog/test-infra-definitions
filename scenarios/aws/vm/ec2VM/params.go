@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
+	commonos "github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/os"
@@ -37,8 +38,14 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		common: commonParams,
 	}
 
-	// Can be overrided later if the caller uses WithOS.
-	if err := params.useDefaultOS(); err != nil {
+	amiID := env.InfraOSAmiId()
+	if amiID != "" {
+		osType, err := params.getOSType()
+		if err != nil {
+			return nil, err
+		}
+		WithImageName(amiID, commonos.Architecture(env.InfraOSArchitecture()), osType)(params)
+	} else if err := params.useDefaultOS(); err != nil { // Can be overrided later if the caller uses WithOS.
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
@@ -52,7 +59,7 @@ func (p *Params) GetOS(osType os.Type) (os.OS, error) {
 	return os.GetOS(p.env, osType)
 }
 
-func (p *Params) useDefaultOS() error {
+func (p *Params) getOSType() (os.Type, error) {
 	var osType os.Type
 
 	osTypeStr := strings.ToLower(p.env.InfraOSFamily())
@@ -74,7 +81,17 @@ func (p *Params) useDefaultOS() error {
 	case "":
 		osType = os.UbuntuOS // Default
 	default:
-		return fmt.Errorf("the os type '%v' is not valid", osTypeStr)
+		return os.UbuntuOS, fmt.Errorf("the os type '%v' is not valid", osTypeStr)
+	}
+	return osType, nil
+
+}
+
+func (p *Params) useDefaultOS() error {
+
+	osType, err := p.getOSType()
+	if err != nil {
+		return err
 	}
 
 	return WithOS(osType)(p)

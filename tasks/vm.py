@@ -20,7 +20,7 @@ scenario_name = "aws/vm"
         "stack_name": doc.stack_name,
         "debug": doc.debug,
         "os_family": doc.os_family,
-        "use_fakeintake": doc.fakeintake, 
+        "use_fakeintake": doc.fakeintake,
     }
 )
 def create_vm(
@@ -32,14 +32,21 @@ def create_vm(
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
     use_fakeintake: Optional[bool] = True,
+    ami_id: Optional[str] = None,
 ):
     """
     Create a new virtual machine on the cloud.
     """
 
     extra_flags = {}
-    os_family = _get_os_family(os_family)
+    os_family, os_arch = _get_os_information(os_family, ami_id)
+    if os_family is None: # Impossible to guess os_family from AMI information
+        os_family = _get_os_family(os_family)
     extra_flags["ddinfra:osFamily"] = os_family
+    if ami_id is not None:
+        extra_flags["ddinfra:osArchitecture"] = os_arch
+        extra_flags["ddinfra:osAmiId"] = ami_id
+
 
     full_stack_name = deploy(
         ctx,
@@ -91,3 +98,25 @@ def _get_os_family(os_family: Optional[str]) -> str:
             f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}"
         )
     return os_family
+
+def _get_os_information(os_family: Optional[str], ami_id: Optional[str]) -> tuple:
+    family, architecture = None, None
+    os_families = tool.get_os_families()
+    if ami_id is not None:
+        image = tool.get_image_description(ami_id)
+        if os_family is None: # Try to guess the distribution
+            try:
+                family = next(
+                    os
+                    for os in os_families
+                    if os in image["Description"].lower().replace(" ", "")
+                )
+            except StopIteration:
+                raise invoke.Exit(
+                    f"We failed to guess the family of your AMI ID. Please provide it with option -o"
+                )
+        else:
+            family = os_family
+        architecture = image['Architecture']
+    return (family, architecture)
+

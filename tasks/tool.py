@@ -65,7 +65,7 @@ def get_stack_json_outputs(full_stack_name: str) -> Any:
 
 
 def is_windows():
-    return platform.System() == 'Windows'
+    return platform.system() == 'Windows'
 
 
 class Connection:

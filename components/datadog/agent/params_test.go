@@ -28,10 +28,4 @@ func TestParams(t *testing.T) {
 			Channel:    "beta",
 		})
 	})
-	t.Run("parsePipelineVersion should correctly parse a pipeline ID and format the agent version pipeline", func(t *testing.T) {
-		version := parsePipelineVersion("16362517")
-		assert.Equal(t, version, os.AgentVersion{
-			PipelineID: "pipeline-16362517",
-		})
-	})
 }

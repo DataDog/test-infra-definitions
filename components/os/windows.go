@@ -65,10 +65,10 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 func getWindowsRepositoryURL(version AgentVersion) string {
 	baseURL := "https://ddagent-windows-stable.s3.amazonaws.com"
 
-	switch version.Repository {
-	case TrialRepository:
+	if version.Repository == TrialRepository {
 		baseURL = "https://ddagent-windows-trial.s3.amazonaws.com"
-	case StagingRepository:
+	}
+	if version.Repository == StagingRepository {
 		baseURL = "https://dd-agent-mstesting.s3.amazonaws.com/builds"
 	}
 

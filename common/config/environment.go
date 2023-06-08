@@ -94,7 +94,7 @@ func (e *CommonEnvironment) InfraOSArchitecture() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSArchitecture, "")
 }
 
-func (e *CommonEnvironment) InfraOSAmiId() string {
+func (e *CommonEnvironment) InfraOSAmiID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSAmiID, "")
 }
 

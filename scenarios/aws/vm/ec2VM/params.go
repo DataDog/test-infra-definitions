@@ -38,13 +38,15 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		common: commonParams,
 	}
 
-	amiID := env.InfraOSAmiId()
+	amiID := env.InfraOSAmiID()
 	if amiID != "" {
 		osType, err := params.getOSType()
 		if err != nil {
 			return nil, err
 		}
-		WithImageName(amiID, commonos.Architecture(env.InfraOSArchitecture()), osType)(params)
+		if err := WithImageName(amiID, commonos.Architecture(env.InfraOSArchitecture()), osType)(params); err != nil {
+			return nil, err
+		}
 	} else if err := params.useDefaultOS(); err != nil { // Can be overrided later if the caller uses WithOS.
 		return nil, err
 	}

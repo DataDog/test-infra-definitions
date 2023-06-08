@@ -2,6 +2,7 @@ package os
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 )
@@ -46,27 +47,29 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 }
 
 func getUnixRepositoryParams(version AgentVersion) string {
-	if version.Repository == TrialRepository || version.Repository == TestingRepository {
+	envVars := []string{}
+	switch version.Repository {
+	case TrialRepository, TestingRepository:
 		aptChannel := version.Channel
 		yumChannel := version.Channel
 		if version.Repository == TestingRepository {
 			aptChannel = Channel(fmt.Sprintf("pipeline-%v-a%v", version.PipelineID, version.Major))
 			yumChannel = Channel(fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major))
 		}
-		return fmt.Sprintf(
-			"TESTING_APT_URL=\"%v\" TESTING_APT_REPO_VERSION=\"%v %v\" TESTING_YUM_URL=\"%v\" TESTING_YUM_VERSION_PATH=\"%v/%v\" ",
-			fmt.Sprintf("apt%v.datad0g.com", version.Repository),
-			aptChannel,
-			version.Major,
-			fmt.Sprintf("yum%v.datad0g.com", version.Repository),
-			yumChannel,
-			version.Major,
-		)
+
+		envVars = append(envVars, fmt.Sprintf(`TESTING_APT_URL="apt%v.datad0g.com"`, version.Repository))
+		envVars = append(envVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v %v"`, aptChannel, version.Major))
+		envVars = append(envVars, fmt.Sprintf(`TESTING_YUM_URL="yum%v.datad0g.com"`, version.Repository))
+		envVars = append(envVars, fmt.Sprintf(`TESTING_YUM_VERSION_PATH="%v/%v"`, yumChannel, version.Major))
+	case StagingRepository:
+		envVars = append(envVars, `DD_REPO_URL="datad0g.com"`)
+		envVars = append(envVars, fmt.Sprintf(`DD_AGENT_DIST_CHANNEL="%v"`, version.Channel))
+	case ProdRepository:
+		envVars = append(envVars, `DD_REPO_URL="datadoghq.com"`)
+		envVars = append(envVars, fmt.Sprintf(`DD_AGENT_DIST_CHANNEL="%v"`, version.Channel))
 	}
-	if version.Repository == StagingRepository {
-		return fmt.Sprintf("DD_REPO_URL=\"%v\" DD_AGENT_DIST_CHANNEL=\"%v\" ", "datad0g.com", version.Channel)
-	}
-	return fmt.Sprintf("DD_REPO_URL=\"%v\" DD_AGENT_DIST_CHANNEL=\"%v\" ", "datadoghq.com", version.Channel)
+
+	return strings.Join(envVars, " ")
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {

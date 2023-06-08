@@ -16,7 +16,11 @@ def setup(ctx: Context):
     Setup a local environment interactively
     """
     info("🤖 Install Pulumi")
-    os.system("brew install pulumi/tap/pulumi")
+    if tool.is_windows():
+        os.system("winget install pulumi")
+    else:
+        os.system("brew install pulumi/tap/pulumi")
+
     os.system("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")

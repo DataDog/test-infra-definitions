@@ -1,5 +1,6 @@
 import getpass
 import json
+import platform
 import subprocess
 from termcolor import colored
 from typing import Any, List, Optional
@@ -62,6 +63,8 @@ def get_stack_json_outputs(full_stack_name: str) -> Any:
     output = output.decode("utf-8")
     return json.loads(output)
 
+def is_windows():
+    return platform.System() == 'Windows'
 
 class Connection:
     def __init__(self, stack_outputs: Any):

@@ -46,7 +46,7 @@ def get_default_agent_install() -> bool:
 def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
     if stack_name is None:
         stack_name = scenario_name.replace("/", "-")
-    # The scenario name cannot start with the stack name because ECS 
+    # The scenario name cannot start with the stack name because ECS
     # stack name cannot start with 'ecs' or 'aws'
     return f"{get_stack_name_prefix()}{stack_name}"
 
@@ -63,8 +63,10 @@ def get_stack_json_outputs(full_stack_name: str) -> Any:
     output = output.decode("utf-8")
     return json.loads(output)
 
+
 def is_windows():
     return platform.System() == 'Windows'
+
 
 class Connection:
     def __init__(self, stack_outputs: Any):

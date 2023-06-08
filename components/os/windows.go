@@ -65,13 +65,13 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 func getWindowsRepositoryURL(version AgentVersion) string {
 	baseURL := "https://ddagent-windows-stable.s3.amazonaws.com"
 
-	if version.Repository == TrialRepository {
+	switch version.Repository {
+	case TrialRepository:
 		baseURL = "https://ddagent-windows-trial.s3.amazonaws.com"
-	}
-
-	if version.Repository == StagingRepository {
+	case StagingRepository:
 		baseURL = "https://dd-agent-mstesting.s3.amazonaws.com/builds"
 	}
+
 	// In the prod / trial repositories, the stable channel is at the root of the repository,
 	// not prefixed by the channel name
 	if (version.Repository == ProdRepository || version.Repository == TrialRepository) && version.Channel == StableChannel {

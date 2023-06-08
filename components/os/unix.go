@@ -54,7 +54,7 @@ func getUnixRepositoryParams(version AgentVersion) string {
 			yumChannel = Channel(fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major))
 		}
 		return fmt.Sprintf(
-			"TESTING_APT_URL=\"%v\" TESTING_APT_REPO_VERSION=\"%v %v\" TESTING_YUM_URL=\"%v\" TESTING_YUM_VERSION_PATH=\"%v/%v\"",
+			"TESTING_APT_URL=\"%v\" TESTING_APT_REPO_VERSION=\"%v %v\" TESTING_YUM_URL=\"%v\" TESTING_YUM_VERSION_PATH=\"%v/%v\" ",
 			fmt.Sprintf("apt%v.datad0g.com", version.Repository),
 			aptChannel,
 			version.Major,

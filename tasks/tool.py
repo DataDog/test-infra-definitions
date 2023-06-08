@@ -74,7 +74,7 @@ def is_windows():
 
 def get_image_description(ami_id: str) -> Any:
     r = subprocess.run(
-        f"aws-vault exec build-stable-developer -- aws ec2 describe-images --image-ids {ami_id}".split(),
+        f"aws-vault exec sso-agent-sandbox-account-admin -- aws ec2 describe-images --image-ids {ami_id}".split(),
         capture_output=True,
     )
     result = json.loads(r.stdout)

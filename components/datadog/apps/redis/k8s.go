@@ -21,7 +21,7 @@ type K8sComponent struct {
 }
 
 func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
-	opts = append(opts, pulumi.Provider(kubeProvider))
+	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
 	if err := e.Ctx.RegisterComponentResource("dd:apps", "redis", k8sComponent, opts...); err != nil {

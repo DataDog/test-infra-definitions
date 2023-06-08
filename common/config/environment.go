@@ -87,7 +87,7 @@ func (e *CommonEnvironment) InfraOSFamily() string {
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.23")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.26")
 }
 
 func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {

@@ -135,7 +135,7 @@ func agentSandboxDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
-				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44"},
+				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
@@ -174,7 +174,7 @@ func agentQADefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
-				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c"},
+				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

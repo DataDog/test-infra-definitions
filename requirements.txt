@@ -1,4 +1,4 @@
-invoke==2.0.0
+invoke==2.1.2
 termcolor==2.3.0
 pyyaml==6.0.0
 pyperclip==1.8.2

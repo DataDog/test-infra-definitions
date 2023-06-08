@@ -72,9 +72,9 @@ func getWindowsRepositoryURL(version AgentVersion) string {
 	if version.Repository == StagingRepository {
 		baseURL = "https://dd-agent-mstesting.s3.amazonaws.com/builds"
 	}
-	// The prod repository is an outlier: the stable channel is at the root of the repository,
+	// In the prod / trial repositories, the stable channel is at the root of the repository,
 	// not prefixed by the channel name
-	if version.Repository == ProdRepository && version.Channel == StableChannel {
+	if (version.Repository == ProdRepository || version.Repository == TrialRepository) && version.Channel == StableChannel {
 		return baseURL
 	}
 

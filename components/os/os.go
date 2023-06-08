@@ -21,8 +21,9 @@ const (
 type Channel string
 
 const (
-	StableChannel = Channel("stable")
-	BetaChannel   = Channel("beta")
+	StableChannel  = Channel("stable")
+	BetaChannel    = Channel("beta")
+	NightlyChannel = Channel("nightly")
 )
 
 // The types of OSes that are common

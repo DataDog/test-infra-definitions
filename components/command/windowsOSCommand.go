@@ -57,6 +57,7 @@ func (fs windowsOSCommand) BuildCommandString(
 	command pulumi.StringInput,
 	env pulumi.StringMap,
 	_ bool,
+	_ bool,
 	_ string) pulumi.StringInput {
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {

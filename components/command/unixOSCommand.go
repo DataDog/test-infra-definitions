@@ -60,7 +60,7 @@ func (fs unixOSCommand) GetTemporaryDirectory() string {
 
 // BuildCommandString properly format the command string
 // command can be nil
-func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo, password bool, user string) pulumi.StringInput {
+func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo bool, password bool, user string) pulumi.StringInput {
 	formattedCommand := formatCommandIfNeeded(command, sudo, password, user)
 
 	var envVars pulumi.StringArray
@@ -73,7 +73,7 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 	})
 }
 
-func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, user string) pulumi.StringInput {
+func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {
 	if command == nil {
 		return nil
 	}

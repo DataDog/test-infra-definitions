@@ -115,7 +115,7 @@ func agentSandboxDefault() environmentDefault {
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-029c0faf8f49dee8d",
 			defaultSubnets:             []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
-			defaultSecurityGroups:      []string{"sg-038231b976eb13d44"},
+			defaultSecurityGroups:      []string{"sg-038231b976eb13d44", "sg-0838eb38d72e3e064"},
 			defaultInstanceType:        "t3.xlarge",
 			defaultARMInstanceType:     "t4g.xlarge",
 			defaultInstanceStorageSize: 200,
@@ -154,7 +154,7 @@ func agentQADefault() environmentDefault {
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-0097b9307ec2c8139",
 			defaultSubnets:             []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
-			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c"},
+			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c", "sg-093771a759cde2989"},
 			defaultInstanceType:        "t3.xlarge",
 			defaultARMInstanceType:     "t4g.xlarge",
 			defaultInstanceStorageSize: 200,

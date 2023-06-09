@@ -7,6 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 
@@ -180,9 +181,16 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy the Agent
 	if awsEnv.AgentDeploy() {
+		var fakeintake *ddfakeintake.ConnectionExporter
+		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+			if fakeintake, err = newEcsFakeintake(awsEnv); err != nil {
+				return err
+			}
+		}
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 			KubeProvider:  eksKubeProvider,
 			Namespace:     "datadog",
+			Fakeintake:    fakeintake,
 			DeployWindows: awsEnv.EKSWindowsNodeGroup(),
 		}, nil)
 		if err != nil {

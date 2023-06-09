@@ -19,7 +19,7 @@ import (
 // used is /16.
 // TODO: this problem only manifests when setting up VMs locally. Investigate the root cause to see what can
 // be done. This solution may no longer work when the number of VMs exceeds the ips available in this subnet.
-const microVMGroupSubnetTemplate = "%d.254.0.0/24"
+const microVMGroupSubnetTemplate = "100.%d.0.0/24"
 
 const tcpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep tcp | rev | cut -d ' ' -f 3 | rev | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
 const udpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep udp | rev | cut -d ' ' -f 3 | rev | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
@@ -67,13 +67,13 @@ func getMicroVMGroupSubnet() (string, error) {
 	return "", fmt.Errorf("getMicroVMGroupSubnet: could not find subnet")
 }
 
-func allowNFSPorts(ctx *pulumi.Context, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+func allowNFSPortsForBridge(ctx *pulumi.Context, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
 	rootConfig := config.New(ctx, "")
 	sudoPassword := rootConfig.RequireSecret("sudo-password")
 
 	iptablesAllowTCPArgs := command.Args{
-		Create:                   pulumi.Sprintf("iptables -A INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
-		Delete:                   pulumi.Sprintf("iptables -D INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
+		Create:                   pulumi.Sprintf("iptables -A INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", bridge, microVMGroupSubnet, tcpRPCInfoPorts),
+		Delete:                   pulumi.Sprintf("iptables -D INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", brdige, microVMGroupSubnet, tcpRPCInfoPorts),
 		Sudo:                     true,
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,
@@ -84,8 +84,8 @@ func allowNFSPorts(ctx *pulumi.Context, runner *Runner, resourceNamer namer.Name
 	}
 
 	iptablesAllowUDPArgs := command.Args{
-		Create:                   pulumi.Sprintf("iptables -A INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
-		Delete:                   pulumi.Sprintf("iptables -D INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
+		Create:                   pulumi.Sprintf("iptables -A INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT", bridge, microVMGroupSubnet, udpRPCInfoPorts),
+		Delete:                   pulumi.Sprintf("iptables -D INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT", bridge, microVMGroupSubnet, udpRPCInfoPorts),
 		Sudo:                     true,
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,

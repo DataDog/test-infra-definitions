@@ -162,6 +162,12 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 		}
 	}
 
+	// set iptable rules for allowing ports to access NFS server
+	nfsAllowPortsDone, err := allowNFSPortsForBridge(vm.instance.e.Ctx, network.Bridge, vm.instance.runner, vm.instance.instanceNamer)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -265,15 +271,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		if err := collection.SetupCollectionNetwork(waitFor); err != nil {
 			return vmCollections, waitFor, err
 		}
-	}
-
-	for _, collection := range vmCollections {
-		// iptable rule for allowing ports to access NFS server
-		nfsAllowPortsDone, err := allowNFSPorts(collection.instance.e.Ctx, collection.instance.runner, collection.instance.instanceNamer)
-		if err != nil {
-			return vmCollections, waitFor, err
-		}
-		waitFor = append(waitFor, nfsAllowPortsDone...)
 	}
 
 	return vmCollections, waitFor, nil

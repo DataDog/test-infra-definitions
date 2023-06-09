@@ -97,7 +97,6 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
 	depends := append(opts, pulumi.Provider(r.e.CommandProvider))
-
 	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), depends...)
 }
 

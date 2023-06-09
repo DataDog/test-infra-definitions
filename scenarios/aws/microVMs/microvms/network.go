@@ -20,8 +20,8 @@ import (
 // be done. This solution may no longer work when the number of VMs exceeds the ips available in this subnet.
 const microVMGroupSubnetTemplate = "%d.254.0.0/24"
 
-const tcpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep tcp | rev | cut -d ' ' -f 3 | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
-const udpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep udp | rev | cut -d ' ' -f 3 | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
+const tcpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep tcp | rev | cut -d ' ' -f 3 | rev | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
+const udpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep udp | rev | cut -d ' ' -f 3 | rev | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
 
 var initMicroVMGroupSubnet sync.Once
 var microVMGroupSubnet string
@@ -68,9 +68,10 @@ func getMicroVMGroupSubnet() (string, error) {
 
 func allowNFSPorts(runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
 	iptablesAllowTCPArgs := command.Args{
-		Create: pulumi.Sprintf("iptables -A INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
-		Delete: pulumi.Sprintf("iptables -D INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
-		Sudo:   true,
+		Create:   pulumi.Sprintf("iptables -A INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
+		Delete:   pulumi.Sprintf("iptables -D INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
+		Sudo:     true,
+		Password: true,
 	}
 	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp"), &iptablesAllowTCPArgs)
 	if err != nil {
@@ -78,9 +79,10 @@ func allowNFSPorts(runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource
 	}
 
 	iptablesAllowUDPArgs := command.Args{
-		Create: pulumi.Sprintf("iptables -A INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
-		Delete: pulumi.Sprintf("iptables -D INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
-		Sudo:   true,
+		Create:   pulumi.Sprintf("iptables -A INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
+		Delete:   pulumi.Sprintf("iptables -D INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
+		Sudo:     true,
+		Password: true,
 	}
 	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp"), &iptablesAllowUDPArgs)
 	if err != nil {

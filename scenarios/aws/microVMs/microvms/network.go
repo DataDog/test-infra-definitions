@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -18,6 +19,9 @@ import (
 // TODO: this problem only manifests when setting up VMs locally. Investigate the root cause to see what can
 // be done. This solution may no longer work when the number of VMs exceeds the ips available in this subnet.
 const microVMGroupSubnetTemplate = "%d.254.0.0/24"
+
+const tcpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep tcp | rev | cut -d ' ' -f 3 | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
+const udpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep udp | rev | cut -d ' ' -f 3 | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
 
 var initMicroVMGroupSubnet sync.Once
 var microVMGroupSubnet string
@@ -60,6 +64,30 @@ func getMicroVMGroupSubnet() (string, error) {
 	}
 
 	return "", fmt.Errorf("getMicroVMGroupSubnet: could not find subnet")
+}
+
+func allowNFSPorts(runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+	iptablesAllowTCPArgs := command.Args{
+		Create: pulumi.Sprintf("iptables -A INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
+		Delete: pulumi.Sprintf("iptables -D INPUT -p tcp -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", microVMGroupSubnet, tcpRPCInfoPorts),
+		Sudo:   true,
+	}
+	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp"), &iptablesAllowTCPArgs)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	iptablesAllowUDPArgs := command.Args{
+		Create: pulumi.Sprintf("iptables -A INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
+		Delete: pulumi.Sprintf("iptables -D INPUT -p udp -s %s -m multiport --dports $(%s) -j ACCEPT", microVMGroupSubnet, udpRPCInfoPorts),
+		Sudo:   true,
+	}
+	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp"), &iptablesAllowUDPArgs)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return []pulumi.Resource{iptablesAllowTCPDone, iptablesAllowUDPDone}, nil
 }
 
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {

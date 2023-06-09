@@ -183,7 +183,7 @@ func Run(ctx *pulumi.Context) error {
 	if awsEnv.AgentDeploy() {
 		var fakeintake *ddfakeintake.ConnectionExporter
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = NewEcsFakeintake(awsEnv); err != nil {
+			if fakeintake, err = newEcsFakeintake(awsEnv); err != nil {
 				return err
 			}
 		}

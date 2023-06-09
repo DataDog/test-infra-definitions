@@ -260,11 +260,11 @@ func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionE
 	additionalEndpointsEnvVar := pulumi.MapArray{
 		pulumi.Map{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf("{\"http://%s\": [\"FAKEAPIKEY\"]}", fakeintake.Host),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf("[{\"host\": \"%s\", \"port\": 80, \"is_reliable\": true, \"usessl\": false}]", fakeintake.Host),
+			"value": pulumi.Sprintf(`[{"host": "%s", "port": 80, "is_reliable": true, "usessl": false}]`, fakeintake.Host),
 		},
 	}
 

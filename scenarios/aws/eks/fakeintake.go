@@ -6,7 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 )
 
-func NewEcsFakeintake(env aws.Environment) (*ddfakeintake.ConnectionExporter, error) {
+func newEcsFakeintake(env aws.Environment) (*ddfakeintake.ConnectionExporter, error) {
 	ipAddress, err := ecs.FargateServiceFakeintake(env)
 	if err != nil {
 		return nil, err

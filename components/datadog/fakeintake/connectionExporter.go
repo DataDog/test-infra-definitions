@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	stackKey = "fakeintake-ip-address"
+	stackKey = "fakeintake-host"
 )
 
 // ConnectionExporter contains pulumi side data and the export key

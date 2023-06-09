@@ -57,7 +57,7 @@ func freeSubnet(subnet string) (bool, error) {
 }
 
 func getMicroVMGroupSubnet() (string, error) {
-	for i := 100; i < 254; i++ {
+	for i := 1; i < 254; i++ {
 		subnet := fmt.Sprintf(microVMGroupSubnetTemplate, i)
 		if free, err := freeSubnet(subnet); err == nil && free {
 			return subnet, nil
@@ -73,7 +73,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, bridge pulumi.StringOutput, run
 
 	iptablesAllowTCPArgs := command.Args{
 		Create:                   pulumi.Sprintf("iptables -A INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", bridge, microVMGroupSubnet, tcpRPCInfoPorts),
-		Delete:                   pulumi.Sprintf("iptables -D INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", brdige, microVMGroupSubnet, tcpRPCInfoPorts),
+		Delete:                   pulumi.Sprintf("iptables -D INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", bridge, microVMGroupSubnet, tcpRPCInfoPorts),
 		Sudo:                     true,
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,

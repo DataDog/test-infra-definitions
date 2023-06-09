@@ -12,20 +12,21 @@ import (
 )
 
 type Args struct {
-	Create      pulumi.StringInput
-	Update      pulumi.StringInput
-	Delete      pulumi.StringInput
-	Triggers    pulumi.ArrayInput
-	Stdin       pulumi.StringPtrInput
-	Environment pulumi.StringMap
-	Sudo        bool
+	Create                   pulumi.StringInput
+	Update                   pulumi.StringInput
+	Delete                   pulumi.StringInput
+	Triggers                 pulumi.ArrayInput
+	Stdin                    pulumi.StringPtrInput
+	Environment              pulumi.StringMap
+	RequirePasswordFromStdin bool
+	Sudo                     bool
 }
 
 func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
 	return &local.CommandArgs{
-		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
-		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
-		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
+		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
 		Triggers: args.Triggers,
 		Stdin:    args.Stdin,
 	}
@@ -34,9 +35,9 @@ func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCom
 func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
 	return &remote.CommandArgs{
 		Connection: config.connection,
-		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, config.user),
-		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, config.user),
-		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, config.user),
+		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
 		Triggers:   args.Triggers,
 		Stdin:      args.Stdin,
 	}
@@ -96,6 +97,7 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
 	depends := append(opts, pulumi.Provider(r.e.CommandProvider))
+
 	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), depends...)
 }
 

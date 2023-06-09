@@ -269,7 +269,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 
 	for _, collection := range vmCollections {
 		// iptable rule for allowing ports to access NFS server
-		nfsAllowPortsDone, err := allowNFSPorts(collection.instance.runner, collection.instance.instanceNamer)
+		nfsAllowPortsDone, err := allowNFSPorts(collection.instance.e.Ctx, collection.instance.runner, collection.instance.instanceNamer)
 		if err != nil {
 			return vmCollections, waitFor, err
 		}

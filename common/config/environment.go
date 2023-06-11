@@ -30,6 +30,7 @@ const (
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
 	DDAgentVersionParamName              = "version"
+	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
@@ -71,6 +72,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		CommandProvider:       commandProvider,
 	}
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
+	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
 	return env, nil
@@ -120,6 +122,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
+}
+
+func (e *CommonEnvironment) PipelineID() string {
+	return e.AgentConfig.Get(DDAgentPipelineID)
 }
 
 func (e *CommonEnvironment) ClusterAgentVersion() string {

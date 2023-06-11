@@ -3,6 +3,11 @@ package eks
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 
@@ -176,16 +181,47 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy the Agent
 	if awsEnv.AgentDeploy() {
-		helmRelease, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
-			KubeProvider: eksKubeProvider,
-			Namespace:    "datadog",
+		var fakeintake *ddfakeintake.ConnectionExporter
+		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+			if fakeintake, err = newEcsFakeintake(awsEnv); err != nil {
+				return err
+			}
+		}
+		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
+			KubeProvider:  eksKubeProvider,
+			Namespace:     "datadog",
+			Fakeintake:    fakeintake,
+			DeployWindows: awsEnv.EKSWindowsNodeGroup(),
 		}, nil)
 		if err != nil {
 			return err
 		}
 
-		ctx.Export("agent-helm-install-name", helmRelease.Name)
-		ctx.Export("agent-helm-install-status", helmRelease.Status)
+		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
+		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
+		if awsEnv.EKSWindowsNodeGroup() {
+			ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
+			ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
+		}
+	}
+
+	// Deploy testing workload
+	if awsEnv.TestingWorkloadDeploy() {
+		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx"); err != nil {
+			return err
+		}
+
+		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis"); err != nil {
+			return err
+		}
+
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd"); err != nil {
+			return err
+		}
+
+		if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {
+			return err
+		}
 	}
 
 	return nil

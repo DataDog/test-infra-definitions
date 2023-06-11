@@ -15,6 +15,7 @@ func NewWindowsOSCommand() OSCommand {
 	return windowsOSCommand{}
 }
 
+// CreateDirectory if it does not exist
 func (fs windowsOSCommand) CreateDirectory(
 	runner *Runner,
 	name string,
@@ -56,6 +57,7 @@ func (fs windowsOSCommand) GetTemporaryDirectory() string {
 func (fs windowsOSCommand) BuildCommandString(
 	command pulumi.StringInput,
 	env pulumi.StringMap,
+	_ bool,
 	_ bool,
 	_ string) pulumi.StringInput {
 	var envVars pulumi.StringArray

@@ -20,6 +20,7 @@ func NewUnixOSCommand() OSCommand {
 	return unixOSCommand{}
 }
 
+// CreateDirectory if it does not exist
 func (unixOSCommand) CreateDirectory(
 	runner *Runner,
 	name string,
@@ -60,8 +61,8 @@ func (fs unixOSCommand) GetTemporaryDirectory() string {
 
 // BuildCommandString properly format the command string
 // command can be nil
-func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo bool, user string) pulumi.StringInput {
-	formattedCommand := formatCommandIfNeeded(command, sudo, user)
+func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulumi.StringMap, sudo bool, password bool, user string) pulumi.StringInput {
+	formattedCommand := formatCommandIfNeeded(command, sudo, password, user)
 
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {
@@ -73,7 +74,7 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 	})
 }
 
-func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, user string) pulumi.StringInput {
+func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {
 	if command == nil {
 		return nil
 	}
@@ -82,7 +83,9 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, user string) p
 		return command
 	}
 	var formattedCommand pulumi.StringInput
-	if sudo {
+	if sudo && password {
+		formattedCommand = pulumi.Sprintf("sudo -S %v", command)
+	} else if sudo {
 		formattedCommand = pulumi.Sprintf("sudo %v", command)
 	} else if user != "" {
 		formattedCommand = command.ToStringOutput().ApplyT(func(cmd string) string {

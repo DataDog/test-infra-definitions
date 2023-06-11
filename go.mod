@@ -7,6 +7,7 @@ require (
 	github.com/alessio/shellescape v1.4.1
 	github.com/aws/aws-sdk-go-v2/config v1.18.19
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.24.2
+	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.2.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.30.0
 	github.com/pulumi/pulumi-awsx/sdk v1.0.2
@@ -21,6 +22,7 @@ require (
 	github.com/pulumi/pulumi-random/sdk/v4 v4.11.2
 	github.com/pulumi/pulumi/sdk/v3 v3.55.0
 	github.com/stretchr/testify v1.8.2
+	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )
 
 require (
@@ -39,7 +41,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.6 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.7 // indirect
 	github.com/aws/smithy-go v1.13.5 // indirect
-	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/cheggaaa/pb v1.0.29 // indirect
 	github.com/cloudflare/circl v1.3.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect

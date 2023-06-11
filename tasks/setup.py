@@ -8,7 +8,7 @@ from invoke import task
 from invoke.context import Context
 
 from .config import Config, get_full_profile_path, get_local_config
-from .tool import ask, info, warn
+from .tool import ask, info, is_windows, warn
 
 @task
 def setup(ctx: Context):
@@ -16,7 +16,11 @@ def setup(ctx: Context):
     Setup a local environment interactively
     """
     info("🤖 Install Pulumi")
-    os.system("brew install pulumi/tap/pulumi")
+    if is_windows():
+        os.system("winget install pulumi")
+    else:
+        os.system("brew install pulumi/tap/pulumi")
+
     os.system("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")

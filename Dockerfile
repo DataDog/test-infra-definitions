@@ -1,10 +1,10 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM python:3.9-slim AS base
+FROM python:3.11-slim AS base
 
-ENV GO_VERSION=1.19.5
-ENV GO_SHA=36519702ae2fd573c9869461990ae550c8c0d955cd28d2827a6b159fda81ff95
+ENV GO_VERSION=1.19.9
+ENV GO_SHA=e858173b489ec1ddbe2374894f52f53e748feed09dde61be5b4b4ba2d73ef34b
 
 # Install deps all in one step
 RUN apt-get update -y && \

@@ -29,6 +29,7 @@ type OSCommand interface {
 		command pulumi.StringInput,
 		env pulumi.StringMap,
 		sudo bool,
+		passwordFromStdin bool,
 		user string) pulumi.StringInput
 }
 

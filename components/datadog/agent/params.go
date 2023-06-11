@@ -70,7 +70,7 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` returns `pipeline-16497585`
+// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
 func WithPipelineID(version string) func(*Params) error {
 	return func(p *Params) error {
 		p.version = parsePipelineVersion(version)

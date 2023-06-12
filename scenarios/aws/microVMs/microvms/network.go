@@ -24,6 +24,12 @@ const microVMGroupSubnetTemplate = "100.%d.0.0/24"
 const tcpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep tcp | rev | cut -d ' ' -f 3 | rev | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
 const udpRPCInfoPorts = "rpcinfo -p | grep -e portmapper -e mountd -e nfs | grep udp | rev | cut -d ' ' -f 3 | rev | sort | uniq | tr '\n' ' ' | awk '{$1=$1};1' | tr ' ' ',' | tr -d '\n'"
 
+const iptablesDeleteRuleFlag = "-D"
+const iptablesAddRuleFlag = "-A"
+
+const iptablesTCPRule = "iptables %s INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT"
+const iptablesUDPRule = "iptables %s INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT"
+
 var initMicroVMGroupSubnet sync.Once
 var microVMGroupSubnet string
 
@@ -72,8 +78,8 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, bridge pulumi.StringOutput, run
 	sudoPassword := rootConfig.RequireSecret("sudo-password")
 
 	iptablesAllowTCPArgs := command.Args{
-		Create:                   pulumi.Sprintf("iptables -A INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", bridge, microVMGroupSubnet, tcpRPCInfoPorts),
-		Delete:                   pulumi.Sprintf("iptables -D INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT", bridge, microVMGroupSubnet, tcpRPCInfoPorts),
+		Create:                   pulumi.Sprintf(iptablesTCPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),
+		Delete:                   pulumi.Sprintf(iptablesTCPRule, iptablesDeleteRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),
 		Sudo:                     true,
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,
@@ -84,8 +90,8 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, bridge pulumi.StringOutput, run
 	}
 
 	iptablesAllowUDPArgs := command.Args{
-		Create:                   pulumi.Sprintf("iptables -A INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT", bridge, microVMGroupSubnet, udpRPCInfoPorts),
-		Delete:                   pulumi.Sprintf("iptables -D INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT", bridge, microVMGroupSubnet, udpRPCInfoPorts),
+		Create:                   pulumi.Sprintf(iptablesUDPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, udpRPCInfoPorts),
+		Delete:                   pulumi.Sprintf(iptablesUDPRule, iptablesDeleteRuleFlag, bridge, microVMGroupSubnet, udpRPCInfoPorts),
 		Sudo:                     true,
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,

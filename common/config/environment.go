@@ -107,7 +107,7 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 	// Map environment variables
 	lookupVars := []string{"TEAM", "PIPELINE_ID"}
 	for _, varName := range lookupVars {
-		if val, ok := os.LookupEnv(varName); ok {
+		if val := os.Getenv(varName); val != "" {
 			defaultTags[strings.ReplaceAll(
 				strings.ToLower(varName), "_", "-")] = pulumi.String(val)
 		}

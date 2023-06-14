@@ -17,7 +17,7 @@ func Run(ctx *pulumi.Context) error {
 	if vm.GetCommonEnvironment().AgentDeploy() {
 		agentOptions := []func(*agent.Params) error{}
 		if vm.GetCommonEnvironment().AgentUseFakeintake() {
-			fakeintake, err := ecs.NewEcsFakeintake(vm.Infra)
+			fakeintake, err := ecs.NewEcsFakeintake(vm.Infra.GetAwsEnvironment())
 			if err != nil {
 				return err
 			}

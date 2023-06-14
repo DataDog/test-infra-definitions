@@ -2,19 +2,17 @@ package ecs
 
 import (
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
-	ec2vm "github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2VM"
 )
 
 // NewEcsFakeintake creates a new instance of fakeintake service on a dedicated fargate cluster
 // and registers it into the pulumi context
-func NewEcsFakeintake(infra ec2vm.Infra) (exporter *ddfakeintake.ConnectionExporter, err error) {
-	ipAddress, err := ecs.FargateServiceFakeintake(infra.GetAwsEnvironment())
+func NewEcsFakeintake(env aws.Environment) (*ddfakeintake.ConnectionExporter, error) {
+	ipAddress, err := ecs.FargateServiceFakeintake(env)
 	if err != nil {
 		return nil, err
 	}
 
-	exporter = ddfakeintake.NewExporter(infra.GetAwsEnvironment().Ctx, ipAddress)
-
-	return
+	return ddfakeintake.NewExporter(env.Ctx, ipAddress), nil
 }

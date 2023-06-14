@@ -14,3 +14,4 @@ bottlerocket_node_group: str = "Install a bottlerocket node group (default False
 windows_node_group: str = "Install a Windows node group (default False)"
 use_fargate: str = "Use Fargate (default True)"
 fakeintake: str = "Use a dedicated fake Datadog intake (default True)"
+ami_id: str = "A full Amazon Machine Image (AMI) id (e.g. ami-0123456789abcdef0)"

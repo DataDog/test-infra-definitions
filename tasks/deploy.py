@@ -2,9 +2,9 @@ from pydantic import ValidationError
 from . import config
 from .config import Config, get_full_profile_path
 import os
-import invoke
 import subprocess
 from invoke.context import Context
+from invoke.exceptions import Exit 
 from typing import Callable, List, Optional, Dict, Any
 import pathlib
 from . import tool
@@ -34,7 +34,7 @@ def deploy(
     try:
         cfg = config.get_local_config()
     except ValidationError as e:
-        raise invoke.Exit(f"Error in config {get_full_profile_path()}:{e}")
+        raise Exit(f"Error in config {get_full_profile_path()}:{e}")
     
     flags[default_public_path_key_name] = _get_public_path_key_name(
         cfg, public_key_required
@@ -69,7 +69,7 @@ def deploy(
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     defaultPublicKeyPath = cfg.get_aws().publicKeyPath
     if require and defaultPublicKeyPath is None:
-        raise invoke.Exit(
+        raise Exit(
             f"Your scenario requires to define {default_public_path_key_name} in the configuration file"
         )
     return defaultPublicKeyPath
@@ -103,7 +103,7 @@ def _deploy(
         subprocess.check_call(cmd_args)
         return full_stack_name
     except Exception as e:
-        raise invoke.Exit(f"Error when running {cmd_args}: {e}")
+        raise Exit(f"Error when running {cmd_args}: {e}")
 
 
 def _get_root_path() -> str:
@@ -129,7 +129,7 @@ def _get_key(key_name: str, cfg: Optional[Config], get_key: Callable[[Config], O
         # the try in env var
         key = os.getenv(env_key_name)
     if key is None or len(key) != expected_size:
-        raise invoke.Exit(
+        raise Exit(
             f"The scenario requires a valid {key_name} with a length of {expected_size} characters but none was found. You must define it in the config file"
         )
     return key
@@ -137,7 +137,7 @@ def _get_key(key_name: str, cfg: Optional[Config], get_key: Callable[[Config], O
 
 def _check_key_pair(key_pair_to_search: Optional[str]):
     if key_pair_to_search is None or key_pair_to_search == "":
-        raise invoke.Exit(
+        raise Exit(
             "This scenario requires to define 'defaultKeyPairName' in the configuration file"
         )
     output = subprocess.check_output(["ssh-add", "-L"])
@@ -151,7 +151,7 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
             key_pairs.append(key_pair)
 
     if key_pair_to_search not in key_pairs:
-        raise invoke.Exit(
+        raise Exit(
             f"Your key pair value '{key_pair_to_search}' is not find in ssh-agent. "
             + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
             + "You can skip this check by setting `checkKeyPair: false` in the config"

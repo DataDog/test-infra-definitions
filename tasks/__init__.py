@@ -1,4 +1,4 @@
-from invoke import Collection
+from invoke.collection import Collection
 
 from tasks.docker import create_docker, destroy_docker
 from tasks.ecs import create_ecs, destroy_ecs

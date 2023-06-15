@@ -48,6 +48,7 @@ type ddInfraECS struct {
 
 type ddInfraEKS struct {
 	allowedInboundSecurityGroups []string
+	allowedInboundPrefixList     []string
 	fargateNamespace             string
 	linuxNodeGroup               bool
 	linuxARMNodeGroup            bool
@@ -175,6 +176,7 @@ func agentQADefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
+				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

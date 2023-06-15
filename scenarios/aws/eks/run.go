@@ -34,12 +34,14 @@ func Run(ctx *pulumi.Context) error {
 		Ingress: ec2.SecurityGroupIngressArray{
 			ec2.SecurityGroupIngressArgs{
 				SecurityGroups: pulumi.ToStringArray(awsEnv.EKSAllowedInboundSecurityGroups()),
+				PrefixListIds:  pulumi.ToStringArray(awsEnv.EKSAllowedInboundPrefixLists()),
 				ToPort:         pulumi.Int(22),
 				FromPort:       pulumi.Int(22),
 				Protocol:       pulumi.String("tcp"),
 			},
 			ec2.SecurityGroupIngressArgs{
 				SecurityGroups: pulumi.ToStringArray(awsEnv.EKSAllowedInboundSecurityGroups()),
+				PrefixListIds:  pulumi.ToStringArray(awsEnv.EKSAllowedInboundPrefixLists()),
 				ToPort:         pulumi.Int(443),
 				FromPort:       pulumi.Int(443),
 				Protocol:       pulumi.String("tcp"),

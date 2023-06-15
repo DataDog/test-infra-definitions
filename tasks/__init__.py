@@ -1,6 +1,7 @@
 from invoke.collection import Collection
 from invoke.tasks import Task
 
+from tasks.clean import clean
 from tasks.docker import create_docker, destroy_docker
 from tasks.ecs import create_ecs, destroy_ecs
 from tasks.eks import create_eks, destroy_eks
@@ -17,3 +18,4 @@ ns.add_task(Task(destroy_eks))
 ns.add_task(Task(create_ecs))
 ns.add_task(Task(destroy_ecs))
 ns.add_task(Task(setup))
+ns.add_task(Task(clean))

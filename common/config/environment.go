@@ -30,6 +30,7 @@ const (
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
 	DDAgentVersionParamName              = "version"
+	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
@@ -71,6 +72,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		CommandProvider:       commandProvider,
 	}
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
+	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
 	return env, nil
@@ -87,7 +89,7 @@ func (e *CommonEnvironment) InfraOSFamily() string {
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.23")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.26")
 }
 
 func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
@@ -103,10 +105,11 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 	defaultTags["username"] = pulumi.String(user.Username)
 
 	// Map environment variables
-	lookupVars := []string{"DD_TEAM"}
+	lookupVars := []string{"TEAM", "PIPELINE_ID"}
 	for _, varName := range lookupVars {
 		if val := os.Getenv(varName); val != "" {
-			defaultTags[strings.ToLower(varName)] = pulumi.String(val)
+			defaultTags[strings.ReplaceAll(
+				strings.ToLower(varName), "_", "-")] = pulumi.String(val)
 		}
 	}
 
@@ -120,6 +123,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
+}
+
+func (e *CommonEnvironment) PipelineID() string {
+	return e.AgentConfig.Get(DDAgentPipelineID)
 }
 
 func (e *CommonEnvironment) ClusterAgentVersion() string {

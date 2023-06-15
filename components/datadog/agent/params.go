@@ -17,6 +17,7 @@ import (
 // The available options are:
 //   - [WithLatest]
 //   - [WithVersion]
+//   - [WithPipelineID]
 //   - [WithAgentConfig]
 //   - [WithIntegration]
 //   - [WithTelemetry]
@@ -38,6 +39,9 @@ func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
+	}
+	if env.PipelineID() != "" {
+		defaultVersion = WithPipelineID(env.PipelineID())
 	}
 	options = append([]func(*Params) error{defaultVersion}, options...)
 	return common.ApplyOption(p, options)
@@ -66,8 +70,18 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
+// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
+func WithPipelineID(version string) func(*Params) error {
+	return func(p *Params) error {
+		p.version = parsePipelineVersion(version)
+
+		return nil
+	}
+}
+
 func parseVersion(s string) (os.AgentVersion, error) {
 	version := os.AgentVersion{}
+
 	prefix := "7."
 	if strings.HasPrefix(s, prefix) {
 		version.Major = "7"
@@ -82,6 +96,12 @@ func parseVersion(s string) (os.AgentVersion, error) {
 	version.Minor = strings.TrimPrefix(s, prefix)
 	version.BetaChannel = strings.Contains(s, "~")
 	return version, nil
+}
+
+func parsePipelineVersion(s string) os.AgentVersion {
+	version := os.AgentVersion{}
+	version.PipelineID = "pipeline-" + s
+	return version
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
@@ -133,7 +153,7 @@ func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) err
 		extraConfig := pulumi.Sprintf(`dd_url: http://%s:80
 logs_config.logs_dd_url: %s:80
 logs_config.logs_no_ssl: true
-logs_config.force_use_http: true`, fakeintake.URL, fakeintake.URL)
+logs_config.force_use_http: true`, fakeintake.Host, fakeintake.Host)
 		p.extraAgentConfig = append(p.extraAgentConfig, extraConfig)
 		return nil
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
@@ -24,6 +25,7 @@ type HelmInstallationArgs struct {
 	KubeProvider  *kubernetes.Provider
 	Namespace     string
 	ValuesYAML    pulumi.AssetOrArchiveArrayInput
+	Fakeintake    *ddfakeintake.ConnectionExporter
 	DeployWindows bool
 }
 
@@ -91,13 +93,18 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		linuxInstallName += "-linux"
 	}
 
+	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
+	if args.Fakeintake != nil {
+		configureFakeintake(values, args.Fakeintake)
+	}
+
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
 		ChartName:   "datadog",
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  args.ValuesYAML,
-		Values:      buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
+		Values:      values,
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -112,13 +119,18 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	if args.DeployWindows {
+		values := buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
+		if args.Fakeintake != nil {
+			configureFakeintake(values, args.Fakeintake)
+		}
+
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
 			RepoURL:     DatadogHelmRepo,
 			ChartName:   "datadog",
 			InstallName: installName + "-windows",
 			Namespace:   args.Namespace,
 			ValuesYAML:  args.ValuesYAML,
-			Values:      buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag),
+			Values:      values,
 		}, opts...)
 		if err != nil {
 			return nil, err
@@ -241,5 +253,24 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 			"tokenSecretName":      pulumi.String(installName + "-linux-datadog-cluster-agent"),
 			"clusterchecksEnabled": pulumi.Bool(false),
 		},
+	}
+}
+
+func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionExporter) {
+	additionalEndpointsEnvVar := pulumi.MapArray{
+		pulumi.Map{
+			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s", "port": 80, "is_reliable": true, "usessl": false}]`, fakeintake.Host),
+		},
+	}
+
+	if values["datadog"].(pulumi.Map)["env"] == nil {
+		values["datadog"].(pulumi.Map)["env"] = additionalEndpointsEnvVar
+	} else {
+		values["datadog"].(pulumi.Map)["env"] = append(values["datadog"].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)
 	}
 }

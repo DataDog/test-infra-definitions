@@ -70,7 +70,7 @@ def _show_connection_message(full_stack_name: str):
         "stack_name": doc.stack_name,
     }
 )
-def destroy_ecs(ctx: Context, stack_name: Optional[str] = None):
+def destroy_ecs(_: Context, stack_name: Optional[str] = None):
     """
     Destroy a ECS environment created with invoke create-ecs.
     """

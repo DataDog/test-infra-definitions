@@ -72,7 +72,7 @@ def _show_connection_message(full_stack_name: str):
         "stack_name": doc.stack_name,
     }
 )
-def destroy_vm(ctx: Context, stack_name: Optional[str] = None):
+def destroy_vm(_: Context, stack_name: Optional[str] = None):
     """
     Destroy a new virtual machine on the cloud.
     """

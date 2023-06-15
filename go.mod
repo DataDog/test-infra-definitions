@@ -9,7 +9,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.24.2
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/cenkalti/backoff/v4 v4.2.0
-	github.com/pulumi/pulumi-aws/sdk/v5 v5.30.0
+	github.com/pulumi/pulumi-aws/sdk/v5 v5.41.0
 	github.com/pulumi/pulumi-awsx/sdk v1.0.2
 	github.com/pulumi/pulumi-azure-native-sdk v1.103.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute v1.103.0

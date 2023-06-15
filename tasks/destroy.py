@@ -7,14 +7,22 @@ from typing import Optional, List, Tuple
 def destroy(scenario_name: str, stack: Optional[str] = None):
     """
     Destroy an environment
+    Use scenario_name="*" to destroy any existing stack
     """
 
-    full_stack_name = get_stack_name(stack, scenario_name)
     short_stack_names, full_stack_names = _get_existing_stacks()
 
     if len(short_stack_names) == 0:
         info("No stack to destroy")
         return
+    
+    if scenario_name == "*":
+        for stack_name in full_stack_names:
+            info(f"🗑️ Cleaning up stack {stack_name}")
+            _destroy_stack(stack_name)
+            return 
+    
+    full_stack_name = get_stack_name(stack, scenario_name)
 
     if stack is not None:
         if stack in short_stack_names:
@@ -32,19 +40,7 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
         for stack_name in short_stack_names:
             error(f" {stack_name}")
     else:        
-        subprocess.call(
-            [
-                "aws-vault",
-                "exec",
-                "sso-agent-sandbox-account-admin",
-                "--",
-                "pulumi",
-                "destroy",
-                "--remove",
-                "-s",
-                full_stack_name,
-            ]
-        )
+        _destroy_stack(full_stack_name)
 
 
 def _get_existing_stacks() -> Tuple[List[str], List[str]]:
@@ -62,3 +58,17 @@ def _get_existing_stacks() -> Tuple[List[str], List[str]]:
             stack_name = stack_name[len(stack_name_prefix):]
             stacks.append(stack_name)
     return stacks, full_stacks
+
+def _destroy_stack(stack_name: str):
+    subprocess.call(
+    [
+        "aws-vault",
+        "exec",
+        "sso-agent-sandbox-account-admin",
+        "--",
+        "pulumi",
+        "destroy",
+        "--remove",
+        "-s",
+        stack_name,
+    ])

@@ -39,22 +39,18 @@ func (p *Params[OS]) SetOS(o OS) error {
 
 // SetArch set the architecture and the operating system.
 func (p *Params[OS]) SetArch(os OS, arch os.Architecture) error {
-	var err error
-	p.ImageName, err = os.GetImage(arch)
+	imageName, err := os.GetImage(arch)
 	if err != nil {
 		return fmt.Errorf("cannot find image for %v (%v): %v", reflect.TypeOf(os), arch, err)
 	}
-	p.OS = os
-	p.InstanceType = p.OS.GetDefaultInstanceType(arch)
-	p.Arch = arch
-
-	return nil
+	return p.SetImageName(imageName, arch, os)
 }
 
 // SetImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
 func (p *Params[OS]) SetImageName(imageName string, arch os.Architecture, os OS) error {
 	p.ImageName = imageName
 	p.OS = os
+	p.InstanceType = p.OS.GetDefaultInstanceType(arch)
 	p.Arch = arch
 	return nil
 }

@@ -1,12 +1,12 @@
-from invoke import task
+from invoke.tasks import task
 
 from .destroy import destroy
 from .deploy import deploy
 from . import doc
 from typing import Optional
 from invoke.context import Context
+from invoke.exceptions import Exit
 from . import tool
-import invoke
 import pyperclip
 
 scenario_name = "aws/vm"
@@ -32,7 +32,7 @@ def create_vm(
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
     use_fakeintake: Optional[bool] = True,
-):
+) -> None:
     """
     Create a new virtual machine on the cloud.
     """
@@ -87,7 +87,7 @@ def _get_os_family(os_family: Optional[str]) -> str:
     if os_family is None:
         os_family = tool.get_default_os_family()
     if os_family.lower() not in os_families:
-        raise invoke.Exit(
+        raise Exit(
             f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}"
         )
     return os_family

@@ -1,5 +1,5 @@
-import invoke
 import yaml
+from invoke.exceptions import Exit
 from pathlib import Path
 from .tool import info
 from typing import Dict, Optional
@@ -68,7 +68,7 @@ class Config(BaseModel, extra=Extra.forbid):
             with open(profile_path, 'w') as outfile:
                 yaml.dump(self.dict(), outfile)
         except Exception as e:
-            raise invoke.Exit(f"Error saving config file {profile_path}: {e}")
+            raise Exit(f"Error saving config file {profile_path}: {e}")
         info(f"Configuration file saved at {profile_path}")
 
 def get_local_config() -> Config:

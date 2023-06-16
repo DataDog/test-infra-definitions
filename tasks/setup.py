@@ -4,14 +4,14 @@ from pathlib import Path
 import getpass
 import pyperclip
 
-from invoke import task
+from invoke.tasks import task
 from invoke.context import Context
 
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
 @task
-def setup(ctx: Context):
+def setup(_: Context) -> None:
     """
     Setup a local environment interactively
     """
@@ -26,7 +26,7 @@ def setup(ctx: Context):
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     try:
         config = get_local_config()
-    except:
+    except Exception:
         config = Config.parse_obj({})
         
 

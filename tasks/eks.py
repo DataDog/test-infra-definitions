@@ -1,5 +1,5 @@
 import os
-from invoke import task
+from invoke.tasks import task
 import yaml
 from .destroy import destroy
 from .deploy import deploy

@@ -1,4 +1,4 @@
-package vm
+package azureparams
 
 import (
 	"github.com/DataDog/test-infra-definitions/common"
@@ -13,7 +13,9 @@ type Params struct {
 	common *vm.Params[os.OS]
 }
 
-func newParams(env azure.Environment, options ...func(*Params) error) (*Params, error) {
+type Option = func(*Params) error
+
+func NewParams(env azure.Environment, options ...Option) (*Params, error) {
 	commonParams, err := vm.NewParams[os.OS](env.CommonEnvironment)
 	if err != nil {
 		return nil, err
@@ -26,6 +28,10 @@ func newParams(env azure.Environment, options ...func(*Params) error) (*Params, 
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
+}
+
+func (p *Params) GetCommonParams() *vm.Params[os.OS] {
+	return p.common
 }
 
 func (p *Params) getOS(osType azureos.Type) (os.OS, error) {

@@ -1,4 +1,4 @@
-package ec2vm
+package ec2params
 
 import (
 	"fmt"
@@ -28,7 +28,9 @@ type Params struct {
 	common *vm.Params[ec2os.OS]
 }
 
-func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
+type Option = func(*Params) error
+
+func NewParams(env aws.Environment, options ...Option) (*Params, error) {
 	commonParams, err := vm.NewParams[ec2os.OS](env.CommonEnvironment)
 	if err != nil {
 		return nil, err
@@ -43,6 +45,10 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
+}
+
+func (p *Params) GetCommonParams() *vm.Params[ec2os.OS] {
+	return p.common
 }
 
 func (p *Params) getOS(osType ec2os.Type) (ec2os.OS, error) {

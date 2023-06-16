@@ -1,4 +1,4 @@
-package os
+package ec2os
 
 import commonos "github.com/DataDog/test-infra-definitions/components/os"
 

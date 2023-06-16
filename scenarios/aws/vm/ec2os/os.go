@@ -1,4 +1,4 @@
-package os
+package ec2os
 
 import (
 	"fmt"

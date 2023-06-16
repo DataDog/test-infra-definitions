@@ -5,10 +5,10 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/os"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
 )
 
 // Params defines the parameters for a virtual machine.
@@ -25,11 +25,11 @@ import (
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type Params struct {
 	env    aws.Environment
-	common *vm.Params[os.OS]
+	common *vm.Params[ec2os.OS]
 }
 
 func newParams(env aws.Environment, options ...func(*Params) error) (*Params, error) {
-	commonParams, err := vm.NewParams[os.OS](env.CommonEnvironment)
+	commonParams, err := vm.NewParams[ec2os.OS](env.CommonEnvironment)
 	if err != nil {
 		return nil, err
 	}
@@ -45,31 +45,31 @@ func newParams(env aws.Environment, options ...func(*Params) error) (*Params, er
 	return common.ApplyOption(params, options)
 }
 
-func (p *Params) getOS(osType os.Type) (os.OS, error) {
-	return os.GetOS(p.env, osType)
+func (p *Params) getOS(osType ec2os.Type) (ec2os.OS, error) {
+	return ec2os.GetOS(p.env, osType)
 }
 
 func (p *Params) useDefaultOS() error {
-	var osType os.Type
+	var osType ec2os.Type
 
 	osTypeStr := strings.ToLower(p.env.InfraOSFamily())
 	switch osTypeStr {
 	case "windows":
-		osType = os.WindowsOS
+		osType = ec2os.WindowsOS
 	case "ubuntu":
-		osType = os.UbuntuOS
+		osType = ec2os.UbuntuOS
 	case "amazonlinux":
-		osType = os.AmazonLinuxOS
+		osType = ec2os.AmazonLinuxOS
 	case "debian":
-		osType = os.DebianOS
+		osType = ec2os.DebianOS
 	case "redhat":
-		osType = os.RedHatOS
+		osType = ec2os.RedHatOS
 	case "suse":
-		osType = os.SuseOS
+		osType = ec2os.SuseOS
 	case "fedora":
-		osType = os.FedoraOS
+		osType = ec2os.FedoraOS
 	case "":
-		osType = os.UbuntuOS // Default
+		osType = ec2os.UbuntuOS // Default
 	default:
 		return fmt.Errorf("the os type '%v' is not valid", osTypeStr)
 	}
@@ -78,7 +78,7 @@ func (p *Params) useDefaultOS() error {
 }
 
 // WithOS sets the OS. This function also set the instance type and the AMI.
-func WithOS(osType os.Type) func(*Params) error {
+func WithOS(osType ec2os.Type) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {
@@ -89,7 +89,7 @@ func WithOS(osType os.Type) func(*Params) error {
 }
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-func WithImageName(imageName string, arch commonos.Architecture, osType os.Type) func(*Params) error {
+func WithImageName(imageName string, arch os.Architecture, osType ec2os.Type) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {
@@ -100,7 +100,7 @@ func WithImageName(imageName string, arch commonos.Architecture, osType os.Type)
 }
 
 // WithArch set the architecture and the operating system.
-func WithArch(osType os.Type, arch commonos.Architecture) func(*Params) error {
+func WithArch(osType ec2os.Type, arch os.Architecture) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {

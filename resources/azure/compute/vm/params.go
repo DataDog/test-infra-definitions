@@ -36,20 +36,32 @@ func (p *Params) GetOS(osType os.Type) (commonos.OS, error) {
 	return os.GetOS(p.env, osType)
 }
 
-// WithOS sets the instance type and the AMI.
-var WithOS = vm.WithOS[commonos.OS, os.Type, *Params]
+// WithOS sets the OS. This function also set the instance type and the AMI.
+func WithOS(osType os.Type) func(*Params) error {
+	return vm.WithOS[commonos.OS, os.Type, *Params](osType)
+}
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-var WithImageName = vm.WithImageName[commonos.OS, os.Type, *Params]
+func WithImageName(imageName string, arch commonos.Architecture, osType os.Type) func(*Params) error {
+	return vm.WithImageName[commonos.OS, os.Type, *Params](imageName, arch, osType)
+}
 
 // WithArch set the architecture and the operating system.
-var WithArch = vm.WithArch[commonos.OS, os.Type, *Params]
+func WithArch(osType os.Type, arch commonos.Architecture) func(*Params) error {
+	return vm.WithArch[commonos.OS, os.Type, *Params](osType, arch)
+}
 
 // WithInstanceType set the instance type
-var WithInstanceType = vm.WithInstanceType[commonos.OS, os.Type, *Params]
+func WithInstanceType(instanceType string) func(*Params) error {
+	return vm.WithInstanceType[commonos.OS, os.Type, *Params](instanceType)
+}
 
-// WithUserData set the userdata for the EC2 instance. User data contains commands that are run at the startup of the instance.
-var WithUserData = vm.WithUserData[commonos.OS, os.Type, *Params]
+// WithUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
+func WithUserData(userData string) func(*Params) error {
+	return vm.WithUserData[commonos.OS, os.Type, *Params](userData)
+}
 
-// WithName set the VM name
-var WithName = vm.WithName[commonos.OS, os.Type, *Params]
+// WithName set the name of the instance
+func WithName(name string) func(*Params) error {
+	return vm.WithName[commonos.OS, os.Type, *Params](name)
+}

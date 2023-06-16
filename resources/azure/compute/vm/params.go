@@ -2,7 +2,7 @@ package vm
 
 import (
 	"github.com/DataDog/test-infra-definitions/common"
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 	"github.com/DataDog/test-infra-definitions/resources/azure/compute/azureos"
@@ -10,11 +10,11 @@ import (
 
 type Params struct {
 	env    azure.Environment
-	common *vm.Params[commonos.OS]
+	common *vm.Params[os.OS]
 }
 
 func newParams(env azure.Environment, options ...func(*Params) error) (*Params, error) {
-	commonParams, err := vm.NewParams[commonos.OS](env.CommonEnvironment)
+	commonParams, err := vm.NewParams[os.OS](env.CommonEnvironment)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func newParams(env azure.Environment, options ...func(*Params) error) (*Params, 
 	return common.ApplyOption(params, options)
 }
 
-func (p *Params) getOS(osType azureos.Type) (commonos.OS, error) {
+func (p *Params) getOS(osType azureos.Type) (os.OS, error) {
 	return azureos.GetOS(p.env, osType)
 }
 
@@ -44,7 +44,7 @@ func WithOS(osType azureos.Type) func(*Params) error {
 }
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-func WithImageName(imageName string, arch commonos.Architecture, osType azureos.Type) func(*Params) error {
+func WithImageName(imageName string, arch os.Architecture, osType azureos.Type) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {
@@ -55,7 +55,7 @@ func WithImageName(imageName string, arch commonos.Architecture, osType azureos.
 }
 
 // WithArch set the architecture and the operating system.
-func WithArch(osType azureos.Type, arch commonos.Architecture) func(*Params) error {
+func WithArch(osType azureos.Type, arch os.Architecture) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {

@@ -5,7 +5,7 @@ import (
 	commonos "github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
-	"github.com/DataDog/test-infra-definitions/resources/azure/compute/os"
+	"github.com/DataDog/test-infra-definitions/resources/azure/compute/azureos"
 )
 
 type Params struct {
@@ -22,18 +22,18 @@ func newParams(env azure.Environment, options ...func(*Params) error) (*Params, 
 		env:    env,
 		common: commonParams,
 	}
-	if err := WithOS(os.UbuntuOS)(params); err != nil {
+	if err := WithOS(azureos.UbuntuOS)(params); err != nil {
 		return nil, err
 	}
 	return common.ApplyOption(params, options)
 }
 
-func (p *Params) getOS(osType os.Type) (commonos.OS, error) {
-	return os.GetOS(p.env, osType)
+func (p *Params) getOS(osType azureos.Type) (commonos.OS, error) {
+	return azureos.GetOS(p.env, osType)
 }
 
 // WithOS sets the OS. This function also set the instance type and the AMI.
-func WithOS(osType os.Type) func(*Params) error {
+func WithOS(osType azureos.Type) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {
@@ -44,7 +44,7 @@ func WithOS(osType os.Type) func(*Params) error {
 }
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-func WithImageName(imageName string, arch commonos.Architecture, osType os.Type) func(*Params) error {
+func WithImageName(imageName string, arch commonos.Architecture, osType azureos.Type) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {
@@ -55,7 +55,7 @@ func WithImageName(imageName string, arch commonos.Architecture, osType os.Type)
 }
 
 // WithArch set the architecture and the operating system.
-func WithArch(osType os.Type, arch commonos.Architecture) func(*Params) error {
+func WithArch(osType azureos.Type, arch commonos.Architecture) func(*Params) error {
 	return func(p *Params) error {
 		os, err := p.getOS(osType)
 		if err != nil {

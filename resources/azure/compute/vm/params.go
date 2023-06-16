@@ -28,40 +28,54 @@ func newParams(env azure.Environment, options ...func(*Params) error) (*Params, 
 	return common.ApplyOption(params, options)
 }
 
-func (p *Params) GetCommonParams() *vm.Params[commonos.OS] {
-	return p.common
-}
-
-func (p *Params) GetOS(osType os.Type) (commonos.OS, error) {
+func (p *Params) getOS(osType os.Type) (commonos.OS, error) {
 	return os.GetOS(p.env, osType)
 }
 
 // WithOS sets the OS. This function also set the instance type and the AMI.
 func WithOS(osType os.Type) func(*Params) error {
-	return vm.WithOS[commonos.OS, os.Type, *Params](osType)
+	return func(p *Params) error {
+		os, err := p.getOS(osType)
+		if err != nil {
+			return err
+		}
+		return p.common.SetOS(os)
+	}
 }
 
 // WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
 func WithImageName(imageName string, arch commonos.Architecture, osType os.Type) func(*Params) error {
-	return vm.WithImageName[commonos.OS, os.Type, *Params](imageName, arch, osType)
+	return func(p *Params) error {
+		os, err := p.getOS(osType)
+		if err != nil {
+			return err
+		}
+		return p.common.SetImageName(imageName, arch, os)
+	}
 }
 
 // WithArch set the architecture and the operating system.
 func WithArch(osType os.Type, arch commonos.Architecture) func(*Params) error {
-	return vm.WithArch[commonos.OS, os.Type, *Params](osType, arch)
+	return func(p *Params) error {
+		os, err := p.getOS(osType)
+		if err != nil {
+			return err
+		}
+		return p.common.SetArch(os, arch)
+	}
 }
 
 // WithInstanceType set the instance type
 func WithInstanceType(instanceType string) func(*Params) error {
-	return vm.WithInstanceType[commonos.OS, os.Type, *Params](instanceType)
+	return func(p *Params) error { return p.common.SetInstanceType(instanceType) }
 }
 
 // WithUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
 func WithUserData(userData string) func(*Params) error {
-	return vm.WithUserData[commonos.OS, os.Type, *Params](userData)
+	return func(p *Params) error { return p.common.SetUserData(userData) }
 }
 
 // WithName set the name of the instance
 func WithName(name string) func(*Params) error {
-	return vm.WithName[commonos.OS, os.Type, *Params](name)
+	return func(p *Params) error { return p.common.SetName(name) }
 }

@@ -21,40 +21,42 @@ type ClientData struct {
 
 // Installer is an installer for a Windows Driver on a virtual machine
 type Installer struct {
-	dependsOn   pulumi.Resource
-	vm          vm.VM
-	filemanager *command.FileManager
+	dependsOn pulumi.Resource
+	vm        vm.VM
 }
 
 // NewInstaller creates a new instance of [*Installer]
-func NewInstaller(absoluteMSIPath string, vm vm.VM) (*Installer, error) {
+func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) {
+	params, err := newParams(options...)
+	if err != nil {
+		return nil, err
+	}
+
 	if osType := vm.GetOS().GetType(); osType != commonos.WindowsType {
 		return nil, fmt.Errorf("driver component can only be installed on Windows VMs")
 	}
 
-	if _, err := os.Stat(absoluteMSIPath); os.IsNotExist(err) {
-		return nil, fmt.Errorf("could not find MSI at %s on host machine", absoluteMSIPath)
+	if params.localAssetDir != "" {
+		if _, err := os.Stat(params.localAssetDir); os.IsNotExist(err) {
+			return nil, fmt.Errorf("could not find %s on host machine", params.localAssetDir)
+		}
+
+		fileManager := vm.GetFileManager()
+		_, err := fileManager.CopyAbsoluteFolder(params.localAssetDir, "c:\\")
+		if err != nil {
+			return nil, fmt.Errorf("error copying directory to remote VM: %s", err)
+		}
+	} else {
+		// TODO download default APM auto-inject installer
 	}
 
-	// TODO enable unsigned drivers
-	//	execute 'enable unsigned drivers' do
-	//	command "bcdedit.exe /set testsigning on"
-	//notifies :reboot_now, 'reboot[now]', :immediately
-	//	not_if 'bcdedit.exe | findstr "testsigning" | findstr "Yes"'
-	//	end
-
-	remotePath := "c:\\dd_driver_installer.msi"
-	fileManager := vm.GetFileManager()
-	_, err := fileManager.CopyFile(absoluteMSIPath, remotePath)
-	if err != nil {
-		return nil, fmt.Errorf("error copying MSI to remote VM: %s", err)
-	}
+	installerPath := fmt.Sprintf("c:\\%s", params.installerName)
 
 	runner := vm.GetRunner()
 	env := vm.GetCommonEnvironment()
 	commonNamer := env.CommonNamer
 
-	cmd := getDriverInstallCmd(remotePath, env)
+	cmd := getDriverInstallCmd(installerPath, env)
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("driver-install", utils.StrHash(cmd)),
 		&command.Args{
@@ -67,7 +69,7 @@ func NewInstaller(absoluteMSIPath string, vm vm.VM) (*Installer, error) {
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
 }
 
-func getDriverInstallCmd(remotePath string, env *config.CommonEnvironment) string {
+func getDriverInstallCmd(installerPath string, env *config.CommonEnvironment) string {
 	//	windows_package 'driver test package' do
 	//installer_type :msi
 	//	source "#{tmp_dir}\\kitchen\\cache\\cookbooks\\driver-base\\files\\default\\tests\\ddapmtestpackage.msi"
@@ -80,7 +82,7 @@ func getDriverInstallCmd(remotePath string, env *config.CommonEnvironment) strin
 
 	// Use `if ($?) { .. }` to get an error if the install fails
 	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%v" SITE="datadoghq.com"'}`,
-		remotePath,
+		installerPath,
 		env.AgentAPIKey(),
 	)
 

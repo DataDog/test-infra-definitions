@@ -1,40 +1,37 @@
-package driver
+package apmautoinjector
 
 import (
 	"github.com/DataDog/test-infra-definitions/common"
 )
 
-// Params defines the parameters for the Driver installation.
+// Params defines the parameters for the APM auto-injector installation.
 // The Params configuration uses the [Functional options pattern].
 //
 // The available options are:
-//   - [WithLocalAssetDir]
-//   - [WithInstallerName]
+//   - [WithLocalInstallerPath]
+//   - [WithInstallArgs]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type Params struct {
-	localAssetDir string
-	installerName string
+	localInstallerPath string
+	installArgs        string
 }
 
 func newParams(options ...func(*Params) error) (*Params, error) {
-	p := &Params{
-		localAssetDir: "",
-		installerName: "datadog-apm-inject.msi",
-	}
+	p := &Params{}
 	return common.ApplyOption(p, options)
 }
 
-func WithLocalAssetDir(dir string) func(*Params) error {
+func WithLocalInstallerPath(path string) func(*Params) error {
 	return func(p *Params) error {
-		p.localAssetDir = dir
+		p.localInstallerPath = path
 		return nil
 	}
 }
 
-func WithInstallerName(name string) func(*Params) error {
+func WithInstallArgs(args string) func(*Params) error {
 	return func(p *Params) error {
-		p.installerName = name
+		p.installArgs = args
 		return nil
 	}
 }

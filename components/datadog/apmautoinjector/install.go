@@ -71,13 +71,14 @@ func copyLocalInstallerToVM(vm vm.VM, localPath string) (string, error) {
 		return "", fmt.Errorf("could not find %s on host machine", localPath)
 	}
 
+	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath))
+
 	fileManager := vm.GetFileManager()
-	_, err := fileManager.CopyFile(localPath, "c:\\")
+	_, err := fileManager.CopyFile(localPath, installerPath)
 	if err != nil {
 		return "", fmt.Errorf("error copying directory to remote VM: %s", err)
 	}
 
-	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath))
 	return installerPath, nil
 }
 
@@ -113,8 +114,4 @@ func (installer *Installer) Deserialize(result auto.UpResult) (*ClientData, erro
 	}
 
 	return &ClientData{Connection: vmData.Connection}, nil
-}
-
-func (installer *Installer) VM() vm.VM {
-	return installer.vm
 }

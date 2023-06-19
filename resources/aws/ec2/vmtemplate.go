@@ -1,6 +1,7 @@
 package ec2
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
@@ -29,6 +30,6 @@ func CreateLaunchTemplate(e aws.Environment, name string, ami, instanceType, iam
 		KeyName:              keyPair,
 		UserData:             userData,
 		UpdateDefaultVersion: pulumi.BoolPtr(true),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 	return launchTemplate, err
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -34,7 +35,7 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 		TaskDefinition:            taskDefArn,
 		EnableExecuteCommand:      pulumi.BoolPtr(true),
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
 func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput) (*ecs.FargateTaskDefinition, error) {
@@ -62,7 +63,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 				Name: pulumi.String("dd-sockets"),
 			},
 		},
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
 func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {

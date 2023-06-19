@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -55,13 +56,13 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 			Ec2SshKey:              pulumi.String(e.DefaultKeyPairName()),
 			SourceSecurityGroupIds: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 		},
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS, config.ProviderEKS))
 }
 
 func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.NodeGroup, error) {
 	windowsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
 		Name: fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-2022-English-Core-EKS_Optimized-%s/image_id", e.KubernetesVersion()),
-	}, e.InvokeProviderOption())
+	}, e.WithProvider(config.ProviderAWS))
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +74,7 @@ func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster,
 	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Namer.ResourceName(name), &awsIam.InstanceProfileArgs{
 		Name: e.CommonNamer.DisplayName(pulumi.String(name)),
 		Role: nodeRole.Name,
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +91,7 @@ func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster,
 		NodeRootVolumeSize:           pulumi.Int(80),
 		NodeAssociatePublicIpAddress: pulumi.BoolRef(false),
 		InstanceProfile:              instanceProfile,
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS, config.ProviderEKS))
 }
 
 func getUserData(userData string, clusterName pulumi.StringInput) pulumi.StringInput {

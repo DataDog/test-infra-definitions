@@ -3,6 +3,7 @@ package compute
 import (
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 
@@ -91,7 +92,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		ResourceGroupName:        pulumi.String(e.DefaultResourceGroup()),
 		PublicIPAllocationMethod: pulumi.String(network.IPAllocationMethodStatic),
 		Tags:                     e.ResourcesTags(),
-	}, pulumi.Provider(e.Provider))
+	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -112,7 +113,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 			},
 		},
 		Tags: e.ResourcesTags(),
-	}, pulumi.Provider(e.Provider))
+	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -144,7 +145,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		},
 		OsProfile: osProfile,
 		Tags:      e.ResourcesTags(),
-	}, pulumi.Provider(e.Provider))
+	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
 		return nil, nil, nil, err
 	}

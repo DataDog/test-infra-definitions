@@ -2,4 +2,4 @@ name: dd
 runtime: go
 description: Generic scenario (check scenario variable)
 config:
-  pulumi:disable-default-providers: [“*”]
+  pulumi:disable-default-providers: ["*"]

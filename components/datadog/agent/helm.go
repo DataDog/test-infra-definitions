@@ -14,6 +14,7 @@ import (
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -43,14 +44,25 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	installName := "dda"
-	opts = append(opts, pulumi.Provider(args.KubeProvider), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
+	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProvider(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx.RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
 		return nil, err
 	}
-
 	opts = append(opts, pulumi.Parent(helmComponent))
+
+	// Create fixed cluster agent token
+	randomClusterAgentToken, err := random.NewRandomString(e.Ctx, "datadog-cluster-agent-token", &random.RandomStringArgs{
+		Lower:   pulumi.Bool(true),
+		Upper:   pulumi.Bool(true),
+		Length:  pulumi.Int(20),
+		Numeric: pulumi.Bool(false),
+		Special: pulumi.Bool(false),
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create namespace if necessary
 	ns, err := corev1.NewNamespace(e.Ctx, args.Namespace, &corev1.NamespaceArgs{
@@ -61,7 +73,6 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	if err != nil {
 		return nil, err
 	}
-
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
 	// Create secret if necessary
@@ -78,7 +89,6 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	if err != nil {
 		return nil, err
 	}
-
 	opts = append(opts, utils.PulumiDependsOn(secret))
 
 	// Compute some values
@@ -93,7 +103,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		linuxInstallName += "-linux"
 	}
 
-	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
+	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	if args.Fakeintake != nil {
 		configureFakeintake(values, args.Fakeintake)
 	}
@@ -152,7 +162,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	return helmComponent, nil
 }
 
-func buildLinuxHelmValues(installName string, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string) pulumi.Map {
+func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) pulumi.Map {
 	return pulumi.Map{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -198,6 +208,7 @@ func buildLinuxHelmValues(installName string, agentImagePath, agentImageTag, clu
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),
 			},
+			"token": clusterAgentToken,
 		},
 		"clusterChecksRunner": pulumi.Map{
 			"enabled": pulumi.Bool(true),

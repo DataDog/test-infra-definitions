@@ -8,8 +8,6 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/pulumi/pulumi-command/sdk/go/command"
-	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -43,33 +41,24 @@ const (
 )
 
 type CommonEnvironment struct {
-	Ctx                   *pulumi.Context
+	providerRegistry
+
+	Ctx         *pulumi.Context
+	CommonNamer namer.Namer
+
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
-	CommonNamer           namer.Namer
-
-	RandomProvider  *random.Provider
-	CommandProvider *command.Provider
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
-	randomProvider, err := random.NewProvider(ctx, "random-provider", &random.ProviderArgs{})
-	if err != nil {
-		return CommonEnvironment{}, err
-	}
-	commandProvider, err := command.NewProvider(ctx, "command-provider", &command.ProviderArgs{})
-	if err != nil {
-		return CommonEnvironment{}, err
-	}
 	env := CommonEnvironment{
 		Ctx:                   ctx,
 		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
 		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
 		CommonNamer:           namer.NewNamer(ctx, ""),
-		RandomProvider:        randomProvider,
-		CommandProvider:       commandProvider,
+		providerRegistry:      newProviderRegistry(ctx),
 	}
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)

@@ -1,6 +1,7 @@
 package eks
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -46,7 +47,7 @@ func Run(ctx *pulumi.Context) error {
 			},
 		},
 		VpcId: pulumi.StringPtr(awsEnv.DefaultVPCID()),
-	}, awsEnv.ResourceProvidersOption())
+	}, awsEnv.WithProviders(config.ProviderAWS))
 	if err != nil {
 		return err
 	}
@@ -112,7 +113,7 @@ func Run(ctx *pulumi.Context) error {
 		Create: "30m",
 		Update: "30m",
 		Delete: "30m",
-	}))
+	}), awsEnv.WithProvider(config.ProviderEKS), awsEnv.WithProvider(config.ProviderAWS))
 	if err != nil {
 		return err
 	}
@@ -158,7 +159,7 @@ func Run(ctx *pulumi.Context) error {
 	eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
 		Kubeconfig:            utils.KubeconfigToJSON(cluster.Kubeconfig),
-	}, awsEnv.ResourceProvidersOption(), pulumi.DependsOn(nodeGroups))
+	}, awsEnv.WithProviders(config.ProviderAWS), pulumi.DependsOn(nodeGroups))
 	if err != nil {
 		return err
 	}

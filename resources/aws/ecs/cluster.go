@@ -1,6 +1,7 @@
 package ecs
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
@@ -15,5 +16,5 @@ func CreateEcsCluster(e aws.Environment, name string) (*ecs.Cluster, error) {
 				KmsKeyId: pulumi.StringPtr(e.ECSExecKMSKeyID()),
 			},
 		},
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 }

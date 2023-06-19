@@ -26,7 +26,7 @@ func Run(ctx *pulumi.Context) error {
 	kindKubeProvider, err := kubernetes.NewProvider(ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
 		Kubeconfig:            kubeConfig,
-	}, awsEnv.ResourceProvidersOption(), utils.PulumiDependsOn(kubeConfigCommand))
+	}, utils.PulumiDependsOn(kubeConfigCommand))
 	if err != nil {
 		return err
 	}

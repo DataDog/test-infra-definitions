@@ -5,7 +5,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
-	sdkawsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -54,10 +53,8 @@ type Environment struct {
 
 	Namer namer.Namer
 
-	awsProvider  *sdkaws.Provider
-	awsxProvider *sdkawsx.Provider
-	awsConfig    *sdkconfig.Config
-	envDefault   environmentDefault
+	awsConfig  *sdkconfig.Config
+	envDefault environmentDefault
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
@@ -73,7 +70,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), awsConfigNamespace)),
 	}
 
-	env.awsProvider, err = sdkaws.NewProvider(ctx, "aws", &sdkaws.ProviderArgs{
+	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
 			Tags: commonEnv.ResourcesTags(),
@@ -84,25 +81,9 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	if err != nil {
 		return Environment{}, err
 	}
-
-	env.awsxProvider, err = sdkawsx.NewProvider(ctx, "awsx", &sdkawsx.ProviderArgs{})
-	if err != nil {
-		return Environment{}, err
-	}
+	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
 	return env, nil
-}
-
-// InvokeOption are used in non-resources methods (like LookupXXX or GetXXX)
-// These methods only allow for a single provider.
-func (e *Environment) InvokeProviderOption() pulumi.InvokeOption {
-	return pulumi.Provider(e.awsProvider)
-}
-
-// ResourceOption are used in resources methods (like NewXXX)
-// These methods can use multiple providers (like awsx with aws)
-func (e *Environment) ResourceProvidersOption() pulumi.ResourceOption {
-	return pulumi.Providers(e.awsProvider, e.awsxProvider)
 }
 
 // Common

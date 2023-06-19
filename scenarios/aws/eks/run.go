@@ -83,6 +83,12 @@ func Run(ctx *pulumi.Context) error {
 		)
 	}
 
+	// Building EKS provider
+	eksProvider, err := eks.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-provider"), &eks.ProviderArgs{}, awsEnv.ResourceProvidersOption())
+	if err != nil {
+		return err
+	}
+
 	// Create an EKS cluster with the default configuration.
 	cluster, err := eks.NewCluster(ctx, awsEnv.Namer.ResourceName("eks"), &eks.ClusterArgs{
 		Name:                         awsEnv.CommonNamer.DisplayName(),
@@ -109,7 +115,7 @@ func Run(ctx *pulumi.Context) error {
 			linuxNodeRole,
 		},
 		ServiceRole: clusterRole,
-	}, awsEnv.ResourceProvidersOption(), pulumi.Timeouts(&pulumi.CustomTimeouts{
+	}, pulumi.Provider(eksProvider), pulumi.Timeouts(&pulumi.CustomTimeouts{
 		Create: "30m",
 		Update: "30m",
 		Delete: "30m",

@@ -253,6 +253,9 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 			"tokenSecretName":      pulumi.String(installName + "-linux-datadog-cluster-agent"),
 			"clusterchecksEnabled": pulumi.Bool(false),
 		},
+		"clusterChecksRunner": pulumi.Map{
+			"enabled": pulumi.Bool(false),
+		},
 	}
 }
 
@@ -268,9 +271,11 @@ func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionE
 		},
 	}
 
-	if values["datadog"].(pulumi.Map)["env"] == nil {
-		values["datadog"].(pulumi.Map)["env"] = additionalEndpointsEnvVar
-	} else {
-		values["datadog"].(pulumi.Map)["env"] = append(values["datadog"].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)
+	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
+		if values[section].(pulumi.Map)["env"] == nil {
+			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
+		} else {
+			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)
+		}
 	}
 }

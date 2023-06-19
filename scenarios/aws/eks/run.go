@@ -115,7 +115,7 @@ func Run(ctx *pulumi.Context) error {
 			linuxNodeRole,
 		},
 		ServiceRole: clusterRole,
-	}, pulumi.Provider(eksProvider), pulumi.Timeouts(&pulumi.CustomTimeouts{
+	}, awsEnv.ResourceProvidersOption(), pulumi.Provider(eksProvider), pulumi.Timeouts(&pulumi.CustomTimeouts{
 		Create: "30m",
 		Update: "30m",
 		Delete: "30m",

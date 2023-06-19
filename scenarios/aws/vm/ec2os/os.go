@@ -1,15 +1,15 @@
-package os
+package ec2os
 
 import (
 	"fmt"
 
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 )
 
 type OS interface {
-	commonos.OS
-	GetAMIArch(arch commonos.Architecture) string
+	os.OS
+	GetAMIArch(arch os.Architecture) string
 	GetTenancy() string
 }
 

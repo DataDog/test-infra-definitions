@@ -3,7 +3,7 @@ package ecs
 import (
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
-	ec2vm "github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2VM"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 )
 
 // NewEcsFakeintake creates a new instance of fakeintake service on a dedicated fargate cluster

@@ -6,7 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/os"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -16,7 +16,7 @@ type VM interface {
 	utils.RemoteServiceDeserializer[ClientData]
 	GetRunner() *command.Runner
 	GetCommonEnvironment() *config.CommonEnvironment
-	GetOS() commonos.OS
+	GetOS() os.OS
 	GetFileManager() *command.FileManager
 
 	// TODO: Have a WAY better output interface
@@ -27,7 +27,7 @@ type genericVM struct {
 	instanceIP  pulumi.StringInput
 	runner      *command.Runner
 	env         *config.CommonEnvironment
-	os          commonos.OS
+	os          os.OS
 	fileManager *command.FileManager
 	stackKey    string
 	*utils.RemoteServiceConnector[ClientData]
@@ -39,14 +39,14 @@ func NewGenericVM(
 	vmResource pulumi.Resource,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
-	os commonos.OS,
+	osValue os.OS,
 ) (VM, error) {
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
 
 	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
 	var osCommand command.OSCommand
-	if os.GetType() == commonos.WindowsType {
+	if osValue.GetType() == os.WindowsType {
 		readyFunc = func(r *command.Runner) (*remote.Command, error) {
 			// Wait until a command can be executed.
 			return r.Command(
@@ -60,7 +60,7 @@ func NewGenericVM(
 		osCommand = command.NewUnixOSCommand()
 	}
 
-	connection, runner, err := createRunner(vmResource, env, instanceIP, os.GetSSHUser(), readyFunc, osCommand)
+	connection, runner, err := createRunner(vmResource, env, instanceIP, osValue.GetSSHUser(), readyFunc, osCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -73,7 +73,7 @@ func NewGenericVM(
 		instanceIP:             instanceIP,
 		runner:                 runner,
 		env:                    commonEnv,
-		os:                     os,
+		os:                     osValue,
 		stackKey:               stackKey,
 		fileManager:            command.NewFileManager(runner),
 		RemoteServiceConnector: remoteServiceConnector,
@@ -92,7 +92,7 @@ func (vm *genericVM) GetCommonEnvironment() *config.CommonEnvironment {
 	return vm.env
 }
 
-func (vm *genericVM) GetOS() commonos.OS {
+func (vm *genericVM) GetOS() os.OS {
 	return vm.os
 }
 

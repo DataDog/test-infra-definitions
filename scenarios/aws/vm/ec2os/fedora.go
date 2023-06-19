@@ -1,18 +1,18 @@
-package os
+package ec2os
 
 import (
 	"errors"
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 )
 
 type fedora struct {
 	*unix
-	*commonos.Unix
+	*os.Unix
 	env aws.Environment
 }
 
@@ -20,16 +20,16 @@ func newFedora(env aws.Environment) *fedora {
 	return &fedora{
 		unix: &unix{},
 		env:  env,
-		Unix: commonos.NewUnix(&env),
+		Unix: os.NewUnix(&env),
 	}
 }
 func (*fedora) GetSSHUser() string { return "fedora" }
 
-func (u *fedora) GetImage(arch commonos.Architecture) (string, error) {
+func (u *fedora) GetImage(arch os.Architecture) (string, error) {
 	switch arch {
-	case commonos.AMD64Arch:
+	case os.AMD64Arch:
 		return ec2.SearchAMI(u.env, "679593333241", "Fedora-Cloud-Base-34-1.2*-standard-*", string(arch))
-	case commonos.ARM64Arch:
+	case os.ARM64Arch:
 		// OptInRequired: In order to use this AWS Marketplace product you need to accept terms and subscribe
 		return "", errors.New("ARM64 is not supported for Fedora")
 	default:
@@ -37,8 +37,8 @@ func (u *fedora) GetImage(arch commonos.Architecture) (string, error) {
 	}
 }
 
-func (*fedora) GetServiceManager() *commonos.ServiceManager {
-	return commonos.NewSystemCtlServiceManager()
+func (*fedora) GetServiceManager() *os.ServiceManager {
+	return os.NewSystemCtlServiceManager()
 }
 
 func (*fedora) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {

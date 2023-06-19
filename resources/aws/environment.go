@@ -41,7 +41,8 @@ const (
 	ddInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
 
 	// AWS EKS
-	ddInfraEksAllowedInboundSecurityGroups = "aws/eks/clusterSecurityGroups"
+	ddInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
+	ddInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
 	ddInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
 	ddInfraEksLinuxNodeGroup               = "aws/eks/linuxNodeGroup"
 	ddInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
@@ -203,8 +204,14 @@ func (e *Environment) ECSWindowsNodeGroup() bool {
 
 func (e *Environment) EKSAllowedInboundSecurityGroups() []string {
 	var arr []string
-	resInt := e.GetObjectWithDefault(e.InfraConfig, ddInfraEksAllowedInboundSecurityGroups, arr, e.envDefault.ddInfra.eks.allowedInboundSecurityGroups)
-	return resInt.([]string)
+	resObj := e.GetObjectWithDefault(e.InfraConfig, ddInfraEksAllowedInboundSecurityGroups, arr, e.envDefault.ddInfra.eks.allowedInboundSecurityGroups)
+	return resObj.([]string)
+}
+
+func (e *Environment) EKSAllowedInboundPrefixLists() []string {
+	var arr []string
+	resObj := e.GetObjectWithDefault(e.InfraConfig, ddInfraEksAllowedInboundPrefixList, arr, e.envDefault.ddInfra.eks.allowedInboundPrefixList)
+	return resObj.([]string)
 }
 
 func (e *Environment) EKSFargateNamespace() string {

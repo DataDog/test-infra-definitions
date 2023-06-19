@@ -1,4 +1,4 @@
-package agent
+package agentparams
 
 import (
 	"fmt"
@@ -26,15 +26,17 @@ import (
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type Params struct {
-	version          os.AgentVersion
-	agentConfig      string
-	integrations     map[string]string
-	extraAgentConfig []pulumi.StringInput
+	Version          os.AgentVersion
+	AgentConfig      string
+	Integrations     map[string]string
+	ExtraAgentConfig []pulumi.StringInput
 }
 
-func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
+type Option = func(*Params) error
+
+func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
 	p := &Params{
-		integrations: make(map[string]string),
+		Integrations: make(map[string]string),
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
@@ -43,15 +45,15 @@ func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipelineID(env.PipelineID())
 	}
-	options = append([]func(*Params) error{defaultVersion}, options...)
+	options = append([]Option{defaultVersion}, options...)
 	return common.ApplyOption(p, options)
 }
 
 // WithLatest uses the latest Agent 7 version in the stable channel.
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
-		p.version.Major = "7"
-		p.version.BetaChannel = false
+		p.Version.Major = "7"
+		p.Version.BetaChannel = false
 		return nil
 	}
 }
@@ -64,7 +66,7 @@ func WithVersion(version string) func(*Params) error {
 		if err != nil {
 			return err
 		}
-		p.version = v
+		p.Version = v
 
 		return nil
 	}
@@ -73,7 +75,7 @@ func WithVersion(version string) func(*Params) error {
 // WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
 func WithPipelineID(version string) func(*Params) error {
 	return func(p *Params) error {
-		p.version = parsePipelineVersion(version)
+		p.Version = parsePipelineVersion(version)
 
 		return nil
 	}
@@ -107,7 +109,7 @@ func parsePipelineVersion(s string) os.AgentVersion {
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
-		p.agentConfig = config
+		p.AgentConfig = config
 		return nil
 	}
 }
@@ -115,7 +117,7 @@ func WithAgentConfig(config string) func(*Params) error {
 // WithIntegration adds the configuration for an integration.
 func WithIntegration(folderName string, content string) func(*Params) error {
 	return func(p *Params) error {
-		p.integrations[folderName] = content
+		p.Integrations[folderName] = content
 		return nil
 	}
 }
@@ -141,7 +143,7 @@ func WithTelemetry() func(*Params) error {
     metrics:
       - "*"
 `
-		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("telemetry.enabled: true"))
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("telemetry.enabled: true"))
 		return WithIntegration("openmetrics.d", config)(p)
 	}
 }
@@ -154,7 +156,7 @@ func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) err
 logs_config.logs_dd_url: %s:80
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true`, fakeintake.Host, fakeintake.Host)
-		p.extraAgentConfig = append(p.extraAgentConfig, extraConfig)
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}
 }
@@ -162,7 +164,7 @@ logs_config.force_use_http: true`, fakeintake.Host, fakeintake.Host)
 // WithLogs enables the log agent
 func WithLogs() func(*Params) error {
 	return func(p *Params) error {
-		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("logs_enabled: true"))
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("logs_enabled: true"))
 		return nil
 	}
 }

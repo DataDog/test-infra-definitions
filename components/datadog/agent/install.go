@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -22,15 +23,15 @@ type Installer struct {
 }
 
 // NewInstaller creates a new instance of [*Installer]
-func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) {
+func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 	env := vm.GetCommonEnvironment()
-	params, err := newParams(env, options...)
+	params, err := agentparams.NewParams(env, options...)
 	if err != nil {
 		return nil, err
 	}
 
 	os := vm.GetOS()
-	cmd, err := os.GetAgentInstallCmd(params.version)
+	cmd, err := os.GetAgentInstallCmd(params.Version)
 	if err != nil {
 		return nil, err
 	}
@@ -49,8 +50,8 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	lastCommand, updateConfigTrigger, err = updateAgentConfig(
 		vm.GetFileManager(),
 		env,
-		params.agentConfig,
-		params.extraAgentConfig,
+		params.AgentConfig,
+		params.ExtraAgentConfig,
 		os,
 		lastCommand)
 	if err != nil {
@@ -58,7 +59,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	}
 
 	var integsHash string
-	lastCommand, integsHash, err = installIntegrations(vm.GetFileManager(), params.integrations, os, lastCommand)
+	lastCommand, integsHash, err = installIntegrations(vm.GetFileManager(), params.Integrations, os, lastCommand)
 
 	if err != nil {
 		return nil, err

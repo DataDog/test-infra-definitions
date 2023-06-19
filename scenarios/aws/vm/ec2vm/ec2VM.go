@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"os"
 
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	componentos "github.com/DataDog/test-infra-definitions/components/os"
 	commonvm "github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	awsEc2 "github.com/DataDog/test-infra-definitions/resources/aws/ec2"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -25,7 +26,7 @@ type EC2VM struct {
 }
 
 // NewEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func NewEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) {
+func NewEc2VM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2VM, error) {
 	return newVM(ctx, options...)
 }
 
@@ -36,7 +37,7 @@ type EC2UnixVM struct {
 
 // NewUnixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 // The returned vm provides additional methods compared to NewEc2VM
-func NewUnixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2UnixVM, error) {
+func NewUnixEc2VM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2UnixVM, error) {
 	vm, err := newVM(ctx, options...)
 	if err != nil {
 		return nil, err
@@ -53,20 +54,21 @@ func NewUnixEc2VM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2Unix
 }
 
 // newVM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func newVM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) {
+func newVM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2VM, error) {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	params, err := newParams(env, options...)
+	params, err := ec2params.NewParams(env, options...)
 	if err != nil {
 		return nil, err
 	}
 
-	os := params.common.OS
-	userData := params.common.UserData
-	if os.GetType() == commonos.WindowsType {
+	commonParams := params.GetCommonParams()
+	osValue := commonParams.OS
+	userData := commonParams.UserData
+	if osValue.GetType() == componentos.WindowsType {
 		cmd, err := GetOpenSSHInstallCmd(env.DefaultPublicKeyPath())
 		if err != nil {
 			return nil, err
@@ -75,23 +77,23 @@ func newVM(ctx *pulumi.Context, options ...func(*Params) error) (*EC2VM, error) 
 	}
 	instance, err := awsEc2.NewEC2Instance(
 		env,
-		env.CommonNamer.ResourceName(params.common.ImageName),
-		params.common.ImageName,
-		os.GetAMIArch(params.common.Arch),
-		params.common.InstanceType,
+		env.CommonNamer.ResourceName(commonParams.ImageName),
+		commonParams.ImageName,
+		osValue.GetAMIArch(commonParams.Arch),
+		commonParams.InstanceType,
 		env.DefaultKeyPairName(),
 		userData,
-		os.GetTenancy())
+		osValue.GetTenancy())
 	if err != nil {
 		return nil, err
 	}
 
 	vm, err := commonvm.NewGenericVM(
-		params.common.InstanceName,
+		commonParams.InstanceName,
 		instance,
 		&env,
 		instance.PrivateIp,
-		os,
+		osValue,
 	)
 	if err != nil {
 		return nil, err

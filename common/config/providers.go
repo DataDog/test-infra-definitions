@@ -22,23 +22,25 @@ const (
 	ProviderAzure   ProviderID = "azure"
 )
 
-var dummyProvidersFactory = map[ProviderID]func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error){
-	ProviderRandom: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
-		provider, err := random.NewProvider(ctx, name, nil)
-		return provider, err
-	},
-	ProviderCommand: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
-		provider, err := command.NewProvider(ctx, name, nil)
-		return provider, err
-	},
-	ProviderAWSX: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
-		provider, err := awsx.NewProvider(ctx, name, nil)
-		return provider, err
-	},
-	ProviderEKS: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
-		provider, err := eks.NewProvider(ctx, name, nil)
-		return provider, err
-	},
+func dummyProvidersFactory() map[ProviderID]func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+	return map[ProviderID]func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error){
+		ProviderRandom: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+			provider, err := random.NewProvider(ctx, name, nil)
+			return provider, err
+		},
+		ProviderCommand: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+			provider, err := command.NewProvider(ctx, name, nil)
+			return provider, err
+		},
+		ProviderAWSX: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+			provider, err := awsx.NewProvider(ctx, name, nil)
+			return provider, err
+		},
+		ProviderEKS: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+			provider, err := eks.NewProvider(ctx, name, nil)
+			return provider, err
+		},
+	}
 }
 
 type providerRegistry struct {
@@ -82,15 +84,15 @@ func (p *providerRegistry) GetProvider(providerID ProviderID) pulumi.ProviderRes
 		return provider
 	}
 
-	if providerFactory, found := dummyProvidersFactory[providerID]; found {
+	if providerFactory, found := dummyProvidersFactory()[providerID]; found {
 		provider, err := providerFactory(p.ctx, string(providerID))
 		if err != nil {
-			panic(fmt.Errorf("Provider %s creation failed, err: %w", providerID, err))
+			panic(fmt.Errorf("provider %s creation failed, err: %w", providerID, err))
 		}
 
 		p.providers[providerID] = provider
 		return provider
 	}
 
-	panic(fmt.Sprintf("Provider %s not registered", providerID))
+	panic(fmt.Sprintf("provider %s not registered", providerID))
 }

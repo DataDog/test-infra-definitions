@@ -20,7 +20,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -121,55 +121,57 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis", &ddv1alpha1.DatadogMetricArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+	if dependsOnCrd != nil {
+		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis", &ddv1alpha1.DatadogMetricArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("redis"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("redis"),
+				},
 			},
-		},
-		Spec: &ddv1alpha1.DatadogMetricSpecArgs{
-			Query: pulumi.String(fmt.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace)),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
+			Spec: &ddv1alpha1.DatadogMetricSpecArgs{
+				Query: pulumi.String(fmt.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace)),
+			},
+		}, append(opts, dependsOnCrd)...)
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
+		if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("redis"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("redis"),
+				},
 			},
-		},
-		Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
-			MinReplicas: pulumi.Int(1),
-			MaxReplicas: pulumi.Int(5),
-			ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
-				ApiVersion: pulumi.String("apps/v1"),
-				Kind:       pulumi.String("Deployment"),
-				Name:       pulumi.String("redis"),
-			},
-			Metrics: &autoscalingv2.MetricSpecArray{
-				&autoscalingv2.MetricSpecArgs{
-					Type: pulumi.String("External"),
-					External: &autoscalingv2.ExternalMetricSourceArgs{
-						Metric: &autoscalingv2.MetricIdentifierArgs{
-							Name: pulumi.String("datadogmetric@" + namespace + ":redis"),
-						},
-						Target: &autoscalingv2.MetricTargetArgs{
-							Type:         pulumi.String("AverageValue"),
-							AverageValue: pulumi.String("10"),
+			Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
+				MinReplicas: pulumi.Int(1),
+				MaxReplicas: pulumi.Int(5),
+				ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
+					ApiVersion: pulumi.String("apps/v1"),
+					Kind:       pulumi.String("Deployment"),
+					Name:       pulumi.String("redis"),
+				},
+				Metrics: &autoscalingv2.MetricSpecArray{
+					&autoscalingv2.MetricSpecArgs{
+						Type: pulumi.String("External"),
+						External: &autoscalingv2.ExternalMetricSourceArgs{
+							Metric: &autoscalingv2.MetricIdentifierArgs{
+								Name: pulumi.String("datadogmetric@" + namespace + ":redis"),
+							},
+							Target: &autoscalingv2.MetricTargetArgs{
+								Type:         pulumi.String("AverageValue"),
+								AverageValue: pulumi.String("10"),
+							},
 						},
 					},
 				},
 			},
-		},
-	}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
-		return nil, err
+		}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
+			return nil, err
+		}
 	}
 
 	if _, err := corev1.NewService(e.Ctx, "redis", &corev1.ServiceArgs{

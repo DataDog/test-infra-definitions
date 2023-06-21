@@ -27,13 +27,13 @@ func NewFileManager(runner *Runner) *FileManager {
 }
 
 // CreateDirectory if it does not exist
-func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInput, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fm *FileManager) CreateDirectory(name string, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
 }
 
 func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
 	tempDir := path.Join(fm.command.GetTemporaryDirectory(), resourceName)
-	folderCmd, err := fm.CreateDirectory("create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
+	folderCmd, err := fm.CreateDirectory("create-temporary-folder-"+resourceName, tempDir, false, opts...)
 	return folderCmd, tempDir, err
 
 }
@@ -94,7 +94,7 @@ func (fm *FileManager) CopyFSFolder(
 	remoteFolder string,
 	opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
 	useSudo := true
-	folderCommand, err := fm.CreateDirectory(resourceName, pulumi.String(remoteFolder), useSudo, opts...)
+	folderCommand, err := fm.CreateDirectory(resourceName, remoteFolder, useSudo, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("cannot create a temporary folder: %v for resource %v", err, resourceName)
 	}
@@ -111,7 +111,8 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 		remotePath := path.Join(remoteFolder, destFolder)
-		resources, err := fm.CreateDirectory("createFolder-"+remotePath, pulumi.String(remotePath), useSudo, pulumi.DependsOn([]pulumi.Resource{folderCommand}))
+
+		resources, err := fm.CreateDirectory("createFolder-"+remotePath, remotePath, useSudo, pulumi.DependsOn([]pulumi.Resource{folderCommand}))
 		if err != nil {
 			return nil, err
 		}

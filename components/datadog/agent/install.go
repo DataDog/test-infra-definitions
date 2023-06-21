@@ -124,7 +124,7 @@ func installIntegrations(
 		folderPath := path.Join(configFolder, "conf.d", folderName)
 		confPath := path.Join(folderPath, "conf.yaml")
 		// create directory, if it does not exist
-		lastCommand, err = fileManager.CreateDirectory(folderName, pulumi.String(folderPath), true, utils.PulumiDependsOn(lastCommand))
+		lastCommand, err = fileManager.CreateDirectory(folderName, folderPath, true, utils.PulumiDependsOn(lastCommand))
 		if err != nil {
 			return nil, "", err
 		}

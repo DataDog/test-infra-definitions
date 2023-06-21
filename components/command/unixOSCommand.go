@@ -25,7 +25,7 @@ func NewUnixOSCommand() OSCommand {
 func (unixOSCommand) CreateDirectory(
 	runner *Runner,
 	name string,
-	remotePath pulumi.StringInput,
+	remotePath string,
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
 

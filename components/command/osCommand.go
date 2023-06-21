@@ -15,7 +15,7 @@ type OSCommand interface {
 	CreateDirectory(
 		runner *Runner,
 		resourceName string,
-		remotePath pulumi.StringInput,
+		remotePath string,
 		useSudo bool,
 		opts ...pulumi.ResourceOption) (*remote.Command, error)
 

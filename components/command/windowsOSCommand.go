@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -19,15 +20,18 @@ func NewWindowsOSCommand() OSCommand {
 func (fs windowsOSCommand) CreateDirectory(
 	runner *Runner,
 	name string,
-	remotePath pulumi.StringInput,
+	remotePath string,
 	_ bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
+
 	useSudo := false
+	windowsPath := strings.Replace(remotePath, "/", "\\", -1)
+	windowsName := strings.Replace(name, remotePath, windowsPath, 1)
 	return createDirectory(
 		runner,
-		name,
-		fmt.Sprintf("if (-not (Test-Path -PathType container %v)) { New-Item -Path %v -ItemType Directory }", remotePath, remotePath),
-		fmt.Sprintf("if (-not (Test-Path -Path %v/*)) { Remove-Item -Path %v -ErrorAction SilentlyContinue }", remotePath, remotePath),
+		windowsName,
+		fmt.Sprintf("if (-not (Test-Path -PathType container %v)) { New-Item -Path %v -ItemType Directory }", windowsPath, windowsPath),
+		fmt.Sprintf("if (-not (Test-Path -Path %v/*)) { Remove-Item -Path %v -ErrorAction SilentlyContinue }", windowsPath, windowsPath),
 		useSudo,
 		opts...)
 }
@@ -38,6 +42,9 @@ func (fs windowsOSCommand) CopyInlineFile(
 	remotePath string,
 	useSudo bool,
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
+
+	remotePath = strings.Replace(remotePath, "/", "\\", -1)
+
 	backupPath := remotePath + "." + backupExtension
 	backupCmd := fmt.Sprintf("if (Test-Path -Path '%v') { Move-Item -Force -Path '%v' -Destination '%v'}", remotePath, remotePath, backupPath)
 	createCmd := fmt.Sprintf(`%v; [System.Console]::In.ReadToEnd() | Out-File -FilePath '%v'`, backupCmd, remotePath)

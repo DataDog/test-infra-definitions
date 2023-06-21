@@ -31,7 +31,7 @@ type Params struct {
 type Option = func(*Params) error
 
 func NewParams(env aws.Environment, options ...Option) (*Params, error) {
-	commonParams, err := vm.NewParams[ec2os.OS](env.CommonEnvironment)
+	commonParams, err := vm.NewParams[ec2os.OS]()
 	if err != nil {
 		return nil, err
 	}

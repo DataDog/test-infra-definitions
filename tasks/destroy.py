@@ -56,7 +56,8 @@ def _get_existing_stacks() -> Tuple[List[str], List[str]]:
     full_stacks: List[str] = []
     stack_name_prefix = get_stack_name_prefix()
     for line in lines:
-        stack_name = line.split(" ")[0]
+        # the stack has an asterisk if it is currently selected
+        stack_name = line.split(" ")[0].rstrip('*')
         if stack_name.startswith(stack_name_prefix):
             full_stacks.append(stack_name)
             stack_name = stack_name[len(stack_name_prefix):]

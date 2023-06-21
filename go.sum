@@ -287,8 +287,8 @@ github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.24.1 h1:GX0URNU6q8EkeAzgIwtE/mkC7Y
 github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.24.1/go.mod h1:/2uuKELv+RvIQtIctdnezesprWkkxGLv6i4456NSSCw=
 github.com/pulumi/pulumi-libvirt/sdk v0.4.0 h1:wq1Ox8FRKQ1kc2DPq3m5DGQgZEhE7kp4mtG556HxJLs=
 github.com/pulumi/pulumi-libvirt/sdk v0.4.0/go.mod h1:tjjyDajp6Pb1pRCdaIugknIfzxw3Prev3o/k2nade+I=
-github.com/pulumi/pulumi-random/sdk/v4 v4.11.2 h1:i336djUk9cLBIoxBSj0ufrI/Y4dXO3FNgsJhfPQArzQ=
-github.com/pulumi/pulumi-random/sdk/v4 v4.11.2/go.mod h1:HSIRcca1XWsowTibPtlX4Qt+xyRcy+vSuSekDKfU3cM=
+github.com/pulumi/pulumi-random/sdk/v4 v4.13.2 h1:p4Cti4RIBKA0qi+JG/AofpcVsdyCaHd5gKMU5y/3I2Q=
+github.com/pulumi/pulumi-random/sdk/v4 v4.13.2/go.mod h1:cFlJw0eQnqN+62QpITEF9M08gVyzNCeXrKRsuJptFak=
 github.com/pulumi/pulumi/sdk/v3 v3.16.0/go.mod h1:252ou/zAU1g6E8iTwe2Y9ht7pb5BDl2fJlOuAgZCHiA=
 github.com/pulumi/pulumi/sdk/v3 v3.25.0/go.mod h1:VsxW+TGv2VBLe/MeqsAr9r0zKzK/gbAhFT9QxYr24cY=
 github.com/pulumi/pulumi/sdk/v3 v3.36.0/go.mod h1:e1xuPnh9aKzCesrFf96DEzcybLdRWRMhKeKVBmb2lm0=

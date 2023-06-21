@@ -19,7 +19,7 @@ require (
 	github.com/pulumi/pulumi-eks/sdk v1.0.1
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.24.1
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.0
-	github.com/pulumi/pulumi-random/sdk/v4 v4.11.2
+	github.com/pulumi/pulumi-random/sdk/v4 v4.13.2
 	github.com/pulumi/pulumi/sdk/v3 v3.71.0
 	github.com/stretchr/testify v1.8.2
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1

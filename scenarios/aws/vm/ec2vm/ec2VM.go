@@ -104,7 +104,7 @@ func NewUnixEc2VMWithEnv(env aws.Environment, options ...ec2params.Option) (*EC2
 	}, nil
 }
 
-// NewUnixEc2VMW creates a new EC2 instance with an existing aws.NewEnvironment. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// NewUnixEc2VM creates a new EC2 instance with an existing aws.NewEnvironment. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 // The returned vm provides additional methods compared to NewEc2VM
 func NewUnixEc2VM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2UnixVM, error) {
 	env, err := aws.NewEnvironment(ctx)

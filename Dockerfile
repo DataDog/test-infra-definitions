@@ -46,7 +46,9 @@ RUN apt-get update -y && \
   docker-ce \
   google-cloud-sdk \
   google-cloud-sdk-gke-gcloud-auth-plugin \
-  kubectl && \
+  kubectl 
+  # xsltproc is required by libvirt-sdk used in the micro-vms scenario
+  xsltproc && \
   # Clean up the lists work
   rm -rf /var/lib/apt/lists/*
 

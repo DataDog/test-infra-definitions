@@ -38,6 +38,6 @@ func GetDefaultVolumeXML(args map[string]pulumi.StringInput, recipe string) pulu
 	return formatResourceXML(defaultVolumeXML, args)
 }
 
-func GetDefaultPoolXML(args map[string]pulumi.StringInput, recipe string) pulumi.StringOutput {
+func GetDefaultPoolXML(args map[string]pulumi.StringInput, _ string) pulumi.StringOutput {
 	return formatResourceXML(defaultPoolXML, args)
 }

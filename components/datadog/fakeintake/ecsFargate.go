@@ -1,6 +1,7 @@
 package fakeintake
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
@@ -31,7 +32,7 @@ func FargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTas
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
 		Family: e.CommonNamer.DisplayName(pulumi.String("fakeintake-ecs")),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
 func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {

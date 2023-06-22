@@ -27,8 +27,7 @@ const (
 type Environment struct {
 	*config.CommonEnvironment
 
-	Provider *sdkazure.Provider
-	Namer    namer.Namer
+	Namer namer.Namer
 
 	envDefault environmentDefault
 }
@@ -45,7 +44,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace)),
 	}
 
-	env.Provider, err = sdkazure.NewProvider(ctx, "azure", &sdkazure.ProviderArgs{
+	azureProvider, err := sdkazure.NewProvider(ctx, string(config.ProviderAzure), &sdkazure.ProviderArgs{
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
 		SubscriptionId:         pulumi.StringPtr(env.envDefault.azure.subscriptionID),
 		TenantId:               pulumi.StringPtr(env.envDefault.azure.tenantID),
@@ -53,6 +52,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	if err != nil {
 		return Environment{}, err
 	}
+	env.RegisterProvider(config.ProviderAzure, azureProvider)
 
 	return env, nil
 }

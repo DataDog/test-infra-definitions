@@ -4,7 +4,8 @@ from .config import Config, get_full_profile_path
 import os
 import subprocess
 from invoke.context import Context
-from invoke.exceptions import Exit 
+from invoke.runners import Local, Result
+from invoke.exceptions import Exit
 from typing import Callable, List, Optional, Dict, Any
 import pathlib
 from . import tool
@@ -13,7 +14,7 @@ default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 
 
 def deploy(
-    _: Context,
+    ctx: Context,
     scenario_name: str,
     key_pair_required: bool = False,
     public_key_required: bool = False,
@@ -36,10 +37,8 @@ def deploy(
         cfg = config.get_local_config()
     except ValidationError as e:
         raise Exit(f"Error in config {get_full_profile_path()}:{e}")
-    
-    flags[default_public_path_key_name] = _get_public_path_key_name(
-        cfg, public_key_required
-    )
+
+    flags[default_public_path_key_name] = _get_public_path_key_name(cfg, public_key_required)
     flags["scenario"] = scenario_name
     flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
@@ -61,51 +60,41 @@ def deploy(
         for key, value in stackParams[namespace].items():
             flags[f"{namespace}:{key}"] = value
 
-
     if app_key_required:
         flags["ddagent:appKey"] = _get_app_key(cfg)
 
-    return _deploy(stack_name, flags, debug)
+    return _deploy(ctx, stack_name, flags, debug)
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     defaultPublicKeyPath = cfg.get_aws().publicKeyPath
     if require and defaultPublicKeyPath is None:
-        raise Exit(
-            f"Your scenario requires to define {default_public_path_key_name} in the configuration file"
-        )
+        raise Exit(f"Your scenario requires to define {default_public_path_key_name} in the configuration file")
     return defaultPublicKeyPath
 
 
-def _deploy(
-    stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]
-) -> str:
-    cmd_args = [
-        "aws-vault",
-        "exec",
-        "sso-agent-sandbox-account-admin",
-        "--",
-        "pulumi",
-        "up",
-        "--yes",
-    ]
+def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> str:
+    stack_name = tool.get_stack_name(stack_name, flags["scenario"])
+    run_wrapper = "aws-vault exec sso-agent-sandbox-account-admin"
+    global_flags = ""
+    up_flags = ""
+
+    # Checking root path
+    if _get_root_path() != os.getcwd():
+        global_flags += f" -C {_get_root_path}"
+
+    # Building run func parameters
     for key, value in flags.items():
         if value is not None and value != "":
-            cmd_args.append("-c")
-            cmd_args.append(f"{key}={value}")
-    full_stack_name = tool.get_stack_name(stack_name, flags["scenario"])
-    cmd_args.extend(["-s", full_stack_name])
-    cmd_args.extend(["-C", _get_root_path()])
+            up_flags += f" -c {key}={value}"
 
     if debug:
-        cmd_args.extend(["-v", "3", "--debug"])
+        global_flags += " --logflow --logtostderr -v 3"
+        up_flags += " --debug"
 
-    try:
-        # use subprocess instead of context to allow interaction with pulumi up
-        subprocess.check_call(cmd_args)
-        return full_stack_name
-    except Exception as e:
-        raise Exit(f"Error when running {cmd_args}: {e}")
+    cmd = f"{run_wrapper} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
+    ctx.run(cmd, pty=True)
+    return stack_name
 
 
 def _get_root_path() -> str:
@@ -121,7 +110,13 @@ def _get_app_key(cfg: Optional[Config]) -> str:
     return _get_key("APP KEY", cfg, lambda c: c.get_agent().appKey, "E2E_APP_KEY", 40)
 
 
-def _get_key(key_name: str, cfg: Optional[Config], get_key: Callable[[Config], Optional[str]], env_key_name: str, expected_size: int) -> str:
+def _get_key(
+    key_name: str,
+    cfg: Optional[Config],
+    get_key: Callable[[Config], Optional[str]],
+    env_key_name: str,
+    expected_size: int,
+) -> str:
     key: Optional[str] = None
 
     # first try in config
@@ -139,9 +134,7 @@ def _get_key(key_name: str, cfg: Optional[Config], get_key: Callable[[Config], O
 
 def _check_key_pair(key_pair_to_search: Optional[str]):
     if key_pair_to_search is None or key_pair_to_search == "":
-        raise Exit(
-            "This scenario requires to define 'defaultKeyPairName' in the configuration file"
-        )
+        raise Exit("This scenario requires to define 'defaultKeyPairName' in the configuration file")
     output = subprocess.check_output(["ssh-add", "-L"])
     key_pairs: List[str] = []
     output = output.decode("utf-8")

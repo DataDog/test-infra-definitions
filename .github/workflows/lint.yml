@@ -26,17 +26,22 @@ jobs:
           cache-dependency-path: go.sum
       - name: Check tidy
         run: go mod tidy && git diff-files --exit-code go.mod go.sum
-      - name: Install golangci-lint
-        # Install golangci-lint from source instead of using
-        # golangci-lint-action to ensure the golangci-lint binary is built with
-        # the same Go version we're targeting.
-        # Avoids incompatibility issues such as:
-        # - https://github.com/golangci/golangci-lint/issues/2922
-        # - https://github.com/golangci/golangci-lint/issues/2673
-        # - https://github.com/golangci/golangci-lint-action/issues/442
-        run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-      - name: Run golangci-lint
-        run: golangci-lint version && golangci-lint run --new-from-rev=HEAD~ --out-format=github-actions --timeout=10m
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v3
+        with:
+          # Require: The version of golangci-lint to use.
+          # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
+          # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
+          version: latest
+
+          # Optional: golangci-lint command line arguments.
+          args: --timeout=10m
+
+          # Optional: show only new issues if it's a pull request. The default value is `false`.
+          only-new-issues: true
+          
+          # Optional:The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
+          install-mode: "goinstall"
   lint-python-type:
     runs-on: ubuntu-latest
     steps:

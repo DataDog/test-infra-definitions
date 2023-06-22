@@ -96,13 +96,13 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	if args.Sudo && r.config.user != "" {
 		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
-	depends := append(opts, pulumi.Provider(r.e.CommandProvider))
+	depends := append(opts, r.e.WithProviders(config.ProviderCommand))
 	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), depends...)
 }
 
 func (r *Runner) NewCopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
 	opts = append(opts, r.options...)
-	depends := append(opts, pulumi.Provider(r.e.CommandProvider))
+	depends := append(opts, r.e.WithProviders(config.ProviderCommand))
 	return remote.NewCopyFile(r.e.Ctx, r.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
 		Connection: r.config.connection,
 		LocalPath:  pulumi.String(localPath),
@@ -137,6 +137,6 @@ func NewLocalRunner(e config.CommonEnvironment, args LocalRunnerArgs) *LocalRunn
 }
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
-	depends := append(opts, pulumi.Provider(r.e.CommandProvider))
+	depends := append(opts, r.e.WithProviders(config.ProviderCommand))
 	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), depends...)
 }

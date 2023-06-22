@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"time"
 
+	commonConfig "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -79,7 +80,7 @@ func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(commonConfig.ProviderAWS))
 	return instance, err
 }
 

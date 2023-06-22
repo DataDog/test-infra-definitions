@@ -1,6 +1,7 @@
 package ecs
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
@@ -17,12 +18,12 @@ func NewCapacityProvider(e aws.Environment, name string, asgArn pulumi.StringInp
 			},
 			ManagedTerminationProtection: aws.DisabledString,
 		},
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 }
 
 func NewClusterCapacityProvider(e aws.Environment, name string, clusterName pulumi.StringInput, capacityProviders pulumi.StringArray) (*ecs.ClusterCapacityProviders, error) {
 	return ecs.NewClusterCapacityProviders(e.Ctx, e.Namer.ResourceName(name), &ecs.ClusterCapacityProvidersArgs{
 		ClusterName:       clusterName,
 		CapacityProviders: capacityProviders,
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 }

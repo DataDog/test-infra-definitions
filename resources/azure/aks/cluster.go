@@ -3,8 +3,10 @@ package aks
 import (
 	"encoding/base64"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
+
 	"github.com/pulumi/pulumi-azure-native-sdk/containerservice"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -22,7 +24,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 	// Warning: we're modifying passed array as it should normally never be used anywhere else
 	nodePool = append(nodePool, systemNodePool(e, "system"))
 
-	opts = append(opts, pulumi.Provider(e.Provider))
+	opts = append(opts, e.WithProviders(config.ProviderAzure))
 	cluster, err := containerservice.NewManagedCluster(e.Ctx, e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
 		ResourceName:      e.CommonNamer.DisplayName(pulumi.String(name)),
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
@@ -62,7 +64,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 		containerservice.ListManagedClusterUserCredentialsOutputArgs{
 			ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
 			ResourceName:      cluster.Name,
-		}, pulumi.Provider(e.Provider),
+		}, e.WithProvider(config.ProviderAzure),
 	)
 
 	kubeconfig := creds.Kubeconfigs().Index(pulumi.Int(0)).Value().

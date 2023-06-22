@@ -23,8 +23,6 @@ jobs:
           # Using setup-go cache conflicts with golangci-lint action own cache management
           cache: false
           cache-dependency-path: go.sum
-      - name: Check tidy
-        run: go mod tidy && git diff-files --exit-code go.mod go.sum
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v3
         with:
@@ -41,6 +39,8 @@ jobs:
           
           # Optional:The mode to install golangci-lint. It can be 'binary' or 'goinstall'.
           install-mode: "goinstall"
+      - name: Check tidy
+        run: go mod tidy && git diff-files --exit-code go.mod go.sum
   lint-python-type:
     runs-on: ubuntu-latest
     steps:

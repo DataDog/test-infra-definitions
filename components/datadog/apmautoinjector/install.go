@@ -92,7 +92,7 @@ func getInstallCmd(installerPath string, env *config.CommonEnvironment) string {
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
 
 	// Use `if ($?) { .. }` to get an error if the install fails
-	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i /log c:\\ddapm.log %v APIKEY="%v" SITE="datadoghq.com"'}`,
+	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%v" SITE="datadoghq.com"'}`,
 		installerPath,
 		env.AgentAPIKey(),
 	)

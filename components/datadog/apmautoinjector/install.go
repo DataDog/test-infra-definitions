@@ -22,8 +22,8 @@ type ClientData struct {
 
 // Installer is an installer for the APM auto-injector on a virtual machine
 type Installer struct {
-	dependsOn pulumi.Resource
-	vm        vm.VM
+	LastCommand pulumi.Resource
+	vm          vm.VM
 }
 
 // NewInstaller creates a new instance of [*Installer]
@@ -56,7 +56,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, fmt.Errorf("error installing APM auto-injector: %s", err)
 	}
 
-	return &Installer{dependsOn: lastCommand, vm: vm}, err
+	return &Installer{LastCommand: lastCommand, vm: vm}, err
 }
 
 func getInstaller(vm vm.VM, params *Params) (pulumi.Resource, string, error) {
@@ -92,11 +92,10 @@ func getInstallCmd(installerPath string, env *config.CommonEnvironment) string {
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
 
 	// Use `if ($?) { .. }` to get an error if the install fails
-	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%v" SITE="datadoghq.com"'}`,
+	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i /log c:\\ddapm.log %v APIKEY="%v" SITE="datadoghq.com"'}`,
 		installerPath,
 		env.AgentAPIKey(),
 	)
-	//	options "/log c:\\ddapm.log"
 
 	return cmd
 }

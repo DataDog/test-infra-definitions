@@ -9,8 +9,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -23,7 +24,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	awsEnv, err := aws.NewEnvironment(ctx)
+	awsEnv, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
@@ -188,7 +189,7 @@ func Run(ctx *pulumi.Context) error {
 	if awsEnv.AgentDeploy() {
 		var fakeintake *ddfakeintake.ConnectionExporter
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = newEcsFakeintake(awsEnv); err != nil {
+			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
 				return err
 			}
 		}

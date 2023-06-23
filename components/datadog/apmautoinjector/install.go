@@ -37,7 +37,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, err
 	}
 
-	installerPath, err := getInstaller(vm, params)
+	lastCommand, installerPath, err := getInstaller(vm, params)
 	if err != nil {
 		return nil, err
 	}
@@ -47,11 +47,11 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	commonNamer := env.CommonNamer
 
 	cmd := getInstallCmd(installerPath, env)
-	lastCommand, err := runner.Command(
+	lastCommand, err = runner.Command(
 		commonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
-		})
+		}, utils.PulumiDependsOn(lastCommand))
 	if err != nil {
 		return nil, fmt.Errorf("error installing APM auto-injector: %s", err)
 	}
@@ -59,42 +59,35 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
 }
 
-func getInstaller(vm vm.VM, params *Params) (string, error) {
+func getInstaller(vm vm.VM, params *Params) (pulumi.Resource, string, error) {
 	if params.localInstallerPath != "" {
 		return copyLocalInstallerToVM(vm, params.localInstallerPath)
 	}
 	return installLatest()
 }
 
-func copyLocalInstallerToVM(vm vm.VM, localPath string) (string, error) {
+func copyLocalInstallerToVM(vm vm.VM, localPath string) (pulumi.Resource, string, error) {
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
-		return "", fmt.Errorf("could not find %s on host machine", localPath)
+		return nil, "", fmt.Errorf("could not find %s on host machine", localPath)
 	}
 
 	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath))
 
 	fileManager := vm.GetFileManager()
-	_, err := fileManager.CopyFile(localPath, installerPath)
+	resource, err := fileManager.CopyFile(localPath, installerPath)
 	if err != nil {
-		return "", fmt.Errorf("error copying directory to remote VM: %s", err)
+		return nil, "", fmt.Errorf("error copying directory to remote VM: %s", err)
 	}
 
-	return installerPath, nil
+	return resource, installerPath, nil
 }
 
-func installLatest() (string, error) {
+func installLatest() (pulumi.Resource, string, error) {
 	// Once we have a released version of the APM auto-injector, we can fetch & install it here
-	return "", fmt.Errorf("APM Auto-injector component currently only supports installation via a local installer")
+	return nil, "", fmt.Errorf("APM Auto-injector component currently only supports installation via a local installer")
 }
 
 func getInstallCmd(installerPath string, env *config.CommonEnvironment) string {
-	//	windows_package 'driver test package' do
-	//installer_type :msi
-	//	source "#{tmp_dir}\\kitchen\\cache\\cookbooks\\driver-base\\files\\default\\tests\\ddapmtestpackage.msi"
-	//	options "/log c:\\ddapm.log"
-	//action :install
-	//	end
-
 	// Disable the progress as it slow downs the download.
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
 
@@ -103,6 +96,7 @@ func getInstallCmd(installerPath string, env *config.CommonEnvironment) string {
 		installerPath,
 		env.AgentAPIKey(),
 	)
+	//	options "/log c:\\ddapm.log"
 
 	return cmd
 }

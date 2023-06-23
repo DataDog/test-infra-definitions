@@ -56,7 +56,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	randomClusterAgentToken, err := random.NewRandomString(e.Ctx, "datadog-cluster-agent-token", &random.RandomStringArgs{
 		Lower:   pulumi.Bool(true),
 		Upper:   pulumi.Bool(true),
-		Length:  pulumi.Int(20),
+		Length:  pulumi.Int(32),
 		Numeric: pulumi.Bool(false),
 		Special: pulumi.Bool(false),
 	}, opts...)

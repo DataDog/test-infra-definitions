@@ -20,7 +20,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -155,55 +155,57 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "nginx", &ddv1alpha1.DatadogMetricArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("nginx"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("nginx"),
+	if dependsOnCrd != nil {
+		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "nginx", &ddv1alpha1.DatadogMetricArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("nginx"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("nginx"),
+				},
 			},
-		},
-		Spec: &ddv1alpha1.DatadogMetricSpecArgs{
-			Query: pulumi.String(fmt.Sprintf("avg:nginx.net.request_per_s{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:nginx}.rollup(60)", namespace)),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
+			Spec: &ddv1alpha1.DatadogMetricSpecArgs{
+				Query: pulumi.String(fmt.Sprintf("avg:nginx.net.request_per_s{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:nginx}.rollup(60)", namespace)),
+			},
+		}, append(opts, dependsOnCrd)...)
+		if err != nil {
+			return nil, err
+		}
 
-	if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "nginx", &autoscalingv2.HorizontalPodAutoscalerArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("nginx"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("nginx"),
+		if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "nginx", &autoscalingv2.HorizontalPodAutoscalerArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("nginx"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("nginx"),
+				},
 			},
-		},
-		Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
-			MinReplicas: pulumi.Int(1),
-			MaxReplicas: pulumi.Int(5),
-			ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
-				ApiVersion: pulumi.String("apps/v1"),
-				Kind:       pulumi.String("Deployment"),
-				Name:       pulumi.String("nginx"),
-			},
-			Metrics: &autoscalingv2.MetricSpecArray{
-				&autoscalingv2.MetricSpecArgs{
-					Type: pulumi.String("External"),
-					External: &autoscalingv2.ExternalMetricSourceArgs{
-						Metric: &autoscalingv2.MetricIdentifierArgs{
-							Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
-						},
-						Target: &autoscalingv2.MetricTargetArgs{
-							Type:         pulumi.String("AverageValue"),
-							AverageValue: pulumi.String("10"),
+			Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
+				MinReplicas: pulumi.Int(1),
+				MaxReplicas: pulumi.Int(5),
+				ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
+					ApiVersion: pulumi.String("apps/v1"),
+					Kind:       pulumi.String("Deployment"),
+					Name:       pulumi.String("nginx"),
+				},
+				Metrics: &autoscalingv2.MetricSpecArray{
+					&autoscalingv2.MetricSpecArgs{
+						Type: pulumi.String("External"),
+						External: &autoscalingv2.ExternalMetricSourceArgs{
+							Metric: &autoscalingv2.MetricIdentifierArgs{
+								Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
+							},
+							Target: &autoscalingv2.MetricTargetArgs{
+								Type:         pulumi.String("AverageValue"),
+								AverageValue: pulumi.String("10"),
+							},
 						},
 					},
 				},
 			},
-		},
-	}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
-		return nil, err
+		}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
+			return nil, err
+		}
 	}
 
 	if _, err := corev1.NewService(e.Ctx, "nginx", &corev1.ServiceArgs{

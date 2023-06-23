@@ -182,6 +182,8 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
+	var dependsOnCrd pulumi.ResourceOption
+
 	// Deploy the Agent
 	if awsEnv.AgentDeploy() {
 		var fakeintake *ddfakeintake.ConnectionExporter
@@ -206,15 +208,17 @@ func Run(ctx *pulumi.Context) error {
 			ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
 			ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
 		}
+
+		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
 	}
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx"); err != nil {
+		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis"); err != nil {
+		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
 			return err
 		}
 

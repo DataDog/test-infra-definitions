@@ -27,39 +27,15 @@ type EC2VM struct {
 
 // NewEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
 func NewEc2VM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2VM, error) {
-	return newVM(ctx, options...)
-}
-
-type EC2UnixVM struct {
-	Infra
-	*commonvm.UnixVM
-}
-
-// NewUnixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-// The returned vm provides additional methods compared to NewEc2VM
-func NewUnixEc2VM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2UnixVM, error) {
-	vm, err := newVM(ctx, options...)
-	if err != nil {
-		return nil, err
-	}
-	unixVM, err := commonvm.NewUnixVM(vm.VM)
-	if err != nil {
-		return nil, err
-	}
-
-	return &EC2UnixVM{
-		UnixVM: unixVM,
-		Infra:  vm.Infra,
-	}, nil
-}
-
-// newVM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
-func newVM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2VM, error) {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err
 	}
+	return NewEC2VMWithEnv(env, options...)
+}
 
+// NewEC2VMWithEnv creates a new EC2 instance with an existing aws.NewEnvironment. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+func NewEC2VMWithEnv(env aws.Environment, options ...ec2params.Option) (*EC2VM, error) {
 	params, err := ec2params.NewParams(env, options...)
 	if err != nil {
 		return nil, err
@@ -103,6 +79,39 @@ func newVM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2VM, error) {
 		VM:    vm,
 		Infra: Infra{env: env},
 	}, nil
+}
+
+type EC2UnixVM struct {
+	Infra
+	*commonvm.UnixVM
+}
+
+// NewUnixEc2VMWithEnv creates a new EC2 instance with an existing aws.NewEnvironment. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// The returned vm provides additional methods compared to NewEc2VM
+func NewUnixEc2VMWithEnv(env aws.Environment, options ...ec2params.Option) (*EC2UnixVM, error) {
+	vm, err := NewEC2VMWithEnv(env, options...)
+	if err != nil {
+		return nil, err
+	}
+	unixVM, err := commonvm.NewUnixVM(vm.VM)
+	if err != nil {
+		return nil, err
+	}
+
+	return &EC2UnixVM{
+		UnixVM: unixVM,
+		Infra:  vm.Infra,
+	}, nil
+}
+
+// NewUnixEc2VM creates a new EC2 instance. By default use WithOS(os.UbuntuOS, os.AMD64Arch).
+// The returned vm provides additional methods compared to NewEc2VM
+func NewUnixEc2VM(ctx *pulumi.Context, options ...ec2params.Option) (*EC2UnixVM, error) {
+	env, err := aws.NewEnvironment(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewUnixEc2VMWithEnv(env, options...)
 }
 
 func GetOpenSSHInstallCmd(publicKeyPath string) (string, error) {

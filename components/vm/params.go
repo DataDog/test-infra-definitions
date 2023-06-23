@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/os"
 )
 
@@ -15,12 +14,10 @@ type Params[OS os.OS] struct {
 	UserData     string
 	OS           OS
 	Arch         os.Architecture
-	commonEnv    *config.CommonEnvironment
 }
 
-func NewParams[OS os.OS](commonEnv *config.CommonEnvironment) (*Params[OS], error) {
+func NewParams[OS os.OS]() (*Params[OS], error) {
 	params := &Params[OS]{
-		commonEnv:    commonEnv,
 		InstanceName: "vm",
 	}
 

@@ -16,7 +16,7 @@ type Params struct {
 type Option = func(*Params) error
 
 func NewParams(env azure.Environment, options ...Option) (*Params, error) {
-	commonParams, err := vm.NewParams[os.OS](env.CommonEnvironment)
+	commonParams, err := vm.NewParams[os.OS]()
 	if err != nil {
 		return nil, err
 	}

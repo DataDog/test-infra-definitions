@@ -2,4 +2,7 @@ name: dd
 runtime: go
 description: Generic scenario (check scenario variable)
 config:
-  pulumi:disable-default-providers: [“*”]
+  # we have to disable default providers * again when
+  # https://github.com/pulumi/pulumi-eks/pull/886
+  # is merged
+  pulumi:disable-default-providers: ["kubernetes", "azure-native", "awsx", "eks"]

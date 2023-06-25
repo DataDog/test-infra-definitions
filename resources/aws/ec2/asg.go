@@ -3,7 +3,9 @@ package ec2
 import (
 	"strconv"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
+
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/autoscaling"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -29,5 +31,5 @@ func NewAutoscalingGroup(e aws.Environment, name string,
 				MinHealthyPercentage: pulumi.Int(0),
 			},
 		},
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 }

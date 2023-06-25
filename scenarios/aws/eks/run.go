@@ -1,6 +1,7 @@
 package eks
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -34,19 +35,21 @@ func Run(ctx *pulumi.Context) error {
 		Ingress: ec2.SecurityGroupIngressArray{
 			ec2.SecurityGroupIngressArgs{
 				SecurityGroups: pulumi.ToStringArray(awsEnv.EKSAllowedInboundSecurityGroups()),
+				PrefixListIds:  pulumi.ToStringArray(awsEnv.EKSAllowedInboundPrefixLists()),
 				ToPort:         pulumi.Int(22),
 				FromPort:       pulumi.Int(22),
 				Protocol:       pulumi.String("tcp"),
 			},
 			ec2.SecurityGroupIngressArgs{
 				SecurityGroups: pulumi.ToStringArray(awsEnv.EKSAllowedInboundSecurityGroups()),
+				PrefixListIds:  pulumi.ToStringArray(awsEnv.EKSAllowedInboundPrefixLists()),
 				ToPort:         pulumi.Int(443),
 				FromPort:       pulumi.Int(443),
 				Protocol:       pulumi.String("tcp"),
 			},
 		},
 		VpcId: pulumi.StringPtr(awsEnv.DefaultVPCID()),
-	}, awsEnv.ResourceProvidersOption())
+	}, awsEnv.WithProviders(config.ProviderAWS))
 	if err != nil {
 		return err
 	}
@@ -112,7 +115,7 @@ func Run(ctx *pulumi.Context) error {
 		Create: "30m",
 		Update: "30m",
 		Delete: "30m",
-	}))
+	}), awsEnv.WithProvider(config.ProviderEKS), awsEnv.WithProvider(config.ProviderAWS))
 	if err != nil {
 		return err
 	}
@@ -158,7 +161,7 @@ func Run(ctx *pulumi.Context) error {
 	eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
 		Kubeconfig:            utils.KubeconfigToJSON(cluster.Kubeconfig),
-	}, awsEnv.ResourceProvidersOption(), pulumi.DependsOn(nodeGroups))
+	}, awsEnv.WithProviders(config.ProviderAWS), pulumi.DependsOn(nodeGroups))
 	if err != nil {
 		return err
 	}
@@ -178,6 +181,8 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 	}
+
+	var dependsOnCrd pulumi.ResourceOption
 
 	// Deploy the Agent
 	if awsEnv.AgentDeploy() {
@@ -203,15 +208,17 @@ func Run(ctx *pulumi.Context) error {
 			ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
 			ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
 		}
+
+		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
 	}
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx"); err != nil {
+		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis"); err != nil {
+		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
 			return err
 		}
 

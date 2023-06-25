@@ -16,7 +16,8 @@ build-runner-image:
         PUSH_IMAGE: "true"
     - when: on_success
   script:
-    - TARGET_TAG="${IMAGE_REPOSITORY}/runner:${CI_COMMIT_SHORT_SHA}"
+    - TARGET_REPO="${IMAGE_REPOSITORY}/runner"
     - if [ "$PUSH_IMAGE" = "true" ]; then PUSH_ARG="--push"; fi
-    - docker buildx build --no-cache --pull $PUSH_ARG --tag ${TARGET_TAG} .
+    # Tag with 8 and 12 SHA to match go.mod
+    - docker buildx build --no-cache --pull $PUSH_ARG --tag ${TARGET_REPO}:${CI_COMMIT_SHORT_SHA} --tag ${TARGET_REPO}:${CI_COMMIT_SHA:0:12}  .
   retry: 2

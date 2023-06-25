@@ -1,4 +1,4 @@
-package agent
+package agentparams
 
 import (
 	"fmt"
@@ -28,21 +28,23 @@ import (
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 type Params struct {
-	version          os.AgentVersion
-	agentConfig      string
-	integrations     map[string]string
-	extraAgentConfig []pulumi.StringInput
+	Version          os.AgentVersion
+	AgentConfig      string
+	Integrations     map[string]string
+	ExtraAgentConfig []pulumi.StringInput
 }
 
-func newParams(env *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
+type Option = func(*Params) error
+
+func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
 	p := &Params{
-		integrations: make(map[string]string),
+		Integrations: make(map[string]string),
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
-	versionOptions := []func(*Params) error{defaultVersion}
+	versionOptions := []Option{defaultVersion}
 
 	// If repository and/or channel are specified, force-set them
 	if env.AgentRepository() != "" {
@@ -77,7 +79,7 @@ func WithVersion(version string) func(*Params) error {
 		if err != nil {
 			return err
 		}
-		p.version = v
+		p.Version = v
 
 		return nil
 	}
@@ -134,7 +136,7 @@ func parseVersion(s string) (os.AgentVersion, error) {
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
-		p.agentConfig = config
+		p.AgentConfig = config
 		return nil
 	}
 }
@@ -142,7 +144,7 @@ func WithAgentConfig(config string) func(*Params) error {
 // WithIntegration adds the configuration for an integration.
 func WithIntegration(folderName string, content string) func(*Params) error {
 	return func(p *Params) error {
-		p.integrations[folderName] = content
+		p.Integrations[folderName] = content
 		return nil
 	}
 }
@@ -168,7 +170,7 @@ func WithTelemetry() func(*Params) error {
     metrics:
       - "*"
 `
-		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("telemetry.enabled: true"))
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("telemetry.enabled: true"))
 		return WithIntegration("openmetrics.d", config)(p)
 	}
 }
@@ -181,7 +183,7 @@ func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) err
 logs_config.logs_dd_url: %s:80
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true`, fakeintake.Host, fakeintake.Host)
-		p.extraAgentConfig = append(p.extraAgentConfig, extraConfig)
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}
 }
@@ -189,7 +191,7 @@ logs_config.force_use_http: true`, fakeintake.Host, fakeintake.Host)
 // WithLogs enables the log agent
 func WithLogs() func(*Params) error {
 	return func(p *Params) error {
-		p.extraAgentConfig = append(p.extraAgentConfig, pulumi.String("logs_enabled: true"))
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("logs_enabled: true"))
 		return nil
 	}
 }

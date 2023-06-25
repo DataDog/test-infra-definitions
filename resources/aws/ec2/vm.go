@@ -1,6 +1,7 @@
 package ec2
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
@@ -31,6 +32,6 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 			"Name": e.Namer.DisplayName(pulumi.String(name)),
 		},
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 	return instance, err
 }

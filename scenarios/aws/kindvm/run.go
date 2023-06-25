@@ -4,7 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
-	ec2vm "github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2VM"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -26,7 +26,7 @@ func Run(ctx *pulumi.Context) error {
 	kindKubeProvider, err := kubernetes.NewProvider(ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
 		Kubeconfig:            kubeConfig,
-	}, awsEnv.ResourceProvidersOption(), utils.PulumiDependsOn(kubeConfigCommand))
+	}, utils.PulumiDependsOn(kubeConfigCommand))
 	if err != nil {
 		return err
 	}

@@ -1,6 +1,7 @@
 package iam
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
 )
@@ -25,5 +26,5 @@ func GetAWSPrincipalAssumeRole(e aws.Environment, serviceName []string) (*iam.Ge
 				},
 			},
 		},
-	}, nil, e.InvokeProviderOption())
+	}, nil, e.WithProvider(config.ProviderAWS))
 }

@@ -1,10 +1,10 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM python:3.11-slim AS base
+FROM python:3.10-slim-bullseye AS base
 
-ENV GO_VERSION=1.19.9
-ENV GO_SHA=e858173b489ec1ddbe2374894f52f53e748feed09dde61be5b4b4ba2d73ef34b
+ENV GO_VERSION=1.20.3
+ENV GO_SHA=979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca
 
 # Install deps all in one step
 RUN apt-get update -y && \
@@ -17,7 +17,6 @@ RUN apt-get update -y && \
   gnupg \
   software-properties-common \
   wget \
-  xsltproc \
   unzip && \
   # Get all of the signatures we need all at once.
   curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add - && \
@@ -47,7 +46,9 @@ RUN apt-get update -y && \
   docker-ce \
   google-cloud-sdk \
   google-cloud-sdk-gke-gcloud-auth-plugin \
-  kubectl && \
+  kubectl \
+  # xsltproc is required by libvirt-sdk used in the micro-vms scenario
+  xsltproc && \
   # Clean up the lists work
   rm -rf /var/lib/apt/lists/*
 
@@ -80,17 +81,13 @@ ARG PULUMI_VERSION
 RUN curl -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
   mv ~/.pulumi/bin/* /usr/bin
 
-# Install Pulumi plugins, currently requiring a dummy stack due to a bug with `pulumi plugin install` and azure-native-sdk
+# Install Pulumi plugins
 COPY . /tmp/test-infra
 RUN cd /tmp/test-infra && \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
-  pulumi --non-interactive login --local && \
-  pulumi --non-interactive stack init -s plugins && \
-  pulumi --non-interactive preview -s plugins -c scenario=dummy && \
+  pulumi --non-interactive plugin install && \
   pulumi --non-interactive plugin ls && \
-  pulumi --non-interactive stack rm -s plugins -y && \
-  pulumi --non-interactive logout --all && \
   cd / && \
   rm -rf /tmp/test-infra
 

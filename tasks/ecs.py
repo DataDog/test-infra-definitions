@@ -1,4 +1,4 @@
-from invoke import task
+from invoke.tasks import task
 from .destroy import destroy
 from .deploy import deploy
 from . import doc

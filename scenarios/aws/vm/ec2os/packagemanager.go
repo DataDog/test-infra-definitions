@@ -1,4 +1,4 @@
-package os
+package ec2os
 
 import "github.com/DataDog/test-infra-definitions/components/command"
 

@@ -1,5 +1,5 @@
 import os
-from invoke import task
+from invoke.tasks import task
 import yaml
 from .destroy import destroy
 from .deploy import deploy
@@ -25,6 +25,7 @@ scenario_name = "aws/eks"
 )
 def create_eks(
     ctx: Context,
+    debug: Optional[bool] = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
@@ -40,14 +41,13 @@ def create_eks(
     extra_flags = {}
     extra_flags["ddinfra:aws/eks/linuxNodeGroup"] = linux_node_group
     extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
-    extra_flags[
-        "ddinfra:aws/eks/linuxBottlerocketNodeGroup"
-    ] = bottlerocket_node_group
+    extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
     extra_flags["ddinfra:aws/eks/windowsNodeGroup"] = windows_node_group
 
     full_stack_name = deploy(
         ctx,
         scenario_name,
+        debug=debug,
         app_key_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
@@ -62,9 +62,7 @@ def _show_connection_message(full_stack_name: str):
     kubeconfig = outputs["kubeconfig"]
     kubeconfig_content = yaml.dump(kubeconfig)
     config = f"{full_stack_name}-config.yaml"
-    f = os.open(
-        path=config, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600
-    )
+    f = os.open(path=config, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)
     with open(f, "w") as f:
         f.write(kubeconfig_content)
 

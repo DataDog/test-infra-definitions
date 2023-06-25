@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"reflect"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/os"
 )
 
@@ -15,85 +14,53 @@ type Params[OS os.OS] struct {
 	UserData     string
 	OS           OS
 	Arch         os.Architecture
-	commonEnv    *config.CommonEnvironment
 }
 
-func NewParams[OS os.OS](commonEnv *config.CommonEnvironment) (*Params[OS], error) {
+func NewParams[OS os.OS]() (*Params[OS], error) {
 	params := &Params[OS]{
-		commonEnv:    commonEnv,
 		InstanceName: "vm",
 	}
 
 	return params, nil
 }
 
-type ParamsGetter[OS os.OS, T any] interface {
-	GetCommonParams() *Params[OS]
-	GetOS(osType T) (OS, error)
+func (p *Params[OS]) SetName(name string) error {
+	p.InstanceName = name
+	return nil
 }
 
-func WithName[OS os.OS, T any, P ParamsGetter[OS, T]](name string) func(P) error {
-	return func(params P) error {
-		p := params.GetCommonParams()
-		p.InstanceName = name
-		return nil
+// SetOS sets the OS. This function also set the instance type and the AMI.
+func (p *Params[OS]) SetOS(o OS) error {
+	return p.SetArch(o, os.AMD64Arch)
+}
+
+// SetArch set the architecture and the operating system.
+func (p *Params[OS]) SetArch(os OS, arch os.Architecture) error {
+	imageName, err := os.GetImage(arch)
+	if err != nil {
+		return fmt.Errorf("cannot find image for %v (%v): %v", reflect.TypeOf(os), arch, err)
 	}
+	return p.SetImageName(imageName, arch, os)
 }
 
-// WithOS sets the OS. This function also set the instance type and the AMI.
-func WithOS[OS os.OS, T any, P ParamsGetter[OS, T]](osType T) func(P) error {
-	return WithArch[OS, T, P](osType, os.AMD64Arch)
+// SetImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
+func (p *Params[OS]) SetImageName(imageName string, arch os.Architecture, os OS) error {
+	p.ImageName = imageName
+	p.OS = os
+	p.InstanceType = p.OS.GetDefaultInstanceType(arch)
+	p.Arch = arch
+	return nil
 }
 
-// WithArch set the architecture and the operating system.
-func WithArch[OS os.OS, T any, P ParamsGetter[OS, T]](osType T, arch os.Architecture) func(P) error {
-	return func(params P) error {
-		p := params.GetCommonParams()
-		os, err := params.GetOS(osType)
-		if err != nil {
-			return err
-		}
-		p.ImageName, err = os.GetImage(arch)
-		if err != nil {
-			return fmt.Errorf("cannot find image for %v (%v): %v", reflect.TypeOf(os), arch, err)
-		}
-		p.OS = os
-		p.InstanceType = p.OS.GetDefaultInstanceType(arch)
-		p.Arch = arch
+// SetInstanceType set the instance type
+func (p *Params[OS]) SetInstanceType(instanceType string) error {
+	p.InstanceType = instanceType
+	return nil
 
-		return nil
-	}
 }
 
-// WithImageName set the name of the Image. `arch` and `osType` must match the AMI requirements.
-func WithImageName[OS os.OS, T any, P ParamsGetter[OS, T]](imageName string, arch os.Architecture, osType T) func(P) error {
-	return func(params P) error {
-		p := params.GetCommonParams()
-		p.ImageName = imageName
-		os, err := params.GetOS(osType)
-		if err != nil {
-			return err
-		}
-		p.OS = os
-		p.Arch = arch
-		return nil
-	}
-}
-
-// WithInstanceType set the instance type
-func WithInstanceType[OS os.OS, T any, P ParamsGetter[OS, T]](instanceType string) func(P) error {
-	return func(params P) error {
-		p := params.GetCommonParams()
-		p.InstanceType = instanceType
-		return nil
-	}
-}
-
-// WithUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
-func WithUserData[OS os.OS, T any, P ParamsGetter[OS, T]](userData string) func(P) error {
-	return func(params P) error {
-		p := params.GetCommonParams()
-		p.UserData = userData
-		return nil
-	}
+// SetUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
+func (p *Params[OS]) SetUserData(userData string) error {
+	p.UserData = userData
+	return nil
 }

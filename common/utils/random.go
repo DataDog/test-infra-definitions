@@ -28,5 +28,5 @@ func (r *RandomGenerator) RandomString(name string, length int, special bool) (*
 	return random.NewRandomString(r.e.Ctx, r.namer.ResourceName("random-string", name), &random.RandomStringArgs{
 		Length:  pulumi.Int(length),
 		Special: pulumi.Bool(special),
-	}, pulumi.Provider(r.e.RandomProvider))
+	}, r.e.WithProviders(config.ProviderRandom))
 }

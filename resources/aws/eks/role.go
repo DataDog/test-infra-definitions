@@ -1,6 +1,7 @@
 package eks
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/iam"
 
@@ -24,7 +25,7 @@ func GetNodeRole(e aws.Environment, name string) (*awsIam.Role, error) {
 			"arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
 		}),
 		AssumeRolePolicy: pulumi.String(assumeRolePolicy.Json),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 }
 
 func GetClusterRole(e aws.Environment, name string) (*awsIam.Role, error) {
@@ -41,5 +42,5 @@ func GetClusterRole(e aws.Environment, name string) (*awsIam.Role, error) {
 			"arn:aws:iam::aws:policy/AmazonEKSVPCResourceController",
 		}),
 		AssumeRolePolicy: pulumi.String(assumeRolePolicy.Json),
-	}, e.ResourceProvidersOption())
+	}, e.WithProviders(config.ProviderAWS))
 }

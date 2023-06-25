@@ -1,6 +1,7 @@
 package ecs
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
@@ -80,7 +81,7 @@ func Run(ctx *pulumi.Context) error {
 			Name:  awsEnv.CommonNamer.DisplayName(pulumi.String("agent-apikey")),
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
-		}, awsEnv.ResourceProvidersOption())
+		}, awsEnv.WithProviders(config.ProviderAWS))
 		if err != nil {
 			return err
 		}

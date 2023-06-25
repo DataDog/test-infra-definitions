@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
-	commonos "github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/os"
 )
 
 type UnixVM struct {
@@ -15,13 +15,13 @@ type UnixVM struct {
 }
 
 func NewUnixVM(vm VM) (*UnixVM, error) {
-	os := vm.GetOS()
-	if os.GetType() == commonos.WindowsType {
+	osValue := vm.GetOS()
+	if osValue.GetType() == os.WindowsType {
 		return nil, errors.New("the OS Windows is not a valid Nix OS. Use `NewXXXVM` instead of `NewNixXXXVM`")
 	}
 
 	runner := vm.GetRunner()
-	packageManager, err := os.CreatePackageManager(runner)
+	packageManager, err := osValue.CreatePackageManager(runner)
 	if err != nil {
 		return nil, err
 	}

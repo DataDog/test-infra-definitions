@@ -2,10 +2,12 @@ package agentparams
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -46,17 +48,17 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 	}
 	versionOptions := []Option{defaultVersion}
 
-	// If repository and/or channel are specified, force-set them
-	if env.AgentRepository() != "" {
-		versionOptions = append(versionOptions, WithRepository(env.AgentRepository()))
-	}
-	if env.AgentChannel() != "" {
-		versionOptions = append(versionOptions, WithChannel(env.AgentChannel()))
-	}
-
 	// If pipeline ID is specified, force-set parameters to testing repositories
 	if env.AgentPipelineID() != "" {
 		versionOptions = append(versionOptions, WithPipelineID(env.AgentPipelineID()))
+	} else {
+		// If repository and/or channel are specified, force-set them
+		if env.AgentRepository() != "" {
+			versionOptions = append(versionOptions, WithRepository(os.Repository(env.AgentRepository())))
+		}
+		if env.AgentChannel() != "" {
+			versionOptions = append(versionOptions, WithChannel(os.Channel(env.AgentChannel())))
+		}
 	}
 
 	options = append(versionOptions, options...)
@@ -66,7 +68,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 // WithLatest uses the latest Agent 7 version in the stable channel.
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
-		p.version = os.LatestAgentVersion()
+		p.Version = os.LatestAgentVersion()
 		return nil
 	}
 }
@@ -88,24 +90,34 @@ func WithVersion(version string) func(*Params) error {
 // WithPipelineID uses a specific testing pipeline ID of the datadog-agent CI. For example: `16497585`
 func WithPipelineID(pipelineID string) func(*Params) error {
 	return func(p *Params) error {
-		p.version.Repository = os.TestingRepository
-		p.version.PipelineID = pipelineID
+		p.Version.Repository = os.TestingRepository
+
+		id, err := strconv.Atoi(pipelineID)
+		if err != nil {
+			return fmt.Errorf("pipeline ID '%s' is not an integer", pipelineID)
+		}
+
+		p.Version.PipelineID = id
 		return nil
 	}
 }
 
-// WithRepository uses a specific repository of the Agent. For example: `staging` or `trial`
-func WithRepository(repository string) func(*Params) error {
+// WithRepository uses a specific repository of the Agent.
+func WithRepository(repository os.Repository) func(*Params) error {
 	return func(p *Params) error {
-		p.version.Repository = os.Repository(repository)
+		if !utils.Contains(os.AllowedRepositories(), repository) {
+			return fmt.Errorf("repository '%s' is not valid, allowed values: %v", repository, os.AllowedRepositories())
+		}
+
+		p.Version.Repository = repository
 		return nil
 	}
 }
 
-// WithChannel uses a specific channel of the Agent repositories. For example: `beta` or `nightly`
-func WithChannel(channel string) func(*Params) error {
+// WithChannel uses a specific channel of the Agent repositories.
+func WithChannel(channel os.Channel) func(*Params) error {
 	return func(p *Params) error {
-		p.version.Channel = os.Channel(channel)
+		p.Version.Channel = channel
 		return nil
 	}
 }

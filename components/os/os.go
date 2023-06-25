@@ -18,6 +18,10 @@ const (
 	TrialRepository   = Repository("trial")
 )
 
+func AllowedRepositories() []Repository {
+	return []Repository{ProdRepository, StagingRepository, TestingRepository, TrialRepository}
+}
+
 type Channel string
 
 const (
@@ -38,9 +42,9 @@ const (
 type AgentVersion struct {
 	Major      string
 	Minor      string     // Empty means latest
-	Repository Repository // Empty means prod
-	Channel    Channel    // Empty means stable
-	PipelineID string     // Used instead of Channel when targeting the testing repository
+	Repository Repository // Defaults to prod
+	Channel    Channel    // Defaults to stable
+	PipelineID int        // Used instead of Channel when targeting the testing repository
 }
 
 func LatestAgentVersion() AgentVersion {

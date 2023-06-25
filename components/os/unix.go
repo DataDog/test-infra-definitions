@@ -50,11 +50,11 @@ func getUnixRepositoryParams(version AgentVersion) string {
 	envVars := []string{}
 	switch version.Repository {
 	case TrialRepository, TestingRepository:
-		aptChannel := version.Channel
-		yumChannel := version.Channel
+		aptChannel := string(version.Channel)
+		yumChannel := string(version.Channel)
 		if version.Repository == TestingRepository {
-			aptChannel = Channel(fmt.Sprintf("pipeline-%v-a%v", version.PipelineID, version.Major))
-			yumChannel = Channel(fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major))
+			aptChannel = fmt.Sprintf("pipeline-%v-a%v", version.PipelineID, version.Major)
+			yumChannel = fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major)
 		}
 
 		envVars = append(envVars, fmt.Sprintf(`TESTING_APT_URL="apt%v.datad0g.com"`, version.Repository))
@@ -73,16 +73,16 @@ func getUnixRepositoryParams(version AgentVersion) string {
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
-	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
+	commandEnvVars := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
 
 	if version.Minor != "" {
-		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
+		commandEnvVars += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
 	}
 
-	commandLine += getUnixRepositoryParams(version)
+	commandEnvVars += getUnixRepositoryParams(version)
 
 	return fmt.Sprintf(
 		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-		commandLine,
+		commandEnvVars,
 		scriptName)
 }

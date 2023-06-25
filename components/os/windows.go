@@ -87,7 +87,7 @@ func getAgentURL(version AgentVersion) (string, error) {
 	// - the pipeline ID is not enough to find the exact filename to use, as it is structured like:
 	// datadog-agent-<last tag>.git.<number of commits since tag>.<commit short sha>.pipeline.<pipeline id>-1-x86_64.msi
 	if version.Repository == TestingRepository {
-		return "", fmt.Errorf("targeting the testing repositoiries is not available yet on Windows")
+		return "", fmt.Errorf("targeting the testing repositories is not available yet on Windows")
 	}
 
 	// Verify that -1 is present at the end of the version. If not, add it.

@@ -14,8 +14,8 @@ func TestParams(t *testing.T) {
 		assert.Equal(t, version, os.AgentVersion{
 			Major:      "7",
 			Minor:      "43",
-			Repository: "prod",
-			Channel:    "stable",
+			Repository: os.ProdRepository,
+			Channel:    os.StableChannel,
 		})
 	})
 	t.Run("parseVersion should correctly parse rc version", func(t *testing.T) {
@@ -24,8 +24,8 @@ func TestParams(t *testing.T) {
 		assert.Equal(t, version, os.AgentVersion{
 			Major:      "7",
 			Minor:      "45~rc.1",
-			Repository: "staging",
-			Channel:    "beta",
+			Repository: os.StagingRepository,
+			Channel:    os.BetaChannel,
 		})
 	})
 }

@@ -80,8 +80,9 @@ def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debu
     up_flags = ""
 
     # Checking root path
-    if _get_root_path() != os.getcwd():
-        global_flags += f" -C {_get_root_path}"
+    root_path = _get_root_path()
+    if root_path != os.getcwd():
+        global_flags += f" -C {root_path}"
 
     # Building run func parameters
     for key, value in flags.items():

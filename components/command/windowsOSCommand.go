@@ -54,6 +54,10 @@ func (fs windowsOSCommand) GetTemporaryDirectory() string {
 	return "$env:TEMP"
 }
 
+func (fs windowsOSCommand) GetHomeDirectory() string {
+	return "$env:HOMEPATH\\$env:HOMEPATH"
+}
+
 func (fs windowsOSCommand) BuildCommandString(
 	command pulumi.StringInput,
 	env pulumi.StringMap,

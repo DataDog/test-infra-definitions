@@ -14,39 +14,39 @@ const (
 	awsRegionParamName = "region"
 
 	// AWS Infra
-	ddinfraDefaultVPCIDParamName           = "aws/defaultVPCID"
-	ddinfraDefaultSubnetsParamName         = "aws/defaultSubnets"
-	ddinfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
+	DDInfraDefaultVPCIDParamName           = "aws/defaultVPCID"
+	DDInfraDefaultSubnetsParamName         = "aws/defaultSubnets"
+	DDInfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
 	DDInfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
 	DDInfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
 	DDInfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
 	DDinfraDefaultPublicKeyPath            = "aws/defaultPublicKeyPath"
-	ddinfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
-	ddinfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
-	ddinfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
-	ddinfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
+	DDInfraDefaultPrivateKeyPath           = "aws/defaultPrivateKeyPath"
+	DDInfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
+	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
+	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 
 	// AWS ECS
-	ddInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
-	ddInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
-	ddInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
-	ddInfraEcsTaskRole                      = "aws/ecs/taskRole"
-	ddInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
-	ddInfraEcsServiceAllocatePublicIP       = "aws/ecs/serviceAllocatePublicIP"
-	ddInfraEcsFargateCapacityProvider       = "aws/ecs/fargateCapacityProvider"
-	ddInfraEcsLinuxECSOptimizedNodeGroup    = "aws/ecs/linuxECSOptimizedNodeGroup"
-	ddInfraEcsLinuxECSOptimizedARMNodeGroup = "aws/ecs/linuxECSOptimizedARMNodeGroup"
-	ddInfraEcsLinuxBottlerocketNodeGroup    = "aws/ecs/linuxBottlerocketNodeGroup"
-	ddInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
+	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
+	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
+	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
+	DDInfraEcsTaskRole                      = "aws/ecs/taskRole"
+	DDInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
+	DDInfraEcsServiceAllocatePublicIP       = "aws/ecs/serviceAllocatePublicIP"
+	DDInfraEcsFargateCapacityProvider       = "aws/ecs/fargateCapacityProvider"
+	DDInfraEcsLinuxECSOptimizedNodeGroup    = "aws/ecs/linuxECSOptimizedNodeGroup"
+	DDInfraEcsLinuxECSOptimizedARMNodeGroup = "aws/ecs/linuxECSOptimizedARMNodeGroup"
+	DDInfraEcsLinuxBottlerocketNodeGroup    = "aws/ecs/linuxBottlerocketNodeGroup"
+	DDInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
 
 	// AWS EKS
-	ddInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
-	ddInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
-	ddInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
-	ddInfraEksLinuxNodeGroup               = "aws/eks/linuxNodeGroup"
-	ddInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
-	ddInfraEksLinuxBottlerocketNodeGroup   = "aws/eks/linuxBottlerocketNodeGroup"
-	ddInfraEksWindowsNodeGroup             = "aws/eks/windowsNodeGroup"
+	DDInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
+	DDInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
+	DDInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
+	DDInfraEksLinuxNodeGroup               = "aws/eks/linuxNodeGroup"
+	DDInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
+	DDInfraEksLinuxBottlerocketNodeGroup   = "aws/eks/linuxBottlerocketNodeGroup"
+	DDInfraEksWindowsNodeGroup             = "aws/eks/windowsNodeGroup"
 )
 
 type Environment struct {
@@ -93,15 +93,15 @@ func (e *Environment) Region() string {
 }
 
 func (e *Environment) DefaultVPCID() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultVPCIDParamName, e.envDefault.ddInfra.defaultVPCID)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultVPCIDParamName, e.envDefault.ddInfra.defaultVPCID)
 }
 
 func (e *Environment) DefaultSubnets() []string {
-	return e.GetStringListWithDefault(e.InfraConfig, ddinfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 
 func (e *Environment) DefaultSecurityGroups() []string {
-	return e.GetStringListWithDefault(e.InfraConfig, ddinfraDefaultSecurityGroupsParamName, e.envDefault.ddInfra.defaultSecurityGroups)
+	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSecurityGroupsParamName, e.envDefault.ddInfra.defaultSecurityGroups)
 }
 
 func (e *Environment) DefaultInstanceType() string {
@@ -122,97 +122,97 @@ func (e *Environment) DefaultPublicKeyPath() string {
 }
 
 func (e *Environment) DefaultPrivateKeyPath() string {
-	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPath)
+	return e.InfraConfig.Get(DDInfraDefaultPrivateKeyPath)
 }
 
 func (e *Environment) DefaultPrivateKeyPassword() string {
-	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPassword)
+	return e.InfraConfig.Get(DDInfraDefaultPrivateKeyPassword)
 }
 
 func (e *Environment) DefaultInstanceStorageSize() int {
-	return e.GetIntWithDefault(e.InfraConfig, ddinfraDefaultInstanceStorageSize, e.envDefault.ddInfra.defaultInstanceStorageSize)
+	return e.GetIntWithDefault(e.InfraConfig, DDInfraDefaultInstanceStorageSize, e.envDefault.ddInfra.defaultInstanceStorageSize)
 }
 
 // shutdown behavior can be 'terminate' or 'stop'
 func (e *Environment) DefaultShutdownBehavior() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
 }
 
 // ECS
 func (e *Environment) ECSExecKMSKeyID() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsExecKMSKeyID, e.envDefault.ddInfra.ecs.execKMSKeyID)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsExecKMSKeyID, e.envDefault.ddInfra.ecs.execKMSKeyID)
 }
 
 func (e *Environment) ECSFargateFakeintakeClusterArn() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
 }
 
 func (e *Environment) ECSTaskExecutionRole() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsTaskExecutionRole, e.envDefault.ddInfra.ecs.taskExecutionRole)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsTaskExecutionRole, e.envDefault.ddInfra.ecs.taskExecutionRole)
 }
 
 func (e *Environment) ECSTaskRole() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsTaskRole, e.envDefault.ddInfra.ecs.taskRole)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsTaskRole, e.envDefault.ddInfra.ecs.taskRole)
 }
 
 func (e *Environment) ECSInstanceProfile() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraEcsInstanceProfile, e.envDefault.ddInfra.ecs.instanceProfile)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsInstanceProfile, e.envDefault.ddInfra.ecs.instanceProfile)
 }
 
 func (e *Environment) ECSServicePublicIP() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsServiceAllocatePublicIP, e.envDefault.ddInfra.ecs.serviceAllocatePublicIP)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsServiceAllocatePublicIP, e.envDefault.ddInfra.ecs.serviceAllocatePublicIP)
 }
 
 func (e *Environment) ECSFargateCapacityProvider() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsFargateCapacityProvider, e.envDefault.ddInfra.ecs.fargateCapacityProvider)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsFargateCapacityProvider, e.envDefault.ddInfra.ecs.fargateCapacityProvider)
 }
 
 func (e *Environment) ECSLinuxECSOptimizedNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsLinuxECSOptimizedNodeGroup, e.envDefault.ddInfra.ecs.linuxECSOptimizedNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsLinuxECSOptimizedNodeGroup, e.envDefault.ddInfra.ecs.linuxECSOptimizedNodeGroup)
 }
 
 func (e *Environment) ECSLinuxECSOptimizedARMNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsLinuxECSOptimizedARMNodeGroup, e.envDefault.ddInfra.ecs.linuxECSOptimizedARMNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsLinuxECSOptimizedARMNodeGroup, e.envDefault.ddInfra.ecs.linuxECSOptimizedARMNodeGroup)
 }
 
 func (e *Environment) ECSLinuxBottlerocketNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsLinuxBottlerocketNodeGroup, e.envDefault.ddInfra.ecs.linuxBottlerocketNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsLinuxBottlerocketNodeGroup, e.envDefault.ddInfra.ecs.linuxBottlerocketNodeGroup)
 }
 
 func (e *Environment) ECSWindowsNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEcsWindowsLTSCNodeGroup, e.envDefault.ddInfra.ecs.windowsLTSCNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsWindowsLTSCNodeGroup, e.envDefault.ddInfra.ecs.windowsLTSCNodeGroup)
 }
 
 func (e *Environment) EKSAllowedInboundSecurityGroups() []string {
 	var arr []string
-	resObj := e.GetObjectWithDefault(e.InfraConfig, ddInfraEksAllowedInboundSecurityGroups, arr, e.envDefault.ddInfra.eks.allowedInboundSecurityGroups)
+	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEksAllowedInboundSecurityGroups, arr, e.envDefault.ddInfra.eks.allowedInboundSecurityGroups)
 	return resObj.([]string)
 }
 
 func (e *Environment) EKSAllowedInboundPrefixLists() []string {
 	var arr []string
-	resObj := e.GetObjectWithDefault(e.InfraConfig, ddInfraEksAllowedInboundPrefixList, arr, e.envDefault.ddInfra.eks.allowedInboundPrefixList)
+	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEksAllowedInboundPrefixList, arr, e.envDefault.ddInfra.eks.allowedInboundPrefixList)
 	return resObj.([]string)
 }
 
 func (e *Environment) EKSFargateNamespace() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraEksFargateNamespace, e.envDefault.ddInfra.eks.fargateNamespace)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEksFargateNamespace, e.envDefault.ddInfra.eks.fargateNamespace)
 }
 
 func (e *Environment) EKSLinuxNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksLinuxNodeGroup, e.envDefault.ddInfra.eks.linuxNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEksLinuxNodeGroup, e.envDefault.ddInfra.eks.linuxNodeGroup)
 }
 
 func (e *Environment) EKSLinuxARMNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksLinuxARMNodeGroup, e.envDefault.ddInfra.eks.linuxARMNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEksLinuxARMNodeGroup, e.envDefault.ddInfra.eks.linuxARMNodeGroup)
 }
 
 func (e *Environment) EKSBottlerocketNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksLinuxBottlerocketNodeGroup, e.envDefault.ddInfra.eks.linuxBottlerocketNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEksLinuxBottlerocketNodeGroup, e.envDefault.ddInfra.eks.linuxBottlerocketNodeGroup)
 }
 
 func (e *Environment) EKSWindowsNodeGroup() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, ddInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
 }
 
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {

@@ -73,17 +73,16 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *ddfakeintake.ConnectionExporter) []ecs.TaskDefinitionKeyValuePairInput {
 	if fakeintake == nil {
 		return []ecs.TaskDefinitionKeyValuePairInput{}
-	} else {
-		return []ecs.TaskDefinitionKeyValuePairInput{
-			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),
-				Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
-			},
-			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-				Value: pulumi.Sprintf(`[{"host": "%s", "port": 80, "is_reliable": true, "usessl": false}]`, fakeintake.Host),
-			},
-		}
+	}
+	return []ecs.TaskDefinitionKeyValuePairInput{
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),
+			Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+			Value: pulumi.Sprintf(`[{"host": "%s", "port": 80, "is_reliable": true, "usessl": false}]`, fakeintake.Host),
+		},
 	}
 }
 

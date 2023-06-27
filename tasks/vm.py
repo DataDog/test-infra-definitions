@@ -20,6 +20,7 @@ scenario_name = "aws/vm"
         "stack_name": doc.stack_name,
         "debug": doc.debug,
         "os_family": doc.os_family,
+        "arch": doc.arch,
         "use_fakeintake": doc.fakeintake, 
     }
 )
@@ -31,6 +32,7 @@ def create_vm(
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
+    arch: Optional[str] = None,
     use_fakeintake: Optional[bool] = True,
 ) -> None:
     """
@@ -40,6 +42,8 @@ def create_vm(
     extra_flags = {}
     os_family = _get_os_family(os_family)
     extra_flags["ddinfra:osFamily"] = os_family
+    arch = _get_architecture(arch)
+    extra_flags["ddinfra:architecture"] = arch
 
     full_stack_name = deploy(
         ctx,
@@ -91,3 +95,14 @@ def _get_os_family(os_family: Optional[str]) -> str:
             f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}"
         )
     return os_family
+
+
+def _get_architecture(arch: Optional[str]) -> str:
+    architectures = tool.get_architectures()
+    if arch is None:
+        arch = tool.get_default_architecture()
+    if arch.lower() not in architectures:
+        raise Exit(
+            f"The os family '{arch}' is not supported. Possibles values are {', '.join(architectures)}"
+        )
+    return arch

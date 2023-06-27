@@ -7,6 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
@@ -26,7 +27,11 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-	vm, err := ec2vm.NewEC2VMWithEnv(env, ec2params.WithOS(osType))
+	arch, err := getArchitecture(env.CommonEnvironment)
+	if err != nil {
+		return err
+	}
+	vm, err := ec2vm.NewEC2VMWithEnv(env, ec2params.WithArch(osType, arch))
 	if err != nil {
 		return err
 	}
@@ -72,4 +77,20 @@ func getOSType(commonEnv *config.CommonEnvironment) (ec2os.Type, error) {
 		return osType, fmt.Errorf("the os type '%v' is not valid", osTypeStr)
 	}
 	return osType, nil
+}
+
+func getArchitecture(commonEnv *config.CommonEnvironment) (os.Architecture, error) {
+	var arch os.Architecture
+	archStr := strings.ToLower(commonEnv.InfraArchitecture())
+	switch archStr {
+	case "amd64":
+		arch = os.AMD64Arch
+	case "arm64":
+		arch = os.ARM64Arch
+	case "":
+		arch = os.AMD64Arch // Default
+	default:
+		return arch, fmt.Errorf("the architecture type '%v' is not valid", archStr)
+	}
+	return arch, nil
 }

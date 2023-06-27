@@ -39,6 +39,17 @@ def get_default_os_family() -> str:
     return "ubuntu"
 
 
+def get_architectures() -> List[str]:
+    return [
+        get_default_architecture(),
+        "arm64"
+    ]
+
+
+def get_default_architecture() -> str:
+    return "amd64"
+
+
 def get_default_agent_install() -> bool:
     return True
 

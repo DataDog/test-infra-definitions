@@ -8,6 +8,7 @@ stack_name: str = "An optional name for the stack. This parameter is useful when
 debug: str = "Launch pulumi with debug mode. Default False"
 stack_name: str = "An optional name for the stack. This parameter is useful when you need to create several environments."
 os_family: str = f"The operating system. Possible values are {tool.get_os_families()}. Default '{tool.get_default_os_family()}'"
+arch: str = f"The architecture. Possible values are {tool.get_architectures()}. Default '{tool.get_default_architecture()}'"
 linux_node_group: str = "Install a Linux node group (default True)"
 linux_arm_node_group: str = "Install a Linux ARM node group (default False)"
 bottlerocket_node_group: str = "Install a bottlerocket node group (default False)"

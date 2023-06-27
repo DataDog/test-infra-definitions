@@ -90,13 +90,13 @@ func newEC2Instance(awsEnv aws.Environment, name, ami, arch, instanceType, keyPa
 	return instance, err
 }
 
-func newMetalInstance(e commonConfig.CommonEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
+func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
 	var ami string
 
-	awsEnv, err := aws.NewEnvironment(e.Ctx, aws.WithCommonEnvironment(&e))
-	if err != nil {
-		return nil, err
+	awsEnv := instanceEnv.Environment
+	if awsEnv == nil {
+		panic("no aws environment setup")
 	}
 
 	namer := namer.NewNamer(awsEnv.Ctx, fmt.Sprintf("%s-%s", awsEnv.Ctx.Stack(), arch))
@@ -110,7 +110,7 @@ func newMetalInstance(e commonConfig.CommonEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := newEC2Instance(awsEnv, name, ami, arch, instanceType, awsEnv.DefaultKeyPairName(), "", "default")
+	awsInstance, err := newEC2Instance(*awsEnv, name, ami, arch, instanceType, awsEnv.DefaultKeyPairName(), "", "default")
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func newMetalInstance(e commonConfig.CommonEnvironment, name, arch string, m con
 	}
 
 	return &Instance{
-		e:             &InstanceEnvironment{awsEnv.CommonEnvironment, &awsEnv},
+		e:             instanceEnv,
 		instance:      awsInstance,
 		Connection:    conn.ToConnectionOutput(),
 		Arch:          arch,
@@ -131,15 +131,15 @@ func newMetalInstance(e commonConfig.CommonEnvironment, name, arch string, m con
 	}, nil
 }
 
-func newInstance(e commonConfig.CommonEnvironment, arch string, m config.DDMicroVMConfig) (*Instance, error) {
-	name := e.Ctx.Stack() + "-" + arch
+func newInstance(instanceEnv *InstanceEnvironment, arch string, m config.DDMicroVMConfig) (*Instance, error) {
+	name := instanceEnv.Ctx.Stack() + "-" + arch
 	if arch != LocalVMSet {
-		return newMetalInstance(e, name, arch, m)
+		return newMetalInstance(instanceEnv, name, arch, m)
 	}
 
-	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
+	namer := namer.NewNamer(instanceEnv.Ctx, fmt.Sprintf("%s-%s", instanceEnv.Ctx.Stack(), arch))
 	return &Instance{
-		e:             &InstanceEnvironment{&e, nil},
+		e:             instanceEnv,
 		Arch:          arch,
 		instanceNamer: namer,
 	}, nil
@@ -273,9 +273,25 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		archs[set.Arch] = true
 	}
 
+	instanceEnv := &InstanceEnvironment{&e, nil}
+	// We only setup an AWS environment if we need to launch
+	// a remote ec2 instance. This is determined by whether there
+	// is a non-local vmset in the configuration file. The following
+	// loop checks for this.
+	for arch := range archs {
+		if arch != LocalVMSet {
+			awsEnv, err := aws.NewEnvironment(instanceEnv.Ctx, aws.WithCommonEnvironment(&e))
+			if err != nil {
+				return nil, err
+			}
+			instanceEnv.Environment = &awsEnv
+			break
+		}
+	}
+
 	instances := make(map[string]*Instance)
 	for arch := range archs {
-		instance, err := newInstance(e, arch, m)
+		instance, err := newInstance(instanceEnv, arch, m)
 		if err != nil {
 			return nil, err
 		}
@@ -291,7 +307,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
 		if instance.Arch != LocalVMSet {
-			e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
 		}
 	}
 
@@ -306,7 +322,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 
 	microVMIPMap := GetDomainIPMap(vmCollections)
 	for domainID, ip := range microVMIPMap {
-		e.Ctx.Export(domainID, pulumi.String(ip))
+		instanceEnv.Ctx.Export(domainID, pulumi.String(ip))
 	}
 
 	return &scenarioReady, nil

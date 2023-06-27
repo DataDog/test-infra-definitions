@@ -58,23 +58,35 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
-func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	commonEnv, err := config.NewCommonEnvironment(ctx)
-	if err != nil {
-		return Environment{}, err
+func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
+	return func(awsEnv *Environment) {
+		awsEnv.CommonEnvironment = e
+	}
+}
+
+func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environment, error) {
+	env := Environment{
+		Namer:     namer.NewNamer(ctx, awsConfigNamespace),
+		awsConfig: sdkconfig.New(ctx, awsConfigNamespace),
 	}
 
-	env := Environment{
-		CommonEnvironment: &commonEnv,
-		Namer:             namer.NewNamer(ctx, awsConfigNamespace),
-		awsConfig:         sdkconfig.New(ctx, awsConfigNamespace),
-		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), awsConfigNamespace)),
+	for _, opt := range options {
+		opt(&env)
 	}
+	if env.CommonEnvironment == nil {
+		commonEnv, err := config.NewCommonEnvironment(ctx)
+		if err != nil {
+			return Environment{}, err
+		}
+
+		env.CommonEnvironment = &commonEnv
+	}
+	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
-			Tags: commonEnv.ResourcesTags(),
+			Tags: env.CommonEnvironment.ResourcesTags(),
 		},
 		SkipCredentialsValidation: pulumi.BoolPtr(false),
 		SkipMetadataApiCheck:      pulumi.BoolPtr(false),

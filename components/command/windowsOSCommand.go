@@ -55,7 +55,9 @@ func (fs windowsOSCommand) GetTemporaryDirectory() string {
 }
 
 func (fs windowsOSCommand) GetHomeDirectory() string {
-	return "$env:HOMEPATH\\$env:HOMEPATH"
+	// %HOMEDRIVE% returns the disk drive where home directory is located
+	// %HOMEPATH% returns the path to the home directory related to HOMEDRIVE
+	return "$env:HOMEDRIVE$env:HOMEPATH"
 }
 
 func (fs windowsOSCommand) BuildCommandString(

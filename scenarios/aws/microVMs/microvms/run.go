@@ -95,6 +95,9 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	var ami string
 
 	awsEnv := instanceEnv.Environment
+	if awsEnv == nil {
+		panic("no aws environment setup")
+	}
 
 	namer := namer.NewNamer(awsEnv.Ctx, fmt.Sprintf("%s-%s", awsEnv.Ctx.Stack(), arch))
 	if arch == ec2.AMD64Arch {
@@ -271,6 +274,10 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	}
 
 	instanceEnv := &InstanceEnvironment{&e, nil}
+	// We only setup an AWS environment if we need to launch
+	// a remote ec2 instance. This is determined by whether there
+	// is a non-local vmset in the configuration file. The following
+	// loop checks for this.
 	for arch := range archs {
 		if arch != LocalVMSet {
 			awsEnv, err := aws.NewEnvironment(instanceEnv.Ctx, aws.WithCommonEnvironment(&e))

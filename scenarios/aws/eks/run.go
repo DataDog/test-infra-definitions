@@ -9,8 +9,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -23,7 +24,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	awsEnv, err := aws.NewEnvironment(ctx)
+	awsEnv, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
@@ -120,6 +121,9 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	// Export the cluster's kubeconfig.
+	ctx.Export("kubeconfig", cluster.Kubeconfig)
+
 	nodeGroups := make([]pulumi.Resource, 0)
 	// Create managed node groups
 	if awsEnv.EKSLinuxNodeGroup() {
@@ -154,9 +158,6 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
-	// Export the cluster's kubeconfig.
-	ctx.Export("kubeconfig", cluster.Kubeconfig)
-
 	// Building Kubernetes provider
 	eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
@@ -184,11 +185,11 @@ func Run(ctx *pulumi.Context) error {
 
 	var dependsOnCrd pulumi.ResourceOption
 
-	// Deploy the Agent
+	// Deploy the agent
 	if awsEnv.AgentDeploy() {
 		var fakeintake *ddfakeintake.ConnectionExporter
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = newEcsFakeintake(awsEnv); err != nil {
+			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
 				return err
 			}
 		}

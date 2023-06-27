@@ -22,12 +22,10 @@ func AllowedRepositories() []Repository {
 	return []Repository{ProdRepository, StagingRepository, TestingRepository, TrialRepository}
 }
 
-type Channel string
-
 const (
-	StableChannel  = Channel("stable")
-	BetaChannel    = Channel("beta")
-	NightlyChannel = Channel("nightly")
+	StableChannel  = "stable"
+	BetaChannel    = "beta"
+	NightlyChannel = "nightly"
 )
 
 // The types of OSes that are common
@@ -43,7 +41,7 @@ type AgentVersion struct {
 	Major      string
 	Minor      string     // Empty means latest
 	Repository Repository // Defaults to prod
-	Channel    Channel    // Defaults to stable
+	Channel    string     // Defaults to stable
 	PipelineID int        // Used instead of Channel when targeting the testing repository
 }
 

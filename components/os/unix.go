@@ -50,8 +50,8 @@ func getUnixRepositoryParams(version AgentVersion) string {
 	envVars := []string{}
 	switch version.Repository {
 	case TrialRepository, TestingRepository:
-		aptChannel := string(version.Channel)
-		yumChannel := string(version.Channel)
+		aptChannel := version.Channel
+		yumChannel := version.Channel
 		if version.Repository == TestingRepository {
 			aptChannel = fmt.Sprintf("pipeline-%v-a%v", version.PipelineID, version.Major)
 			yumChannel = fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major)

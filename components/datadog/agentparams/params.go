@@ -57,7 +57,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 			versionOptions = append(versionOptions, WithRepository(os.Repository(env.AgentRepository())))
 		}
 		if env.AgentChannel() != "" {
-			versionOptions = append(versionOptions, WithChannel(os.Channel(env.AgentChannel())))
+			versionOptions = append(versionOptions, WithChannel(env.AgentChannel()))
 		}
 	}
 
@@ -115,7 +115,7 @@ func WithRepository(repository os.Repository) func(*Params) error {
 }
 
 // WithChannel uses a specific channel of the Agent repositories.
-func WithChannel(channel os.Channel) func(*Params) error {
+func WithChannel(channel string) func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Channel = channel
 		return nil

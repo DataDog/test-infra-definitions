@@ -13,6 +13,12 @@ class Config(BaseModel, extra=Extra.forbid):
         class Aws(BaseModel, extra=Extra.forbid):
             keyPairName: Optional[str]
             publicKeyPath: Optional[str]
+            account: Optional[str]
+
+            def get_account(self) -> str:
+                if self.account is None:
+                    return "agent-sandbox"
+                return self.account
 
         aws: Optional[Aws]
 
@@ -38,7 +44,7 @@ class Config(BaseModel, extra=Extra.forbid):
 
     def get_aws(self) -> Params.Aws:
         default = Config.Params.Aws(
-            keyPairName=None, publicKeyPath=None
+            keyPairName=None, publicKeyPath=None, account=None
         )
         if self.configParams is None:
             return default

@@ -4,7 +4,6 @@ from .config import Config, get_full_profile_path
 import os
 import subprocess
 from invoke.context import Context
-from invoke.runners import Local, Result
 from invoke.exceptions import Exit
 from typing import Callable, List, Optional, Dict, Any
 import pathlib
@@ -46,7 +45,8 @@ def deploy(
 
     awsKeyPairName = cfg.get_aws().keyPairName
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
-    flags["ddinfra:env"] = "aws/agent-sandbox"
+    aws_account = cfg.get_aws().get_account()
+    flags["ddinfra:env"] = "aws/" + aws_account
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
@@ -91,7 +91,7 @@ def _create_stack(ctx: Context, stack_name: str, global_flags: str):
 
 def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
-    run_wrapper = "aws-vault exec sso-agent-sandbox-account-admin"
+    aws_account = flags["ddinfra:env"][len("aws/"):]
     global_flags = ""
     up_flags = ""
 
@@ -111,7 +111,7 @@ def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debu
 
     _create_stack(ctx, stack_name, global_flags)
 
-    cmd = f"{run_wrapper} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
+    cmd = f"{tool.get_aws_wrapper(aws_account)} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     ctx.run(cmd, pty=True)
     return stack_name
 

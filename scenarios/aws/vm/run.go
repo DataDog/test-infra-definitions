@@ -7,6 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
@@ -26,7 +27,13 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-	vm, err := ec2vm.NewEC2VMWithEnv(env, ec2params.WithOS(osType))
+	amiID := env.InfraOSAmiID()
+	var vm *ec2vm.EC2VM
+	if amiID != "" {
+		vm, err = ec2vm.NewEC2VMWithEnv(env, ec2params.WithImageName(amiID, os.Architecture(env.InfraOSArchitecture()), osType))
+	} else {
+		vm, err = ec2vm.NewEC2VMWithEnv(env, ec2params.WithOS(osType))
+	}
 	if err != nil {
 		return err
 	}

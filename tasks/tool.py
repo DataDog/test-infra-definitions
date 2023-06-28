@@ -2,14 +2,20 @@ import getpass
 import json
 import platform
 import subprocess
+from io import StringIO
 from termcolor import colored
 from typing import Any, List, Optional
+from invoke.context import Context
+from invoke.exceptions import Exit
+
 
 def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
+
 def debug(msg: str):
     print(colored(msg, "white"))
+
 
 def info(msg: str):
     print(colored(msg, "green"))
@@ -53,7 +59,7 @@ def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
 
 def get_stack_name_prefix() -> str:
     user_name = f"{getpass.getuser()}-"
-    return user_name.replace(".", "-") # EKS doesn't support '.'
+    return user_name.replace(".", "-")  # EKS doesn't support '.'
 
 
 def get_stack_json_outputs(full_stack_name: str) -> Any:
@@ -65,7 +71,20 @@ def get_stack_json_outputs(full_stack_name: str) -> Any:
 
 
 def is_windows():
-    return platform.system() == 'Windows'
+    return platform.system() == "Windows"
+
+
+def get_image_description(ctx: Context, ami_id: str) -> Any:
+    buffer = StringIO()
+    ctx.run(
+        f"aws-vault exec sso-agent-sandbox-account-admin -- aws ec2 describe-images --image-ids {ami_id}",
+        out_stream=buffer,
+    )
+    result = json.loads(buffer.getvalue())
+    if len(result["Images"]) > 1:
+        raise Exit(f"The AMI id {ami_id} returns more than one definition.")
+    else:
+        return result["Images"][0]
 
 
 class Connection:

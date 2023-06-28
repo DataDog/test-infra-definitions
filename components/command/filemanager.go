@@ -31,11 +31,20 @@ func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInpu
 	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
 }
 
+// TempDirectory creates a temporary directory
 func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
 	tempDir := path.Join(fm.command.GetTemporaryDirectory(), resourceName)
 	folderCmd, err := fm.CreateDirectory("create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
 	return folderCmd, tempDir, err
+}
 
+// HomeDirectory creates a directory in home directory, if it does not exist
+// A home directory is a file system directory on a multi-user operating system containing files for a given user of the system.
+// It does not require sudo, using sudo in home directory allows to change default ownership and it is discouraged.
+func (fm *FileManager) HomeDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+	homeDir := path.Join(fm.command.GetHomeDirectory(), resourceName)
+	folderCmd, err := fm.CreateDirectory("create-home-folder-"+resourceName, pulumi.String(homeDir), false, opts...)
+	return folderCmd, homeDir, err
 }
 
 func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {

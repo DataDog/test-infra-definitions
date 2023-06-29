@@ -23,10 +23,12 @@ def deploy(
     install_agent: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
-    extra_flags: Dict[str, Any] = {},
+    extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
 ) -> str:
     flags = extra_flags
+    if flags is None:
+        flags = {}
 
     if install_agent is None:
         install_agent = tool.get_default_agent_install()

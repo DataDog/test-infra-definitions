@@ -3,13 +3,14 @@ import subprocess
 from pydantic import ValidationError
 from typing import Optional, List, Tuple
 
+from invoke.context import Context
 from invoke.exceptions import Exit
 
 from . import config
 from .tool import get_stack_name, get_stack_name_prefix, info, error, get_aws_wrapper
 
 
-def destroy(scenario_name: str, stack: Optional[str] = None):
+def destroy(ctx: Context, scenario_name: str, stack: Optional[str] = None):
     """
     Destroy an environment
     """
@@ -42,20 +43,8 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
         error("Run this command with '--stack-name MY_STACK_NAME'. Available stacks are:")
         for stack_name in short_stack_names:
             error(f" {stack_name}")
-    else:        
-        subprocess.call(
-            [
-                "aws-vault",
-                "exec",
-                get_aws_wrapper(aws_account),
-                "--",
-                "pulumi",
-                "destroy",
-                "--remove",
-                "-s",
-                full_stack_name,
-            ]
-        )
+    else:   
+        ctx.run(f"{get_aws_wrapper(aws_account)} -- pulumi destroy --remove -s {full_stack_name}", pty=True)
 
 
 def _get_existing_stacks() -> Tuple[List[str], List[str]]:

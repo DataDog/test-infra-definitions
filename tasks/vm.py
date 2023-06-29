@@ -79,7 +79,7 @@ def destroy_vm(ctx: Context, stack_name: Optional[str] = None):
     """
     Destroy a new virtual machine on the cloud.
     """
-    destroy(scenario_name, stack_name)
+    destroy(ctx, scenario_name, stack_name)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

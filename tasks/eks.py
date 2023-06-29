@@ -82,4 +82,4 @@ def destroy_eks(ctx: Context, stack_name: Optional[str] = None):
     """
     Destroy a EKS environment created with invoke create-eks.
     """
-    destroy(scenario_name, stack_name)
+    destroy(ctx, scenario_name, stack_name)

@@ -74,4 +74,4 @@ def destroy_ecs(ctx: Context, stack_name: Optional[str] = None):
     """
     Destroy a ECS environment created with invoke create-ecs.
     """
-    destroy(scenario_name, stack_name)
+    destroy(ctx, scenario_name, stack_name)

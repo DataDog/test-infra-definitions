@@ -7,8 +7,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	ecsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
@@ -16,7 +18,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	awsEnv, err := aws.NewEnvironment(ctx)
+	awsEnv, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
@@ -81,6 +83,12 @@ func Run(ctx *pulumi.Context) error {
 
 	// Create task and service
 	if awsEnv.AgentDeploy() {
+		var fakeintake *ddfakeintake.ConnectionExporter
+		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+				return err
+			}
+		}
 		apiKeyParam, err := ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
 			Name:  awsEnv.CommonNamer.DisplayName(pulumi.String("agent-apikey")),
 			Type:  ssm.ParameterTypeSecureString,
@@ -92,7 +100,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy Fargate Agent
 		testContainer := ecs.FargateRedisContainerDefinition(apiKeyParam.Arn)
-		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), []*ecsx.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name)
+		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), []*ecsx.TaskDefinitionContainerDefinitionArgs{testContainer}, apiKeyParam.Name, fakeintake)
 		if err != nil {
 			return err
 		}
@@ -108,7 +116,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy EC2 Agent
 		if linuxNodeGroupPresent {
-			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, ecsCluster.Arn)
+			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, fakeintake, ecsCluster.Arn)
 			if err != nil {
 				return err
 			}

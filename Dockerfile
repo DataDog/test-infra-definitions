@@ -28,7 +28,7 @@ RUN apt-get update -y && \
   curl -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
   # AWS v2 cli
-  curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip" && \
+  curl -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
   rm -rf aws && \
@@ -92,7 +92,10 @@ RUN cd /tmp/test-infra && \
   rm -rf /tmp/test-infra
 
 # Install Agent / test requirements
-RUN pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements.txt && \
+# Remove AWS-related deps as we already install AWS CLI v2
+RUN curl -fsSL https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements.txt | \
+  grep -ivE "boto3|botocore|awscli|urllib3" > requirements-agent.txt && \
+  pip3 install -r requirements-agent.txt && \
   go install gotest.tools/gotestsum@latest
 
 # I think it's safe to say if we're using this mega image, we want pulumi

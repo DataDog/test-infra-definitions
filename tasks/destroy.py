@@ -1,7 +1,12 @@
 import subprocess
-from .tool import get_stack_name, get_stack_name_prefix, info, error
+
+from pydantic import ValidationError
 from typing import Optional, List, Tuple
 
+from invoke.exceptions import Exit
+
+from . import config
+from .tool import get_stack_name, get_stack_name_prefix, info, error, get_aws_wrapper
 
 
 def destroy(scenario_name: str, stack: Optional[str] = None):
@@ -15,6 +20,12 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
     if len(short_stack_names) == 0:
         info("No stack to destroy")
         return
+    
+    try:
+        cfg = config.get_local_config()
+    except ValidationError as e:
+        raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
+    aws_account = cfg.get_aws().get_account()
 
     if stack is not None:
         if stack in short_stack_names:
@@ -36,7 +47,7 @@ def destroy(scenario_name: str, stack: Optional[str] = None):
             [
                 "aws-vault",
                 "exec",
-                "sso-agent-sandbox-account-admin",
+                get_aws_wrapper(aws_account),
                 "--",
                 "pulumi",
                 "destroy",

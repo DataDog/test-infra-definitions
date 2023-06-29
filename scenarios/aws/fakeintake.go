@@ -1,12 +1,12 @@
-package eks
+package aws
 
 import (
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 )
 
-func newEcsFakeintake(env aws.Environment) (*ddfakeintake.ConnectionExporter, error) {
+func NewEcsFakeintake(env resourcesAws.Environment) (*ddfakeintake.ConnectionExporter, error) {
 	ipAddress, err := ecs.FargateServiceFakeintake(env)
 	if err != nil {
 		return nil, err

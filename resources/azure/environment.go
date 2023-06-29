@@ -13,15 +13,15 @@ const (
 	azNamerNamespace  = "az"
 
 	// Azure Infra
-	ddInfraDefaultResourceGroup            = "az/defaultResourceGroup"
-	ddinfraDefaultVNetParamName            = "az/defaultVNet"
-	ddinfraDefaultSubnetParamName          = "az/defaultSubnet"
-	ddinfraDefaultSecurityGroupParamName   = "az/defaultSecurityGroup"
-	ddinfraDefaultInstanceTypeParamName    = "az/defaultInstanceType"
-	ddinfraDefaultARMInstanceTypeParamName = "az/defaultARMInstanceType"
-	ddinfraDefaultPublicKeyPath            = "az/defaultPublicKeyPath"
-	ddinfraDefaultPrivateKeyPath           = "az/defaultPrivateKeyPath"
-	ddinfraDefaultPrivateKeyPassword       = "az/defaultPrivateKeyPassword"
+	DDInfraDefaultResourceGroup            = "az/defaultResourceGroup"
+	DDInfraDefaultVNetParamName            = "az/defaultVNet"
+	DDInfraDefaultSubnetParamName          = "az/defaultSubnet"
+	DDInfraDefaultSecurityGroupParamName   = "az/defaultSecurityGroup"
+	DDInfraDefaultInstanceTypeParamName    = "az/defaultInstanceType"
+	DDInfraDefaultARMInstanceTypeParamName = "az/defaultARMInstanceType"
+	DDInfraDefaultPublicKeyPath            = "az/defaultPublicKeyPath"
+	DDInfraDefaultPrivateKeyPath           = "az/defaultPrivateKeyPath"
+	DDInfraDefaultPrivateKeyPassword       = "az/defaultPrivateKeyPassword"
 )
 
 type Environment struct {
@@ -59,39 +59,39 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 // Common
 func (e *Environment) DefaultResourceGroup() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddInfraDefaultResourceGroup, e.envDefault.ddInfra.defaultResourceGroup)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultResourceGroup, e.envDefault.ddInfra.defaultResourceGroup)
 }
 
 func (e *Environment) DefaultVNet() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultVNetParamName, e.envDefault.ddInfra.defaultVNet)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultVNetParamName, e.envDefault.ddInfra.defaultVNet)
 }
 
 func (e *Environment) DefaultSubnet() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultSubnetParamName, e.envDefault.ddInfra.defaultSubnet)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultSubnetParamName, e.envDefault.ddInfra.defaultSubnet)
 }
 
 func (e *Environment) DefaultSecurityGroup() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultSecurityGroupParamName, e.envDefault.ddInfra.defaultSecurityGroup)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultSecurityGroupParamName, e.envDefault.ddInfra.defaultSecurityGroup)
 }
 
 func (e *Environment) DefaultInstanceType() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
 }
 
 func (e *Environment) DefaultARMInstanceType() string {
-	return e.GetStringWithDefault(e.InfraConfig, ddinfraDefaultARMInstanceTypeParamName, e.envDefault.ddInfra.defaultARMInstanceType)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultARMInstanceTypeParamName, e.envDefault.ddInfra.defaultARMInstanceType)
 }
 
 func (e *Environment) DefaultPublicKeyPath() string {
-	return e.InfraConfig.Get(ddinfraDefaultPublicKeyPath)
+	return e.InfraConfig.Get(DDInfraDefaultPublicKeyPath)
 }
 
 func (e *Environment) DefaultPrivateKeyPath() string {
-	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPath)
+	return e.InfraConfig.Get(DDInfraDefaultPrivateKeyPath)
 }
 
 func (e *Environment) DefaultPrivateKeyPassword() string {
-	return e.InfraConfig.Get(ddinfraDefaultPrivateKeyPassword)
+	return e.InfraConfig.Get(DDInfraDefaultPrivateKeyPassword)
 }
 
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {

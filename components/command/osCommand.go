@@ -10,6 +10,7 @@ import (
 // OSCommand defines the commands which are OS specifics
 type OSCommand interface {
 	GetTemporaryDirectory() string
+	GetHomeDirectory() string
 
 	CreateDirectory(
 		runner *Runner,

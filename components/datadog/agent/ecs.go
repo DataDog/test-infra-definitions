@@ -21,11 +21,6 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 				Expression: pulumi.StringPtr("attribute:ecs.os-type == linux"),
 			},
 		},
-		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
-			AssignPublicIp: pulumi.BoolPtr(false),
-			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-			Subnets:        pulumi.ToStringArray(e.DefaultSubnets()),
-		},
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
@@ -37,7 +32,8 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
-			NetworkMode: pulumi.StringPtr("awsvpc"),
+			NetworkMode: pulumi.StringPtr("bridge"),
+			PidMode:     pulumi.StringPtr("host"),
 			Family:      e.CommonNamer.DisplayName(pulumi.String("datadog-agent-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
@@ -82,6 +78,18 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 			},
 		},
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_DOGSTATSD_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_DOGSTATSD_ORIGIN_DETECTION"),
+				Value: pulumi.StringPtr("true"),
+			},
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
 				Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),

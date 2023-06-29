@@ -17,8 +17,13 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type InstanceEnvironment struct {
+	*commonConfig.CommonEnvironment
+	*aws.Environment
+}
+
 type Instance struct {
-	e             *aws.Environment
+	e             *InstanceEnvironment
 	instance      *awsEc2.Instance
 	Connection    remote.ConnectionOutput
 	Arch          string
@@ -56,50 +61,56 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	return pair
 }
 
-func newEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*awsEc2.Instance, error) {
+func newEC2Instance(awsEnv aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*awsEc2.Instance, error) {
 	var err error
+
 	if ami == "" {
-		ami, err = ec2.LatestUbuntuAMI(e, arch)
+		ami, err = ec2.LatestUbuntuAMI(awsEnv, arch)
 		if err != nil {
 			return nil, err
 		}
 	}
 
-	instance, err := awsEc2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &awsEc2.InstanceArgs{
+	instance, err := awsEc2.NewInstance(awsEnv.Ctx, awsEnv.Namer.ResourceName(name), &awsEc2.InstanceArgs{
 		Ami:                 pulumi.StringPtr(ami),
-		SubnetId:            pulumi.StringPtr(e.DefaultSubnets()[0]),
+		SubnetId:            pulumi.StringPtr(awsEnv.DefaultSubnets()[0]),
 		InstanceType:        pulumi.StringPtr(instanceType),
-		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
+		VpcSecurityGroupIds: pulumi.ToStringArray(awsEnv.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),
 		UserData:            pulumi.StringPtr(userData),
 		Tenancy:             pulumi.StringPtr(tenancy),
 		RootBlockDevice: awsEc2.InstanceRootBlockDeviceArgs{
-			VolumeSize: pulumi.Int(e.DefaultInstanceStorageSize()),
+			VolumeSize: pulumi.Int(awsEnv.DefaultInstanceStorageSize()),
 		},
 		Tags: pulumi.StringMap{
-			"Name": e.Namer.DisplayName(pulumi.String(name)),
+			"Name": awsEnv.Namer.DisplayName(pulumi.String(name)),
 		},
-		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
-	}, e.WithProviders(commonConfig.ProviderAWS))
+		InstanceInitiatedShutdownBehavior: pulumi.String(awsEnv.DefaultShutdownBehavior()),
+	}, awsEnv.WithProviders(commonConfig.ProviderAWS))
 	return instance, err
 }
 
-func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
+func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
 	var ami string
 
-	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
+	awsEnv := instanceEnv.Environment
+	if awsEnv == nil {
+		panic("no aws environment setup")
+	}
+
+	namer := namer.NewNamer(awsEnv.Ctx, fmt.Sprintf("%s-%s", awsEnv.Ctx.Stack(), arch))
 	if arch == ec2.AMD64Arch {
-		instanceType = e.DefaultInstanceType()
+		instanceType = awsEnv.DefaultInstanceType()
 		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMX86AmiID, "")
 	} else if arch == ec2.ARM64Arch {
-		instanceType = e.DefaultARMInstanceType()
+		instanceType = awsEnv.DefaultARMInstanceType()
 		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMArm64AmiID, "")
 	} else {
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := newEC2Instance(e, name, ami, arch, instanceType, e.DefaultKeyPairName(), "", "default")
+	awsInstance, err := newEC2Instance(*awsEnv, name, ami, arch, instanceType, awsEnv.DefaultKeyPairName(), "", "default")
 	if err != nil {
 		return nil, err
 	}
@@ -107,12 +118,12 @@ func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMCo
 	conn := remote.ConnectionArgs{
 		Host: awsInstance.PrivateIp,
 	}
-	if err := utils.ConfigureRemoteSSH("ubuntu", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "", &conn); err != nil {
+	if err := utils.ConfigureRemoteSSH("ubuntu", awsEnv.DefaultPrivateKeyPath(), awsEnv.DefaultPrivateKeyPassword(), "", &conn); err != nil {
 		return nil, err
 	}
 
 	return &Instance{
-		e:             &e,
+		e:             instanceEnv,
 		instance:      awsInstance,
 		Connection:    conn.ToConnectionOutput(),
 		Arch:          arch,
@@ -120,15 +131,15 @@ func newMetalInstance(e aws.Environment, name, arch string, m config.DDMicroVMCo
 	}, nil
 }
 
-func newInstance(e aws.Environment, arch string, m config.DDMicroVMConfig) (*Instance, error) {
-	name := e.Ctx.Stack() + "-" + arch
+func newInstance(instanceEnv *InstanceEnvironment, arch string, m config.DDMicroVMConfig) (*Instance, error) {
+	name := instanceEnv.Ctx.Stack() + "-" + arch
 	if arch != LocalVMSet {
-		return newMetalInstance(e, name, arch, m)
+		return newMetalInstance(instanceEnv, name, arch, m)
 	}
 
-	namer := namer.NewNamer(e.Ctx, fmt.Sprintf("%s-%s", e.Ctx.Stack(), arch))
+	namer := namer.NewNamer(instanceEnv.Ctx, fmt.Sprintf("%s-%s", instanceEnv.Ctx.Stack(), arch))
 	return &Instance{
-		e:             &e,
+		e:             instanceEnv,
 		Arch:          arch,
 		instanceNamer: namer,
 	}, nil
@@ -240,7 +251,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	return waitFor, err
 }
 
-func run(e aws.Environment) (*ScenarioDone, error) {
+func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
@@ -262,9 +273,25 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		archs[set.Arch] = true
 	}
 
+	instanceEnv := &InstanceEnvironment{&e, nil}
+	// We only setup an AWS environment if we need to launch
+	// a remote ec2 instance. This is determined by whether there
+	// is a non-local vmset in the configuration file. The following
+	// loop checks for this.
+	for arch := range archs {
+		if arch != LocalVMSet {
+			awsEnv, err := aws.NewEnvironment(instanceEnv.Ctx, aws.WithCommonEnvironment(&e))
+			if err != nil {
+				return nil, err
+			}
+			instanceEnv.Environment = &awsEnv
+			break
+		}
+	}
+
 	instances := make(map[string]*Instance)
 	for arch := range archs {
-		instance, err := newInstance(e, arch, m)
+		instance, err := newInstance(instanceEnv, arch, m)
 		if err != nil {
 			return nil, err
 		}
@@ -280,7 +307,7 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
 		if instance.Arch != LocalVMSet {
-			e.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
 		}
 	}
 
@@ -295,22 +322,22 @@ func run(e aws.Environment) (*ScenarioDone, error) {
 
 	microVMIPMap := GetDomainIPMap(vmCollections)
 	for domainID, ip := range microVMIPMap {
-		e.Ctx.Export(domainID, pulumi.String(ip))
+		instanceEnv.Ctx.Export(domainID, pulumi.String(ip))
 	}
 
 	return &scenarioReady, nil
 }
 
-func RunAndReturnInstances(e aws.Environment) (*ScenarioDone, error) {
+func RunAndReturnInstances(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	return run(e)
 }
 
 func Run(ctx *pulumi.Context) error {
-	e, err := aws.NewEnvironment(ctx)
+	commonEnv, err := commonConfig.NewCommonEnvironment(ctx)
 	if err != nil {
 		return err
 	}
 
-	_, err = run(e)
+	_, err = run(commonEnv)
 	return err
 }

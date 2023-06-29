@@ -4,7 +4,6 @@ from .config import Config, get_full_profile_path
 import os
 import subprocess
 from invoke.context import Context
-from invoke.runners import Local, Result
 from invoke.exceptions import Exit
 from typing import Callable, List, Optional, Dict, Any
 import pathlib
@@ -46,7 +45,8 @@ def deploy(
 
     awsKeyPairName = cfg.get_aws().keyPairName
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
-    flags["ddinfra:env"] = "aws/agent-sandbox"
+    aws_account = cfg.get_aws().get_account()
+    flags["ddinfra:env"] = "aws/" + aws_account
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
@@ -73,15 +73,32 @@ def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     return defaultPublicKeyPath
 
 
+# creates a stack with the given stack_name if it doesn't already exists
+def _create_stack(ctx: Context, stack_name: str, global_flags: str):
+    result = ctx.run(f"pulumi {global_flags} stack ls --all", hide="stdout")
+    if not result:
+        return
+    
+    stacks = result.stdout.splitlines()[1:] # skip header
+    for stack in stacks:
+        # the stack has an asterisk if it is currently selected
+        ls_stack_name = stack.split(" ")[0].rstrip('*')
+        if ls_stack_name == stack_name:
+            return
+
+    ctx.run(f"pulumi {global_flags} stack init --no-select {stack_name}")
+
+
 def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
-    run_wrapper = "aws-vault exec sso-agent-sandbox-account-admin"
+    aws_account = flags["ddinfra:env"][len("aws/"):]
     global_flags = ""
     up_flags = ""
 
     # Checking root path
-    if _get_root_path() != os.getcwd():
-        global_flags += f" -C {_get_root_path}"
+    root_path = _get_root_path()
+    if root_path != os.getcwd():
+        global_flags += f" -C {root_path}"
 
     # Building run func parameters
     for key, value in flags.items():
@@ -92,7 +109,9 @@ def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debu
         global_flags += " --logflow --logtostderr -v 3"
         up_flags += " --debug"
 
-    cmd = f"{run_wrapper} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
+    _create_stack(ctx, stack_name, global_flags)
+
+    cmd = f"{tool.get_aws_wrapper(aws_account)} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     ctx.run(cmd, pty=True)
     return stack_name
 

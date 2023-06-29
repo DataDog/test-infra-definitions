@@ -10,6 +10,7 @@ import (
 
 const (
 	linuxTempDir = "/tmp"
+	linuxHomeDir = "$HOME"
 )
 
 var _ OSCommand = (*unixOSCommand)(nil)
@@ -57,6 +58,10 @@ func (unixOSCommand) CopyInlineFile(
 
 func (fs unixOSCommand) GetTemporaryDirectory() string {
 	return linuxTempDir
+}
+
+func (fs unixOSCommand) GetHomeDirectory() string {
+	return linuxHomeDir
 }
 
 // BuildCommandString properly format the command string

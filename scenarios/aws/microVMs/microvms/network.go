@@ -73,9 +73,14 @@ func getMicroVMGroupSubnet() (string, error) {
 	return "", fmt.Errorf("getMicroVMGroupSubnet: could not find subnet")
 }
 
-func allowNFSPortsForBridge(ctx *pulumi.Context, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+	var sudoPassword pulumi.StringOutput
 	rootConfig := config.New(ctx, "")
-	sudoPassword := rootConfig.RequireSecret("sudo-password")
+	if isLocal {
+		sudoPassword = rootConfig.RequireSecret("sudo-password-local")
+	} else {
+		sudoPassword = rootConfig.RequireSecret("sudo-password-remote")
+	}
 
 	iptablesAllowTCPArgs := command.Args{
 		Create:                   pulumi.Sprintf(iptablesTCPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),

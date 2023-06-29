@@ -78,7 +78,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		return nil, err
 	}
 
-	tempCmd, tempDirPath, err := d.fileManager.TempDirectory(name + "compose-tmp")
+	homeCmd, composePath, err := d.fileManager.HomeDirectory(name + "compose-tmp")
 	if err != nil {
 		return nil, err
 	}
@@ -87,14 +87,14 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 	runCommandTriggers := pulumi.Array{envVars}
 	runCommandDeps := []pulumi.Resource{installCommand}
 	for _, manifest := range composeManifests {
-		remoteComposePath := path.Join(tempDirPath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
+		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
 
 		writeCommand, err := d.fileManager.CopyInlineFile(
 			manifest.Content,
 			remoteComposePath,
 			false,
-			pulumi.DependsOn([]pulumi.Resource{tempCmd}),
+			pulumi.DependsOn([]pulumi.Resource{homeCmd}),
 		)
 		if err != nil {
 			return nil, err

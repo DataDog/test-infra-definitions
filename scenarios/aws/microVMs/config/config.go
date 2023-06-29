@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/DataDog/test-infra-definitions/resources/aws"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -26,10 +26,10 @@ var SSHKeyConfigNames = map[string]string{
 
 type DDMicroVMConfig struct {
 	MicroVMConfig *sdkconfig.Config
-	aws.Environment
+	config.CommonEnvironment
 }
 
-func NewMicroVMConfig(e aws.Environment) DDMicroVMConfig {
+func NewMicroVMConfig(e config.CommonEnvironment) DDMicroVMConfig {
 	return DDMicroVMConfig{
 		sdkconfig.New(e.Ctx, ddMicroVMNamespace),
 		e,

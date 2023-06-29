@@ -10,6 +10,8 @@ from invoke.context import Context
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
+available_aws_accounts = ["agent-sandbox", "sandbox"]
+
 @task
 def setup(_: Context) -> None:
     """
@@ -41,7 +43,19 @@ def setup(_: Context) -> None:
         config.configParams.aws = Config.Params.Aws(
             keyPairName=None,
             publicKeyPath= None,
+            account=None
         )
+
+    
+    if config.configParams.aws.account is None: 
+        config.configParams.aws.account = "agent-sandbox"
+    while True:
+        aws_account = ask(f"Which aws account do you want to create instances on? Default [{config.configParams.aws.account}], available [agent-sandbox|sandbox]: ")
+        if aws_account in available_aws_accounts:
+            config.configParams.aws.account = aws_account
+            break
+        warn(f"{aws_account} is not a valid aws account")
+        
         
     if config.configParams.aws.keyPairName is None: 
         config.configParams.aws.keyPairName = getpass.getuser()

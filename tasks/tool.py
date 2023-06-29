@@ -63,6 +63,9 @@ def get_stack_json_outputs(full_stack_name: str) -> Any:
     output = output.decode("utf-8")
     return json.loads(output)
 
+def get_aws_wrapper(aws_account: str) -> str:
+    return f"sso-{aws_account}-account-admin"
+
 
 def is_windows():
     return platform.system() == 'Windows'

@@ -27,15 +27,31 @@ const (
 )
 
 func NewLinuxNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.ManagedNodeGroup, error) {
-	return newManagedNodeGroup(e, "linux-ng", cluster, nodeRole, amazonLinux2AMD64AmiType, e.DefaultInstanceType())
+	return newManagedNodeGroup(e, "linux", cluster, nodeRole, amazonLinux2AMD64AmiType, e.DefaultInstanceType())
 }
 
 func NewLinuxARMNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.ManagedNodeGroup, error) {
-	return newManagedNodeGroup(e, "linux-arm-ng", cluster, nodeRole, amazonLinux2ARM64AmiType, e.DefaultARMInstanceType())
+	return newManagedNodeGroup(e, "linux-arm", cluster, nodeRole, amazonLinux2ARM64AmiType, e.DefaultARMInstanceType())
 }
 
 func NewBottlerocketNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.ManagedNodeGroup, error) {
-	return newManagedNodeGroup(e, "bottlerocket-ng", cluster, nodeRole, bottlerocketAmiType, e.DefaultInstanceType())
+	return newManagedNodeGroup(e, "bottlerocket", cluster, nodeRole, bottlerocketAmiType, e.DefaultInstanceType())
+}
+
+func nodeGroupNamePrefix(stack, name string) string {
+	prefix := stack + "-" + name + "-ng"
+	nbExceeding := len(prefix) - 37
+	if nbExceeding <= 0 {
+		return prefix
+	}
+
+	newStackLen := len(stack) - nbExceeding*len(stack)/(len(stack)+len(name))
+	newNameLen := len(name) - nbExceeding*len(name)/(len(stack)+len(name))
+	if newStackLen+newNameLen+4 == 38 { // because of integer rounding
+		newNameLen--
+	}
+
+	return stack[:newStackLen] + "-" + name[:newNameLen] + "-ng"
 }
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string) (*eks.ManagedNodeGroup, error) {
@@ -45,7 +61,7 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 		DiskSize:            pulumi.Int(80),
 		InstanceTypes:       pulumi.ToStringArray([]string{instanceType}),
 		ForceUpdateVersion:  pulumi.BoolPtr(true),
-		NodeGroupNamePrefix: pulumi.String(e.Ctx.Stack() + "-" + name),
+		NodeGroupNamePrefix: pulumi.StringPtr(nodeGroupNamePrefix(e.Ctx.Stack(), name)),
 		ScalingConfig: awsEks.NodeGroupScalingConfigArgs{
 			DesiredSize: pulumi.Int(1),
 			MaxSize:     pulumi.Int(1),

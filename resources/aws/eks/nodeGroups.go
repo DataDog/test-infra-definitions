@@ -45,7 +45,13 @@ func nodeGroupNamePrefix(stack, name string) string {
 		return prefix
 	}
 
-	return stack[:len(stack)-nbExceeding/2] + "-" + name[:len(name)-nbExceeding/2-nbExceeding%2] + "-ng"
+	newStackLen := len(stack) - nbExceeding*len(stack)/(len(stack)+len(name))
+	newNameLen := len(name) - nbExceeding*len(name)/(len(stack)+len(name))
+	if newStackLen+newNameLen+4 == 38 { // because of integer rounding
+		newNameLen--
+	}
+
+	return stack[:newStackLen] + "-" + name[:newNameLen] + "-ng"
 }
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string) (*eks.ManagedNodeGroup, error) {

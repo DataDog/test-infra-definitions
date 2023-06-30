@@ -24,20 +24,20 @@ func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
 	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), identifier))
 }
 
-func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet) (*LibvirtFilesystem, error) {
+func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *LibvirtPool) (*LibvirtFilesystem, error) {
 	switch vmset.Recipe {
 	case vmconfig.RecipeCustomLocal:
 		fallthrough
 	case vmconfig.RecipeCustomARM64:
 		fallthrough
 	case vmconfig.RecipeCustomAMD64:
-		return NewLibvirtFSCustomRecipe(ctx, vmset), nil
+		return NewLibvirtFSCustomRecipe(ctx, vmset, pool), nil
 	case vmconfig.RecipeDistroLocal:
 		fallthrough
 	case vmconfig.RecipeDistroARM64:
 		fallthrough
 	case vmconfig.RecipeDistroAMD64:
-		return NewLibvirtFSDistroRecipe(ctx, vmset), nil
+		return NewLibvirtFSDistroRecipe(ctx, vmset, pool), nil
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}
@@ -68,11 +68,13 @@ func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 // It is composed of
 // instance: The instance on which the components of this VMCollection will be created.
 // vmsets: The VMSet which will be part of this collection
+// pool: The libvirt pool which will be shared across all vmsets in the collection.
 // fs: This is the filesystem consisting of pools and basevolumes. Each VMSet will result in 1 filesystems.
 // domains: This represents a single libvirt VM. Each VMSet will result in 1 or more domains to be built.
 type VMCollection struct {
 	instance        *Instance
 	vmsets          []vmconfig.VMSet
+	pool            *LibvirtPool
 	fs              map[vmconfig.VMSetID]*LibvirtFilesystem
 	domains         []*Domain
 	libvirtProvider *libvirt.Provider
@@ -81,19 +83,26 @@ type VMCollection struct {
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
+	libvirtPoolReady, err := setupRemoteLibvirtPool(vm.pool, vm.instance.runner, depends)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	depends = append(depends, libvirtPoolReady...)
+
 	for _, set := range vm.vmsets {
-		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set)
+		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pool)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
+		vm.fs[set.ID] = fs
+	}
 
+	for _, fs := range vm.fs {
 		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProvider, vm.instance.runner, set.Arch, depends)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
 		waitFor = append(waitFor, fsDone...)
-
-		vm.fs[set.ID] = fs
 	}
 
 	return waitFor, nil
@@ -188,6 +197,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			fs:              make(map[vmconfig.VMSetID]*LibvirtFilesystem),
 			instance:        instance,
 			libvirtProvider: provider,
+			pool:            NewLibvirtPool(instance.e.Ctx),
 		}
 
 		// add the VMSets required to build this collection

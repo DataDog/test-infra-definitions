@@ -26,14 +26,19 @@ type filesystemImage struct {
 	volumeNamer   namer.Namer
 }
 
+type LibvirtPool struct {
+	poolName    string
+	poolXML     pulumi.StringOutput
+	poolXMLPath string
+	poolNamer   namer.Namer
+}
+
 type LibvirtFilesystem struct {
 	ctx           *pulumi.Context
-	poolName      string
-	poolXML       pulumi.StringOutput
-	poolXMLPath   string
+	pool          *LibvirtPool
 	images        []*filesystemImage
 	baseVolumeMap map[string]*filesystemImage
-	poolNamer     namer.Namer
+	isLocal       bool
 }
 
 func generatePoolPath(name string) string {
@@ -56,12 +61,9 @@ func fsPathToLibvirtResource(path string) string {
 	return strings.TrimPrefix(strings.ReplaceAll(path, "/", "-"), "-")
 }
 
-func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
-	var images []*filesystemImage
-
-	rc := resources.NewResourceCollection(vmset.Recipe)
-	poolName := libvirtResourceName(ctx.Stack(), vmset.Name)
-
+func NewLibvirtPool(ctx *pulumi.Context) *LibvirtPool {
+	rc := resources.NewResourceCollection(vmconfig.RecipeDefault)
+	poolName := libvirtResourceName(ctx.Stack(), "global-pool")
 	poolPath := generatePoolPath(poolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
@@ -69,11 +71,23 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 			resources.PoolPath: pulumi.String(poolPath),
 		},
 	)
+	return &LibvirtPool{
+		poolName:    poolName,
+		poolXML:     poolXML,
+		poolXMLPath: fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
+		poolNamer:   libvirtResourceNamer(ctx, poolName),
+	}
+}
+
+func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *LibvirtPool) *LibvirtFilesystem {
+	var images []*filesystemImage
+
+	rc := resources.NewResourceCollection(vmset.Recipe)
 	baseVolumeMap := make(map[string]*filesystemImage)
 
 	for _, k := range vmset.Kernels {
-		imageName := poolName + "-" + k.Tag
-		volKey := generateVolumeKey(poolName, imageName)
+		imageName := pool.poolName + "-" + k.Tag
+		volKey := generateVolumeKey(pool.poolName, imageName)
 		img := &filesystemImage{
 			imageName:   imageName,
 			imagePath:   getImagePath(k.Dir),
@@ -94,31 +108,26 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 		baseVolumeMap[k.Tag] = img
 	}
 
+	local := false
+	if vmset.Arch == LocalVMSet {
+		local = true
+	}
+
 	return &LibvirtFilesystem{
 		ctx:           ctx,
-		poolName:      poolName,
-		poolXML:       poolXML,
-		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
+		pool:          pool,
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
-		poolNamer:     libvirtResourceNamer(ctx, poolName),
+		isLocal:       local,
 	}
 }
 
-func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *LibvirtFilesystem {
+func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *LibvirtPool) *LibvirtFilesystem {
 	baseVolumeMap := make(map[string]*filesystemImage)
-	poolName := libvirtResourceName(ctx.Stack(), vmset.Name)
 	imageName := vmset.Img.ImageName
 
 	rc := resources.NewResourceCollection(vmset.Recipe)
-	poolPath := generatePoolPath(poolName)
-	poolXML := rc.GetPoolXML(
-		map[string]pulumi.StringInput{
-			resources.PoolName: pulumi.String(poolName),
-			resources.PoolPath: pulumi.String(poolPath),
-		},
-	)
-	volKey := generateVolumeKey(poolName, imageName)
+	volKey := generateVolumeKey(pool.poolName, imageName)
 
 	img := &filesystemImage{
 		imageName:   imageName,
@@ -142,16 +151,14 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet) *Libvi
 
 	return &LibvirtFilesystem{
 		ctx:           ctx,
-		poolName:      poolName,
-		poolXML:       poolXML,
-		poolXMLPath:   fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
-		poolNamer:     libvirtResourceNamer(ctx, poolName),
+		pool:          pool,
 	}
 }
 
 func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var refreshCmd string
 	var downloadCmd string
 	var waitFor []pulumi.Resource
 
@@ -161,7 +168,13 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 			return []pulumi.Resource{}, fmt.Errorf("error parsing url %s: %w", fsImage.imageSource, err)
 		}
 
-		refreshCmd := fmt.Sprintf(refreshFromEBS, url.Path)
+		if fs.isLocal {
+			// For local environment we do not need to "download" the image from
+			// a backing store.
+			refreshCmd = "true"
+		} else {
+			refreshCmd = fmt.Sprintf(refreshFromEBS, url.Path)
+		}
 		if url.Scheme == "file" {
 			// We do this because reading the EBS blocks is the only way to download the files
 			// from the backing storage. Not doing this means, that the file is downloaded when
@@ -213,43 +226,43 @@ func extractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resou
 	return waitFor, nil
 }
 
-func setupLibvirtVMSetPool(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLibvirtVMSetPool(pool *LibvirtPool, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	poolBuildReadyArgs := command.Args{
-		Create: pulumi.Sprintf("virsh pool-build %s", fs.poolName),
-		Delete: pulumi.Sprintf("virsh pool-delete %s", fs.poolName),
+		Create: pulumi.Sprintf("virsh pool-build %s", pool.poolName),
+		Delete: pulumi.Sprintf("virsh pool-delete %s", pool.poolName),
 		Sudo:   true,
 	}
 	poolStartReadyArgs := command.Args{
-		Create: pulumi.Sprintf("virsh pool-start %s", fs.poolName),
-		Delete: pulumi.Sprintf("virsh pool-destroy %s", fs.poolName),
+		Create: pulumi.Sprintf("virsh pool-start %s", pool.poolName),
+		Delete: pulumi.Sprintf("virsh pool-destroy %s", pool.poolName),
 		Sudo:   true,
 	}
 	poolRefreshDoneArgs := command.Args{
-		Create: pulumi.Sprintf("virsh pool-refresh %s", fs.poolName),
+		Create: pulumi.Sprintf("virsh pool-refresh %s", pool.poolName),
 		Sudo:   true,
 	}
 
 	poolDefineReadyArgs := command.Args{
-		Create: pulumi.Sprintf("virsh pool-define %s", fs.poolXMLPath),
+		Create: pulumi.Sprintf("virsh pool-define %s", pool.poolXMLPath),
 		Sudo:   true,
 	}
 
-	poolDefineReady, err := runner.Command(fs.poolNamer.ResourceName("define-libvirt-pool"), &poolDefineReadyArgs, pulumi.DependsOn(depends))
+	poolDefineReady, err := runner.Command(pool.poolNamer.ResourceName("define-libvirt-pool"), &poolDefineReadyArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	poolBuildReady, err := runner.Command(fs.poolNamer.ResourceName("build-libvirt-pool"), &poolBuildReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolDefineReady}))
+	poolBuildReady, err := runner.Command(pool.poolNamer.ResourceName("build-libvirt-pool"), &poolBuildReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolDefineReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	poolStartReady, err := runner.Command(fs.poolNamer.ResourceName("start-libvirt-pool"), &poolStartReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
+	poolStartReady, err := runner.Command(pool.poolNamer.ResourceName("start-libvirt-pool"), &poolStartReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
 
-	poolRefreshDone, err := runner.Command(fs.poolNamer.ResourceName("refresh-libvirt-pool"), &poolRefreshDoneArgs, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
+	poolRefreshDone, err := runner.Command(pool.poolNamer.ResourceName("refresh-libvirt-pool"), &poolRefreshDoneArgs, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -262,12 +275,12 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 
 	for _, fsImage := range fs.images {
 		baseVolumeReadyArgs := command.Args{
-			Create: pulumi.Sprintf("virsh vol-create %s %s", fs.poolName, fsImage.volumeXMLPath),
-			Delete: pulumi.Sprintf("virsh vol-delete %s --pool %s", fsImage.volumeKey, fs.poolName),
+			Create: pulumi.Sprintf("virsh vol-create %s %s", fs.pool.poolName, fsImage.volumeXMLPath),
+			Delete: pulumi.Sprintf("virsh vol-delete %s --pool %s", fsImage.volumeKey, fs.pool.poolName),
 			Sudo:   true,
 		}
 		uploadImageToVolumeReadyArgs := command.Args{
-			Create: pulumi.Sprintf("virsh vol-upload %s %s --pool %s", fsImage.volumeKey, fsImage.imagePath, fs.poolName),
+			Create: pulumi.Sprintf("virsh vol-upload %s %s --pool %s", fsImage.volumeKey, fsImage.imagePath, fs.pool.poolName),
 			Sudo:   true,
 		}
 
@@ -296,6 +309,27 @@ func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, 
 	}
 }
 
+func setupRemoteLibvirtPool(pool *LibvirtPool, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	poolXMLWrittenArgs := command.Args{
+		Create: pulumi.Sprintf("echo \"%s\" > %s", pool.poolXML, pool.poolXMLPath),
+		Delete: pulumi.Sprintf("rm -f %s", pool.poolXMLPath),
+	}
+	poolXMLWritten, err := runner.Command(pool.poolNamer.ResourceName("write-pool-xml"), &poolXMLWrittenArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	setupLibvirtVMPoolDone, err := setupLibvirtVMSetPool(pool, runner, []pulumi.Resource{poolXMLWritten})
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return setupLibvirtVMPoolDone, err
+}
+
+// poolDone Resoures are passed seperately to optimize the order in which the filesystem setup is done.
+// This is the slowest part of the process, and the downloading of the images should begin as early as possible.
+// Therefore, we do not slow it down by waiting for the pool to become ready first.
 func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	downloadRootfsDone, err := downloadRootfs(fs, runner, depends)
 	if err != nil {
@@ -303,15 +337,6 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 	}
 
 	extractRootfsDone, err := extractRootfs(fs, runner, downloadRootfsDone)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	poolXMLWrittenArgs := command.Args{
-		Create: pulumi.Sprintf("echo \"%s\" > %s", fs.poolXML, fs.poolXMLPath),
-		Delete: pulumi.Sprintf("rm -f %s", fs.poolXMLPath),
-	}
-	poolXMLWritten, err := runner.Command(fs.poolNamer.ResourceName("write-pool-xml"), &poolXMLWrittenArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -331,14 +356,7 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 		volumeXMLReady = append(volumeXMLReady, volXMLWritten)
 	}
 
-	setupLibvirtVMPoolDone, err := setupLibvirtVMSetPool(fs, runner, []pulumi.Resource{poolXMLWritten})
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	setupLibvirtVMVolumeDone, err := setupLibvirtVMVolume(fs, runner, append(
-		append(volumeXMLReady, extractRootfsDone...), setupLibvirtVMPoolDone...),
-	)
+	setupLibvirtVMVolumeDone, err := setupLibvirtVMVolume(fs, runner, append(volumeXMLReady, extractRootfsDone...))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
@@ -349,10 +367,10 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
-	poolReady, err := libvirt.NewPool(fs.ctx, fs.poolNamer.ResourceName("create-libvirt-pool"), &libvirt.PoolArgs{
+	poolReady, err := libvirt.NewPool(fs.ctx, fs.pool.poolNamer.ResourceName("create-libvirt-pool"), &libvirt.PoolArgs{
 		Type: pulumi.String("dir"),
-		Name: pulumi.String(fs.poolName),
-		Path: pulumi.String(generatePoolPath(fs.poolName)),
+		Name: pulumi.String(fs.pool.poolName),
+		Path: pulumi.String(generatePoolPath(fs.pool.poolName)),
 	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
@@ -362,7 +380,7 @@ func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provid
 	for _, fsImage := range fs.images {
 		stgvolReady, err := libvirt.NewVolume(fs.ctx, fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &libvirt.VolumeArgs{
 			Name:   pulumi.String(fsImage.imageName),
-			Pool:   pulumi.String(fs.poolName),
+			Pool:   pulumi.String(fs.pool.poolName),
 			Source: pulumi.String(fsImage.imagePath),
 			Xml: libvirt.VolumeXmlArgs{
 				Xslt: fsImage.volumeXML,

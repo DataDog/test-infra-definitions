@@ -3,6 +3,10 @@ package ecs
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
@@ -120,6 +124,25 @@ func Run(ctx *pulumi.Context) error {
 			ctx.Export("agent-ec2-linux-task-arn", agentDaemon.TaskDefinition.Arn())
 			ctx.Export("agent-ec2-linux-task-family", agentDaemon.TaskDefinition.Family())
 			ctx.Export("agent-ec2-linux-task-version", agentDaemon.TaskDefinition.Revision())
+		}
+	}
+
+	// Deploy testing workload
+	if awsEnv.TestingWorkloadDeploy() {
+		if _, err := nginx.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
+		}
+
+		if _, err := redis.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
+		}
+
+		if _, err := dogstatsd.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
+		}
+
+		if _, err := prometheus.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
 		}
 	}
 

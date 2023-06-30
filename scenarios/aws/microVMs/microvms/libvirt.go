@@ -97,8 +97,25 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 		vm.fs[set.ID] = fs
 	}
 
+	// Duplicate VMs maybe be booted in different VMSets.
+	// In order to avoid downloading and building the baseVolumes twice,
+	// we prune the list of `filesystemImage`.
+	seen := make(map[string]bool)
 	for _, fs := range vm.fs {
-		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProvider, vm.instance.runner, set.Arch, depends)
+		imagesToKeep := []*filesystemImage{}
+		for _, fsImage := range fs.images {
+			if present, _ := seen[fsImage.imageSource]; present {
+				continue
+			}
+			imagesToKeep = append(imagesToKeep, fsImage)
+
+			seen[fsImage.imageSource] = true
+		}
+		fs.images = imagesToKeep
+	}
+
+	for _, fs := range vm.fs {
+		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProvider, vm.instance.runner, depends)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}

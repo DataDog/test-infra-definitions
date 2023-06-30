@@ -300,11 +300,10 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 	return waitFor, nil
 }
 
-func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, runner *Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	switch arch {
-	case LocalVMSet:
+func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	if fs.isLocal {
 		return setupLocalLibvirtFilesystem(fs, provider, depends)
-	default:
+	} else {
 		return setupRemoteLibvirtFilesystem(fs, runner, depends)
 	}
 }

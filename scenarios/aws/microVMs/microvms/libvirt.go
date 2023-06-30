@@ -111,7 +111,6 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 
 			seen[fsImage.imageSource] = true
 		}
-		fmt.Printf("pruned: %d\n", len(fs.images)-len(imagesToKeep))
 		fs.images = imagesToKeep
 	}
 

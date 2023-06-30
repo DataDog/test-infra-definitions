@@ -65,4 +65,4 @@ def destroy_docker(ctx: Context, stack_name: Optional[str] = None):
     """
     Destroy an environment created by invoke create_docker.
     """
-    destroy(scenario_name, stack_name)
+    destroy(ctx, scenario_name, stack_name)

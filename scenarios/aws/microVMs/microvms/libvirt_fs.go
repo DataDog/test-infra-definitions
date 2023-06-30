@@ -157,49 +157,91 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 	}
 }
 
-func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	var refreshCmd string
-	var downloadCmd string
-	var waitFor []pulumi.Resource
+func buildAria2ConfigEntry(sb *strings.Builder, source string, imagePath string) {
+	dir := filepath.Dir(imagePath)
+	out := filepath.Base(imagePath)
+	fmt.Fprintf(sb, "%s\n", source)
+	fmt.Fprintf(sb, " dir=%s\n", dir)
+	fmt.Fprintf(sb, " out=%s.lz4\n", out)
+}
 
+func refreshFromBackingStore(fsImage *filesystemImage, runner *Runner, urlPath string, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var downloadCmd string
+	var refreshCmd string
+
+	if isLocal {
+		// For local environment we do not need to "download" the image from
+		// a backing store.
+		refreshCmd = "true"
+	} else {
+		refreshCmd = fmt.Sprintf(refreshFromEBS, urlPath)
+	}
+	// We do this because reading the EBS blocks is the only way to download the files
+	// from the backing storage. Not doing this means, that the file is downloaded when
+	// it is first accessed in other commands. This can cause other problems, on top of
+	// being very slow.
+	if urlPath != fsImage.imagePath {
+		downloadCmd = fmt.Sprintf("%s && mv %s %s", refreshCmd, urlPath, fsImage.imagePath)
+	} else {
+
+		downloadCmd = refreshCmd
+	}
+	downloadRootfsArgs := command.Args{
+		Create: pulumi.String(downloadCmd),
+		Delete: pulumi.Sprintf("rm -f %s", fsImage.imagePath),
+	}
+
+	res, err := runner.Command(fsImage.volumeNamer.ResourceName("download-rootfs"), &downloadRootfsArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+
+	return []pulumi.Resource{res}, err
+}
+
+func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+	var aria2DownloadConfig strings.Builder
+
+	webDownload := false
 	for _, fsImage := range fs.images {
 		url, err := url.Parse(fsImage.imageSource)
 		if err != nil {
 			return []pulumi.Resource{}, fmt.Errorf("error parsing url %s: %w", fsImage.imageSource, err)
 		}
 
-		if fs.isLocal {
-			// For local environment we do not need to "download" the image from
-			// a backing store.
-			refreshCmd = "true"
-		} else {
-			refreshCmd = fmt.Sprintf(refreshFromEBS, url.Path)
-		}
 		if url.Scheme == "file" {
-			// We do this because reading the EBS blocks is the only way to download the files
-			// from the backing storage. Not doing this means, that the file is downloaded when
-			// it is first accessed in other commands. This can cause other problems, on top of
-			// being very slow.
-			if url.Path != fsImage.imagePath {
-				downloadCmd = fmt.Sprintf("%s && mv %s %s", refreshCmd, url.Path, fsImage.imagePath)
-			} else {
-
-				downloadCmd = refreshCmd
+			resources, err := refreshFromBackingStore(fsImage, runner, url.Path, fs.isLocal, depends)
+			if err != nil {
+				return waitFor, err
 			}
+
+			waitFor = append(waitFor, resources...)
 		} else {
-			downloadCmd = fmt.Sprintf("curl -o %s %s", fsImage.imagePath, fsImage.imageSource)
+			buildAria2ConfigEntry(&aria2DownloadConfig, fsImage.imageSource, fsImage.imagePath)
+			webDownload = true
 		}
+	}
 
-		downloadRootfsArgs := command.Args{
-			Create: pulumi.String(downloadCmd),
-			Delete: pulumi.Sprintf("rm -f %s", fsImage.imagePath),
+	if webDownload {
+		writeConfigFile := command.Args{
+			Create: pulumi.Sprintf("echo \"%s\" > /tmp/aria2.config", aria2DownloadConfig.String()),
 		}
-
-		res, err := runner.Command(fsImage.volumeNamer.ResourceName("download-rootfs"), &downloadRootfsArgs, pulumi.DependsOn(depends))
+		writeConfigFileDone, err := runner.Command(fs.pool.poolNamer.ResourceName("write-aria2c-config"), &writeConfigFile)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return waitFor, err
 		}
-		waitFor = append(waitFor, res)
+		downloadWithAria2Args := command.Args{
+			Create: pulumi.String("aria2c -i /tmp/aria2.config -x 16 -j $(cat /tmp/aria2.config | grep dir | wc -l)"),
+		}
+
+		depends = append(depends, writeConfigFileDone)
+		downloadWithAria2Done, err := runner.Command(fs.pool.poolNamer.ResourceName("download-with-aria2c"), &downloadWithAria2Args, pulumi.DependsOn(depends))
+		if err != nil {
+			return waitFor, err
+		}
+
+		waitFor = append(waitFor, downloadWithAria2Done)
 	}
 
 	return waitFor, nil
@@ -212,8 +254,7 @@ func extractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resou
 		// To do this we check if the magic bytes of the file at imagePath is 514649fb. If so then this is already
 		// a qcow2 file. No need to extract it. Otherwise it SHOULD be xz archive. Attempt to uncompress.
 		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("if xxd -p -l 4 %s | grep -E '^514649fb$'; then echo '%s is qcow2 file'; else mv %s %s.xz && xz -T0 -c -d %s.xz > %s; fi", fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath),
-			Delete: pulumi.Sprintf("rm -rf %s", fsImage.imagePath),
+			Create: pulumi.Sprintf("if xxd -p -l 4 %s | grep -E '^514649fb$'; then echo '%s is qcow2 file'; lz4 -d -f %s.lz4 %s; fi", fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath),
 		}
 		res, err := runner.Command(fsImage.volumeNamer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
 		if err != nil {

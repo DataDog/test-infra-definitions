@@ -23,10 +23,8 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
-	if version.PipelineID != "" {
-		return getUnixInstallFormatString("install_script_agent7.sh", version), nil
-	}
-	return getUnixInstallFormatString("install_script.sh", version), nil
+	// install_script_agent7.sh, despite its name, can also install Agent 6
+	return getUnixInstallFormatString("install_script_agent7.sh", version), nil
 }
 
 func (*Unix) GetType() Type {
@@ -48,37 +46,43 @@ func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	}
 }
 
-func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
-	if version.PipelineID != "" {
-		testEnvVars := []string{}
-		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
-		// apt testing repo
-		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v-a7 7"`, version.PipelineID))
-		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
-		// yum testing repo
-		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v-a7/7", version.PipelineID))
-		commandLine := strings.Join(testEnvVars, " ")
+func getUnixRepositoryParams(version AgentVersion) string {
+	envVars := []string{}
+	switch version.Repository {
+	case TrialRepository, TestingRepository:
+		aptChannel := version.Channel
+		yumChannel := version.Channel
+		if version.Repository == TestingRepository {
+			aptChannel = fmt.Sprintf("pipeline-%v-a%v", version.PipelineID, version.Major)
+			yumChannel = fmt.Sprintf("testing/pipeline-%v-a%v", version.PipelineID, version.Major)
+		}
 
-		return fmt.Sprintf(
-			`DD_API_KEY=%%s %v bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-			commandLine,
-			scriptName)
+		envVars = append(envVars, fmt.Sprintf(`TESTING_APT_URL="apt%v.datad0g.com"`, version.Repository))
+		envVars = append(envVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v %v"`, aptChannel, version.Major))
+		envVars = append(envVars, fmt.Sprintf(`TESTING_YUM_URL="yum%v.datad0g.com"`, version.Repository))
+		envVars = append(envVars, fmt.Sprintf(`TESTING_YUM_VERSION_PATH="%v/%v"`, yumChannel, version.Major))
+	case StagingRepository:
+		envVars = append(envVars, `DD_REPO_URL="datad0g.com"`)
+		envVars = append(envVars, fmt.Sprintf(`DD_AGENT_DIST_CHANNEL="%v"`, version.Channel))
+	case ProdRepository:
+		envVars = append(envVars, `DD_REPO_URL="datadoghq.com"`)
+		envVars = append(envVars, fmt.Sprintf(`DD_AGENT_DIST_CHANNEL="%v"`, version.Channel))
 	}
 
-	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
+	return strings.Join(envVars, " ")
+}
+
+func getUnixInstallFormatString(scriptName string, version AgentVersion) string {
+	commandEnvVars := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
 
 	if version.Minor != "" {
-		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
+		commandEnvVars += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
 	}
 
-	if version.BetaChannel {
-		commandLine += "REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=beta "
-	}
+	commandEnvVars += getUnixRepositoryParams(version)
 
 	return fmt.Sprintf(
 		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-		commandLine,
+		commandEnvVars,
 		scriptName)
 }

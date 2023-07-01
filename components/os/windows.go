@@ -62,35 +62,60 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 	return `& "$env:ProgramFiles\Datadog\Datadog Agent\bin\agent.exe" ` + parameters
 }
 
-func getAgentURL(version AgentVersion) (string, error) {
-	minor := strings.ReplaceAll(version.Minor, "~", "-")
-	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
-	if version.BetaChannel {
-		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
-		if err != nil {
-			return "", err
-		}
+func getWindowsRepositoryURL(version AgentVersion) string {
+	baseURL := "https://ddagent-windows-stable.s3.amazonaws.com"
 
-		url, err := finder.findVersion(fullVersion)
-		if err != nil {
-			// Try to handle custom build
-			minor = strings.TrimSuffix(minor, "-1")
-			return fmt.Sprintf("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/ddagent-cli-%v.%v.msi", version.Major, minor), nil
-		}
-
-		return url, nil
+	if version.Repository == TrialRepository {
+		baseURL = "https://ddagent-windows-trial.s3.amazonaws.com"
+	}
+	if version.Repository == StagingRepository {
+		baseURL = "https://dd-agent-mstesting.s3.amazonaws.com/builds"
 	}
 
-	finder, err := newAgentURLFinder("https://ddagent-windows-stable.s3.amazonaws.com/installers_v2.json")
+	// In the prod / trial repositories, the stable channel is at the root of the repository,
+	// not prefixed by the channel name
+	if (version.Repository == ProdRepository || version.Repository == TrialRepository) && version.Channel == StableChannel {
+		return baseURL
+	}
+
+	return fmt.Sprintf("%v/%v", baseURL, version.Channel)
+}
+
+func getAgentURL(version AgentVersion) (string, error) {
+	// TODO: using the testing repository on Windows will require more work
+	// - there is no installers_v2.json file to use
+	// - the pipeline ID is not enough to find the exact filename to use, as it is structured like:
+	// datadog-agent-<last tag>.git.<number of commits since tag>.<commit short sha>.pipeline.<pipeline id>-1-x86_64.msi
+	if version.Repository == TestingRepository {
+		return "", fmt.Errorf("targeting the testing repositories is not available yet on Windows")
+	}
+
+	// Verify that -1 is present at the end of the version. If not, add it.
+	// Replace ~ with -, the ~ are only used in Linux versioning.
+	minor := strings.TrimSuffix(version.Minor, "-1")
+	minor = strings.ReplaceAll(minor, "~", "-")
+	fullVersion := fmt.Sprintf("%v.%v-1", version.Major, minor)
+
+	finder, err := newAgentURLFinder(fmt.Sprintf("%v/installers_v2.json", getWindowsRepositoryURL(version)))
 	if err != nil {
 		return "", err
 	}
 
-	fullVersion += "-1"
 	if version.Minor == "" { // Use latest
 		if fullVersion, err = finder.getLatestVersion(); err != nil {
 			return "", err
 		}
+	}
+
+	if version.Repository == "staging" {
+		url, err := finder.findVersion(fullVersion)
+		if err != nil {
+			// Try to handle custom builds
+			// use the version without the ending -1, it's not part of the package URL
+			return fmt.Sprintf("%v/ddagent-cli-%v.%v.msi", getWindowsRepositoryURL(version), version.Major, minor), nil
+		}
+
+		return url, nil
 	}
 
 	return finder.findVersion(fullVersion)

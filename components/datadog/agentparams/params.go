@@ -2,10 +2,12 @@ package agentparams
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -18,6 +20,8 @@ import (
 //   - [WithLatest]
 //   - [WithVersion]
 //   - [WithPipelineID]
+//   - [WithRepository]
+//   - [WithChannel]
 //   - [WithAgentConfig]
 //   - [WithIntegration]
 //   - [WithTelemetry]
@@ -42,18 +46,29 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
-	if env.PipelineID() != "" {
-		defaultVersion = WithPipelineID(env.PipelineID())
+	versionOptions := []Option{defaultVersion}
+
+	// If pipeline ID is specified, force-set parameters to testing repositories
+	if env.AgentPipelineID() != "" {
+		versionOptions = append(versionOptions, WithPipelineID(env.AgentPipelineID()))
+	} else {
+		// If repository and/or channel are specified, force-set them
+		if env.AgentRepository() != "" {
+			versionOptions = append(versionOptions, WithRepository(os.Repository(env.AgentRepository())))
+		}
+		if env.AgentChannel() != "" {
+			versionOptions = append(versionOptions, WithChannel(env.AgentChannel()))
+		}
 	}
-	options = append([]Option{defaultVersion}, options...)
+
+	options = append(versionOptions, options...)
 	return common.ApplyOption(p, options)
 }
 
 // WithLatest uses the latest Agent 7 version in the stable channel.
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
-		p.Version.Major = "7"
-		p.Version.BetaChannel = false
+		p.Version = os.LatestAgentVersion()
 		return nil
 	}
 }
@@ -72,18 +87,43 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
-func WithPipelineID(version string) func(*Params) error {
+// WithPipelineID uses a specific testing pipeline ID of the datadog-agent CI. For example: `16497585`
+func WithPipelineID(pipelineID string) func(*Params) error {
 	return func(p *Params) error {
-		p.Version = parsePipelineVersion(version)
+		p.Version.Repository = os.TestingRepository
 
+		id, err := strconv.Atoi(pipelineID)
+		if err != nil {
+			return fmt.Errorf("pipeline ID '%s' is not an integer", pipelineID)
+		}
+
+		p.Version.PipelineID = id
+		return nil
+	}
+}
+
+// WithRepository uses a specific repository of the Agent.
+func WithRepository(repository os.Repository) func(*Params) error {
+	return func(p *Params) error {
+		if !utils.Contains(os.AllowedRepositories(), repository) {
+			return fmt.Errorf("repository '%s' is not valid, allowed values: %v", repository, os.AllowedRepositories())
+		}
+
+		p.Version.Repository = repository
+		return nil
+	}
+}
+
+// WithChannel uses a specific channel of the Agent repositories.
+func WithChannel(channel string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Channel = channel
 		return nil
 	}
 }
 
 func parseVersion(s string) (os.AgentVersion, error) {
-	version := os.AgentVersion{}
-
+	version := os.LatestAgentVersion()
 	prefix := "7."
 	if strings.HasPrefix(s, prefix) {
 		version.Major = "7"
@@ -95,15 +135,14 @@ func parseVersion(s string) (os.AgentVersion, error) {
 			return version, fmt.Errorf("invalid version of the Agent: %v. The Agent version should starts with `7.` or `6.`", s)
 		}
 	}
-	version.Minor = strings.TrimPrefix(s, prefix)
-	version.BetaChannel = strings.Contains(s, "~")
-	return version, nil
-}
 
-func parsePipelineVersion(s string) os.AgentVersion {
-	version := os.AgentVersion{}
-	version.PipelineID = "pipeline-" + s
-	return version
+	// Best-effort attempt to detect betas / RCs, and redirect them to the staging/beta location.
+	version.Minor = strings.TrimPrefix(s, prefix)
+	if strings.Contains(s, "~") {
+		version.Repository = os.StagingRepository
+		version.Channel = os.BetaChannel
+	}
+	return version, nil
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.

@@ -9,6 +9,25 @@ const (
 	ARM64Arch = Architecture("arm64")
 )
 
+type Repository string
+
+const (
+	ProdRepository    = Repository("prod")
+	StagingRepository = Repository("staging")
+	TestingRepository = Repository("testing")
+	TrialRepository   = Repository("trial")
+)
+
+func AllowedRepositories() []Repository {
+	return []Repository{ProdRepository, StagingRepository, TestingRepository, TrialRepository}
+}
+
+const (
+	StableChannel  = "stable"
+	BetaChannel    = "beta"
+	NightlyChannel = "nightly"
+)
+
 // The types of OSes that are common
 type Type int
 
@@ -19,10 +38,19 @@ const (
 )
 
 type AgentVersion struct {
-	Major       string
-	Minor       string // Empty means latest
-	BetaChannel bool
-	PipelineID  string
+	Major      string
+	Minor      string     // Empty means latest
+	Repository Repository // Defaults to prod
+	Channel    string     // Defaults to stable
+	PipelineID int        // Used instead of Channel when targeting the testing repository
+}
+
+func LatestAgentVersion() AgentVersion {
+	return AgentVersion{
+		Major:      "7",
+		Repository: ProdRepository,
+		Channel:    StableChannel,
+	}
 }
 
 type OS interface {

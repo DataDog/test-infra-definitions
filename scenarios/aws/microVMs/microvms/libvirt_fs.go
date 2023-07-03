@@ -95,9 +95,9 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 			volumeKey:   volKey,
 			volumeXML: rc.GetVolumeXML(
 				map[string]pulumi.StringInput{
-					resources.ImageName:  pulumi.String(imageName),
-					resources.VolumeKey:  pulumi.String(volKey),
-					resources.VolumePath: pulumi.String(volKey),
+					resources.ImageName: pulumi.String(imageName),
+					resources.VolumeKey: pulumi.String(volKey),
+					resources.ImagePath: pulumi.String(getImagePath(k.Dir)),
 				},
 			),
 			volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
@@ -136,9 +136,9 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 		volumeKey:   volKey,
 		volumeXML: rc.GetVolumeXML(
 			map[string]pulumi.StringInput{
-				resources.ImageName:  pulumi.String(imageName),
-				resources.VolumeKey:  pulumi.String(volKey),
-				resources.VolumePath: pulumi.String(volKey),
+				resources.ImageName: pulumi.String(imageName),
+				resources.VolumeKey: pulumi.String(volKey),
+				resources.ImagePath: pulumi.String(getImagePath(imageName)),
 			},
 		),
 		volumeXMLPath: fmt.Sprintf("/tmp/volume-%s.xml", imageName),
@@ -162,7 +162,7 @@ func buildAria2ConfigEntry(sb *strings.Builder, source string, imagePath string)
 	out := filepath.Base(imagePath)
 	fmt.Fprintf(sb, "%s\n", source)
 	fmt.Fprintf(sb, " dir=%s\n", dir)
-	fmt.Fprintf(sb, " out=%s.lz4\n", out)
+	fmt.Fprintf(sb, " out=%s\n", out)
 }
 
 func refreshFromBackingStore(fsImage *filesystemImage, runner *Runner, urlPath string, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -247,26 +247,6 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 	return waitFor, nil
 }
 
-func extractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	var waitFor []pulumi.Resource
-	for _, fsImage := range fs.images {
-		// Extract archive if it is xz compressed, which will be the case when downloading from remote S3 bucket.
-		// To do this we check if the magic bytes of the file at imagePath is 514649fb. If so then this is already
-		// a qcow2 file. No need to extract it. Otherwise it SHOULD be xz archive. Attempt to uncompress.
-		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("if xxd -p -l 4 %s | grep -E '^514649fb$'; then echo '%s is qcow2 file'; lz4 -d -f %s.lz4 %s; fi", fsImage.imagePath, fsImage.imagePath, fsImage.imagePath, fsImage.imagePath),
-		}
-		res, err := runner.Command(fsImage.volumeNamer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
-		if err != nil {
-			return []pulumi.Resource{}, err
-		}
-
-		waitFor = append(waitFor, res)
-	}
-
-	return waitFor, nil
-}
-
 func setupLibvirtVMSetPool(pool *LibvirtPool, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	poolBuildReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-build %s", pool.poolName),
@@ -320,22 +300,13 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 			Delete: pulumi.Sprintf("virsh vol-delete %s --pool %s", fsImage.volumeKey, fs.pool.poolName),
 			Sudo:   true,
 		}
-		uploadImageToVolumeReadyArgs := command.Args{
-			Create: pulumi.Sprintf("virsh vol-upload %s %s --pool %s", fsImage.volumeKey, fsImage.imagePath, fs.pool.poolName),
-			Sudo:   true,
-		}
 
 		baseVolumeReady, err := runner.Command(fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &baseVolumeReadyArgs, pulumi.DependsOn(depends))
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
 
-		uploadImageToVolumeReady, err := runner.Command(fsImage.volumeNamer.ResourceName("upload-libvirt-volume"), &uploadImageToVolumeReadyArgs, pulumi.DependsOn([]pulumi.Resource{baseVolumeReady}))
-		if err != nil {
-			return []pulumi.Resource{}, err
-		}
-
-		waitFor = append(waitFor, uploadImageToVolumeReady)
+		waitFor = append(waitFor, baseVolumeReady)
 	}
 
 	return waitFor, nil
@@ -376,11 +347,6 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 		return []pulumi.Resource{}, err
 	}
 
-	extractRootfsDone, err := extractRootfs(fs, runner, downloadRootfsDone)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
 	var volXMLWrittenArgs command.Args
 	var volumeXMLReady []pulumi.Resource
 	for _, fsImage := range fs.images {
@@ -396,7 +362,7 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 		volumeXMLReady = append(volumeXMLReady, volXMLWritten)
 	}
 
-	setupLibvirtVMVolumeDone, err := setupLibvirtVMVolume(fs, runner, append(volumeXMLReady, extractRootfsDone...))
+	setupLibvirtVMVolumeDone, err := setupLibvirtVMVolume(fs, runner, append(volumeXMLReady, downloadRootfsDone...))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}

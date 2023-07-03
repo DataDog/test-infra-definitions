@@ -17,7 +17,7 @@ const (
 	DHCPEntries   = "dhcpEntries"
 	ImageName     = "imageName"
 	VolumeKey     = "volumeKey"
-	VolumePath    = "volumePath"
+	ImagePath     = "imagePath"
 	PoolName      = "poolName"
 	PoolPath      = "poolPath"
 	Nvram         = "nvram"

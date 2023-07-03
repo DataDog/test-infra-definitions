@@ -53,7 +53,7 @@ func NewDefaultResourceCollection(recipe string) *DefaultResourceCollection {
 	}
 }
 
-func (a *DefaultResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DefaultResourceCollection) GetDomainXLS(_ map[string]pulumi.StringInput) pulumi.StringOutput {
 	return pulumi.Sprintf("%s", GetDefaultDomainXLS())
 }
 
@@ -65,6 +65,6 @@ func (a *DefaultResourceCollection) GetPoolXML(args map[string]pulumi.StringInpu
 	return GetDefaultPoolXML(args, a.recipe)
 }
 
-func (a *DefaultResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+func (a *DefaultResourceCollection) GetLibvirtDomainArgs(_ *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	return nil
 }

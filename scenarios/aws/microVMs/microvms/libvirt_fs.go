@@ -315,9 +315,9 @@ func setupLibvirtVMVolume(fs *LibvirtFilesystem, runner *Runner, depends []pulum
 func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(provider *libvirt.Provider, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	if fs.isLocal {
 		return setupLocalLibvirtFilesystem(fs, provider, depends)
-	} else {
-		return setupRemoteLibvirtFilesystem(fs, runner, depends)
 	}
+
+	return setupRemoteLibvirtFilesystem(fs, runner, depends)
 }
 
 func setupRemoteLibvirtPool(pool *LibvirtPool, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -338,7 +338,7 @@ func setupRemoteLibvirtPool(pool *LibvirtPool, runner *Runner, depends []pulumi.
 	return setupLibvirtVMPoolDone, err
 }
 
-// poolDone Resoures are passed seperately to optimize the order in which the filesystem setup is done.
+// poolDone Resoures are passed separately to optimize the order in which the filesystem setup is done.
 // This is the slowest part of the process, and the downloading of the images should begin as early as possible.
 // Therefore, we do not slow it down by waiting for the pool to become ready first.
 func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {

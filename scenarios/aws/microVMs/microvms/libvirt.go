@@ -104,12 +104,12 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	for _, fs := range vm.fs {
 		imagesToKeep := []*filesystemImage{}
 		for _, fsImage := range fs.images {
-			if present, _ := seen[fsImage.imageSource]; present {
+			if present, _ := seen[fsImage.imagePath]; present {
 				continue
 			}
 			imagesToKeep = append(imagesToKeep, fsImage)
 
-			seen[fsImage.imageSource] = true
+			seen[fsImage.imagePath] = true
 		}
 		fs.images = imagesToKeep
 	}

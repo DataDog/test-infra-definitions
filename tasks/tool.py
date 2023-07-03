@@ -70,7 +70,7 @@ def get_stack_json_outputs(full_stack_name: str) -> Any:
     return json.loads(output)
 
 def get_aws_wrapper(aws_account: str) -> str:
-    return f"aws-vault exec sso-{aws_account}-account-admin–"
+    return f"aws-vault exec sso-{aws_account}-account-admin"
 
 
 def is_windows():

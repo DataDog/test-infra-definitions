@@ -4,10 +4,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -26,37 +26,24 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
-	lb, err := alb.NewLoadBalancer(e.Ctx, namer.ResourceName("lb"), &alb.LoadBalancerArgs{
-		LoadBalancerType: pulumi.StringPtr("application"),
-		Subnets:          pulumi.ToStringArray(e.DefaultSubnets()),
-		Internal:         pulumi.BoolPtr(true),
-		SecurityGroups:   pulumi.ToStringArray(e.DefaultSecurityGroups()),
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	tg, err := alb.NewTargetGroup(e.Ctx, namer.ResourceName("tg"), &alb.TargetGroupArgs{
-		Port:       pulumi.IntPtr(80),
-		Protocol:   pulumi.StringPtr("HTTP"),
-		TargetType: pulumi.StringPtr("instance"),
-		VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = alb.NewListener(e.Ctx, namer.ResourceName("listener"), &alb.ListenerArgs{
-		LoadBalancerArn: lb.Arn,
-		Port:            pulumi.IntPtr(80),
-		Protocol:        pulumi.StringPtr("HTTP"),
-		DefaultActions: alb.ListenerDefaultActionArray{
-			&alb.ListenerDefaultActionArgs{
-				Type:           pulumi.String("forward"),
-				TargetGroupArn: tg.Arn,
-			},
+	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
+		Name:           e.CommonNamer.DisplayName(pulumi.String("nginx")),
+		SubnetIds:      pulumi.ToStringArray(e.DefaultSubnets()),
+		Internal:       pulumi.BoolPtr(true),
+		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
+		DefaultTargetGroup: &lb.TargetGroupArgs{
+			Name:       e.CommonNamer.DisplayName(pulumi.String("nginx")),
+			Port:       pulumi.IntPtr(80),
+			Protocol:   pulumi.StringPtr("HTTP"),
+			TargetType: pulumi.StringPtr("instance"),
+			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
 		},
-	}, opts...); err != nil {
+		Listener: &lb.ListenerArgs{
+			Port:     pulumi.IntPtr(80),
+			Protocol: pulumi.StringPtr("HTTP"),
+		},
+	}, opts...)
+	if err != nil {
 		return nil, err
 	}
 
@@ -138,7 +125,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			&classicECS.ServiceLoadBalancerArgs{
 				ContainerName:  pulumi.String("nginx"),
 				ContainerPort:  pulumi.Int(80),
-				TargetGroupArn: tg.Arn,
+				TargetGroupArn: alb.DefaultTargetGroup.Arn(),
 			},
 		},
 	}, opts...); err != nil {
@@ -157,7 +144,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 					Image: pulumi.StringPtr("ghcr.io/datadog/apps-http-client:main"),
 					Command: pulumi.StringArray{
 						pulumi.String("-url"),
-						pulumi.Sprintf("http://%s", lb.DnsName),
+						pulumi.Sprintf("http://%s", alb.LoadBalancer.DnsName()),
 					},
 					Cpu:    pulumi.IntPtr(50),
 					Memory: pulumi.IntPtr(32),

@@ -5,9 +5,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/lb"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -26,36 +26,23 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
-	lbl, err := lb.NewLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.LoadBalancerArgs{
-		LoadBalancerType: pulumi.StringPtr("network"),
-		Subnets:          pulumi.ToStringArray(e.DefaultSubnets()),
-		Internal:         pulumi.BoolPtr(true),
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	tg, err := lb.NewTargetGroup(e.Ctx, namer.ResourceName("tg"), &lb.TargetGroupArgs{
-		Port:       pulumi.IntPtr(6379),
-		Protocol:   pulumi.StringPtr("TCP"),
-		TargetType: pulumi.StringPtr("instance"),
-		VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = lb.NewListener(e.Ctx, namer.ResourceName("listener"), &lb.ListenerArgs{
-		LoadBalancerArn: lbl.Arn,
-		Port:            pulumi.IntPtr(6379),
-		Protocol:        pulumi.StringPtr("TCP"),
-		DefaultActions: lb.ListenerDefaultActionArray{
-			&lb.ListenerDefaultActionArgs{
-				Type:           pulumi.String("forward"),
-				TargetGroupArn: tg.Arn,
-			},
+	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
+		Name:      e.CommonNamer.DisplayName(pulumi.String("redis")),
+		SubnetIds: pulumi.ToStringArray(e.DefaultSubnets()),
+		Internal:  pulumi.BoolPtr(true),
+		DefaultTargetGroup: &lb.TargetGroupArgs{
+			Name:       e.CommonNamer.DisplayName(pulumi.String("redis")),
+			Port:       pulumi.IntPtr(6379),
+			Protocol:   pulumi.StringPtr("TCP"),
+			TargetType: pulumi.StringPtr("instance"),
+			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
 		},
-	}, opts...); err != nil {
+		Listener: &lb.ListenerArgs{
+			Port:     pulumi.IntPtr(6379),
+			Protocol: pulumi.StringPtr("TCP"),
+		},
+	}, opts...)
+	if err != nil {
 		return nil, err
 	}
 
@@ -93,7 +80,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			&classicECS.ServiceLoadBalancerArgs{
 				ContainerName:  pulumi.String("redis"),
 				ContainerPort:  pulumi.Int(6379),
-				TargetGroupArn: tg.Arn,
+				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
 			},
 		},
 	}, opts...); err != nil {
@@ -112,7 +99,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 					Image: pulumi.StringPtr("ghcr.io/datadog/apps-redis-client:main"),
 					Command: pulumi.StringArray{
 						pulumi.String("-addr"),
-						pulumi.Sprintf("%s:6379", lbl.DnsName),
+						pulumi.Sprintf("%s:6379", nlb.LoadBalancer.DnsName()),
 					},
 					Cpu:    pulumi.IntPtr(50),
 					Memory: pulumi.IntPtr(32),

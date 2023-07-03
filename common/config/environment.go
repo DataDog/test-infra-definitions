@@ -26,6 +26,7 @@ const (
 	DDInfraOSFamily          = "osFamily"
 	DDInfraOSArchitecture    = "osArchitecture"
 	DDInfraOSAmiID           = "osAmiId"
+	DDInfraResourcesTags     = "resourcesTags"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -92,7 +93,7 @@ func (e *CommonEnvironment) KubernetesVersion() string {
 }
 
 func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
-	defaultTags := pulumi.StringMap{
+	tags := pulumi.StringMap{
 		"managed-by": pulumi.String("pulumi"),
 	}
 
@@ -101,18 +102,29 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 	if err != nil {
 		panic(err)
 	}
-	defaultTags["username"] = pulumi.String(user.Username)
+	tags["username"] = pulumi.String(user.Username)
 
 	// Map environment variables
 	lookupVars := []string{"TEAM", "PIPELINE_ID"}
 	for _, varName := range lookupVars {
 		if val := os.Getenv(varName); val != "" {
-			defaultTags[strings.ReplaceAll(
+			tags[strings.ReplaceAll(
 				strings.ToLower(varName), "_", "-")] = pulumi.String(val)
 		}
 	}
 
-	return defaultTags
+	// inject tags from config map
+	tagsFromConfigMap := e.GetStringListWithDefault(e.InfraConfig, DDInfraResourcesTags, []string{})
+	for _, tag := range tagsFromConfigMap {
+		nameAndValue := strings.Split(tag, "=")
+		if len(nameAndValue) != 2 {
+			continue
+		}
+		tags[strings.ReplaceAll(
+			strings.ToLower(nameAndValue[0]), "_", "-")] = pulumi.String(nameAndValue[1])
+	}
+
+	return tags
 }
 
 // Agent Namespace

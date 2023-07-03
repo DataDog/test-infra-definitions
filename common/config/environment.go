@@ -116,12 +116,12 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 	// inject tags from config map
 	tagsFromConfigMap := e.GetStringListWithDefault(e.InfraConfig, DDInfraResourcesTags, []string{})
 	for _, tag := range tagsFromConfigMap {
-		nameAndValue := strings.Split(tag, "=")
-		if len(nameAndValue) != 2 {
+		keyAndValue := strings.Split(tag, ":")
+		if len(keyAndValue) != 2 {
 			continue
 		}
 		tags[strings.ReplaceAll(
-			strings.ToLower(nameAndValue[0]), "_", "-")] = pulumi.String(nameAndValue[1])
+			strings.ToLower(keyAndValue[0]), "_", "-")] = pulumi.String(keyAndValue[1])
 	}
 
 	return tags

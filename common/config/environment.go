@@ -21,12 +21,12 @@ const (
 	DDTestingWorkloadNamespace = "ddtestworkload"
 
 	// Infra namespace
-	DDInfraEnvironment       = "env"
-	DDInfraKubernetesVersion = "kubernetesVersion"
-	DDInfraOSFamily          = "osFamily"
-	DDInfraOSArchitecture    = "osArchitecture"
-	DDInfraOSAmiID           = "osAmiId"
-	DDInfraResourcesTags     = "resourcesTags"
+	DDInfraEnvironment        = "env"
+	DDInfraKubernetesVersion  = "kubernetesVersion"
+	DDInfraOSFamily           = "osFamily"
+	DDInfraOSArchitecture     = "osArchitecture"
+	DDInfraOSAmiID            = "osAmiId"
+	DDInfraExtraResourcesTags = "extraResourcesTags"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"

@@ -83,11 +83,13 @@ type VMCollection struct {
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
-	libvirtPoolReady, err := setupRemoteLibvirtPool(vm.pool, vm.instance.runner, depends)
-	if err != nil {
-		return []pulumi.Resource{}, err
+	if vm.instance.Arch != LocalVMSet {
+		libvirtPoolReady, err := setupRemoteLibvirtPool(vm.pool, vm.instance.runner, depends)
+		if err != nil {
+			return []pulumi.Resource{}, err
+		}
+		depends = append(depends, libvirtPoolReady...)
 	}
-	depends = append(depends, libvirtPoolReady...)
 
 	for _, set := range vm.vmsets {
 		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pool)

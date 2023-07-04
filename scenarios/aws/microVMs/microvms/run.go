@@ -243,7 +243,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			waitFor = append(waitFor, shutdownTimerDone)
 		}
 	} else {
-		url = pulumi.Sprintf("qemu:///system")
+		url = pulumi.Sprintf("qemu:///system?socket=/opt/homebrew/var/run/libvirt/libvirt-sock")
 	}
 
 	instance.libvirtURI = url

@@ -58,6 +58,7 @@ def setupAWSConfig(config: Config):
             teamTag=None
         )
 
+    # aws account
     if config.configParams.aws.account is None: 
         config.configParams.aws.account = "agent-sandbox"
     default_aws_account = config.configParams.aws.account
@@ -70,13 +71,14 @@ def setupAWSConfig(config: Config):
             break
         warn(f"{config.configParams.aws.account} is not a valid aws account")
         
-        
+    # aws keypair name    
     if config.configParams.aws.keyPairName is None: 
         config.configParams.aws.keyPairName = getpass.getuser()
     keyPairName = ask(f"🔑 Key pair name - stored in AWS Sandbox, default [{config.configParams.aws.keyPairName}]: ")
     if len(keyPairName) > 0:
         config.configParams.aws.keyPairName = keyPairName
 
+    # check keypair name
     if config.options is None:
         config.options = Config.Options(
             checkKeyPair=False
@@ -86,6 +88,7 @@ def setupAWSConfig(config: Config):
     if len(checkKeyPair) > 0:
         config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"
 
+    # aws public key path
     if config.configParams.aws.publicKeyPath is None:
         config.configParams.aws.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
     default_public_key_path = config.configParams.aws.publicKeyPath
@@ -97,15 +100,16 @@ def setupAWSConfig(config: Config):
         if os.path.isfile(config.configParams.aws.publicKeyPath):
             break
         warn(f"{config.configParams.aws.publicKeyPath} is not a valid ssh key")
-    
-    checkKeyPair = ask(f"Did you create your SSH key on AWS and want me to check it is loaded on your ssh agent when creating manual environments or running e2e tests [Y/N]? Default [{default_check_key_pair}]: ")
-    if len(checkKeyPair) > 0:
-        config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"
 
+    # team tag
     if config.configParams.aws.teamTag is None:
         config.configParams.aws.teamTag = ""
     while True:
-        teamTag = ask(f"🔖 What is your team? It will tag all your resources by `TEAM:<team>`. Default [{config.configParams.aws.teamTag}]: ")
+        msg = "🔖 What is your team? This will tag all your resources by `team:<team>`"
+        if len(config.configParams.aws.teamTag) > 0:
+            msg += f". Default [{config.configParams.aws.teamTag}]"
+        msg += ": "
+        teamTag = ask(msg)
         if len(teamTag) > 0:
             config.configParams.aws.teamTag = teamTag
         if len(config.configParams.aws.teamTag) > 0:
@@ -119,7 +123,7 @@ def setupAgentConfig(config):
             apiKey=None,
             appKey=None,
         )
-
+    # API key
     if config.configParams.agent.apiKey is None:
         config.configParams.agent.apiKey = '0' * 32
     default_api_key = config.configParams.agent.apiKey
@@ -131,7 +135,7 @@ def setupAgentConfig(config):
         if len(config.configParams.agent.apiKey) == 32:
             break
         warn(f"Expecting API key of length 32, got {len(config.configParams.agent.apiKey)}")
-
+    # APP key
     if config.configParams.agent.appKey is None:    
         config.configParams.agent.appKey = '0' * 40
     default_app_key = config.configParams.agent.appKey

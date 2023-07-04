@@ -52,6 +52,8 @@ type CommonEnvironment struct {
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
+
+	username string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
@@ -63,6 +65,13 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		CommonNamer:           namer.NewNamer(ctx, ""),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
+	// store username
+	user, err := user.Current()
+	if err != nil {
+		panic(err)
+	}
+	env.username = user.Username
+
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)

@@ -101,37 +101,38 @@ func (e *CommonEnvironment) KubernetesVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.26")
 }
 
-func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
-	tags := pulumi.StringMap{
-		"managed-by": pulumi.String("pulumi"),
-	}
+func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
+	return map[string]string{"managed-by": "pulumi", "username": e.username}
+}
 
-	// Add user tag
-	user, err := user.Current()
+func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
+	tags, err := tagListToKeyValueMap(e.GetStringListWithDefault(e.InfraConfig, DDInfraExtraResourcesTags, []string{}))
 	if err != nil {
-		panic(err)
+		e.Ctx.Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
 	}
-	tags["username"] = pulumi.String(user.Username)
+	return tags
+}
 
-	// Map environment variables
+func EnvVariableResourceTags() map[string]string {
+	tags := map[string]string{}
 	lookupVars := []string{"TEAM", "PIPELINE_ID"}
 	for _, varName := range lookupVars {
 		if val := os.Getenv(varName); val != "" {
-			tags[strings.ReplaceAll(
-				strings.ToLower(varName), "_", "-")] = pulumi.String(val)
+			tags[varName] = val
 		}
 	}
+	return tags
+}
 
-	// inject tags from config map
-	tagsFromConfigMap := e.GetStringListWithDefault(e.InfraConfig, DDInfraResourcesTags, []string{})
-	for _, tag := range tagsFromConfigMap {
-		keyAndValue := strings.Split(tag, ":")
-		if len(keyAndValue) != 2 {
-			continue
-		}
-		tags[strings.ReplaceAll(
-			strings.ToLower(keyAndValue[0]), "_", "-")] = pulumi.String(keyAndValue[1])
-	}
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+	tags := pulumi.StringMap{}
+
+	// default tags
+	extendTagsMap(tags, e.DefaultResourceTags())
+	// extended resource tags
+	extendTagsMap(tags, e.ExtraResourcesTags())
+	// env variable tags
+	extendTagsMap(tags, EnvVariableResourceTags())
 
 	return tags
 }

@@ -37,7 +37,7 @@ type LibvirtFilesystem struct {
 }
 
 func generatePoolPath(name string) string {
-	return fmt.Sprintf("/home/kernel-version-testing/libvirt/pools/%s", name)
+	return fmt.Sprintf("%s/libvirt/pools/%s", GetWorkingDirectory(), name)
 }
 
 func generateVolumeKey(pool, volName string) string {

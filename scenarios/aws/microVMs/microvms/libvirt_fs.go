@@ -391,7 +391,7 @@ func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provid
 			Xml: libvirt.VolumeXmlArgs{
 				Xslt: fsImage.volumeXML,
 			},
-		}, pulumi.Provider(provider), pulumi.DependsOn(waitFor))
+		}, pulumi.Provider(provider), pulumi.DependsOn([]pulumi.Resource{poolReady}))
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}

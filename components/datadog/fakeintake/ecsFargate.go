@@ -16,22 +16,22 @@ const (
 	port          = 80
 )
 
-type Component struct {
+type Instance struct {
 	pulumi.ResourceState
 
 	Host pulumi.StringOutput
 }
 
-func FargateLinuxComponentDefinition(e aws.Environment) (*Component, error) {
+func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	namer := e.Namer.WithPrefix("fakeintake")
 	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
 
-	component := &Component{}
-	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), component, opts...); err != nil {
+	instance := &Instance{}
+	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, opts...); err != nil {
 		return nil, err
 	}
 
-	opts = append(opts, pulumi.Parent(component))
+	opts = append(opts, pulumi.Parent(instance))
 
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
 		Name:           e.CommonNamer.DisplayName(pulumi.String("fakeintake")),
@@ -54,7 +54,7 @@ func FargateLinuxComponentDefinition(e aws.Environment) (*Component, error) {
 		return nil, err
 	}
 
-	component.Host = alb.LoadBalancer.DnsName()
+	instance.Host = alb.LoadBalancer.DnsName()
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
@@ -106,11 +106,11 @@ func FargateLinuxComponentDefinition(e aws.Environment) (*Component, error) {
 		return nil, err
 	}
 
-	if err := e.Ctx.RegisterResourceOutputs(component, pulumi.Map{
+	if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
 		"host": alb.LoadBalancer.DnsName(),
 	}); err != nil {
 		return nil, err
 	}
 
-	return component, nil
+	return instance, nil
 }

@@ -6,10 +6,10 @@ import (
 )
 
 func NewEcsFakeintake(env resourcesAws.Environment) (*ddfakeintake.ConnectionExporter, error) {
-	comp, err := ddfakeintake.FargateLinuxComponentDefinition(env)
+	fakeintake, err := ddfakeintake.NewECSFargateInstance(env)
 	if err != nil {
 		return nil, err
 	}
 
-	return ddfakeintake.NewExporter(env.Ctx, comp.Host), nil
+	return ddfakeintake.NewExporter(env.Ctx, fakeintake.Host), nil
 }

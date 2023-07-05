@@ -109,11 +109,19 @@ def _get_os_information(
         if family is None:  # Try to guess the distribution
             os_families = tool.get_os_families()
             try:
-                family = next(
-                    os
-                    for os in os_families
-                    if os in image["Description"].lower().replace(" ", "")
-                )
+                if "Description" in image:
+                    family = next(
+                        os
+                        for os in os_families
+                        if os in image["Description"].lower().replace(" ", "")
+                    )
+                else: # If the image has no description, check with name
+                    family = next(
+                        os
+                        for os in os_families
+                        if os in image["Name"].lower().replace(" ", "")
+                    )
+
             except StopIteration:
                 raise Exit(
                     f"We failed to guess the family of your AMI ID. Please provide it with option -o"

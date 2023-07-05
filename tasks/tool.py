@@ -38,6 +38,7 @@ def get_os_families() -> List[str]:
         "redhat",
         "suse",
         "fedora",
+        "centos",
     ]
 
 

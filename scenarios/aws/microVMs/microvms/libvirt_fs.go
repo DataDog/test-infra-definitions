@@ -226,17 +226,25 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 	if webDownload {
 		writeConfigFile := command.Args{
 			Create: pulumi.Sprintf("echo \"%s\" > /tmp/aria2.config", aria2DownloadConfig.String()),
+			Update: pulumi.Sprintf("echo \"%s\" > /tmp/aria2.config", aria2DownloadConfig.String()),
 		}
 		writeConfigFileDone, err := runner.Command(fs.pool.poolNamer.ResourceName("write-aria2c-config"), &writeConfigFile)
 		if err != nil {
 			return waitFor, err
 		}
+
+		// We allow this command to fail.
+		// The '--auto-file-renaming' flag allows us to skip downloading already downloaded files.
+		// However, it causes aria2c to fail if a control file for the corresponding file does not exist.
+		// We let the update fail assuming that most of the failures are due to the above case. If there is
+		// a problem downloading the file for some other reason, subsequent commands will fail, thus alerting us.
 		downloadWithAria2Args := command.Args{
-			Create: pulumi.String("aria2c -i /tmp/aria2.config -x 16 -j $(cat /tmp/aria2.config | grep dir | wc -l)"),
+			Create:   pulumi.String("aria2c --auto-file-renaming=false -i /tmp/aria2.config -x 16 -j $(cat /tmp/aria2.config | grep dir | wc -l) || true"),
+			Triggers: pulumi.Array{pulumi.String(aria2DownloadConfig.String())},
 		}
 
 		depends = append(depends, writeConfigFileDone)
-		downloadWithAria2Done, err := runner.Command(fs.pool.poolNamer.ResourceName("download-with-aria2c"), &downloadWithAria2Args, pulumi.DependsOn(depends))
+		downloadWithAria2Done, _ := runner.Command(fs.pool.poolNamer.ResourceName("download-with-aria2c"), &downloadWithAria2Args, pulumi.DependsOn(depends))
 		if err != nil {
 			return waitFor, err
 		}

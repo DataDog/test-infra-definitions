@@ -25,7 +25,7 @@ func newCentos(env aws.Environment) *centos {
 		Unix: os.NewUnix(&env),
 	}
 }
-func (*centos) GetSSHUser() string { return "root" }
+func (*centos) GetSSHUser() string { return "centos" }
 
 func (u *centos) GetImage(arch os.Architecture) (string, error) {
 	switch arch {

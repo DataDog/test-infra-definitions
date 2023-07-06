@@ -1,5 +1,7 @@
 import getpass
 import json
+import os
+import pathlib
 import platform
 import subprocess
 from io import StringIO
@@ -63,12 +65,20 @@ def get_stack_name_prefix() -> str:
     return user_name.replace(".", "-")  # EKS doesn't support '.'
 
 
-def get_stack_json_outputs(full_stack_name: str) -> Any:
-    output = subprocess.check_output(
-        ["pulumi", "stack", "output", "--json", "-s", full_stack_name]
+def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
+    buffer = StringIO()
+    global_flags = ""
+
+    # Checking root path
+    root_path = _get_root_path()
+    if root_path != os.getcwd():
+        global_flags += f" -C {root_path}"
+
+    ctx.run(
+        f"pulumi {global_flags} stack output --json -s {full_stack_name}",
+        out_stream=buffer,
     )
-    output = output.decode("utf-8")
-    return json.loads(output)
+    return json.loads(buffer.getvalue())
 
 def get_aws_wrapper(aws_account: str) -> str:
     return f"aws-vault exec sso-{aws_account}-account-admin"
@@ -89,6 +99,11 @@ def get_image_description(ctx: Context, ami_id: str) -> Any:
         raise Exit(f"The AMI id {ami_id} returns more than one definition.")
     else:
         return result["Images"][0]
+
+
+def _get_root_path() -> str:
+    folder = pathlib.Path(__file__).parent.resolve()
+    return str(folder.parent)
 
 
 class Connection:

@@ -68,7 +68,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	// store username
 	user, err := user.Current()
 	if err != nil {
-		panic(err)
+		return env, err
 	}
 	env.username = user.Username
 

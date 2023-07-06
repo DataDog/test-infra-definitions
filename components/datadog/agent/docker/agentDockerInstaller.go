@@ -6,11 +6,14 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
 	"github.com/DataDog/test-infra-definitions/components/vm"
+	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type AgentDockerInstaller struct {
-	dependsOn pulumi.ResourceOption
+	vm                 *vm.UnixVM
+	dependsOn          pulumi.ResourceOption
+	agentContainerName string
 }
 
 func NewAgentDockerInstaller(vm *vm.UnixVM, options ...dockerparams.Option) (*AgentDockerInstaller, error) {
@@ -33,6 +36,7 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...dockerparams.Option) (*Ag
 			Content: pulumi.String(params.ComposeContent),
 		})
 	}
+	agentContainerName := ""
 	if params.OptionalDockerAgentParams != nil {
 		dockerAgentParams := params.OptionalDockerAgentParams
 		imagePath := dockerAgentParams.FullImagePath
@@ -43,6 +47,7 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...dockerparams.Option) (*Ag
 		for key, value := range dockerAgentParams.Env {
 			env[key] = pulumi.String(value)
 		}
+		agentContainerName = "docker-on-vm-compose-tmp-agent-1" // TODO: Improve the naming and make it more robust
 	}
 
 	var dependOnResource pulumi.Resource
@@ -57,9 +62,29 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...dockerparams.Option) (*Ag
 		return nil, err
 	}
 
-	return &AgentDockerInstaller{dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
+	return &AgentDockerInstaller{
+		vm:                 vm,
+		dependsOn:          utils.PulumiDependsOn(dependOnResource),
+		agentContainerName: agentContainerName}, nil
 }
 
 func (d *AgentDockerInstaller) GetDependsOn() pulumi.ResourceOption {
 	return d.dependsOn
+}
+
+func (d *AgentDockerInstaller) GetAgentContainerName() string {
+	return d.agentContainerName
+}
+
+type ClientData struct {
+	Connection utils.Connection
+}
+
+func (d *AgentDockerInstaller) Deserialize(result auto.UpResult) (*ClientData, error) {
+	vmData, err := d.vm.Deserialize(result)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ClientData{Connection: vmData.Connection}, nil
 }

@@ -78,7 +78,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 		return nil, err
 	}
 
-	homeCmd, composePath, err := d.fileManager.HomeDirectory(name + "compose-tmp")
+	homeCmd, composePath, err := d.fileManager.HomeDirectory(name + "-compose-tmp")
 	if err != nil {
 		return nil, err
 	}

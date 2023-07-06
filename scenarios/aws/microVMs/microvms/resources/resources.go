@@ -17,7 +17,7 @@ const (
 	DHCPEntries   = "dhcpEntries"
 	ImageName     = "imageName"
 	VolumeKey     = "volumeKey"
-	VolumePath    = "volumePath"
+	ImagePath     = "imagePath"
 	PoolName      = "poolName"
 	PoolPath      = "poolPath"
 	Nvram         = "nvram"
@@ -114,6 +114,8 @@ func NewResourceCollection(recipe string) ResourceCollection {
 		return NewDistroARM64ResourceCollection(recipe)
 	case vmconfig.RecipeDistroAMD64:
 		return NewDistroAMD64ResourceCollection(recipe)
+	case vmconfig.RecipeDefault:
+		return NewDefaultResourceCollection(recipe)
 	default:
 		panic("unknown recipe: " + archSpecificRecipe)
 	}

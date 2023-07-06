@@ -9,6 +9,7 @@ const (
 	RecipeDistroARM64 = "distro-arm64"
 	RecipeCustomLocal = "custom-local"
 	RecipeDistroLocal = "distro-local"
+	RecipeDefault     = "default"
 )
 
 type Kernel struct {

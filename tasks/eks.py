@@ -54,11 +54,11 @@ def create_eks(
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
-    _show_connection_message(full_stack_name)
+    _show_connection_message(ctx, full_stack_name)
 
 
-def _show_connection_message(full_stack_name: str):
-    outputs = tool.get_stack_json_outputs(full_stack_name)
+def _show_connection_message(ctx: Context, full_stack_name: str):
+    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     kubeconfig = outputs["kubeconfig"]
     kubeconfig_content = yaml.dump(kubeconfig)
     config = f"{full_stack_name}-config.yaml"

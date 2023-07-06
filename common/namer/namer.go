@@ -70,3 +70,13 @@ func (n Namer) HashedName(parts ...pulumi.StringInput) pulumi.StringInput {
 		return hex.EncodeToString(hmd5[:])
 	}).(pulumi.StringOutput)
 }
+
+// DisplayHashedName return the first 15 chars of the display name plus the first 16 chars
+// of the md5 32-chars hex pulumi.StringInput of display name
+func (n Namer) DisplayHashedName(parts ...pulumi.StringInput) pulumi.StringInput {
+	return pulumi.All(n.DisplayName(parts...), n.HashedName(parts...)).ApplyT(func(args []interface{}) string {
+		displayName := args[0].(string)
+		hashedName := args[1].(string)
+		return strings.Join([]string{displayName[:15], hashedName[:16]}, "-")
+	}).(pulumi.StringOutput)
+}

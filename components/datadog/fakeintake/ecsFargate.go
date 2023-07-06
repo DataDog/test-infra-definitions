@@ -34,12 +34,12 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	opts = append(opts, pulumi.Parent(instance))
 
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           e.CommonNamer.HashedName(pulumi.String("fakeintake")),
+		Name:           e.CommonNamer.DisplayHashedName(pulumi.String("fakeintake")),
 		SubnetIds:      pulumi.ToStringArray(e.DefaultSubnets()),
 		Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.HashedName(pulumi.String("fakeintake")),
+			Name:       e.CommonNamer.DisplayHashedName(pulumi.String("fakeintake")),
 			Port:       pulumi.IntPtr(port),
 			Protocol:   pulumi.StringPtr("HTTP"),
 			TargetType: pulumi.StringPtr("ip"),

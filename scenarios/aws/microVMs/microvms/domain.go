@@ -158,7 +158,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 					provider,
 					depends,
 					fs.baseVolumeMap[kernel.Tag].volumeKey,
-					fs.poolName,
+					fs.pool.poolName,
 					domain.domainNamer.ResourceName("volume"),
 				)
 				if err != nil {

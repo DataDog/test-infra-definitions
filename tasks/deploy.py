@@ -50,6 +50,10 @@ def deploy(
     aws_account = cfg.get_aws().get_account()
     flags["ddinfra:env"] = "aws/" + aws_account
 
+    if cfg.get_aws().teamTag is None or cfg.get_aws().teamTag == "":
+        raise Exit("Error in config, missing configParams.aws.teamTag. Run `inv setup` again and provide a valid team name")
+    flags["ddinfra:extraResourcesTags"] = f"team:{cfg.get_aws().teamTag}"
+
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
 

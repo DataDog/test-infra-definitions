@@ -67,17 +67,11 @@ def get_stack_name_prefix() -> str:
 
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
-    global_flags = ""
-
-    # Checking root path
-    root_path = _get_root_path()
-    if root_path != os.getcwd():
-        global_flags += f" -C {root_path}"
-
-    ctx.run(
-        f"pulumi {global_flags} stack output --json -s {full_stack_name}",
-        out_stream=buffer,
-    )
+    with ctx.cd(_get_root_path()):
+        ctx.run(
+            f"pulumi stack output --json -s {full_stack_name}",
+            out_stream=buffer,
+        )
     return json.loads(buffer.getvalue())
 
 def get_aws_wrapper(aws_account: str) -> str:

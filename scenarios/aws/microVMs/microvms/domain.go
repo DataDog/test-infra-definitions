@@ -7,7 +7,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/common/randomgenerator"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -37,7 +37,7 @@ func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) str
 	return fmt.Sprintf("ddvm-%s-%s-%s-%d-%d", vmsetName, arch, tag, vcpu, memory)
 }
 func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
-	r := utils.NewRandomGenerator(e, domainID)
+	r := randomgenerator.NewRandomGenerator(e, domainID)
 
 	pulumiRandStr, err := r.RandomString(domainID, 6, true)
 	if err != nil {

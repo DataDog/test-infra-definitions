@@ -1,4 +1,4 @@
-package utils
+package randomgenerator
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"

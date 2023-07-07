@@ -1,10 +1,9 @@
 package namer
 
 import (
-	"crypto/md5"
-	"encoding/hex"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -62,21 +61,10 @@ func (n Namer) DisplayName(parts ...pulumi.StringInput) pulumi.StringInput {
 	}).(pulumi.StringOutput)
 }
 
-// HashedName return the md5 32-chars hex pulumi.StringInput of `parts` prefixed
+// DisplayNameWithMaxLen return pulumi.StringInput the concatanation of pulumi.StringInput `parts` prefixed
 // with the namer prefix
-func (n Namer) HashedName(parts ...pulumi.StringInput) pulumi.StringInput {
-	return n.DisplayName(parts...).ToStringOutput().ApplyT(func(name string) string {
-		hmd5 := md5.Sum([]byte(name))
-		return hex.EncodeToString(hmd5[:])
-	}).(pulumi.StringOutput)
-}
-
-// DisplayHashedName return the first 15 chars of the display name plus the first 16 chars
-// of the md5 32-chars hex pulumi.StringInput of display name
-func (n Namer) DisplayHashedName(parts ...pulumi.StringInput) pulumi.StringInput {
-	return pulumi.All(n.DisplayName(parts...), n.HashedName(parts...)).ApplyT(func(args []interface{}) string {
-		displayName := args[0].(string)
-		hashedName := args[1].(string)
-		return strings.Join([]string{displayName[:15], hashedName[:16]}, "-")
+func (n Namer) DisplayNameWithMaxLen(maxLen int, parts ...pulumi.StringInput) pulumi.StringInput {
+	return n.DisplayName(parts...).ToStringOutput().ApplyT(func(s string) string {
+		return utils.StrUniqueWithMaxLen(s, maxLen)
 	}).(pulumi.StringOutput)
 }

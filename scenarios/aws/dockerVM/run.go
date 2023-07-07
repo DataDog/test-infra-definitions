@@ -21,7 +21,7 @@ func Run(ctx *pulumi.Context) error {
 		options = append(options, dockerparams.WithAgent())
 	}
 
-	_, err = docker.NewAgentDockerInstaller(vm.UnixVM, options...)
+	_, err = docker.NewDaemon(vm.UnixVM, options...)
 
 	return err
 }

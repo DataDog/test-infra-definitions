@@ -10,13 +10,13 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type AgentDockerInstaller struct {
+type Daemon struct {
 	vm                 *vm.UnixVM
 	dependsOn          pulumi.ResourceOption
 	agentContainerName string
 }
 
-func NewAgentDockerInstaller(vm *vm.UnixVM, options ...dockerparams.Option) (*AgentDockerInstaller, error) {
+func NewDaemon(vm *vm.UnixVM, options ...dockerparams.Option) (*Daemon, error) {
 	commonEnv := vm.GetCommonEnvironment()
 	params, err := dockerparams.NewParams(commonEnv, options...)
 	if err != nil {
@@ -62,17 +62,17 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...dockerparams.Option) (*Ag
 		return nil, err
 	}
 
-	return &AgentDockerInstaller{
+	return &Daemon{
 		vm:                 vm,
 		dependsOn:          utils.PulumiDependsOn(dependOnResource),
 		agentContainerName: agentContainerName}, nil
 }
 
-func (d *AgentDockerInstaller) GetDependsOn() pulumi.ResourceOption {
+func (d *Daemon) GetDependsOn() pulumi.ResourceOption {
 	return d.dependsOn
 }
 
-func (d *AgentDockerInstaller) GetAgentContainerName() string {
+func (d *Daemon) GetAgentContainerName() string {
 	return d.agentContainerName
 }
 
@@ -80,7 +80,7 @@ type ClientData struct {
 	Connection utils.Connection
 }
 
-func (d *AgentDockerInstaller) Deserialize(result auto.UpResult) (*ClientData, error) {
+func (d *Daemon) Deserialize(result auto.UpResult) (*ClientData, error) {
 	vmData, err := d.vm.Deserialize(result)
 	if err != nil {
 		return nil, err

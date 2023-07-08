@@ -28,7 +28,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
 		Name:           e.CommonNamer.DisplayName(pulumi.String("nginx")),
-		SubnetIds:      pulumi.ToStringArray(e.DefaultSubnets()),
+		SubnetIds:      e.RandomSubnets(),
 		Internal:       pulumi.BoolPtr(true),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{

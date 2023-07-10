@@ -255,7 +255,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
-	fmt.Println(e.InfraConfig.DefaultSubnets())
+	fmt.Println(e.DefaultSubnets())
 
 	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(

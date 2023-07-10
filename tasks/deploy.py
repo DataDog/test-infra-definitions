@@ -21,6 +21,7 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
+    install_docker: Optional[bool] = False,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
@@ -49,7 +50,7 @@ def deploy(
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
     aws_account = cfg.get_aws().get_account()
     flags["ddinfra:env"] = "aws/" + aws_account
-
+    flags["ddinfra:install_docker"] = install_docker
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
 

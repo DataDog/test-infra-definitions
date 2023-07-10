@@ -47,9 +47,20 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Ag
 	var dependOnResource pulumi.Resource
 	dockerManager := vm.GetLazyDocker()
 	if len(composeContents) > 0 {
-		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, env, params.pulumiResources...)
+		runCommandDeps := params.pulumiResources
+		if params.installDocker {
+			installCommand, err := dockerManager.Install(params.pulumiResources...)
+			if err != nil {
+				return nil, err
+			}
+			runCommandDeps = append(runCommandDeps, pulumi.DependsOn([]pulumi.Resource{installCommand}))
+		}
+
+		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, env, runCommandDeps...)
 	} else {
-		dependOnResource, err = dockerManager.Install()
+		if params.installDocker {
+			dependOnResource, err = dockerManager.Install()
+		}
 	}
 
 	if err != nil {

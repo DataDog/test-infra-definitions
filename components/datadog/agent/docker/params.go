@@ -12,6 +12,7 @@ type Params struct {
 	composeContent            string
 	pulumiResources           []pulumi.ResourceOption
 	commonEnv                 *config.CommonEnvironment
+	installDocker             bool
 }
 
 func newParams(commonEnv *config.CommonEnvironment, options ...func(*Params) error) (*Params, error) {
@@ -38,5 +39,12 @@ func WithAgent(options ...func(*AgentParams) error) func(*Params) error {
 		var err error
 		p.optionalDockerAgentParams, err = newAgentParams(p.commonEnv, options...)
 		return err
+	}
+}
+
+func WithDockerInstall() func(*Params) error {
+	return func(p *Params) error {
+		p.installDocker = true
+		return nil
 	}
 }

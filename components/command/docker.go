@@ -40,10 +40,6 @@ func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerMana
 }
 
 func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installCommand, err := d.Install()
-	if err != nil {
-		return nil, err
-	}
 
 	composeHash, err := utils.FileHash(composeFilePath)
 	if err != nil {
@@ -73,10 +69,6 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 }
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installCommand, err := d.Install(opts...)
-	if err != nil {
-		return nil, err
-	}
 
 	homeCmd, composePath, err := d.fileManager.HomeDirectory(name + "compose-tmp")
 	if err != nil {
@@ -85,7 +77,6 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 
 	var remoteComposePaths []string
 	runCommandTriggers := pulumi.Array{envVars}
-	runCommandDeps := []pulumi.Resource{installCommand}
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
@@ -100,12 +91,12 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 			return nil, err
 		}
 
-		runCommandDeps = append(runCommandDeps, writeCommand)
+		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{writeCommand}))
 		runCommandTriggers = append(runCommandTriggers, manifest.Content)
 	}
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
-
+	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 	return d.runner.Command(
 		d.namer.ResourceName("compose-run", name),
 		&Args{
@@ -114,7 +105,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 			Environment: envVars,
 			Triggers:    runCommandTriggers,
 		},
-		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
+		opts...)
 }
 
 func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command, error) {

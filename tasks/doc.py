@@ -1,6 +1,7 @@
 from . import tool
 
 install_agent: str = f"Install the Agent (default {tool.get_default_agent_install()})."
+install_docker: str = "Install docker on the created VM, default to False since default AMI includes Docker"
 pipeline_id: str = "The pipeline id of the custom Agent build for example '16497585' (may be taken form the gitlab url)'"
 agent_version: str = "The version of the Agent for example '7.42.0~rc.1-1' or '6.39.0 (default `latest`)'"
 container_agent_version: str = (

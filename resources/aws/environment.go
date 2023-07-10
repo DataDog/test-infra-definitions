@@ -126,6 +126,9 @@ func (e *Environment) DefaultVPCID() string {
 func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
+func (e *Environment) defaultSubnets() []string {
+	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+}
 
 func (e *Environment) RandomSubnets() pulumi.StringArrayOutput {
 	return e.randomSubnets

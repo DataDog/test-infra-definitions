@@ -86,6 +86,8 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 
 		env.CommonEnvironment = &commonEnv
 	}
+	fmt.Println(env.CommonEnvironment.InfraEnvironmentNames())
+	fmt.Println(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{

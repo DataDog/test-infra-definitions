@@ -70,6 +70,7 @@ func newEC2Instance(awsEnv aws.Environment, name, ami, arch, instanceType, keyPa
 			return nil, err
 		}
 	}
+	fmt.Println(awsEnv.DefaultSubnets())
 
 	instance, err := awsEc2.NewInstance(awsEnv.Ctx, awsEnv.Namer.ResourceName(name), &awsEc2.InstanceArgs{
 		Ami:                 pulumi.StringPtr(ami),
@@ -254,8 +255,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
-
-	fmt.Println(e.DefaultSubnets())
 
 	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(

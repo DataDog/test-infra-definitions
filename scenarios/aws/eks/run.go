@@ -31,7 +31,7 @@ func Run(ctx *pulumi.Context) error {
 
 	// Create Cluster SG
 	clusterSG, err := ec2.NewSecurityGroup(ctx, awsEnv.Namer.ResourceName("eks-sg"), &ec2.SecurityGroupArgs{
-		NamePrefix:  awsEnv.CommonNamer.DisplayName(pulumi.String("eks-sg")),
+		NamePrefix:  awsEnv.CommonNamer.DisplayName(255, pulumi.String("eks-sg")),
 		Description: pulumi.StringPtr("EKS Cluster sg for stack: " + ctx.Stack()),
 		Ingress: ec2.SecurityGroupIngressArray{
 			ec2.SecurityGroupIngressArgs{
@@ -88,7 +88,7 @@ func Run(ctx *pulumi.Context) error {
 
 	// Create an EKS cluster with the default configuration.
 	cluster, err := eks.NewCluster(ctx, awsEnv.Namer.ResourceName("eks"), &eks.ClusterArgs{
-		Name:                         awsEnv.CommonNamer.DisplayName(),
+		Name:                         awsEnv.CommonNamer.DisplayName(100),
 		Version:                      pulumi.StringPtr(awsEnv.KubernetesVersion()),
 		EndpointPrivateAccess:        pulumi.BoolPtr(true),
 		EndpointPublicAccess:         pulumi.BoolPtr(false),

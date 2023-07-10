@@ -10,7 +10,7 @@ import (
 
 func CreateEcsCluster(e aws.Environment, name string) (*ecs.Cluster, error) {
 	return ecs.NewCluster(e.Ctx, e.Namer.ResourceName(name), &ecs.ClusterArgs{
-		Name: e.CommonNamer.DisplayName(pulumi.String(name)),
+		Name: e.CommonNamer.DisplayName(255, pulumi.String(name)),
 		Configuration: &ecs.ClusterConfigurationArgs{
 			ExecuteCommandConfiguration: &ecs.ClusterConfigurationExecuteCommandConfigurationArgs{
 				KmsKeyId: pulumi.StringPtr(e.ECSExecKMSKeyID()),

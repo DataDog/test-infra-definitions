@@ -34,12 +34,12 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	opts = append(opts, pulumi.Parent(instance))
 
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           e.CommonNamer.DisplayName(pulumi.String("fakeintake")),
+		Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
 		SubnetIds:      pulumi.ToStringArray(e.DefaultSubnets()),
 		Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(pulumi.String("fakeintake")),
+			Name:       e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
 			Port:       pulumi.IntPtr(port),
 			Protocol:   pulumi.StringPtr("HTTP"),
 			TargetType: pulumi.StringPtr("ip"),
@@ -58,7 +58,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
-		Name:                 e.CommonNamer.DisplayName(pulumi.String("fakeintake")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("fakeintake")),
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		NetworkConfiguration: &classicECS.ServiceNetworkConfigurationArgs{
@@ -99,7 +99,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
-			Family: e.CommonNamer.DisplayName(pulumi.String("fakeintake-ecs")),
+			Family: e.CommonNamer.DisplayName(255, pulumi.String("fakeintake-ecs")),
 		},
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
 	}, opts...); err != nil {

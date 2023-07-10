@@ -2,6 +2,7 @@ package aks
 
 import (
 	"encoding/base64"
+	"math"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -26,7 +27,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 
 	opts = append(opts, e.WithProviders(config.ProviderAzure))
 	cluster, err := containerservice.NewManagedCluster(e.Ctx, e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
-		ResourceName:      e.CommonNamer.DisplayName(pulumi.String(name)),
+		ResourceName:      e.CommonNamer.DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
 		KubernetesVersion: pulumi.String(e.KubernetesVersion()),
 		AgentPoolProfiles: nodePool,

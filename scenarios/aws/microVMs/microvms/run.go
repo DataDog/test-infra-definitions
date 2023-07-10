@@ -340,7 +340,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 	fmt.Println("STart")
-	fmt.Println(commonEnv.GetStringListWithDefault(commonEnv.InfraConfig, "ddinfra:defaultSubnets", []string{}))
+	fmt.Println(commonEnv.GetStringListWithDefault(commonEnv.InfraConfig, "aws/defaultSubnets", []string{}))
 
 	_, err = run(commonEnv)
 	return err

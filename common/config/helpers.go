@@ -1,10 +1,12 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/Masterminds/semver"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func FindEnvironmentName(environments []string, prefix string) string {
@@ -38,4 +40,24 @@ func AgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
 
 func ClusterAgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
 	return anyAgentSemverVersion(e.ClusterAgentVersion())
+}
+
+func tagListToKeyValueMap(tagList []string) (map[string]string, error) {
+	tags := map[string]string{}
+	for _, tag := range tagList {
+		keyAndValue := strings.Split(tag, ":")
+		if len(keyAndValue) != 2 {
+			// skip invalid tags
+			return tags, fmt.Errorf("invalid tag, expecting <key>:<value>, got %s", tag)
+		}
+		tags[keyAndValue[0]] = keyAndValue[1]
+	}
+	return tags, nil
+}
+
+func extendTagsMap(pulumiStringMap pulumi.StringMap, otherMap map[string]string) {
+	for key, value := range otherMap {
+		pulumiStringMap[strings.ReplaceAll(
+			strings.ToLower(key), "_", "-")] = pulumi.String(value)
+	}
 }

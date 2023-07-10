@@ -36,11 +36,11 @@ def create_docker(
         agent_version=agent_version,
         extra_flags={},
     )
-    _show_connection_message(full_stack_name)
+    _show_connection_message(ctx, full_stack_name)
 
 
-def _show_connection_message(full_stack_name: str):
-    outputs = tool.get_stack_json_outputs(full_stack_name)
+def _show_connection_message(ctx: Context, full_stack_name: str):
+    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     connection = tool.Connection(outputs)
     host = connection.host
     user = connection.user

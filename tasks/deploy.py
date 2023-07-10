@@ -6,7 +6,6 @@ import subprocess
 from invoke.context import Context
 from invoke.exceptions import Exit
 from typing import Callable, List, Optional, Dict, Any
-import pathlib
 from . import tool
 
 default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
@@ -51,6 +50,11 @@ def deploy(
     aws_account = cfg.get_aws().get_account()
     flags["ddinfra:env"] = "aws/" + aws_account
     flags["ddinfra:install_docker"] = install_docker
+
+    if cfg.get_aws().teamTag is None or cfg.get_aws().teamTag == "":
+        raise Exit("Error in config, missing configParams.aws.teamTag. Run `inv setup` again and provide a valid team name")
+    flags["ddinfra:extraResourcesTags"] = f"team:{cfg.get_aws().teamTag}"
+
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
 
@@ -99,7 +103,7 @@ def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debu
     up_flags = ""
 
     # Checking root path
-    root_path = _get_root_path()
+    root_path = tool._get_root_path()
     if root_path != os.getcwd():
         global_flags += f" -C {root_path}"
 
@@ -117,11 +121,6 @@ def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debu
     cmd = f"{tool.get_aws_wrapper(aws_account)} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     ctx.run(cmd, pty=True)
     return stack_name
-
-
-def _get_root_path() -> str:
-    folder = pathlib.Path(__file__).parent.resolve()
-    return str(folder.parent)
 
 
 def _get_api_key(cfg: Optional[Config]) -> str:

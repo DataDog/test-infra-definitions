@@ -14,6 +14,7 @@ class Config(BaseModel, extra=Extra.forbid):
             keyPairName: Optional[str]
             publicKeyPath: Optional[str]
             account: Optional[str]
+            teamTag: Optional[str]
 
             def get_account(self) -> str:
                 if self.account is None:
@@ -44,7 +45,7 @@ class Config(BaseModel, extra=Extra.forbid):
 
     def get_aws(self) -> Params.Aws:
         default = Config.Params.Aws(
-            keyPairName=None, publicKeyPath=None, account=None
+            keyPairName=None, publicKeyPath=None, account=None, teamTag=None
         )
         if self.configParams is None:
             return default

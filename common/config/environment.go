@@ -21,12 +21,13 @@ const (
 	DDTestingWorkloadNamespace = "ddtestworkload"
 
 	// Infra namespace
-	DDInfraEnvironment       = "env"
-	DDInfraKubernetesVersion = "kubernetesVersion"
-	DDInfraOSFamily          = "osFamily"
-	DDInfraOSArchitecture    = "osArchitecture"
-	DDInfraOSAmiID           = "osAmiId"
-	DDInfraInstallDocker     = "install_docker"
+	DDInfraEnvironment        = "env"
+	DDInfraKubernetesVersion  = "kubernetesVersion"
+	DDInfraOSFamily           = "osFamily"
+	DDInfraOSArchitecture     = "osArchitecture"
+	DDInfraOSAmiID            = "osAmiId"
+	DDInfraInstallDocker      = "install_docker"
+	DDInfraExtraResourcesTags = "extraResourcesTags"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -52,6 +53,8 @@ type CommonEnvironment struct {
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
+
+	username string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
@@ -63,6 +66,13 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		CommonNamer:           namer.NewNamer(ctx, ""),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
+	// store username
+	user, err := user.Current()
+	if err != nil {
+		return env, err
+	}
+	env.username = user.Username
+
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
@@ -96,28 +106,40 @@ func (e *CommonEnvironment) KubernetesVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.26")
 }
 
-func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
-	defaultTags := pulumi.StringMap{
-		"managed-by": pulumi.String("pulumi"),
-	}
+func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
+	return map[string]string{"managed-by": "pulumi", "username": e.username}
+}
 
-	// Add user tag
-	user, err := user.Current()
+func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
+	tags, err := tagListToKeyValueMap(e.GetStringListWithDefault(e.InfraConfig, DDInfraExtraResourcesTags, []string{}))
 	if err != nil {
-		panic(err)
+		e.Ctx.Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
 	}
-	defaultTags["username"] = pulumi.String(user.Username)
+	return tags
+}
 
-	// Map environment variables
+func EnvVariableResourceTags() map[string]string {
+	tags := map[string]string{}
 	lookupVars := []string{"TEAM", "PIPELINE_ID"}
 	for _, varName := range lookupVars {
 		if val := os.Getenv(varName); val != "" {
-			defaultTags[strings.ReplaceAll(
-				strings.ToLower(varName), "_", "-")] = pulumi.String(val)
+			tags[varName] = val
 		}
 	}
+	return tags
+}
 
-	return defaultTags
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+	tags := pulumi.StringMap{}
+
+	// default tags
+	extendTagsMap(tags, e.DefaultResourceTags())
+	// extended resource tags
+	extendTagsMap(tags, e.ExtraResourcesTags())
+	// env variable tags
+	extendTagsMap(tags, EnvVariableResourceTags())
+
+	return tags
 }
 
 // Agent Namespace

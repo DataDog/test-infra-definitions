@@ -1,5 +1,7 @@
 import getpass
 import json
+import os
+import pathlib
 import platform
 import subprocess
 from io import StringIO
@@ -38,11 +40,23 @@ def get_os_families() -> List[str]:
         "redhat",
         "suse",
         "fedora",
+        "centos",
     ]
 
 
 def get_default_os_family() -> str:
     return "ubuntu"
+
+
+def get_architectures() -> List[str]:
+    return [
+        get_default_architecture(),
+        "arm64"
+    ]
+
+
+def get_default_architecture() -> str:
+    return "x86_64"
 
 
 def get_default_agent_install() -> bool:
@@ -62,12 +76,14 @@ def get_stack_name_prefix() -> str:
     return user_name.replace(".", "-")  # EKS doesn't support '.'
 
 
-def get_stack_json_outputs(full_stack_name: str) -> Any:
-    output = subprocess.check_output(
-        ["pulumi", "stack", "output", "--json", "-s", full_stack_name]
-    )
-    output = output.decode("utf-8")
-    return json.loads(output)
+def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
+    buffer = StringIO()
+    with ctx.cd(_get_root_path()):
+        ctx.run(
+            f"pulumi stack output --json -s {full_stack_name}",
+            out_stream=buffer,
+        )
+    return json.loads(buffer.getvalue())
 
 def get_aws_wrapper(aws_account: str) -> str:
     return f"aws-vault exec sso-{aws_account}-account-admin"
@@ -88,6 +104,11 @@ def get_image_description(ctx: Context, ami_id: str) -> Any:
         raise Exit(f"The AMI id {ami_id} returns more than one definition.")
     else:
         return result["Images"][0]
+
+
+def _get_root_path() -> str:
+    folder = pathlib.Path(__file__).parent.resolve()
+    return str(folder.parent)
 
 
 class Connection:

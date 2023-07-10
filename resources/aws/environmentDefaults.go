@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
 )
 
@@ -57,6 +59,7 @@ type ddInfraEKS struct {
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
+	fmt.Println(envName)
 	switch envName {
 	case sandboxEnv:
 		return sandboxDefault()

@@ -18,7 +18,7 @@ func CreateLaunchTemplate(e aws.Environment, name string, ami, instanceType, iam
 		},
 		NetworkInterfaces: ec2.LaunchTemplateNetworkInterfaceArray{
 			ec2.LaunchTemplateNetworkInterfaceArgs{
-				SubnetId:                 pulumi.StringPtr(e.DefaultSubnets()[0]),
+				SubnetId:                 e.RandomSubnets().Index(pulumi.Int(0)),
 				DeleteOnTermination:      pulumi.StringPtr("true"),
 				AssociatePublicIpAddress: pulumi.StringPtr("false"),
 				SecurityGroups:           pulumi.ToStringArray(e.DefaultSecurityGroups()),

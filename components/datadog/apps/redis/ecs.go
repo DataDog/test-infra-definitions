@@ -28,7 +28,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 
 	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
 		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis")),
-		SubnetIds: pulumi.ToStringArray(e.DefaultSubnets()),
+		SubnetIds: e.RandomSubnets(),
 		Internal:  pulumi.BoolPtr(true),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
 			Name:       e.CommonNamer.DisplayName(32, pulumi.String("redis")),

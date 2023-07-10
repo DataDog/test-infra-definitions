@@ -95,7 +95,7 @@ func Run(ctx *pulumi.Context) error {
 		Fargate:                      fargateProfile,
 		ClusterSecurityGroup:         clusterSG,
 		NodeAssociatePublicIpAddress: pulumi.BoolRef(false),
-		PrivateSubnetIds:             pulumi.ToStringArray(awsEnv.DefaultSubnets()),
+		PrivateSubnetIds:             awsEnv.RandomSubnets(),
 		VpcId:                        pulumi.StringPtr(awsEnv.DefaultVPCID()),
 		SkipDefaultNodeGroup:         pulumi.BoolRef(true),
 		// The content of the aws-auth map is the merge of `InstanceRoles` and `RoleMappings`.

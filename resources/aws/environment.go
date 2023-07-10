@@ -78,6 +78,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	for _, opt := range options {
 		opt(&env)
 	}
+	fmt.Println(env.CommonEnvironment)
 	if env.CommonEnvironment == nil {
 		fmt.Println("common env is nil")
 		commonEnv, err := config.NewCommonEnvironment(ctx)

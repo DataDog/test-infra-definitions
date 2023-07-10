@@ -190,9 +190,12 @@ func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramNa
 func (e *CommonEnvironment) GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string {
 	val, err := config.Try(paramName)
 	if err == nil {
+		fmt.Println(paramName)
+		fmt.Println(val)
 		return strings.Split(val, multiValueSeparator)
 	}
 
+	fmt.Printf("%s missing from config\n", paramName)
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
 		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}

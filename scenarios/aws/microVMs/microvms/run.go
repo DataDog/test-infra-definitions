@@ -281,6 +281,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	// loop checks for this.
 	for arch := range archs {
 		if arch != LocalVMSet {
+			fmt.Println(&e)
 			awsEnv, err := aws.NewEnvironment(instanceEnv.Ctx, aws.WithCommonEnvironment(&e))
 			if err != nil {
 				return nil, err

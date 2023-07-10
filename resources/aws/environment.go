@@ -79,6 +79,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 		opt(&env)
 	}
 	if env.CommonEnvironment == nil {
+		fmt.Println("common env is nil")
 		commonEnv, err := config.NewCommonEnvironment(ctx)
 		if err != nil {
 			return Environment{}, err
@@ -90,6 +91,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	fmt.Println(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
 	fmt.Println(env.envDefault)
+	fmt.Println(env.defaultSubnets())
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),

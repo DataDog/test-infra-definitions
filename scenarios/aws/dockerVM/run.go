@@ -10,7 +10,7 @@ import (
 )
 
 func Run(ctx *pulumi.Context) error {
-	vm, err := ec2vm.NewUnixEc2VM(ctx, ec2params.WithOS(ec2os.UbuntuDockerOS))
+	vm, err := ec2vm.NewUnixEc2VM(ctx, ec2params.WithOS(ec2os.AmazonLinuxDockerOS))
 	if err != nil {
 		return err
 	}

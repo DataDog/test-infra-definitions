@@ -15,6 +15,7 @@ scenario_name = "aws/dockervm"
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
+        "install_docker": doc.install_docker,
     }
 )
 def create_docker(
@@ -33,6 +34,7 @@ def create_docker(
         key_pair_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
+        install_docker=install_docker,
         agent_version=agent_version,
         extra_flags={},
     )

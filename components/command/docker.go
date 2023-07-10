@@ -41,6 +41,11 @@ func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerMana
 
 func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
+	installComposeCommand, err := d.installCompose(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	composeHash, err := utils.FileHash(composeFilePath)
 	if err != nil {
 		return nil, err
@@ -58,7 +63,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 		return nil, err
 	}
 
-	opts = append(opts, utils.PulumiDependsOn(installCommand, copyCmd))
+	opts = append(opts, utils.PulumiDependsOn(installComposeCommand, copyCmd))
 	return d.runner.Command(
 		d.namer.ResourceName("run", composeFilePath),
 		&Args{
@@ -70,6 +75,11 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
+	installComposeCommand, err := d.installCompose(opts...)
+	if err != nil {
+		return nil, err
+	}
+
 	homeCmd, composePath, err := d.fileManager.HomeDirectory(name + "compose-tmp")
 	if err != nil {
 		return nil, err
@@ -77,6 +87,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 
 	var remoteComposePaths []string
 	runCommandTriggers := pulumi.Array{envVars}
+	runCommandDeps := []pulumi.Resource{installComposeCommand}
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
@@ -91,12 +102,11 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 			return nil, err
 		}
 
-		opts = append(opts, pulumi.DependsOn([]pulumi.Resource{writeCommand}))
+		runCommandDeps = append(runCommandDeps, writeCommand)
 		runCommandTriggers = append(runCommandTriggers, manifest.Content)
 	}
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
-	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 	return d.runner.Command(
 		d.namer.ResourceName("compose-run", name),
 		&Args{
@@ -105,7 +115,7 @@ func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerCompo
 			Environment: envVars,
 			Triggers:    runCommandTriggers,
 		},
-		opts...)
+		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
 }
 
 func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command, error) {
@@ -128,24 +138,24 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 		return nil, err
 	}
 
-	usermod, err := d.runner.Command(
+	d.installCmd, err = d.runner.Command(
 		d.namer.ResourceName("group"),
 		&Args{
 			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami.Stdout),
 			Sudo:   true,
 		},
 		pulumi.DependsOn([]pulumi.Resource{whoami}))
-	if err != nil {
-		return nil, err
-	}
+	return d.installCmd, err
+}
 
-	composeInstallCmd := pulumi.Sprintf("curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose", composeVersion)
-	d.installCmd, err = d.runner.Command(
-		d.namer.ResourceName("install"),
+func (d *DockerManager) installCompose(opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	composeInstallIfNotCmd := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
+	cmd, err := d.runner.Command(
+		d.namer.ResourceName("install-compose"),
 		&Args{
-			Create: composeInstallCmd,
+			Create: composeInstallIfNotCmd,
 			Sudo:   true,
 		},
-		pulumi.DependsOn([]pulumi.Resource{usermod}))
-	return d.installCmd, err
+		opts...)
+	return cmd, err
 }

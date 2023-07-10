@@ -77,7 +77,7 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 	// If a truncation is needed, a hash will be needed
 	hasher := fnv.New64a()
 	for _, tok := range tokens {
-		io.WriteString(hasher, tok)
+		_, _ = io.WriteString(hasher, tok)
 	}
 	hash := fmt.Sprintf("%x", hasher.Sum64())
 
@@ -86,9 +86,8 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 	if (len(tokens)-1)*len(nameSep) >= maxLength {
 		if len(hash) > maxLength {
 			return hash[:maxLength]
-		} else {
-			return hash
 		}
+		return hash
 	}
 
 	// Compute the size of the hash suffix that will be appended to the output

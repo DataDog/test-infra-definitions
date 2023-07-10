@@ -168,6 +168,6 @@ func FuzzJoinWithMaxLength(f *testing.F) {
 		f.Fuzz(&tt)
 
 		output := joinWithMaxLength(tt.maxLength, tt.tokens)
-		assert.Condition(t, func() bool { return outputOK(tt.maxLength, tt.tokens, output) }, "joinWithMaxLength(%d, %v) => %q", tt.maxLength, tt.tokens, output)
+		assert.Conditionf(t, func() bool { return outputOK(tt.maxLength, tt.tokens, output) }, "joinWithMaxLength(%d, %v) => %q", tt.maxLength, tt.tokens, output)
 	})
 }

@@ -44,7 +44,7 @@ func TestJoinWithMaxLength(t *testing.T) {
 			noHash:    true,
 			expected:  "Ffff-Bbb-Bb-Q",
 		},
-		// Truncation are spread evenly on all tokens
+		// Truncation are spread best effort evenly on all tokens
 		{
 			maxLength: 18,
 			tokens:    []string{"foo", "bar", "baz", "qux", "qux"},

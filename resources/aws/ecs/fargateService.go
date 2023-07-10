@@ -28,7 +28,7 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-			Subnets:        pulumi.ToStringArray(e.DefaultSubnets()),
+			Subnets:        e.RandomSubnets(),
 		},
 		TaskDefinition:            taskDefArn,
 		EnableExecuteCommand:      pulumi.BoolPtr(true),

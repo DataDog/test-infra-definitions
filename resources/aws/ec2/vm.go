@@ -19,7 +19,7 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 
 	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
 		Ami:                 pulumi.StringPtr(ami),
-		SubnetId:            pulumi.StringPtr(e.DefaultSubnets()[0]),
+		SubnetId:            e.RandomSubnets().Index(pulumi.Int(0)),
 		InstanceType:        pulumi.StringPtr(instanceType),
 		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		KeyName:             pulumi.StringPtr(keyPair),

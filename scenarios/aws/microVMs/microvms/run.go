@@ -339,6 +339,8 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
+	fmt.Println("STart")
+	fmt.Println(commonEnv.GetStringListWithDefault(commonEnv.InfraConfig, "ddinfra:defaultSubnets", []string{}))
 
 	_, err = run(commonEnv)
 	return err

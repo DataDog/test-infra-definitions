@@ -123,7 +123,7 @@ func (e *Environment) DefaultVPCID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultVPCIDParamName, e.envDefault.ddInfra.defaultVPCID)
 }
 
-func (e *Environment) defaultSubnets() []string {
+func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 

@@ -255,6 +255,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
 
+	fmt.Println(e.InfraConfig)
+
 	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(
 		m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMConfigFile, "./test.json"),

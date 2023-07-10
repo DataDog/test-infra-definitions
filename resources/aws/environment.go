@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
@@ -99,6 +101,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
+	fmt.Println(env.defaultSubnets())
 	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
 		Inputs:      pulumi.ToStringArray(env.defaultSubnets()),
 		ResultCount: pulumi.IntPtr(2),

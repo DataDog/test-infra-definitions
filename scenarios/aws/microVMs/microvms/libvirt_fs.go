@@ -108,17 +108,12 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 		baseVolumeMap[k.Tag] = img
 	}
 
-	local := false
-	if vmset.Arch == LocalVMSet {
-		local = true
-	}
-
 	return &LibvirtFilesystem{
 		ctx:           ctx,
 		pool:          pool,
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
-		isLocal:       local,
+		isLocal:       vmset.Arch == LocalVMSet,
 	}
 }
 
@@ -149,17 +144,12 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 		baseVolumeMap[k.Tag] = img
 	}
 
-	local := false
-	if vmset.Arch == LocalVMSet {
-		local = true
-	}
-
 	return &LibvirtFilesystem{
 		ctx:           ctx,
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
 		pool:          pool,
-		isLocal:       local,
+		isLocal:       vmset.Arch == LocalVMSet,
 	}
 }
 

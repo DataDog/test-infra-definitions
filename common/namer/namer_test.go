@@ -24,6 +24,28 @@ func TestJoinWithMaxLength(t *testing.T) {
 			tokens:    []string{"foo", "bar", "baz"},
 			expected:  "foo-bar-baz",
 		},
+		// Transition from full format to truncated format
+		{
+			maxLength: 20,
+			tokens:    []string{"foo", "bar", "baz", "qux", "quux"},
+			expected:  "foo-bar-baz-qux-quux",
+		},
+		{
+			maxLength: 19,
+			tokens:    []string{"foo", "bar", "baz", "qux", "quux"},
+			expected:  "fo-bar-ba-qux-quu-1",
+		},
+		// Transition from truncated format to hash only
+		{
+			maxLength: 11,
+			tokens:    []string{"foo", "bar", "baz", "qux", "quux"},
+			expected:  "f-b-b-q-q-1",
+		},
+		{
+			maxLength: 10,
+			tokens:    []string{"foo", "bar", "baz", "qux", "quux"},
+			expected:  "10087cd446",
+		},
 		// Max length too small
 		// Defaults to hash only
 		{

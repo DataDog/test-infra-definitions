@@ -79,18 +79,10 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 	for _, tok := range tokens {
 		_, _ = io.WriteString(hasher, tok)
 	}
-	hash := fmt.Sprintf("%x", hasher.Sum64())
-
-	// If there’s so many tokens that truncating all of them to empty string and keeping only the dash separators
-	// would exceed the maximum length, we cannot do anything better than returning only the hash.
-	if (len(tokens)-1)*len(nameSep) >= maxLength {
-		if len(hash) > maxLength {
-			return hash[:maxLength]
-		}
-		return hash
-	}
+	fullhash := fmt.Sprintf("%016x", hasher.Sum64())
 
 	// Compute the size of the hash suffix that will be appended to the output
+	hash := fullhash
 	hashSize := maxLength * hashSizePercent / 100
 	if len(hash) > hashSize {
 		hash = hash[:hashSize]
@@ -103,6 +95,15 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 	// -1 means that we want to also strip the dash
 	if noHash {
 		hashSize = -1
+	}
+
+	// If there’s so many tokens that truncating all of them to a single character string and keeping only the dash separators
+	// would exceed the maximum length, we cannot do anything better than returning only the hash.
+	if len(tokens)+(len(tokens))*len(nameSep)+hashSize > maxLength {
+		if len(fullhash) > maxLength {
+			return fullhash[:maxLength]
+		}
+		return fullhash
 	}
 
 	var sb strings.Builder

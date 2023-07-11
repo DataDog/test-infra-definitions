@@ -14,12 +14,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const (
-	oneSecond     = 1000
-	sleepInterval = 1 * oneSecond
-	maxRetries    = 120
-)
-
 func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput) (*ecs.FargateService, error) {
 	return ecs.NewFargateService(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,

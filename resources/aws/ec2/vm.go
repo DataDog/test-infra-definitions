@@ -29,7 +29,7 @@ func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, u
 			VolumeSize: pulumi.Int(e.DefaultInstanceStorageSize()),
 		},
 		Tags: pulumi.StringMap{
-			"Name": e.Namer.DisplayName(pulumi.String(name)),
+			"Name": e.Namer.DisplayName(255, pulumi.String(name)),
 		},
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
 	}, e.WithProviders(config.ProviderAWS))

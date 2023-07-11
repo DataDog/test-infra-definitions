@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.27
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.27.4
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.41.0
 	github.com/pulumi/pulumi-awsx/sdk v1.0.2
 	github.com/pulumi/pulumi-azure-native-sdk v1.103.0
@@ -20,6 +21,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.0
 	github.com/pulumi/pulumi-random/sdk/v4 v4.13.2
 	github.com/pulumi/pulumi/sdk/v3 v3.73.0
+	github.com/samber/lo v1.38.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
 )

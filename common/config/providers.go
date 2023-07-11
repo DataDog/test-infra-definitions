@@ -63,7 +63,7 @@ func newProviderRegistry(ctx *pulumi.Context) providerRegistry {
 	}
 }
 
-func (p *providerRegistry) WithProvider(providerID ProviderID) pulumi.ResourceOrInvokeOption {
+func (p *providerRegistry) WithProvider(providerID ProviderID) pulumi.InvokeOption {
 	return pulumi.Provider(p.GetProvider(providerID))
 }
 

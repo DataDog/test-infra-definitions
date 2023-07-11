@@ -51,14 +51,11 @@ def create_vm(
 
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
-    extra_flags["ddinfra:osFamily"] = os_family
+    extra_flags["ddinfra:osDescriptor"] = f"{os_family}::{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
-    if os_arch is not None:
-        extra_flags["ddinfra:osArchitecture"] = os_arch
-
     if ami_id is not None:
-        extra_flags["ddinfra:osAmiId"] = ami_id
+        extra_flags["ddinfra:osImageID"] = ami_id
 
     full_stack_name = deploy(
         ctx,
@@ -84,9 +81,9 @@ def create_vm(
 
 def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool] = True):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    connection = tool.Connection(outputs)
-    host = connection.host
-    user = connection.user
+    remoteHost = tool.RemoteHost("aws-vm", outputs)
+    host = remoteHost.host
+    user = remoteHost.user
 
     command = f"ssh {user}@{host}"
 

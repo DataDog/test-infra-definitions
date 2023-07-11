@@ -16,7 +16,7 @@ import (
 
 const (
 	imageURNSeparator = ":"
-	adminUsername     = "azureuser"
+	AdminUsername     = "azureuser"
 )
 
 func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, userData pulumi.StringPtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, error) {
@@ -27,14 +27,14 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 
 	linuxOsProfile := compute.OSProfileArgs{
 		ComputerName:  pulumi.String(name),
-		AdminUsername: pulumi.String(adminUsername),
+		AdminUsername: pulumi.String(AdminUsername),
 		LinuxConfiguration: compute.LinuxConfigurationArgs{
 			DisablePasswordAuthentication: pulumi.BoolPtr(true),
 			Ssh: compute.SshConfigurationArgs{
 				PublicKeys: compute.SshPublicKeyTypeArray{
 					compute.SshPublicKeyTypeArgs{
 						KeyData: sshPublicKey,
-						Path:    pulumi.StringPtr(fmt.Sprintf("/home/%s/.ssh/authorized_keys", adminUsername)),
+						Path:    pulumi.StringPtr(fmt.Sprintf("/home/%s/.ssh/authorized_keys", AdminUsername)),
 					},
 				},
 			},
@@ -56,7 +56,7 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 
 	windowsOsProfile := compute.OSProfileArgs{
 		ComputerName:  pulumi.String(name),
-		AdminUsername: pulumi.String(adminUsername),
+		AdminUsername: pulumi.String(AdminUsername),
 		AdminPassword: windowsAdminPassword.Result,
 		CustomData:    userData,
 	}

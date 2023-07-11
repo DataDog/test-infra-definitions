@@ -62,7 +62,7 @@ type RunnerArgs struct {
 	ParentResource pulumi.Resource
 	ConnectionName string
 	Connection     remote.ConnectionInput
-	ReadyFunc      func(*Runner) (*remote.Command, error)
+	ReadyFunc      ReadyFunc
 	User           string
 	OSCommand      OSCommand
 }
@@ -76,6 +76,9 @@ func NewRunner(e config.CommonEnvironment, args RunnerArgs) (*Runner, error) {
 			user:       args.User,
 		},
 		osCommand: args.OSCommand,
+		options: []pulumi.ResourceOption{
+			e.WithProviders(config.ProviderCommand),
+		},
 	}
 
 	if args.ParentResource != nil {
@@ -95,23 +98,20 @@ func NewRunner(e config.CommonEnvironment, args RunnerArgs) (*Runner, error) {
 }
 
 func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	opts = append(opts, r.options...)
 	if args.Sudo && r.config.user != "" {
 		r.e.Ctx.Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
-	depends := append(opts, r.e.WithProviders(config.ProviderCommand))
-	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), depends...)
+
+	return remote.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
 }
 
 func (r *Runner) NewCopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	opts = append(opts, r.options...)
-	depends := append(opts, r.e.WithProviders(config.ProviderCommand))
 	return remote.NewCopyFile(r.e.Ctx, r.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
 		Connection: r.config.connection,
 		LocalPath:  pulumi.String(localPath),
 		RemotePath: pulumi.String(remotePath),
 		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
-	}, depends...)
+	}, utils.MergeOptions(r.options, opts...)...)
 }
 
 type LocalRunner struct {
@@ -140,6 +140,6 @@ func NewLocalRunner(e config.CommonEnvironment, args LocalRunnerArgs) *LocalRunn
 }
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
-	depends := append(opts, r.e.WithProviders(config.ProviderCommand))
-	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), depends...)
+	opts = utils.MergeOptions[pulumi.ResourceOption](opts, r.e.WithProviders(config.ProviderCommand))
+	return local.NewCommand(r.e.Ctx, r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
 }

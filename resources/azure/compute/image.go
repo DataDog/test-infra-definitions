@@ -8,18 +8,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func UbuntuLatestURN() string {
-	return "canonical:0001-com-ubuntu-server-jammy:22_04-lts-gen2:latest"
-}
-
-func WindowsLatestURN() string {
-	return windowsURN("2022-datacenter-azure-edition-core")
-}
-
-func windowsURN(sku string) string {
-	return fmt.Sprintf("MicrosoftWindowsServer:WindowsServer:%s:latest", sku)
-}
-
 func parseImageReferenceURN(urn string) (compute.ImageReferencePtrInput, error) {
 	splitted := strings.Split(urn, imageURNSeparator)
 	if len(splitted) != 4 {

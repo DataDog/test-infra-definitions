@@ -8,7 +8,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -37,7 +36,7 @@ type FileDefinition struct {
 }
 
 type Params struct {
-	Version             os.AgentVersion
+	Version             PackageVersion
 	AgentConfig         string
 	SystemProbeConfig   string
 	SecurityAgentConfig string
@@ -55,7 +54,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 	}
 	defaultVersion := WithLatest()
 	if env.PipelineID() != "" {
-		defaultVersion = WithPipeline(env.PipelineID(), env.InfraOSArchitecture())
+		defaultVersion = WithPipeline(env.PipelineID())
 	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
@@ -77,7 +76,6 @@ func WithLatest() func(*Params) error {
 func WithVersion(version string) func(*Params) error {
 	return func(p *Params) error {
 		v, err := parseVersion(version)
-
 		if err != nil {
 			return err
 		}
@@ -88,15 +86,17 @@ func WithVersion(version string) func(*Params) error {
 }
 
 // WithPipeline use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
-func WithPipeline(pipelineID string, arch string) func(*Params) error {
+func WithPipeline(pipelineID string) func(*Params) error {
 	return func(p *Params) error {
-		p.Version = parsePipelineVersion(pipelineID, arch)
+		p.Version = PackageVersion{
+			PipelineID: "pipeline-" + pipelineID,
+		}
 		return nil
 	}
 }
 
-func parseVersion(s string) (os.AgentVersion, error) {
-	version := os.AgentVersion{}
+func parseVersion(s string) (PackageVersion, error) {
+	version := PackageVersion{}
 
 	prefix := "7."
 	if strings.HasPrefix(s, prefix) {
@@ -112,13 +112,6 @@ func parseVersion(s string) (os.AgentVersion, error) {
 	version.Minor = strings.TrimPrefix(s, prefix)
 	version.BetaChannel = strings.Contains(s, "~")
 	return version, nil
-}
-
-func parsePipelineVersion(s string, arch string) os.AgentVersion {
-	version := os.AgentVersion{}
-	version.PipelineID = "pipeline-" + s
-	version.Arch = arch
-	return version
 }
 
 // WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.

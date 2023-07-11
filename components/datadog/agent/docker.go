@@ -1,14 +1,17 @@
 package agent
 
 import (
-	"github.com/Masterminds/semver"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components"
+	"github.com/DataDog/test-infra-definitions/components/docker"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
+
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const (
-	AgentComposeDefinition = `version: "3.9"
+	agentComposeDefinition = `version: "3.9"
 services:
   agent:
     image: %s
@@ -21,48 +24,49 @@ services:
       DD_API_KEY: %s
       DD_PROCESS_AGENT_ENABLED: true
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
-	DefaultAgentImageRepo        = "gcr.io/datadoghq/agent"
-	DefaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
-	defaultAgentImageTag         = "latest"
 )
 
-func DockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
-	// return agent image path if defined
-	if e.AgentFullImagePath() != "" {
-		return e.AgentFullImagePath()
-	}
-
-	if repositoryPath == "" {
-		repositoryPath = DefaultAgentImageRepo
-	}
-
-	return utils.BuildDockerImagePath(repositoryPath, dockerAgentImageTag(e, config.AgentSemverVersion))
+// DockerAgent is a Docker installer on a remote Host
+type DockerAgent struct {
+	pulumi.ResourceState
+	components.Component
 }
 
-func DockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
-	// return cluster agent image path if defined
-	if e.ClusterAgentFullImagePath() != "" {
-		return e.ClusterAgentFullImagePath()
-	}
+func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...DockerOption) (*DockerAgent, error) {
+	return components.NewComponent(e, vm.Name(), func(comp *DockerAgent) error {
+		params, err := newDockerParams(e, options...)
+		if err != nil {
+			return err
+		}
+		defaultAgentParams(params)
 
-	if repositoryPath == "" {
-		repositoryPath = DefaultClusterAgentImageRepo
-	}
+		// Create environment variables passed to Agent container
+		envVars := make(pulumi.StringMap)
+		for key, value := range params.composeEnvVars {
+			envVars[key] = pulumi.String(value)
+		}
 
-	return utils.BuildDockerImagePath(repositoryPath, dockerAgentImageTag(e, config.ClusterAgentSemverVersion))
+		// We can have multiple compose files in compose.
+		composeContents := []docker.ComposeInlineManifest{
+			{
+				Name:    "agent",
+				Content: pulumi.Sprintf(agentComposeDefinition, params.fullImagePath, "datadog-agent", e.AgentAPIKey()),
+			},
+		}
+		if params.composeContent != "" {
+			composeContents = append(composeContents, docker.ComposeInlineManifest{
+				Name:    "agent-custom",
+				Content: pulumi.String(params.composeContent),
+			})
+		}
+
+		_, err = manager.ComposeStrUp("agent", composeContents, envVars, pulumi.Parent(comp))
+		return err
+	})
 }
 
-func dockerAgentImageTag(e *config.CommonEnvironment, semverVersion func(*config.CommonEnvironment) (*semver.Version, error)) string {
-	// default tag
-	agentImageTag := defaultAgentImageTag
-
-	// try parse agent version
-	agentVersion, err := semverVersion(e)
-	if agentVersion != nil && err == nil {
-		agentImageTag = agentVersion.String()
-	} else {
-		e.Ctx.Log.Debug("Unable to parse agent version, using latest", nil)
+func defaultAgentParams(params *dockerParams) {
+	if params.fullImagePath == "" {
+		params.fullImagePath = utils.BuildDockerImagePath(defaultAgentImageRepo, defaultAgentImageTag)
 	}
-
-	return agentImageTag
 }

@@ -9,10 +9,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type PackageManager interface {
-	Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error)
-}
-
 type genericPackageManager struct {
 	namer           namer.Namer
 	updateDBCommand *remote.Command
@@ -28,7 +24,8 @@ func NewGenericPackageManager(
 	name string,
 	installCmd string,
 	updateCmd string,
-	env pulumi.StringMap) PackageManager {
+	env pulumi.StringMap,
+) *genericPackageManager {
 	packageManager := &genericPackageManager{
 		namer:      namer.NewNamer(runner.e.Ctx, name),
 		runner:     runner,

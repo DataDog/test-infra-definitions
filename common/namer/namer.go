@@ -38,9 +38,11 @@ func NewNamer(ctx *pulumi.Context, prefix string) Namer {
 }
 
 func (n Namer) WithPrefix(prefix string) Namer {
+	prefixes := make([]string, len(n.prefixes), len(n.prefixes)+1)
+	copy(prefixes, n.prefixes)
 	return Namer{
 		ctx:      n.ctx,
-		prefixes: append(n.prefixes, prefix),
+		prefixes: append(prefixes, prefix),
 	}
 }
 
@@ -69,8 +71,10 @@ func (n Namer) DisplayName(maxLen int, parts ...pulumi.StringInput) pulumi.Strin
 }
 
 func joinWithMaxLength(maxLength int, tokens []string) string {
+	totalInputSize := lo.Sum(lo.Map(tokens, func(s string, _ int) int { return len(s) }))
+
 	// Check if non-truncated concatenation fits inside maximum length
-	if lo.Sum(lo.Map(tokens, func(s string, _ int) int { return len(s) }))+(len(tokens)-1)*len(nameSep) <= maxLength {
+	if totalInputSize+(len(tokens)-1)*len(nameSep) <= maxLength {
 		return strings.Join(tokens, nameSep)
 	}
 
@@ -94,7 +98,7 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 	// At this point, `hashSize` is the size of the hash suffix without the dash separator
 	// -1 means that we want to also strip the dash
 	if noHash {
-		hashSize = -1
+		hashSize = -len(nameSep)
 	}
 
 	// If there’s so many tokens that truncating all of them to a single character string and keeping only the dash separators
@@ -110,7 +114,6 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 
 	// Truncate all tokens in the same relative proportion
 	totalOutputSize := maxLength - len(tokens)*len(nameSep) - hashSize
-	totalInputSize := lo.Sum(lo.Map(tokens, func(s string, _ int) int { return len(s) }))
 	prevY := 0
 	X := 0
 	for _, tok := range tokens {

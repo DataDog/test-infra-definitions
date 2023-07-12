@@ -25,6 +25,7 @@ const (
 	SuseOS        = iota
 	FedoraOS      = iota
 	CentOS        = iota
+	RockyLinux    = iota
 )
 
 func GetOS(env aws.Environment, osType Type) (OS, error) {
@@ -47,6 +48,8 @@ func GetOS(env aws.Environment, osType Type) (OS, error) {
 		return newFedora(env), nil
 	case CentOS:
 		return newCentos(env), nil
+	case RockyLinux:
+		return newRockyLinux(env), nil
 	default:
 		return nil, fmt.Errorf("cannot find environment: %v", osType)
 	}

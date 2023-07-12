@@ -4,6 +4,10 @@ configParams:
   # aws configuration
 
   aws:
+    # aws account where resources will be created on
+    # example "agent-sandbox"
+    account: ""
+
     # aws key pair name
     # must be available in aws sandbox account
     # required to configure EC2 instances
@@ -14,6 +18,11 @@ configParams:
     # required to configure Windows EC2 instances
 
     publicKeyPath: ""
+
+    # team tag labeling all resources. In real config this
+    # would be the github team name
+
+    teamTag: ""
   # agent related config
   agent:
     # Datadog API key

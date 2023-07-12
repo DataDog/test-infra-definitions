@@ -105,7 +105,7 @@ def setupAWSConfig(config: Config):
     if config.configParams.aws.teamTag is None:
         config.configParams.aws.teamTag = ""
     while True:
-        msg = "🔖 What is your team? This will tag all your resources by `team:<team>`"
+        msg = "🔖 What is your github team? This will tag all your resources by `team:<team>`. Use kebab-case format (example: agent-platform)"
         if len(config.configParams.aws.teamTag) > 0:
             msg += f". Default [{config.configParams.aws.teamTag}]"
         msg += ": "

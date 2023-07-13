@@ -4,6 +4,7 @@ from .deploy import deploy
 from . import doc
 from typing import Optional
 from invoke.context import Context
+from invoke.exceptions import Exit
 from . import tool
 import pyperclip
 
@@ -15,28 +16,31 @@ scenario_name = "aws/dockervm"
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "install_docker": doc.install_docker,
+        "architecture": doc.architecture,
     }
 )
 def create_docker(
     ctx: Context,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
-    install_docker: Optional[bool] = False,
-     agent_version: Optional[str] = None,
+    agent_version: Optional[str] = None,
+    architecture: Optional[str] = None,
 ):
     """
     Create a docker environment.
     """
+
+    extra_flags = {}
+    extra_flags["ddinfra:osArchitecture"] = _get_architecture(architecture)
+
     full_stack_name = deploy(
         ctx,
         scenario_name,
         key_pair_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
-        install_docker=install_docker,
         agent_version=agent_version,
-        extra_flags={},
+        extra_flags=extra_flags,
     )
     _show_connection_message(ctx, full_stack_name)
 
@@ -68,3 +72,14 @@ def destroy_docker(ctx: Context, stack_name: Optional[str] = None):
     Destroy an environment created by invoke create_docker.
     """
     destroy(ctx, scenario_name, stack_name)
+
+
+def _get_architecture(architecture: Optional[str]) -> str:
+    architectures = tool.get_architectures()
+    if architecture is None:
+        architecture = tool.get_default_architecture()
+    if architecture.lower() not in architectures:
+        raise Exit(
+            f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}"
+        )
+    return architecture

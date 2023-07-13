@@ -69,6 +69,8 @@ func getOSType(commonEnv *config.CommonEnvironment) (ec2os.Type, error) {
 		osType = ec2os.UbuntuOS
 	case "amazonlinux":
 		osType = ec2os.AmazonLinuxOS
+	case "amazonlinuxdocker":
+		osType = ec2os.AmazonLinuxDockerOS
 	case "debian":
 		osType = ec2os.DebianOS
 	case "redhat":

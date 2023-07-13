@@ -26,7 +26,6 @@ const (
 	DDInfraOSFamily           = "osFamily"
 	DDInfraOSArchitecture     = "osArchitecture"
 	DDInfraOSAmiID            = "osAmiId"
-	DDInfraInstallDocker      = "install_docker"
 	DDInfraExtraResourcesTags = "extraResourcesTags"
 
 	// Agent Namespace
@@ -84,10 +83,6 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 	envsStr := e.InfraConfig.Require(DDInfraEnvironment)
 	return strings.Split(envsStr, multiValueSeparator)
-}
-
-func (e *CommonEnvironment) InfraInstallDocker() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, DDInfraInstallDocker, false)
 }
 
 func (e *CommonEnvironment) InfraOSFamily() string {

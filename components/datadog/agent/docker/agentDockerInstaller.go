@@ -1,10 +1,18 @@
 package docker
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/components/vm"
+	"github.com/DataDog/test-infra-definitions/components/os"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -12,16 +20,26 @@ type AgentDockerInstaller struct {
 	dependsOn pulumi.ResourceOption
 }
 
-func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*AgentDockerInstaller, error) {
-	commonEnv := vm.GetCommonEnvironment()
+func NewAgentDockerInstaller(env resourcesAws.Environment, options ...func(*Params) error) (*AgentDockerInstaller, error) {
+	commonEnv := env.GetCommonEnvironment()
+	architecture, err := getArchitecture(commonEnv)
+	if err != nil {
+		return nil, err
+	}
+
+	vm, err := ec2vm.NewUnixEc2VMWithEnv(env, ec2params.WithArch(ec2os.AmazonLinuxDockerOS, architecture))
+	if err != nil {
+		return nil, err
+	}
+
 	params, err := newParams(commonEnv, options...)
 	if err != nil {
 		return nil, err
 	}
 
-	env := make(pulumi.StringMap)
+	pulumiEnv := make(pulumi.StringMap)
 	for key, value := range params.composeEnvVars {
-		env[key] = pulumi.String(value)
+		pulumiEnv[key] = pulumi.String(value)
 	}
 
 	var composeContents []command.DockerComposeInlineManifest
@@ -40,7 +58,7 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Ag
 			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, commonEnv.AgentAPIKey()),
 		})
 		for key, value := range dockerAgentParams.env {
-			env[key] = pulumi.String(value)
+			pulumiEnv[key] = pulumi.String(value)
 		}
 	}
 
@@ -48,19 +66,9 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Ag
 	dockerManager := vm.GetLazyDocker()
 	if len(composeContents) > 0 {
 		runCommandDeps := params.pulumiResources
-		if params.installDocker {
-			installCommand, err := dockerManager.Install(params.pulumiResources...)
-			if err != nil {
-				return nil, err
-			}
-			runCommandDeps = append(runCommandDeps, pulumi.DependsOn([]pulumi.Resource{installCommand}))
-		}
-
-		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, env, runCommandDeps...)
+		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, pulumiEnv, runCommandDeps...)
 	} else {
-		if params.installDocker {
-			dependOnResource, err = dockerManager.Install()
-		}
+		dependOnResource, err = dockerManager.InstallCompose()
 	}
 
 	if err != nil {
@@ -72,4 +80,20 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Ag
 
 func (d *AgentDockerInstaller) GetDependsOn() pulumi.ResourceOption {
 	return d.dependsOn
+}
+
+func getArchitecture(commonEnv *config.CommonEnvironment) (os.Architecture, error) {
+	var arch os.Architecture
+	archStr := strings.ToLower(commonEnv.InfraOSArchitecture())
+	switch archStr {
+	case "x86_64":
+		arch = os.AMD64Arch
+	case "arm64":
+		arch = os.ARM64Arch
+	case "":
+		arch = os.AMD64Arch // Default
+	default:
+		return arch, fmt.Errorf("the architecture type '%v' is not valid", archStr)
+	}
+	return arch, nil
 }

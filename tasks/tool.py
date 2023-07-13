@@ -36,6 +36,7 @@ def get_os_families() -> List[str]:
         get_default_os_family(),
         "windows",
         "amazonlinux",
+        "amazonlinuxdocker",
         "debian",
         "redhat",
         "suse",

@@ -41,7 +41,7 @@ func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerMana
 
 func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	installComposeCommand, err := d.installCompose(opts...)
+	installComposeCommand, err := d.InstallCompose(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +75,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	installComposeCommand, err := d.installCompose(opts...)
+	installComposeCommand, err := d.InstallCompose(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,7 +148,7 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 	return d.installCmd, err
 }
 
-func (d *DockerManager) installCompose(opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (d *DockerManager) InstallCompose(opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	composeInstallIfNotCmd := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
 	cmd, err := d.runner.Command(
 		d.namer.ResourceName("install-compose"),

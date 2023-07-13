@@ -20,7 +20,6 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
-    install_docker: Optional[bool] = False,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
@@ -49,7 +48,6 @@ def deploy(
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
     aws_account = cfg.get_aws().get_account()
     flags["ddinfra:env"] = "aws/" + aws_account
-    flags["ddinfra:install_docker"] = install_docker
 
     if cfg.get_aws().teamTag is None or cfg.get_aws().teamTag == "":
         raise Exit("Error in config, missing configParams.aws.teamTag. Run `inv setup` again and provide a valid team name")

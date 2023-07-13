@@ -10,7 +10,7 @@ import (
 
 func NewCapacityProvider(e aws.Environment, name string, asgArn pulumi.StringInput) (*ecs.CapacityProvider, error) {
 	return ecs.NewCapacityProvider(e.Ctx, e.Namer.ResourceName(name), &ecs.CapacityProviderArgs{
-		Name: e.CommonNamer.DisplayName(pulumi.String(name)),
+		Name: e.CommonNamer.DisplayName(255, pulumi.String(name)),
 		AutoScalingGroupProvider: &ecs.CapacityProviderAutoScalingGroupProviderArgs{
 			AutoScalingGroupArn: asgArn,
 			ManagedScaling: &ecs.CapacityProviderAutoScalingGroupProviderManagedScalingArgs{

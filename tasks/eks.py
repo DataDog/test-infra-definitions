@@ -1,11 +1,13 @@
 import os
 from invoke.tasks import task
+from pydantic import ValidationError
 import yaml
 from .destroy import destroy
 from .deploy import deploy
-from . import doc
+from . import config, doc
 from typing import Optional
 from invoke.context import Context
+from invoke.exceptions import Exit
 from . import tool
 import pyperclip
 
@@ -54,19 +56,24 @@ def create_eks(
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
-    _show_connection_message(full_stack_name)
+    _show_connection_message(ctx, full_stack_name)
 
 
-def _show_connection_message(full_stack_name: str):
-    outputs = tool.get_stack_json_outputs(full_stack_name)
-    kubeconfig = outputs["kubeconfig"]
-    kubeconfig_content = yaml.dump(kubeconfig)
-    config = f"{full_stack_name}-config.yaml"
-    f = os.open(path=config, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)
+def _show_connection_message(ctx: Context, full_stack_name: str):
+    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
+    kubeconfig_output = outputs["kubeconfig"]
+    kubeconfig_content = yaml.dump(kubeconfig_output)
+    kubeconfig = f"{full_stack_name}-config.yaml"
+    f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)
     with open(f, "w") as f:
         f.write(kubeconfig_content)
+    
+    try:
+        local_config = config.get_local_config()
+    except ValidationError as e:
+        raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
 
-    command = f"KUBECONFIG={config} aws-vault exec sandbox-account-admin -- kubectl get nodes"
+    command = f"KUBECONFIG={config} {tool.get_aws_wrapper(local_config.get_aws().get_account())} -- kubectl get nodes"
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

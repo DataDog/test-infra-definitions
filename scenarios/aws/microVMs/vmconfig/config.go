@@ -21,7 +21,7 @@ type Kernel struct {
 
 type Image struct {
 	ImageName      string `json:"image_path,omitempty"`
-	ImageSourceURI string `json:"image_uri,omitempty"`
+	ImageSourceURI string `json:"image_source,omitempty"`
 }
 
 type VMSet struct {

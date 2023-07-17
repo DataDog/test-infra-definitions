@@ -81,6 +81,8 @@ func getOSType(commonEnv *config.CommonEnvironment) (ec2os.Type, error) {
 		osType = ec2os.FedoraOS
 	case "centos":
 		osType = ec2os.CentOS
+	case "rockylinux":
+		osType = ec2os.RockyLinux
 	case "":
 		osType = ec2os.UbuntuOS // Default
 	default:

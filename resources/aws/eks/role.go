@@ -16,7 +16,7 @@ func GetNodeRole(e aws.Environment, name string) (*awsIam.Role, error) {
 	}
 
 	return awsIam.NewRole(e.Ctx, e.Namer.ResourceName(name), &awsIam.RoleArgs{
-		Name:                e.CommonNamer.DisplayName(pulumi.String(name)),
+		Name:                e.CommonNamer.DisplayName(64, pulumi.String(name)),
 		Description:         pulumi.StringPtr("Node role for EKS Cluster: " + e.Ctx.Stack()),
 		ForceDetachPolicies: pulumi.BoolPtr(true),
 		ManagedPolicyArns: pulumi.ToStringArray([]string{
@@ -35,7 +35,7 @@ func GetClusterRole(e aws.Environment, name string) (*awsIam.Role, error) {
 	}
 
 	return awsIam.NewRole(e.Ctx, e.Namer.ResourceName(name), &awsIam.RoleArgs{
-		Name:        e.CommonNamer.DisplayName(pulumi.String(name)),
+		Name:        e.CommonNamer.DisplayName(64, pulumi.String(name)),
 		Description: pulumi.StringPtr("Service role for EKS Cluster: " + e.Ctx.Stack()),
 		ManagedPolicyArns: pulumi.ToStringArray([]string{
 			"arn:aws:iam::aws:policy/AmazonEKSClusterPolicy",

@@ -16,7 +16,7 @@ func NewAutoscalingGroup(e aws.Environment, name string,
 	desired, min, max int,
 ) (*autoscaling.Group, error) {
 	return autoscaling.NewGroup(e.Ctx, e.Namer.ResourceName(name), &autoscaling.GroupArgs{
-		NamePrefix:      e.CommonNamer.DisplayName(pulumi.String(name)),
+		NamePrefix:      e.CommonNamer.DisplayName(255, pulumi.String(name)),
 		DesiredCapacity: pulumi.Int(desired),
 		MinSize:         pulumi.Int(min),
 		MaxSize:         pulumi.Int(max),

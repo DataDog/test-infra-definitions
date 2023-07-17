@@ -26,7 +26,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("uds"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(pulumi.String("dogstatsd-uds")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-uds")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -59,7 +59,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("none"),
-			Family:      e.CommonNamer.DisplayName(pulumi.String("dogstatsd-uds-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-uds-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					Name:     pulumi.String("dd-sockets"),

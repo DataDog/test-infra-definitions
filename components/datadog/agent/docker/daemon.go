@@ -5,6 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -87,4 +88,8 @@ func (d *Daemon) Deserialize(result auto.UpResult) (*ClientData, error) {
 	}
 
 	return &ClientData{Connection: vmData.Connection}, nil
+}
+
+func (d *Daemon) GetOS() os.OS {
+	return d.vm.GetOS()
 }

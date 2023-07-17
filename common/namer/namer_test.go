@@ -1,16 +1,12 @@
 package namer
 
 import (
-	"fmt"
-	"hash/fnv"
-	"io"
 	"math"
 	"strconv"
 	"strings"
 	"testing"
 
 	fuzz "github.com/google/gofuzz"
-	"github.com/samber/lo"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -195,95 +191,5 @@ func FuzzJoinWithMaxLength(f *testing.F) {
 
 		output := joinWithMaxLength(tt.maxLength, tt.tokens)
 		assert.Conditionf(t, func() bool { return outputOK(tt.maxLength, tt.tokens, output) }, "joinWithMaxLength(%d, %v) => %q", tt.maxLength, tt.tokens, output)
-		assert.Equal(t, joinWithMaxLengthPrevImplem(tt.maxLength, tt.tokens), output)
 	})
-}
-
-func BenchmarkJoinWithMaxLength(b *testing.B) {
-	for _, tt := range []struct {
-		name string
-		f    func(int, []string) string
-	}{
-		{
-			name: "New implementation",
-			f:    joinWithMaxLength,
-		},
-		{
-			name: "Old implementation",
-			f:    joinWithMaxLengthPrevImplem,
-		},
-	} {
-		b.Run(tt.name, func(b *testing.B) {
-			for i := 0; i < b.N; i++ {
-				joinWithMaxLength(37, []string{"ci-17317712-4670-eks-cluster", "linux-arm", "ng"})
-			}
-		})
-	}
-}
-
-func joinWithMaxLengthPrevImplem(maxLength int, tokens []string) string {
-	totalInputSize := lo.Sum(lo.Map(tokens, func(s string, _ int) int { return len(s) }))
-
-	// Check if non-truncated concatenation fits inside maximum length
-	if totalInputSize+(len(tokens)-1)*len(nameSep) <= maxLength {
-		return strings.Join(tokens, nameSep)
-	}
-
-	// If a truncation is needed, a hash will be needed
-	var fullhash string
-	if !noHash {
-		hasher := fnv.New64a()
-		for _, tok := range tokens {
-			_, _ = io.WriteString(hasher, tok)
-		}
-		fullhash = fmt.Sprintf("%016x", hasher.Sum64())
-	}
-
-	// Compute the size of the hash suffix that will be appended to the output
-	hash := fullhash
-	hashSize := maxLength * hashSizePercent / 100
-	if len(hash) > hashSize {
-		hash = hash[:hashSize]
-	} else {
-		hashSize = len(hash)
-	}
-
-	// For test purpose, we have an option to completely strip the output of the hash suffix
-	// At this point, `hashSize` is the size of the hash suffix without the dash separator
-	// -1 means that we want to also strip the dash
-	if noHash {
-		hashSize = -len(nameSep)
-	}
-
-	// If there’s so many tokens that truncating all of them to a single character string and keeping only the dash separators
-	// would exceed the maximum length, we cannot do anything better than returning only the hash.
-	if len(tokens)+(len(tokens))*len(nameSep)+hashSize > maxLength {
-		if len(fullhash) > maxLength {
-			return fullhash[:maxLength]
-		}
-		return fullhash
-	}
-
-	var sb strings.Builder
-
-	// Truncate all tokens in the same relative proportion
-	totalOutputSize := maxLength - len(tokens)*len(nameSep) - hashSize
-	prevY := 0
-	X := 0
-	for _, tok := range tokens {
-		X += len(tok)
-		nextY := (2*X*totalOutputSize + totalInputSize) / (2 * totalInputSize)
-		tokSize := nextY - prevY
-		prevY = nextY
-		sb.WriteString(tok[:tokSize])
-		sb.WriteString(nameSep)
-	}
-
-	if noHash {
-		str := sb.String()
-		return str[:len(str)-1] // Strip the trailing dash
-	}
-
-	sb.WriteString(hash)
-	return sb.String()
 }

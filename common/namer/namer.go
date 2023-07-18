@@ -71,19 +71,15 @@ func (n Namer) DisplayName(maxLen int, parts ...pulumi.StringInput) pulumi.Strin
 }
 
 func joinWithMaxLength(maxLength int, tokens []string) string {
-	totalInputSize := lo.Sum(lo.Map(tokens, func(s string, _ int) int { return len(s) }))
+	sumTokensSize := lo.Sum(lo.Map(tokens, func(s string, _ int) int { return len(s) }))
 
 	// Check if non-truncated concatenation fits inside maximum length
-	if totalInputSize+(len(tokens)-1)*len(nameSep) <= maxLength {
+	if sumTokensSize+(len(tokens)-1)*len(nameSep) <= maxLength {
 		return strings.Join(tokens, nameSep)
 	}
 
 	// If a truncation is needed, a hash will be needed
-	hasher := fnv.New64a()
-	for _, tok := range tokens {
-		_, _ = io.WriteString(hasher, tok)
-	}
-	fullhash := fmt.Sprintf("%016x", hasher.Sum64())
+	fullhash := hash(tokens)
 
 	// Compute the size of the hash suffix that will be appended to the output
 	hash := fullhash
@@ -96,7 +92,7 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 
 	// For test purpose, we have an option to completely strip the output of the hash suffix
 	// At this point, `hashSize` is the size of the hash suffix without the dash separator
-	// -1 means that we want to also strip the dash
+	// -len(nameSep) means that we want to also strip the dash
 	if noHash {
 		hashSize = -len(nameSep)
 	}
@@ -113,23 +109,51 @@ func joinWithMaxLength(maxLength int, tokens []string) string {
 	var sb strings.Builder
 
 	// Truncate all tokens in the same relative proportion
-	totalOutputSize := maxLength - len(tokens)*len(nameSep) - hashSize
+	sumTruncatedTokensSize := maxLength - len(tokens)*len(nameSep) - hashSize
+	tokenIdx := 0
+	nextX := len(tokens[tokenIdx])
 	prevY := 0
-	X := 0
-	for _, tok := range tokens {
-		X += len(tok)
-		nextY := (X*totalOutputSize + totalInputSize/2) / totalInputSize
-		tokSize := nextY - prevY
-		prevY = nextY
-		sb.WriteString(tok[:tokSize])
-		sb.WriteString(nameSep)
-	}
+	bresenham(0, 0, sumTokensSize, sumTruncatedTokensSize, func(x, y int) {
+		if x == nextX {
+			sb.WriteString(tokens[tokenIdx][:y-prevY])
+			sb.WriteString(nameSep)
+			tokenIdx++
+			if x < sumTokensSize {
+				nextX += len(tokens[tokenIdx])
+				prevY = y
+			}
+		}
+	})
 
 	if noHash {
 		str := sb.String()
-		return str[:len(str)-1] // Strip the trailing dash
+		return str[:len(str)-len(nameSep)] // Strip the trailing dash
 	}
 
 	sb.WriteString(hash)
 	return sb.String()
+}
+
+func hash(tokens []string) string {
+	hasher := fnv.New64a()
+	for _, tok := range tokens {
+		_, _ = io.WriteString(hasher, tok)
+	}
+	return fmt.Sprintf("%016x", hasher.Sum64())
+}
+
+// Bresenham’s algorithm restricted to the first octant
+func bresenham(x, y, x2, y2 int, plot func(x, y int)) {
+	d := x2 - x
+	dx := 2 * d
+	dy := 2 * (y2 - y)
+	for x <= x2 {
+		plot(x, y)
+		x++
+		d -= dy
+		if d <= 0 {
+			y++
+			d += dx
+		}
+	}
 }

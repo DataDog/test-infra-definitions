@@ -97,7 +97,7 @@ RUN cd /tmp/test-infra && \
 # https://github.com/yaml/pyyaml/issues/724#issuecomment-1638636728
 RUN curl -fsSL https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements.txt | \
   grep -ivE "boto3|botocore|awscli|urllib3|PyYAML" > requirements-agent.txt && \
-  pithon3  install "cython<3.0.0" && \
+  pip3 install "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
   pip3 install -r requirements-agent.txt && \
   go install gotest.tools/gotestsum@latest

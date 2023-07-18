@@ -9,7 +9,7 @@
    </xsl:template>
   <xsl:template match="/domain/features">
        <cpu mode='host-passthrough' check='none'>
-           <model fallback='forbid'>qemu64</model>
+           <model fallback='allow'>qemu64</model>
        </cpu>
   </xsl:template>
 

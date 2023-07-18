@@ -2,6 +2,7 @@ package compute
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -88,7 +89,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 	}
 
 	publicIP, err := network.NewPublicIPAddress(e.Ctx, e.Namer.ResourceName(name), &network.PublicIPAddressArgs{
-		PublicIpAddressName:      e.Namer.DisplayName(pulumi.String(name)),
+		PublicIpAddressName:      e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName:        pulumi.String(e.DefaultResourceGroup()),
 		PublicIPAllocationMethod: pulumi.String(network.IPAllocationMethodStatic),
 		Tags:                     e.ResourcesTags(),
@@ -98,11 +99,11 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 	}
 
 	nwInt, err := network.NewNetworkInterface(e.Ctx, e.Namer.ResourceName(name), &network.NetworkInterfaceArgs{
-		NetworkInterfaceName: e.Namer.DisplayName(pulumi.String(name)),
+		NetworkInterfaceName: e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName:    pulumi.String(e.DefaultResourceGroup()),
 		IpConfigurations: network.NetworkInterfaceIPConfigurationArray{
 			network.NetworkInterfaceIPConfigurationArgs{
-				Name: e.Namer.DisplayName(pulumi.String(name)),
+				Name: e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 				Subnet: network.SubnetTypeArgs{
 					Id: pulumi.String(e.DefaultSubnet()),
 				},
@@ -120,13 +121,13 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 
 	vm, err := compute.NewVirtualMachine(e.Ctx, e.Namer.ResourceName(name), &compute.VirtualMachineArgs{
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
-		VmName:            e.Namer.DisplayName(pulumi.String(name)),
+		VmName:            e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		HardwareProfile: compute.HardwareProfileArgs{
 			VmSize: pulumi.StringPtr(instanceType),
 		},
 		StorageProfile: compute.StorageProfileArgs{
 			OsDisk: compute.OSDiskArgs{
-				Name:         e.Namer.DisplayName(pulumi.String(name), pulumi.String("os-disk")),
+				Name:         e.Namer.DisplayName(math.MaxInt, pulumi.String(name), pulumi.String("os-disk")),
 				CreateOption: pulumi.String(compute.DiskCreateOptionFromImage),
 				ManagedDisk: compute.ManagedDiskParametersArgs{
 					StorageAccountType: pulumi.String("StandardSSD_LRS"),

@@ -25,7 +25,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("server"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(pulumi.String("prometheus")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("prometheus")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -63,7 +63,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(pulumi.String("prometheus-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("prometheus-ec2")),
 		},
 	}, opts...); err != nil {
 		return nil, err

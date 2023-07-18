@@ -1,9 +1,11 @@
 from invoke.tasks import task
+from pydantic import ValidationError
 from .destroy import destroy
 from .deploy import deploy
-from . import doc
+from . import config, doc
 from typing import Optional
 from invoke.context import Context
+from invoke.exceptions import Exit
 from . import tool
 import pyperclip
 
@@ -58,7 +60,12 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     cluster_name = outputs["ecs-cluster-name"]
 
-    command = f"aws-vault exec sandbox-account-admin -- aws ecs list-tasks --cluster {cluster_name}"
+    try:
+        local_config = config.get_local_config()
+    except ValidationError as e:
+        raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
+
+    command = f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} -- aws ecs list-tasks --cluster {cluster_name}"
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

@@ -27,12 +27,12 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           e.CommonNamer.DisplayName(pulumi.String("nginx")),
-		SubnetIds:      pulumi.ToStringArray(e.DefaultSubnets()),
+		Name:           e.CommonNamer.DisplayName(32, pulumi.String("nginx")),
+		SubnetIds:      e.RandomSubnets(),
 		Internal:       pulumi.BoolPtr(true),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(pulumi.String("nginx")),
+			Name:       e.CommonNamer.DisplayName(32, pulumi.String("nginx")),
 			Port:       pulumi.IntPtr(80),
 			Protocol:   pulumi.StringPtr("HTTP"),
 			TargetType: pulumi.StringPtr("instance"),
@@ -48,7 +48,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	}
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("server"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(pulumi.String("nginx")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("nginx")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(2),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -105,7 +105,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(pulumi.String("nginx-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("nginx-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					Name: pulumi.String("cache"),
@@ -133,7 +133,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	}
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("query"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(pulumi.String("nginx-query")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("nginx-query")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -157,7 +157,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(pulumi.String("nginx-query-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("nginx-query-ec2")),
 		},
 	}, opts...); err != nil {
 		return nil, err

@@ -16,8 +16,9 @@ type OS interface {
 type Type int
 
 const (
-	WindowsOS Type = iota
-	UbuntuOS       = iota
+	WindowsOS           Type = iota
+	UbuntuOS                 = iota
+	AmazonLinuxDockerOS      = iota
 	// MacosOS            = iota // Not yet supported
 	AmazonLinuxOS = iota
 	DebianOS      = iota
@@ -34,6 +35,8 @@ func GetOS(env aws.Environment, osType Type) (OS, error) {
 		return newWindows(env), nil
 	case UbuntuOS:
 		return newUbuntu(env), nil
+	case AmazonLinuxDockerOS:
+		return newAmazonLinuxDocker(env), nil
 	//case MacosOS:
 	//return newMacOS(env), nil // Not yet supported
 	case AmazonLinuxOS:

@@ -2,25 +2,30 @@ package dockervm
 
 import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/docker"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
-
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func Run(ctx *pulumi.Context) error {
-	vm, err := ec2vm.NewUnixEc2VM(ctx)
+	env, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
-
-	env := vm.GetCommonEnvironment()
 
 	var options []func(*docker.Params) error
 	if env.AgentDeploy() {
 		options = append(options, docker.WithAgent())
 	}
 
-	_, err = docker.NewAgentDockerInstaller(vm.UnixVM, options...)
+	architecture, err := utils.GetArchitecture(env.GetCommonEnvironment())
+	if err != nil {
+		return err
+	}
+
+	options = append(options, docker.WithArchitecture(architecture))
+
+	_, err = docker.NewAgentDockerInstallerWithEnv(env, options...)
 
 	return err
 }

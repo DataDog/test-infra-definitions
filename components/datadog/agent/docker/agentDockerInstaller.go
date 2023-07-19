@@ -4,7 +4,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/components/vm"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -12,16 +15,22 @@ type AgentDockerInstaller struct {
 	dependsOn pulumi.ResourceOption
 }
 
-func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*AgentDockerInstaller, error) {
-	commonEnv := vm.GetCommonEnvironment()
+func NewAgentDockerInstallerWithEnv(env resourcesAws.Environment, options ...func(*Params) error) (*AgentDockerInstaller, error) {
+
+	commonEnv := env.GetCommonEnvironment()
 	params, err := newParams(commonEnv, options...)
 	if err != nil {
 		return nil, err
 	}
 
-	env := make(pulumi.StringMap)
+	vm, err := ec2vm.NewUnixEc2VMWithEnv(env, ec2params.WithArch(ec2os.AmazonLinuxDockerOS, params.architecture))
+	if err != nil {
+		return nil, err
+	}
+
+	pulumiEnv := make(pulumi.StringMap)
 	for key, value := range params.composeEnvVars {
-		env[key] = pulumi.String(value)
+		pulumiEnv[key] = pulumi.String(value)
 	}
 
 	var composeContents []command.DockerComposeInlineManifest
@@ -40,16 +49,17 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Ag
 			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, commonEnv.AgentAPIKey()),
 		})
 		for key, value := range dockerAgentParams.env {
-			env[key] = pulumi.String(value)
+			pulumiEnv[key] = pulumi.String(value)
 		}
 	}
 
 	var dependOnResource pulumi.Resource
 	dockerManager := vm.GetLazyDocker()
 	if len(composeContents) > 0 {
-		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, env, params.pulumiResources...)
+		runCommandDeps := params.pulumiResources
+		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, pulumiEnv, runCommandDeps...)
 	} else {
-		dependOnResource, err = dockerManager.Install()
+		dependOnResource, err = dockerManager.InstallCompose()
 	}
 
 	if err != nil {
@@ -57,6 +67,14 @@ func NewAgentDockerInstaller(vm *vm.UnixVM, options ...func(*Params) error) (*Ag
 	}
 
 	return &AgentDockerInstaller{dependsOn: utils.PulumiDependsOn(dependOnResource)}, nil
+}
+
+func NewAgentDockerInstaller(ctx *pulumi.Context, options ...func(*Params) error) (*AgentDockerInstaller, error) {
+	env, err := resourcesAws.NewEnvironment(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewAgentDockerInstallerWithEnv(env, options...)
 }
 
 func (d *AgentDockerInstaller) GetDependsOn() pulumi.ResourceOption {

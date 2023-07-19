@@ -78,7 +78,7 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 		agentContainerName: agentContainerName}, nil
 }
 
-func NewAgentDockerInstaller(ctx *pulumi.Context, options ...func(*dockerparams.Params) error) (*Daemon, error) {
+func NewDaemon(ctx *pulumi.Context, options ...func(*dockerparams.Params) error) (*Daemon, error) {
 	env, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err

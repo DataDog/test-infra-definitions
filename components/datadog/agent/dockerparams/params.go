@@ -19,7 +19,7 @@ type Params struct {
 type Option = func(*Params) error
 
 func NewParams(commonEnv *config.CommonEnvironment, options ...Option) (*Params, error) {
-	return common.ApplyOption(&Params{CommonEnv: commonEnv}, options)
+	return common.ApplyOption(&Params{CommonEnv: commonEnv, Architecture: os.AMD64Arch}, options)
 }
 
 func WithComposeContent(content string, env map[string]string) func(*Params) error {

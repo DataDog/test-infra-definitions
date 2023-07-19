@@ -3,6 +3,7 @@ package dockerparams
 import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -12,6 +13,7 @@ type Params struct {
 	ComposeContent            string
 	PulumiResources           []pulumi.ResourceOption
 	CommonEnv                 *config.CommonEnvironment
+	Architecture              os.Architecture
 }
 
 type Option = func(*Params) error
@@ -40,5 +42,12 @@ func WithAgent(options ...AgentOption) func(*Params) error {
 		var err error
 		p.OptionalDockerAgentParams, err = newAgentParams(p.CommonEnv, options...)
 		return err
+	}
+}
+
+func WithArchitecture(arch os.Architecture) func(*Params) error {
+	return func(p *Params) error {
+		p.Architecture = arch
+		return nil
 	}
 }

@@ -6,27 +6,35 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
-	"github.com/DataDog/test-infra-definitions/components/vm"
+	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type Daemon struct {
-	vm                 *vm.UnixVM
+	vm                 *ec2vm.EC2UnixVM
 	dependsOn          pulumi.ResourceOption
 	agentContainerName string
 }
 
-func NewDaemon(vm *vm.UnixVM, options ...dockerparams.Option) (*Daemon, error) {
-	commonEnv := vm.GetCommonEnvironment()
+func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Option) (*Daemon, error) {
+	commonEnv := env.GetCommonEnvironment()
 	params, err := dockerparams.NewParams(commonEnv, options...)
 	if err != nil {
 		return nil, err
 	}
 
-	env := make(pulumi.StringMap)
+	vm, err := ec2vm.NewUnixEc2VMWithEnv(env, ec2params.WithArch(ec2os.AmazonLinuxDockerOS, params.Architecture))
+	if err != nil {
+		return nil, err
+	}
+
+	pulumiEnv := make(pulumi.StringMap)
 	for key, value := range params.ComposeEnvVars {
-		env[key] = pulumi.String(value)
+		pulumiEnv[key] = pulumi.String(value)
 	}
 
 	var composeContents []command.DockerComposeInlineManifest
@@ -46,7 +54,7 @@ func NewDaemon(vm *vm.UnixVM, options ...dockerparams.Option) (*Daemon, error) {
 			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, commonEnv.AgentAPIKey()),
 		})
 		for key, value := range dockerAgentParams.Env {
-			env[key] = pulumi.String(value)
+			pulumiEnv[key] = pulumi.String(value)
 		}
 		agentContainerName = "docker-on-vm-compose-tmp-agent-1" // TODO: Improve the naming and make it more robust
 	}
@@ -54,9 +62,10 @@ func NewDaemon(vm *vm.UnixVM, options ...dockerparams.Option) (*Daemon, error) {
 	var dependOnResource pulumi.Resource
 	dockerManager := vm.GetLazyDocker()
 	if len(composeContents) > 0 {
-		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, env, params.PulumiResources...)
+		runCommandDeps := params.PulumiResources
+		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, pulumiEnv, runCommandDeps...)
 	} else {
-		dependOnResource, err = dockerManager.Install()
+		dependOnResource, err = dockerManager.InstallCompose()
 	}
 
 	if err != nil {
@@ -67,6 +76,14 @@ func NewDaemon(vm *vm.UnixVM, options ...dockerparams.Option) (*Daemon, error) {
 		vm:                 vm,
 		dependsOn:          utils.PulumiDependsOn(dependOnResource),
 		agentContainerName: agentContainerName}, nil
+}
+
+func NewAgentDockerInstaller(ctx *pulumi.Context, options ...func(*dockerparams.Params) error) (*Daemon, error) {
+	env, err := resourcesAws.NewEnvironment(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return NewDaemonWithEnv(env, options...)
 }
 
 func (d *Daemon) GetDependsOn() pulumi.ResourceOption {

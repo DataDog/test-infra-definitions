@@ -47,16 +47,17 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 	}
 	agentContainerName := ""
 	if params.OptionalDockerAgentParams != nil {
+		agentContainerName = "datadog-agent"
+
 		dockerAgentParams := params.OptionalDockerAgentParams
 		imagePath := dockerAgentParams.FullImagePath
 		composeContents = append(composeContents, command.DockerComposeInlineManifest{
 			Name:    "agent",
-			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, commonEnv.AgentAPIKey()),
+			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, agentContainerName, commonEnv.AgentAPIKey()),
 		})
 		for key, value := range dockerAgentParams.Env {
 			pulumiEnv[key] = pulumi.String(value)
 		}
-		agentContainerName = "docker-on-vm-compose-tmp-agent-1" // TODO: Improve the naming and make it more robust
 	}
 
 	var dependOnResource pulumi.Resource

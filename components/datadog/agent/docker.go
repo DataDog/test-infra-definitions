@@ -12,6 +12,7 @@ const (
 services:
   agent:
     image: %s
+    container_name: %s
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - "/proc/:/host/proc"

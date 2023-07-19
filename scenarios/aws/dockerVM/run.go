@@ -2,6 +2,7 @@ package dockervm
 
 import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/docker"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -13,9 +14,9 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	var options []func(*docker.Params) error
+	var options []dockerparams.Option
 	if env.AgentDeploy() {
-		options = append(options, docker.WithAgent())
+		options = append(options, dockerparams.WithAgent())
 	}
 
 	architecture, err := utils.GetArchitecture(env.GetCommonEnvironment())
@@ -23,9 +24,9 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	options = append(options, docker.WithArchitecture(architecture))
+	options = append(options, dockerparams.WithArchitecture(architecture))
 
-	_, err = docker.NewAgentDockerInstallerWithEnv(env, options...)
+	_, err = docker.NewDaemonWithEnv(env, options...)
 
 	return err
 }

@@ -90,14 +90,19 @@ def _create_stack(ctx: Context, stack_name: str, global_flags: str):
     stacks = result.stdout.splitlines()[1:]  # skip header
     for stack in stacks:
         # the stack has an asterisk if it is currently selected
-        ls_stack_name = stack.split(" ")[0].rstrip('*')
+        ls_stack_name = stack.split(" ")[0].rstrip("*")
         if ls_stack_name == stack_name:
             return
 
     ctx.run(f"pulumi {global_flags} stack init --no-select {stack_name}")
 
 
-def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> str:
+def _deploy(
+    ctx: Context,
+    stack_name: Optional[str],
+    flags: Dict[str, Any],
+    debug: Optional[bool],
+) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     aws_account = flags["ddinfra:env"][len("aws/") :]
     global_flags = ""

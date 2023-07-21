@@ -53,7 +53,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     user = connection.user
 
     command = (
-        f'\nssh {user}@{host} --  \'echo "Successfully connected to VM" && exit\' \n'
+        f"\nssh {user}@{host} --  'echo \"Successfully connected to VM\" && exit' \n"
         + f'docker context create pulumi-{host} --docker "host=ssh://{user}@{host}"\n'
         + f"docker --context pulumi-{host} container ls\n"
     )
@@ -63,16 +63,12 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     )
 
 
-@task(
-    help={
-        "stack_name": doc.stack_name,
-    }
-)
-def destroy_docker(ctx: Context, stack_name: Optional[str] = None):
+@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
+def destroy_docker(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
     """
     Destroy an environment created by invoke create_docker.
     """
-    destroy(ctx, scenario_name, stack_name)
+    destroy(ctx, scenario_name, stack_name, force_yes=yes)
 
 
 def _get_architecture(architecture: Optional[str]) -> str:

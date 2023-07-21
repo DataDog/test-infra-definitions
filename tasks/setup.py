@@ -120,7 +120,7 @@ def setupAgentConfig(config):
         )
     # API key
     if config.configParams.agent.apiKey is None:
-        config.configParams.agent.apiKey = '0' * 32
+        config.configParams.agent.apiKey = "0" * 32
     default_api_key = config.configParams.agent.apiKey
     while True:
         config.configParams.agent.apiKey = default_api_key
@@ -132,7 +132,7 @@ def setupAgentConfig(config):
         warn(f"Expecting API key of length 32, got {len(config.configParams.agent.apiKey)}")
     # APP key
     if config.configParams.agent.appKey is None:
-        config.configParams.agent.appKey = '0' * 40
+        config.configParams.agent.appKey = "0" * 40
     default_app_key = config.configParams.agent.appKey
     while True:
         config.configParams.agent.appKey = default_app_key
@@ -146,6 +146,6 @@ def setupAgentConfig(config):
 
 
 def _get_safe_dd_key(key: str) -> str:
-    if key == '0' * len(key):
+    if key == "0" * len(key):
         return key
-    return '*' * len(key)
+    return "*" * len(key)

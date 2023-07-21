@@ -1,13 +1,12 @@
 import subprocess
-
-from pydantic import ValidationError
-from typing import Optional, List, Tuple
+from typing import List, Optional, Tuple
 
 from invoke.context import Context
 from invoke.exceptions import Exit
+from pydantic import ValidationError
 
 from . import config
-from .tool import get_stack_name, get_stack_name_prefix, info, error, get_aws_wrapper
+from .tool import error, get_aws_wrapper, get_stack_name, get_stack_name_prefix, info
 
 
 def destroy(ctx: Context, scenario_name: str, stack: Optional[str] = None):
@@ -21,7 +20,7 @@ def destroy(ctx: Context, scenario_name: str, stack: Optional[str] = None):
     if len(short_stack_names) == 0:
         info("No stack to destroy")
         return
-    
+
     try:
         cfg = config.get_local_config()
     except ValidationError as e:
@@ -33,8 +32,8 @@ def destroy(ctx: Context, scenario_name: str, stack: Optional[str] = None):
             full_stack_name = f"{get_stack_name_prefix()}{stack}"
         else:
             error(f"Unknown stack '{stack}'")
-            full_stack_name = None            
-    else: 
+            full_stack_name = None
+    else:
         if full_stack_name not in full_stack_names:
             error(f"Unknown stack '{full_stack_name}'")
             full_stack_name = None
@@ -43,7 +42,7 @@ def destroy(ctx: Context, scenario_name: str, stack: Optional[str] = None):
         error("Run this command with '--stack-name MY_STACK_NAME'. Available stacks are:")
         for stack_name in short_stack_names:
             error(f" {stack_name}")
-    else:   
+    else:
         ctx.run(f"{get_aws_wrapper(aws_account)} -- pulumi destroy --remove -s {full_stack_name}", pty=True)
 
 
@@ -60,6 +59,6 @@ def _get_existing_stacks() -> Tuple[List[str], List[str]]:
         stack_name = line.split(" ")[0].rstrip('*')
         if stack_name.startswith(stack_name_prefix):
             full_stacks.append(stack_name)
-            stack_name = stack_name[len(stack_name_prefix):]
+            stack_name = stack_name[len(stack_name_prefix) :]
             stacks.append(stack_name)
     return stacks, full_stacks

@@ -1,12 +1,14 @@
+from pathlib import Path
+from typing import Dict, Optional
+
 import yaml
 from invoke.exceptions import Exit
-from pathlib import Path
-from .tool import info
-from typing import Dict, Optional
 from pydantic import BaseModel, Extra
 
+from .tool import info
 
 profile_filename = ".test_infra_config.yaml"
+
 
 class Config(BaseModel, extra=Extra.forbid):
     class Params(BaseModel, extra=Extra.forbid):
@@ -26,12 +28,12 @@ class Config(BaseModel, extra=Extra.forbid):
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
-        
+
         agent: Optional[Agent]
 
     configParams: Optional[Params]
 
-    stackParams: Optional[Dict[str, Dict[str,str]]]
+    stackParams: Optional[Dict[str, Dict[str, str]]]
 
     class Options(BaseModel, extra=Extra.forbid):
         checkKeyPair: Optional[bool]
@@ -44,27 +46,22 @@ class Config(BaseModel, extra=Extra.forbid):
         return self.options
 
     def get_aws(self) -> Params.Aws:
-        default = Config.Params.Aws(
-            keyPairName=None, publicKeyPath=None, account=None, teamTag=None
-        )
+        default = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
         if self.configParams is None:
             return default
         if self.configParams.aws is None:
             return default
         return self.configParams.aws
-  
+
     def get_agent(self) -> Params.Agent:
-        default = Config.Params.Agent(
-            apiKey=None,
-            appKey=None
-        )
+        default = Config.Params.Agent(apiKey=None, appKey=None)
         if self.configParams is None:
             return default
         if self.configParams.agent is None:
             return default
         return self.configParams.agent
-    
-    def get_stack_params(self) -> Dict[str, Dict[str,str]]:
+
+    def get_stack_params(self) -> Dict[str, Dict[str, str]]:
         if self.stackParams is None:
             return {}
         return self.stackParams
@@ -78,6 +75,7 @@ class Config(BaseModel, extra=Extra.forbid):
             raise Exit(f"Error saving config file {profile_path}: {e}")
         info(f"Configuration file saved at {profile_path}")
 
+
 def get_local_config() -> Config:
     profile_path = get_full_profile_path()
     try:
@@ -87,6 +85,7 @@ def get_local_config() -> Config:
             return Config.parse_obj(config_dict)
     except FileNotFoundError:
         return Config.parse_obj({})
-    
+
+
 def get_full_profile_path() -> str:
     return str(Path.home().joinpath(profile_filename))

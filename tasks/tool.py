@@ -1,14 +1,13 @@
 import getpass
 import json
-import os
 import pathlib
 import platform
-import subprocess
 from io import StringIO
-from termcolor import colored
 from typing import Any, List, Optional
+
 from invoke.context import Context
 from invoke.exceptions import Exit
+from termcolor import colored
 
 
 def ask(question: str) -> str:
@@ -51,10 +50,7 @@ def get_default_os_family() -> str:
 
 
 def get_architectures() -> List[str]:
-    return [
-        get_default_architecture(),
-        "arm64"
-    ]
+    return [get_default_architecture(), "arm64"]
 
 
 def get_default_architecture() -> str:
@@ -86,6 +82,7 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
             out_stream=buffer,
         )
     return json.loads(buffer.getvalue())
+
 
 def get_aws_wrapper(aws_account: str) -> str:
     return f"aws-vault exec sso-{aws_account}-account-admin"

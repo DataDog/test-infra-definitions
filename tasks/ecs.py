@@ -1,13 +1,14 @@
-from invoke.tasks import task
-from pydantic import ValidationError
-from .destroy import destroy
-from .deploy import deploy
-from . import config, doc
 from typing import Optional
+
+import pyperclip
 from invoke.context import Context
 from invoke.exceptions import Exit
-from . import tool
-import pyperclip
+from invoke.tasks import task
+from pydantic import ValidationError
+
+from . import config, doc, tool
+from .deploy import deploy
+from .destroy import destroy
 
 scenario_name = "aws/ecs"
 
@@ -47,7 +48,7 @@ def create_ecs(
 
     full_stack_name = deploy(
         ctx,
-        scenario_name,        
+        scenario_name,
         stack_name=stack_name,
         install_agent=install_agent,
         agent_version=agent_version,
@@ -65,7 +66,9 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
 
-    command = f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} -- aws ecs list-tasks --cluster {cluster_name}"
+    command = (
+        f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} -- aws ecs list-tasks --cluster {cluster_name}"
+    )
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

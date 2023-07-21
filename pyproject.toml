@@ -15,7 +15,7 @@ exclude = '''
     | docs
     | releasenotes
     | releasenotes-installscript
-    | vendor
+    | venv
     | dev
   )/
 )

@@ -1,16 +1,17 @@
+import getpass
 import os
 import os.path
 from pathlib import Path
-import getpass
-import pyperclip
 
-from invoke.tasks import task
+import pyperclip
 from invoke.context import Context
+from invoke.tasks import task
 
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
 available_aws_accounts = ["agent-sandbox", "sandbox"]
+
 
 @task
 def setup(_: Context) -> None:
@@ -30,48 +31,59 @@ def setup(_: Context) -> None:
         config = get_local_config()
     except Exception:
         config = Config.parse_obj({})
-        
 
-    if config.configParams is None:
-        config.configParams = Config.Params(
-            aws=None,
-            agent=None
-        )
-    
     # AWS config
-    if config.configParams.aws is None:
-        config.configParams.aws = Config.Params.Aws(
-            keyPairName=None,
-            publicKeyPath= None,
-            account=None
-        )
+    setupAWSConfig(config)
+    # Agent config
+    setupAgentConfig(config)
 
-    
-    if config.configParams.aws.account is None: 
+    config.save_to_local_config()
+    cat_profile_command = f"cat {get_full_profile_path()}"
+    pyperclip.copy(cat_profile_command)
+    print(
+        f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
+    )
+
+
+def setupAWSConfig(config: Config):
+    if config.configParams is None:
+        config.configParams = Config.Params(aws=None, agent=None)
+    if config.configParams.aws is None:
+        config.configParams.aws = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
+
+    # aws account
+    if config.configParams.aws.account is None:
         config.configParams.aws.account = "agent-sandbox"
+    default_aws_account = config.configParams.aws.account
     while True:
-        aws_account = ask(f"Which aws account do you want to create instances on? Default [{config.configParams.aws.account}], available [agent-sandbox|sandbox]: ")
-        if aws_account in available_aws_accounts:
+        config.configParams.aws.account = default_aws_account
+        aws_account = ask(
+            f"Which aws account do you want to create instances on? Default [{config.configParams.aws.account}], available [agent-sandbox|sandbox]: "
+        )
+        if len(aws_account) > 0:
             config.configParams.aws.account = aws_account
+        if config.configParams.aws.account in available_aws_accounts:
             break
-        warn(f"{aws_account} is not a valid aws account")
-        
-        
-    if config.configParams.aws.keyPairName is None: 
+        warn(f"{config.configParams.aws.account} is not a valid aws account")
+
+    # aws keypair name
+    if config.configParams.aws.keyPairName is None:
         config.configParams.aws.keyPairName = getpass.getuser()
     keyPairName = ask(f"🔑 Key pair name - stored in AWS Sandbox, default [{config.configParams.aws.keyPairName}]: ")
     if len(keyPairName) > 0:
         config.configParams.aws.keyPairName = keyPairName
 
+    # check keypair name
     if config.options is None:
-        config.options = Config.Options(
-            checkKeyPair=False
-        )
-    default = "Y" if config.options.checkKeyPair else "N"
-    checkKeyPair = ask(f"Did you create your SSH key on AWS and want me to check it is loaded on your ssh agent when creating manual environments or running e2e tests [Y/N]? Default [{default}]: ")
+        config.options = Config.Options(checkKeyPair=False)
+    default_check_key_pair = "Y" if config.options.checkKeyPair else "N"
+    checkKeyPair = ask(
+        f"Did you create your SSH key on AWS and want me to check it is loaded on your ssh agent when creating manual environments or running e2e tests [Y/N]? Default [{default_check_key_pair}]: "
+    )
     if len(checkKeyPair) > 0:
         config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"
 
+    # aws public key path
     if config.configParams.aws.publicKeyPath is None:
         config.configParams.aws.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
     default_public_key_path = config.configParams.aws.publicKeyPath
@@ -83,16 +95,32 @@ def setup(_: Context) -> None:
         if os.path.isfile(config.configParams.aws.publicKeyPath):
             break
         warn(f"{config.configParams.aws.publicKeyPath} is not a valid ssh key")
-    
-    # Agent config
+
+    # team tag
+    if config.configParams.aws.teamTag is None:
+        config.configParams.aws.teamTag = ""
+    while True:
+        msg = "🔖 What is your github team? This will tag all your resources by `team:<team>`. Use kebab-case format (example: agent-platform)"
+        if len(config.configParams.aws.teamTag) > 0:
+            msg += f". Default [{config.configParams.aws.teamTag}]"
+        msg += ": "
+        teamTag = ask(msg)
+        if len(teamTag) > 0:
+            config.configParams.aws.teamTag = teamTag
+        if len(config.configParams.aws.teamTag) > 0:
+            break
+        warn("Provide a non-empty team")
+
+
+def setupAgentConfig(config):
     if config.configParams.agent is None:
         config.configParams.agent = Config.Params.Agent(
             apiKey=None,
             appKey=None,
         )
-
+    # API key
     if config.configParams.agent.apiKey is None:
-        config.configParams.agent.apiKey = '0' * 32
+        config.configParams.agent.apiKey = "0" * 32
     default_api_key = config.configParams.agent.apiKey
     while True:
         config.configParams.agent.apiKey = default_api_key
@@ -102,9 +130,9 @@ def setup(_: Context) -> None:
         if len(config.configParams.agent.apiKey) == 32:
             break
         warn(f"Expecting API key of length 32, got {len(config.configParams.agent.apiKey)}")
-
-    if config.configParams.agent.appKey is None:    
-        config.configParams.agent.appKey = '0' * 40
+    # APP key
+    if config.configParams.agent.appKey is None:
+        config.configParams.agent.appKey = "0" * 40
     default_app_key = config.configParams.agent.appKey
     while True:
         config.configParams.agent.appKey = default_app_key
@@ -116,19 +144,8 @@ def setup(_: Context) -> None:
             break
         warn(f"Expecting APP key of length 40, got {len(config.configParams.agent.appKey)}")
 
-    config.save_to_local_config()
-    cat_profile_command = f"cat {get_full_profile_path()}"
-    pyperclip.copy(cat_profile_command)
-    print(
-        f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
-    )
-    
-      
-def _get_safe_dd_key(key: str) -> str: 
-    if key == '0' * len(key):
+
+def _get_safe_dd_key(key: str) -> str:
+    if key == "0" * len(key):
         return key
-    return '*' * len(key)   
-
-    
-
-
+    return "*" * len(key)

@@ -5,6 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
@@ -56,6 +57,8 @@ type Environment struct {
 
 	awsConfig  *sdkconfig.Config
 	envDefault environmentDefault
+
+	randomSubnets pulumi.StringArrayOutput
 }
 
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
@@ -96,6 +99,15 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
+	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
+		Inputs:      pulumi.ToStringArray(env.defaultSubnets()),
+		ResultCount: pulumi.IntPtr(2),
+	})
+	if err != nil {
+		return Environment{}, err
+	}
+	env.randomSubnets = shuffle.Results
+
 	return env, nil
 }
 
@@ -108,8 +120,12 @@ func (e *Environment) DefaultVPCID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultVPCIDParamName, e.envDefault.ddInfra.defaultVPCID)
 }
 
-func (e *Environment) DefaultSubnets() []string {
+func (e *Environment) defaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+}
+
+func (e *Environment) RandomSubnets() pulumi.StringArrayOutput {
+	return e.randomSubnets
 }
 
 func (e *Environment) DefaultSecurityGroups() []string {

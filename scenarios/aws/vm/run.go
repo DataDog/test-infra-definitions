@@ -7,9 +7,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
-	"github.com/DataDog/test-infra-definitions/components/os"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
@@ -27,12 +27,16 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
+	arch, err := utils.GetArchitecture(env.CommonEnvironment)
+	if err != nil {
+		return err
+	}
 	amiID := env.InfraOSAmiID()
 	var vm *ec2vm.EC2VM
 	if amiID != "" {
-		vm, err = ec2vm.NewEC2VMWithEnv(env, ec2params.WithImageName(amiID, os.Architecture(env.InfraOSArchitecture()), osType))
+		vm, err = ec2vm.NewEC2VMWithEnv(env, ec2params.WithImageName(amiID, arch, osType))
 	} else {
-		vm, err = ec2vm.NewEC2VMWithEnv(env, ec2params.WithOS(osType))
+		vm, err = ec2vm.NewEC2VMWithEnv(env, ec2params.WithArch(osType, arch))
 	}
 	if err != nil {
 		return err
@@ -65,6 +69,8 @@ func getOSType(commonEnv *config.CommonEnvironment) (ec2os.Type, error) {
 		osType = ec2os.UbuntuOS
 	case "amazonlinux":
 		osType = ec2os.AmazonLinuxOS
+	case "amazonlinuxdocker":
+		osType = ec2os.AmazonLinuxDockerOS
 	case "debian":
 		osType = ec2os.DebianOS
 	case "redhat":
@@ -73,6 +79,10 @@ func getOSType(commonEnv *config.CommonEnvironment) (ec2os.Type, error) {
 		osType = ec2os.SuseOS
 	case "fedora":
 		osType = ec2os.FedoraOS
+	case "centos":
+		osType = ec2os.CentOS
+	case "rockylinux":
+		osType = ec2os.RockyLinux
 	case "":
 		osType = ec2os.UbuntuOS // Default
 	default:

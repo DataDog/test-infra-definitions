@@ -16,14 +16,17 @@ type OS interface {
 type Type int
 
 const (
-	WindowsOS Type = iota
-	UbuntuOS       = iota
+	WindowsOS           Type = iota
+	UbuntuOS                 = iota
+	AmazonLinuxDockerOS      = iota
 	// MacosOS            = iota // Not yet supported
 	AmazonLinuxOS = iota
 	DebianOS      = iota
 	RedHatOS      = iota
 	SuseOS        = iota
 	FedoraOS      = iota
+	CentOS        = iota
+	RockyLinux    = iota
 )
 
 func GetOS(env aws.Environment, osType Type) (OS, error) {
@@ -32,6 +35,8 @@ func GetOS(env aws.Environment, osType Type) (OS, error) {
 		return newWindows(env), nil
 	case UbuntuOS:
 		return newUbuntu(env), nil
+	case AmazonLinuxDockerOS:
+		return newAmazonLinuxDocker(env), nil
 	//case MacosOS:
 	//return newMacOS(env), nil // Not yet supported
 	case AmazonLinuxOS:
@@ -44,6 +49,10 @@ func GetOS(env aws.Environment, osType Type) (OS, error) {
 		return newSuse(env), nil
 	case FedoraOS:
 		return newFedora(env), nil
+	case CentOS:
+		return newCentos(env), nil
+	case RockyLinux:
+		return newRockyLinux(env), nil
 	default:
 		return nil, fmt.Errorf("cannot find environment: %v", osType)
 	}

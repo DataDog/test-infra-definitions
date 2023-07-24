@@ -4,6 +4,7 @@ import (
 	// import embed
 	_ "embed"
 
+	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -40,4 +41,30 @@ func GetDefaultVolumeXML(args map[string]pulumi.StringInput, recipe string) pulu
 
 func GetDefaultPoolXML(args map[string]pulumi.StringInput, _ string) pulumi.StringOutput {
 	return formatResourceXML(defaultPoolXML, args)
+}
+
+type DefaultResourceCollection struct {
+	recipe string
+}
+
+func NewDefaultResourceCollection(recipe string) *DefaultResourceCollection {
+	return &DefaultResourceCollection{
+		recipe: recipe,
+	}
+}
+
+func (a *DefaultResourceCollection) GetDomainXLS(_ map[string]pulumi.StringInput) pulumi.StringOutput {
+	return pulumi.Sprintf("%s", GetDefaultDomainXLS())
+}
+
+func (a *DefaultResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultVolumeXML(args, a.recipe)
+}
+
+func (a *DefaultResourceCollection) GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return GetDefaultPoolXML(args, a.recipe)
+}
+
+func (a *DefaultResourceCollection) GetLibvirtDomainArgs(_ *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+	return nil
 }

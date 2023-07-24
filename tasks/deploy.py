@@ -1,13 +1,13 @@
-from pydantic import ValidationError
-from . import config
-from .config import Config, get_full_profile_path
 import os
 import subprocess
+from typing import Any, Callable, Dict, List, Optional
+
 from invoke.context import Context
 from invoke.exceptions import Exit
-from typing import Callable, List, Optional, Dict, Any
-import pathlib
-from . import tool
+from pydantic import ValidationError
+
+from . import config, tool
+from .config import Config, get_full_profile_path
 
 default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 
@@ -50,6 +50,12 @@ def deploy(
     aws_account = cfg.get_aws().get_account()
     flags["ddinfra:env"] = "aws/" + aws_account
 
+    if cfg.get_aws().teamTag is None or cfg.get_aws().teamTag == "":
+        raise Exit(
+            "Error in config, missing configParams.aws.teamTag. Run `inv setup` again and provide a valid team name"
+        )
+    flags["ddinfra:extraResourcesTags"] = f"team:{cfg.get_aws().teamTag}"
+
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
 
@@ -80,25 +86,30 @@ def _create_stack(ctx: Context, stack_name: str, global_flags: str):
     result = ctx.run(f"pulumi {global_flags} stack ls --all", hide="stdout")
     if not result:
         return
-    
-    stacks = result.stdout.splitlines()[1:] # skip header
+
+    stacks = result.stdout.splitlines()[1:]  # skip header
     for stack in stacks:
         # the stack has an asterisk if it is currently selected
-        ls_stack_name = stack.split(" ")[0].rstrip('*')
+        ls_stack_name = stack.split(" ")[0].rstrip("*")
         if ls_stack_name == stack_name:
             return
 
     ctx.run(f"pulumi {global_flags} stack init --no-select {stack_name}")
 
 
-def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debug: Optional[bool]) -> str:
+def _deploy(
+    ctx: Context,
+    stack_name: Optional[str],
+    flags: Dict[str, Any],
+    debug: Optional[bool],
+) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
-    aws_account = flags["ddinfra:env"][len("aws/"):]
+    aws_account = flags["ddinfra:env"][len("aws/") :]
     global_flags = ""
     up_flags = ""
 
     # Checking root path
-    root_path = _get_root_path()
+    root_path = tool._get_root_path()
     if root_path != os.getcwd():
         global_flags += f" -C {root_path}"
 
@@ -116,11 +127,6 @@ def _deploy(ctx: Context, stack_name: Optional[str], flags: Dict[str, Any], debu
     cmd = f"{tool.get_aws_wrapper(aws_account)} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     ctx.run(cmd, pty=True)
     return stack_name
-
-
-def _get_root_path() -> str:
-    folder = pathlib.Path(__file__).parent.resolve()
-    return str(folder.parent)
 
 
 def _get_api_key(cfg: Optional[Config]) -> str:

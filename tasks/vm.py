@@ -115,7 +115,13 @@ def _get_os_information(
         if family is None:  # Try to guess the distribution
             os_families = tool.get_os_families()
             try:
-                family = next(os for os in os_families if os in image["Description"].lower().replace(" ", ""))
+                if "Description" in image:
+                    image_info = image["Description"]
+                else:
+                    image_info = image["Name"]
+                image_info = image_info.lower().replace(" ", "")
+                family = next(os for os in os_families if os in image_info)
+
             except StopIteration:
                 raise Exit("We failed to guess the family of your AMI ID. Please provide it with option -o")
         architecture = image["Architecture"]

@@ -4,22 +4,9 @@
 # character.
 
 [tool.black]
-include = '\.pyi?$'
 line-length = 120
 py36 = false
 skip-string-normalization = true
-exclude = '''
-(
-  /(
-    | \.git
-    | docs
-    | releasenotes
-    | releasenotes-installscript
-    | venv
-    | dev
-  )/
-)
-'''
 
 [tool.isort]
 default_section = 'THIRDPARTY'

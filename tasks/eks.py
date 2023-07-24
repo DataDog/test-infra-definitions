@@ -1,15 +1,16 @@
 import os
-from invoke.tasks import task
-from pydantic import ValidationError
-import yaml
-from .destroy import destroy
-from .deploy import deploy
-from . import config, doc
 from typing import Optional
+
+import pyperclip
+import yaml
 from invoke.context import Context
 from invoke.exceptions import Exit
-from . import tool
-import pyperclip
+from invoke.tasks import task
+from pydantic import ValidationError
+
+from . import config, doc, tool
+from .deploy import deploy
+from .destroy import destroy
 
 scenario_name = "aws/eks"
 
@@ -67,7 +68,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)
     with open(f, "w") as f:
         f.write(kubeconfig_content)
-    
+
     try:
         local_config = config.get_local_config()
     except ValidationError as e:

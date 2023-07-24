@@ -1,13 +1,13 @@
-from invoke.tasks import task
-
-from .destroy import destroy
-from .deploy import deploy
-from . import doc
 from typing import Optional, Tuple
+
+import pyperclip
 from invoke.context import Context
 from invoke.exceptions import Exit
-from . import tool
-import pyperclip
+from invoke.tasks import task
+
+from . import doc, tool
+from .deploy import deploy
+from .destroy import destroy
 
 scenario_name = "aws/vm"
 
@@ -97,9 +97,7 @@ def _get_os_family(os_family: Optional[str]) -> str:
     if os_family is None:
         os_family = tool.get_default_os_family()
     if os_family.lower() not in os_families:
-        raise Exit(
-            f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}"
-        )
+        raise Exit(f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}")
     return os_family
 
 
@@ -108,17 +106,12 @@ def _get_architecture(architecture: Optional[str]) -> str:
     if architecture is None:
         architecture = tool.get_default_architecture()
     if architecture.lower() not in architectures:
-        raise Exit(
-            f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}"
-        )
+        raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture
 
 
 def _get_os_information(
-    ctx: Context,
-    os_family: Optional[str],
-    arch: Optional[str],
-    ami_id: Optional[str]
+    ctx: Context, os_family: Optional[str], arch: Optional[str], ami_id: Optional[str]
 ) -> Tuple[str, Optional[str]]:
     family, architecture = os_family, None
     if ami_id is not None:
@@ -126,15 +119,9 @@ def _get_os_information(
         if family is None:  # Try to guess the distribution
             os_families = tool.get_os_families()
             try:
-                family = next(
-                    os
-                    for os in os_families
-                    if os in image["Description"].lower().replace(" ", "")
-                )
+                family = next(os for os in os_families if os in image["Description"].lower().replace(" ", ""))
             except StopIteration:
-                raise Exit(
-                    f"We failed to guess the family of your AMI ID. Please provide it with option -o"
-                )
+                raise Exit("We failed to guess the family of your AMI ID. Please provide it with option -o")
         architecture = image["Architecture"]
         if arch is not None and architecture != arch:
             raise Exit(f"The provided architecture is {arch} but the image is {architecture}.")

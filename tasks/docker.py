@@ -1,12 +1,13 @@
-from invoke.tasks import task
-from .destroy import destroy
-from .deploy import deploy
-from . import doc
 from typing import Optional
+
+import pyperclip
 from invoke.context import Context
 from invoke.exceptions import Exit
-from . import tool
-import pyperclip
+from invoke.tasks import task
+
+from . import doc, tool
+from .deploy import deploy
+from .destroy import destroy
 
 scenario_name = "aws/dockervm"
 
@@ -79,7 +80,5 @@ def _get_architecture(architecture: Optional[str]) -> str:
     if architecture is None:
         architecture = tool.get_default_architecture()
     if architecture.lower() not in architectures:
-        raise Exit(
-            f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}"
-        )
+        raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture

@@ -75,13 +75,9 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     )
 
 
-@task(
-    help={
-        "stack_name": doc.stack_name,
-    }
-)
-def destroy_ecs(ctx: Context, stack_name: Optional[str] = None):
+@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
+def destroy_ecs(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
     """
     Destroy a ECS environment created with invoke create-ecs.
     """
-    destroy(ctx, scenario_name, stack_name)
+    destroy(ctx, scenario_name, stack_name, force_yes=yes)

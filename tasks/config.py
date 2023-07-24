@@ -69,7 +69,7 @@ class Config(BaseModel, extra=Extra.forbid):
     def save_to_local_config(self):
         profile_path = get_full_profile_path()
         try:
-            with open(profile_path, 'w') as outfile:
+            with open(profile_path, "w") as outfile:
                 yaml.dump(self.dict(), outfile)
         except Exception as e:
             raise Exit(f"Error saving config file {profile_path}: {e}")

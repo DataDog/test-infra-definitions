@@ -8,6 +8,7 @@
       </xsl:copy>
    </xsl:template>
   <xsl:template match="/domain/features">
+      <cpu mode='host-passthrough' check='full'/>
   </xsl:template>
 
   <xsl:template match="/domain/devices/disk">

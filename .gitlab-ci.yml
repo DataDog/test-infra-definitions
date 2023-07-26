@@ -1,8 +1,24 @@
 variables:
   IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
+  DATADOG_AGENT_BUILDIMAGES: v17856289-aba8641
 
 stages:
+  - test
   - build
+
+integration-testing:
+  stage: test
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-agent-buildimages/deb_x64:$DATADOG_AGENT_BUILDIMAGES
+  tags: ["runner:docker"]
+  script:
+    - source /root/.bashrc
+    # Setup AWS Credentials
+    - mkdir -p ~/.aws
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config
+    - export AWS_PROFILE=agent-qa-ci
+    - aws ec2 describe-instances --filters "Name=instance-type,Values=donotexist"
+   
+  
 
 build-runner-image:
   stage: build
@@ -21,3 +37,4 @@ build-runner-image:
     # Tag with 8 and 12 SHA to match go.mod
     - docker buildx build --no-cache --pull $PUSH_ARG --tag ${TARGET_REPO}:${CI_COMMIT_SHORT_SHA} --tag ${TARGET_REPO}:${CI_COMMIT_SHA:0:12}  .
   retry: 2
+

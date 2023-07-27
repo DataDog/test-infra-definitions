@@ -1,6 +1,6 @@
 variables:
   IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
-  DATADOG_AGENT_BUILDIMAGES: v17856289-aba8641
+
 
 stages:
   - test
@@ -8,10 +8,9 @@ stages:
 
 integration-testing:
   stage: test
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-agent-buildimages/deb_x64:$DATADOG_AGENT_BUILDIMAGES
+  image: $IMAGE_REPOSITORY/runner:8388801b
   tags: ["runner:docker"]
   script:
-    - source /root/.bashrc
     # Setup AWS Credentials
     - mkdir -p ~/.aws
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config

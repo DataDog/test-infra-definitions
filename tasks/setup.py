@@ -10,7 +10,9 @@ from invoke.tasks import task
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
-available_aws_accounts = ["agent-sandbox", "sandbox"] if os.getenv("GITLAB_CI") == None else ["agent-qa"]
+is_ci = os.getenv("GITLAB_CI") != None
+
+available_aws_accounts = ["agent-sandbox", "sandbox"] if not is_ci else ["agent-qa"]
 
 
 @task
@@ -38,11 +40,12 @@ def setup(_: Context) -> None:
     setupAgentConfig(config)
 
     config.save_to_local_config()
-    cat_profile_command = f"cat {get_full_profile_path()}"
-    pyperclip.copy(cat_profile_command)
-    print(
-        f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
-    )
+    if not is_ci:
+        cat_profile_command = f"cat {get_full_profile_path()}"
+        pyperclip.copy(cat_profile_command)
+        print(
+            f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
+        )
 
 
 def setupAWSConfig(config: Config):

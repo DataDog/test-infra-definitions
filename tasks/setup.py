@@ -10,7 +10,7 @@ from invoke.tasks import task
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
-available_aws_accounts = ["agent-sandbox", "sandbox"]
+available_aws_accounts = ["agent-sandbox", "sandbox"] if os.getenv("GITLAB_CI") == None else ["agent-qa"]
 
 
 @task

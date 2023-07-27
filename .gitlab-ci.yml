@@ -16,7 +16,7 @@ integration-testing:
     - mkdir -p ~/.aws
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config
     - export AWS_PROFILE=agent-qa-ci
-    - aws ec2 describe-instances --filters "Name=instance-type,Values=donotexist"
+    - bash tests/test.sh
    
   
 

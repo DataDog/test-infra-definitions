@@ -104,6 +104,3 @@ RUN curl -fsSL https://raw.githubusercontent.com/DataDog/datadog-agent-buildimag
 
 # Install go test requirements
 RUN go install gotest.tools/gotestsum@latest
-
-# I think it's safe to say if we're using this mega image, we want pulumi
-ENTRYPOINT ["pulumi"]

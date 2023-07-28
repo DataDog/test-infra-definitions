@@ -1,13 +1,12 @@
 variables:
   IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
 
-
 stages:
   - test
-  - test-cleanup
   - build
 
-.integration-testing-base:
+integration-testing:
+  stage: test
   image: $IMAGE_REPOSITORY/runner:8388801b
   tags: ["runner:docker"]
   before_script:
@@ -17,19 +16,8 @@ stages:
     - export AWS_PROFILE=agent-qa-ci
     - pulumi login "s3://dd-pulumi-state?region=us-east-1&awssdk=v2&profile=$AWS_PROFILE"
     - pip install -r requirements.txt
-
-integration-testing-create:
-  extends: .integration-testing-base
-  stage: test
   script:
-    - bash tests/create-vm-test.sh
-
-integration-testing-cleanup:
-  extends: .integration-testing-base
-  stage: test-cleanup
-  script:
-    - bash tests/cleanup.sh
-  when: always
+    - bash tests/invoke-tasks-test.sh
   
 
 build-runner-image:

@@ -13,10 +13,6 @@ echo "Import key pair on AWS"
 aws ec2 delete-key-pair --key-name ci.test-infra-definitions.test-key-$CI_PIPELINE_ID
 aws ec2 import-key-pair --key-name ci.test-infra-definitions.test-key-$CI_PIPELINE_ID --public-key-material fileb://key-pair.pub
 
-
-echo "Installing Python dependencies"
-pip install -r requirements.txt
-
 echo "Running inv setup"
 printf "$ENV\nci.test-infra-definitions.test-key-$CI_PIPELINE_ID\nN\nkey-pair.pub\ntest-ci\n00000000000000000000000000000000\n0000000000000000000000000000000000000000\n" | inv setup
 echo "Successfuly ran inv setup"

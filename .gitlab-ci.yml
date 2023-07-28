@@ -27,7 +27,7 @@ integration-testing-cleanup:
   extends: .integration-testing-base
   stage: test-cleanup
   script:
-    - bash tests/test.sh
+    - bash tests/cleanup.sh
   when: always
   
 

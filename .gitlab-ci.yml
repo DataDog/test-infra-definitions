@@ -22,7 +22,7 @@ integration-testing-create:
   extends: .integration-testing-base
   stage: test
   script:
-    - bash tests/test.sh
+    - bash tests/create-vm-test.sh
 
 integration-testing-cleanup:
   extends: .integration-testing-base

@@ -4,22 +4,32 @@ variables:
 
 stages:
   - test
+  - test-cleanup
   - build
 
-integration-testing:
-  stage: test
+.integration-testing-base:
   image: $IMAGE_REPOSITORY/runner:8388801b
   tags: ["runner:docker"]
-  script:
+  before_script:
     # Setup AWS Credentials
     - mkdir -p ~/.aws
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config
     - export AWS_PROFILE=agent-qa-ci
     - pulumi login "s3://dd-pulumi-state?region=us-east-1&awssdk=v2&profile=$AWS_PROFILE"
+
+integration-testing-create:
+  extends: .integration-testing-base
+  stage: test
+  script:
     - bash tests/test.sh
-  after_script:
-    - bash tests/cleanup.sh
-   
+
+integration-testing-cleanup:
+  extends: .integration-testing-base
+  stage: test-cleanup
+  script:
+    - bash tests/test.sh
+  
+
 build-runner-image:
   stage: build
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13

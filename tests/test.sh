@@ -19,7 +19,7 @@ pip install -r requirements.txt
 
 echo "Running inv setup"
 
-printf "$ENV\n$KEYPAIR_NAME\nN\n$KEYPAIR_PATH.pub\ntest:ci\n00000000000000000000000000000000\n0000000000000000000000000000000000000000\n" | inv setup
+printf "$ENV\n$KEYPAIR_NAME\nN\n$KEYPAIR_PATH.pub\ntest-ci\n00000000000000000000000000000000\n0000000000000000000000000000000000000000\n" | inv setup
 
 echo "Successfuly ran inv setup"
 

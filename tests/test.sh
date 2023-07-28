@@ -21,9 +21,12 @@ echo "Running inv setup"
 
 printf "$ENV\n$KEYPAIR_NAME\nN\n$KEYPAIR_PATH.pub\ntest:ci\n00000000000000000000000000000000\n0000000000000000000000000000000000000000\n" | inv setup
 
-echo "Previous command exited with exit=$?"
+echo "Successfuly ran inv setup"
+
+echo "Running inv create-vm"
+
+export PULUMI_CONFIG_PASSPHRASE=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c10)
+inv create-vm -s ci-integration-testing-$CI_PIPELINE_ID --private-key-path $KEYPAIR_PATH
 
 
-echo "Cleanup"
 
-aws ec2 delete-key-pair --key-name $KEYPAIR_NAME

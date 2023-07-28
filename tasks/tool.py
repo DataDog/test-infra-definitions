@@ -2,6 +2,7 @@ import getpass
 import json
 import pathlib
 import platform
+import os
 from io import StringIO
 from typing import Any, List, Optional
 
@@ -85,7 +86,9 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
 
 
 def get_aws_wrapper(aws_account: str) -> str:
-    return f"aws-vault exec sso-{aws_account}-account-admin"
+    if os.getenv("GITLAB_CI") != None:
+        return ""
+    return f"aws-vault exec sso-{aws_account}-account-admin --"
 
 
 def is_windows():

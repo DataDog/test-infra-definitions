@@ -36,6 +36,7 @@ def create_vm(
     use_fakeintake: Optional[bool] = True,
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
+    private_key_path: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -50,6 +51,9 @@ def create_vm(
 
     if ami_id is not None:
         extra_flags["ddinfra:osAmiId"] = ami_id
+
+    if private_key_path is not None:
+        extra_flags["ddinfra:aws/defaultPrivateKeyPath"] = private_key_path
 
     full_stack_name = deploy(
         ctx,

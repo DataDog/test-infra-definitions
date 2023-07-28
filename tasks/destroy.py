@@ -50,7 +50,7 @@ def destroy(
             error(f" {stack_name}")
     else:
         ctx.run(
-            f"{get_aws_wrapper(aws_account)} -- pulumi destroy --remove -s {full_stack_name} {force_destroy}",
+            f"{get_aws_wrapper(aws_account)} pulumi destroy --remove -s {full_stack_name} {force_destroy}",
             pty=True,
         )
 

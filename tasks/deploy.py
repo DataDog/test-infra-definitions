@@ -124,7 +124,7 @@ def _deploy(
 
     _create_stack(ctx, stack_name, global_flags)
 
-    cmd = f"{tool.get_aws_wrapper(aws_account)} -- pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
+    cmd = f"{tool.get_aws_wrapper(aws_account)} pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     ctx.run(cmd, pty=True)
     return stack_name
 

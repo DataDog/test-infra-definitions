@@ -28,28 +28,28 @@ aws ec2 delete-key-pair --key-name ci.test-infra-definitions.test-key-$CI_PIPELI
 echo "Test results"
 
 failed=false
-if [[ $setup_exit_code -eq 0]]; then
+if [[ $setup_exit_code -eq 0 ]]; then
     echo "invoke setup worked successfuly"
 else
     echo "invoke setup failed"
     failed=true
 fi
 
-if [[ $destroy_exit_code -eq 0]]; then
+if [[ $destroy_exit_code -eq 0 ]]; then
     echo "invoke create-vm worked successfuly"
 else
     echo "invoke create-vm failed"
     failed=true
 fi
 
-if [[ $destroy_exit_code -eq 0]]; then
+if [[ $destroy_exit_code -eq 0 ]]; then
     echo "invoke destroy-vm worked successfuly"
 else
     echo "invoke destroy-vm failed"
     failed=true
 fi
 
-if [[ $failed == true]]; then
+if [[ $failed == true ]]; then
     exit 1
 fi
 

@@ -25,8 +25,7 @@ def setup(_: Context) -> None:
     else:
         os.system("brew install pulumi/tap/pulumi")
     
-    if not is_ci():
-        os.system("pulumi login --local")
+    os.system("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     try:

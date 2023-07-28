@@ -8,11 +8,10 @@ from invoke.context import Context
 from invoke.tasks import task
 
 from .config import Config, get_full_profile_path, get_local_config
-from .tool import ask, info, is_windows, warn
+from .tool import ask, info, is_windows, warn, is_ci
 
-is_ci = os.getenv("GITLAB_CI") != None
 
-available_aws_accounts = ["agent-sandbox", "sandbox"] if not is_ci else ["agent-qa"]
+available_aws_accounts = ["agent-sandbox", "sandbox"] if not is_ci() else ["agent-qa"]
 
 
 @task
@@ -40,7 +39,7 @@ def setup(_: Context) -> None:
     setupAgentConfig(config)
 
     config.save_to_local_config()
-    if not is_ci:
+    if not is_ci():
         cat_profile_command = f"cat {get_full_profile_path()}"
         pyperclip.copy(cat_profile_command)
         print(

@@ -10,6 +10,7 @@ from invoke.context import Context
 from invoke.exceptions import Exit
 from termcolor import colored
 
+from . import tool
 
 def ask(question: str) -> str:
     return input(colored(question, "blue"))
@@ -45,6 +46,8 @@ def get_os_families() -> List[str]:
         "rockylinux",
     ]
 
+def is_ci() -> bool:
+    return os.getenv("GITLAB_CI") != None
 
 def get_default_os_family() -> str:
     return "ubuntu"
@@ -86,7 +89,7 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
 
 
 def get_aws_wrapper(aws_account: str) -> str:
-    if os.getenv("GITLAB_CI") != None:
+    if tool.is_ci():
         return ""
     return f"aws-vault exec sso-{aws_account}-account-admin --"
 

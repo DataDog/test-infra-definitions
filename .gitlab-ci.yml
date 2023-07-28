@@ -28,6 +28,7 @@ integration-testing-cleanup:
   stage: test-cleanup
   script:
     - bash tests/test.sh
+  when: always
   
 
 build-runner-image:

@@ -25,7 +25,7 @@ else
     failed=true
 fi
 
-if [[ $destroy_exit_code -eq 0 ]]; then
+if [[ $create_exit_code -eq 0 ]]; then
     echo "invoke create-vm worked successfuly"
 else
     echo "invoke create-vm failed"

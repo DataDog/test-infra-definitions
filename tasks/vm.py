@@ -68,8 +68,7 @@ def create_vm(
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
     )
-    if not tool.is_ci():
-        _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name)
 
 
 def _show_connection_message(ctx: Context, full_stack_name: str):

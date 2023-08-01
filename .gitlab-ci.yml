@@ -1,5 +1,6 @@
 variables:
   IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
+  KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "test-infra-definitions"
 
 stages:
   - test
@@ -8,7 +9,7 @@ stages:
 integration-testing:
   stage: test
   image: $IMAGE_REPOSITORY/runner:8388801b
-  tags: ["runner:docker"]
+  tags: ["arch:amd64"]
   before_script:
     # Setup AWS Credentials
     - mkdir -p ~/.aws

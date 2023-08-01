@@ -11,7 +11,7 @@ from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn, is_ci
 
 
-available_aws_accounts = ["agent-sandbox", "sandbox"] if not is_ci() else ["agent-qa"]
+available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 
 
 @task

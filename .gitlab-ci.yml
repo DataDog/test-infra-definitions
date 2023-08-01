@@ -16,8 +16,8 @@ integration-testing:
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config
     - export AWS_PROFILE=agent-qa-ci
 
-    - aws ssm get-parameter --region us-east-1 --name ci.datadog-agent.ssh_public_key_integration_test --with-decryption --query "Parameter.Value" --out text > $E2E_PUBLIC_KEY_PATH
-    - aws ssm get-parameter --region us-east-1 --name ci.datadog-agent.ssh_key_integration_test --with-decryption --query "Parameter.Value" --out text > $E2E_PRIVATE_KEY_PATH
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.ssh_public_key_integration_test --with-decryption --query "Parameter.Value" --out text > $E2E_PUBLIC_KEY_PATH
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.ssh_key_integration_test --with-decryption --query "Parameter.Value" --out text > $E2E_PRIVATE_KEY_PATH
 
     - pip install -r requirements.txt
   script:

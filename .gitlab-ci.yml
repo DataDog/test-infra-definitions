@@ -26,6 +26,8 @@ integration-testing:
     E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
     E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key
     E2E_KEY_PAIR_NAME: e2e-integration-test-ssh-key
+    KUBERNETES_MEMORY_REQUEST: "6Gi"
+    KUBERNETES_MEMORY_LIMIT: "12Gi"
 
 build-runner-image:
   stage: build

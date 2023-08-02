@@ -7,19 +7,18 @@ import (
 	"os"
 	"os/exec"
 	"testing"
-	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInvokeVM(t *testing.T) {
 
-	var stdout bytes.Buffer
-	var stderr bytes.Buffer
+	var setupStdout bytes.Buffer
+	var createStdout bytes.Buffer
+	var destroyStdout bytes.Buffer
 	setupCmd := exec.Command("invoke", "setup")
-	setupCmd.WaitDelay = 5 * time.Second
-	setupCmd.Stdout = &stdout
-	setupCmd.Stderr = &stderr
+	setupCmd.Stdout = &setupStdout
 	stdin, _ := setupCmd.StdinPipe()
 
 	err := setupCmd.Start()
@@ -35,9 +34,15 @@ func TestInvokeVM(t *testing.T) {
 	stdin.Close()
 
 	setupCmd.Wait()
-	require.Contains(t, stdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
+	require.Contains(t, setupStdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
 
-	createCmd := exec.Command("invoke", "create-vm", fmt.Sprintf("-s %s", os.Getenv("CI_PIPELINE_ID")))
-	createCmd.Run()
+	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")))
+	createCmd.Stdout = &createStdout
+	err = createCmd.Run()
+	assert.NoError(t, err, "Error found: %s", createStdout.String())
 
+	destroyCmd := exec.Command("invoke", "destroy-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")))
+	destroyCmd.Stdout = &destroyStdout
+	err = destroyCmd.Run()
+	require.NoError(t, err, "Error found destroying stack: %s", destroyStdout.String())
 }

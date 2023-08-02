@@ -23,8 +23,8 @@ scenario_name = "aws/vm"
         "use_fakeintake": doc.fakeintake,
         "ami_id": doc.ami_id,
         "architecture": doc.architecture,
-        "copy_to_clipboard": doc.copy_to_clipboard
-        "use_aws_vault": doc.use_aws_vault
+        "copy_to_clipboard": doc.copy_to_clipboard,
+        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def create_vm(

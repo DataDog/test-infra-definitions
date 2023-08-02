@@ -2,15 +2,12 @@ import getpass
 import json
 import pathlib
 import platform
-import os
 from io import StringIO
 from typing import Any, List, Optional
 
 from invoke.context import Context
 from invoke.exceptions import Exit
 from termcolor import colored
-
-from . import tool
 
 def ask(question: str) -> str:
     return input(colored(question, "blue"))

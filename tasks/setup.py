@@ -25,7 +25,7 @@ def setup(_: Context, copy_to_clipboard: Optional[bool] = True) -> None:
         os.system("winget install pulumi")
     else:
         os.system("brew install pulumi/tap/pulumi")
-    
+
     os.system("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")

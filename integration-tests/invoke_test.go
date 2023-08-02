@@ -14,12 +14,8 @@ import (
 
 func TestInvokeVM(t *testing.T) {
 
-	var setupStdout bytes.Buffer
-	var setupStderr bytes.Buffer
-	var createStdout bytes.Buffer
-	var createStderr bytes.Buffer
-	var destroyStdout bytes.Buffer
-	var destroyStderr bytes.Buffer
+	var setupStdout, setupStderr, createStdout, createStderr, destroyStdout, destroyStderr bytes.Buffer
+
 	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard")
 	setupCmd.Stdout = &setupStdout
 	setupCmd.Stderr = &setupStderr

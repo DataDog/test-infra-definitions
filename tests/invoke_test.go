@@ -15,12 +15,14 @@ import (
 func TestInvokeVM(t *testing.T) {
 
 	var setupStdout bytes.Buffer
+	var setupStderr bytes.Buffer
 	var createStdout bytes.Buffer
 	var createStderr bytes.Buffer
 	var destroyStdout bytes.Buffer
 	var destroyStderr bytes.Buffer
 	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard")
 	setupCmd.Stdout = &setupStdout
+	setupCmd.Stderr = &setupStderr
 	stdin, _ := setupCmd.StdinPipe()
 
 	err := setupCmd.Start()
@@ -36,7 +38,7 @@ func TestInvokeVM(t *testing.T) {
 	stdin.Close()
 
 	err = setupCmd.Wait()
-	require.NoError(t, err)
+	require.NoError(t, err, "Error found: %s %s", setupStdout.String(), setupStderr.String())
 	require.Contains(t, setupStdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
 
 	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault")

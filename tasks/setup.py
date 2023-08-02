@@ -39,12 +39,11 @@ def setup(_: Context) -> None:
     setupAgentConfig(config)
 
     config.save_to_local_config()
-    if not is_ci():
-        cat_profile_command = f"cat {get_full_profile_path()}"
-        pyperclip.copy(cat_profile_command)
-        print(
-            f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
-        )
+    cat_profile_command = f"cat {get_full_profile_path()}"
+    pyperclip.copy(cat_profile_command)
+    print(
+        f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
+    )
 
 
 def setupAWSConfig(config: Config):

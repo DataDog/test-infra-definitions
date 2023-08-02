@@ -19,7 +19,7 @@ func TestInvokeVM(t *testing.T) {
 	var createStderr bytes.Buffer
 	var destroyStdout bytes.Buffer
 	var destroyStderr bytes.Buffer
-	setupCmd := exec.Command("invoke", "setup")
+	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard")
 	setupCmd.Stdout = &setupStdout
 	stdin, _ := setupCmd.StdinPipe()
 
@@ -35,16 +35,17 @@ func TestInvokeVM(t *testing.T) {
 	io.WriteString(stdin, "0000000000000000000000000000000000000000\n")
 	stdin.Close()
 
-	setupCmd.Wait()
+	err = setupCmd.Wait()
+	require.NoError(t, err)
 	require.Contains(t, setupStdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
 
-	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")))
+	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault")
 	createCmd.Stdout = &createStdout
 	createCmd.Stderr = &createStderr
 	err = createCmd.Run()
 	assert.NoError(t, err, "Error found: %s %s", createStdout.String(), createStderr.String())
 
-	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")))
+	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault")
 	destroyCmd.Stdout = &destroyStdout
 	destroyCmd.Stderr = &destroyStderr
 	err = destroyCmd.Run()

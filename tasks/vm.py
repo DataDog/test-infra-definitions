@@ -23,6 +23,8 @@ scenario_name = "aws/vm"
         "use_fakeintake": doc.fakeintake,
         "ami_id": doc.ami_id,
         "architecture": doc.architecture,
+        "copy_to_clipboard": doc.copy_to_clipboard
+        "use_aws_vault": doc.use_aws_vault
     }
 )
 def create_vm(
@@ -36,7 +38,8 @@ def create_vm(
     use_fakeintake: Optional[bool] = True,
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
-    private_key_path: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
+    copy_to_clipboard: Optional[bool] = True,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -52,9 +55,6 @@ def create_vm(
     if ami_id is not None:
         extra_flags["ddinfra:osAmiId"] = ami_id
 
-    if private_key_path is not None:
-        extra_flags["ddinfra:aws/defaultPrivateKeyPath"] = private_key_path
-
     full_stack_name = deploy(
         ctx,
         scenario_name,
@@ -67,18 +67,20 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
+        use_aws_vault=use_aws_vault,
     )
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name, copy_to_clipboard)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool] = True):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     connection = tool.Connection(outputs)
     host = connection.host
     user = connection.user
 
     command = f"ssh {user}@{host}"
-    pyperclip.copy(command)
+    if copy_to_clipboard:
+        pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the host `{command}`. This command was copied to the clipboard\n"
     )

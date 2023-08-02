@@ -51,5 +51,5 @@ func TestInvokeVM(t *testing.T) {
 	destroyCmd.Stdout = &destroyStdout
 	destroyCmd.Stderr = &destroyStderr
 	err = destroyCmd.Run()
-	require.NoError(t, err, "Error found destroying stack: %s", destroyStdout.String())
+	require.NoError(t, err, "Error found destroying stack: %s %s", destroyStdout.String(), destroyStderr.String())
 }

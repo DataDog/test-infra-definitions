@@ -91,7 +91,7 @@ def destroy_vm(ctx: Context, stack_name: Optional[str] = None, yes: Optional[boo
     """
     Destroy a new virtual machine on the cloud.
     """
-    destroy(ctx, scenario_name, stack_name, use_aws_vault, force_yes=yes, )
+    destroy(ctx, scenario_name, stack_name, use_aws_vault, force_yes=yes)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

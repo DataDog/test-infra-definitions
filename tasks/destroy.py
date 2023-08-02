@@ -53,9 +53,7 @@ def destroy(
         cmd = f"pulumi destroy --remove -s {full_stack_name} {force_destroy}"
         if use_aws_vault:
             cmd = get_aws_wrapper(aws_account) + cmd
-
-        else:
-            ctx.run(cmd, pty=True)
+        ctx.run(cmd, pty=True)
 
 
 def _get_existing_stacks() -> Tuple[List[str], List[str]]:

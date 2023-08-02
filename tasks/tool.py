@@ -46,9 +46,6 @@ def get_os_families() -> List[str]:
         "rockylinux",
     ]
 
-def is_ci() -> bool:
-    return os.getenv("GITLAB_CI") != None
-
 def get_default_os_family() -> str:
     return "ubuntu"
 

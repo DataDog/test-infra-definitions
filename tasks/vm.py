@@ -87,11 +87,11 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
 
 
 @task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_vm(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+def destroy_vm(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False, use_aws_vault: Optional[bool] = True):
     """
     Destroy a new virtual machine on the cloud.
     """
-    destroy(ctx, scenario_name, stack_name, force_yes=yes)
+    destroy(ctx, scenario_name, stack_name, use_aws_vault, force_yes=yes, )
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

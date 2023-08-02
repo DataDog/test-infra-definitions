@@ -13,8 +13,8 @@ def destroy(
     ctx: Context,
     scenario_name: str,
     stack: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
     force_yes: Optional[bool] = False,
-    use_aws_vault: Optional[bool] = False,
 ):
     """
     Destroy an environment

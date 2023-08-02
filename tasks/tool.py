@@ -9,6 +9,7 @@ from invoke.context import Context
 from invoke.exceptions import Exit
 from termcolor import colored
 
+
 def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
@@ -42,6 +43,7 @@ def get_os_families() -> List[str]:
         "centos",
         "rockylinux",
     ]
+
 
 def get_default_os_family() -> str:
     return "ubuntu"
@@ -82,7 +84,9 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     return json.loads(buffer.getvalue())
 
 
-def get_aws_wrapper(aws_account: str, ) -> str:
+def get_aws_wrapper(
+    aws_account: str,
+) -> str:
     return f"aws-vault exec sso-{aws_account}-account-admin -- "
 
 

@@ -1,16 +1,15 @@
-from typing import Optional
 import getpass
 import os
 import os.path
 from pathlib import Path
+from typing import Optional
 
 import pyperclip
 from invoke.context import Context
 from invoke.tasks import task
 
 from .config import Config, get_full_profile_path, get_local_config
-from .tool import ask, info, is_windows, warn, is_ci
-
+from .tool import ask, info, is_windows, warn
 
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 

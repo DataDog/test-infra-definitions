@@ -18,6 +18,7 @@ func TestInvokeVM(t *testing.T) {
 	var createStdout bytes.Buffer
 	var createStderr bytes.Buffer
 	var destroyStdout bytes.Buffer
+	var destroyStderr bytes.Buffer
 	setupCmd := exec.Command("invoke", "setup")
 	setupCmd.Stdout = &setupStdout
 	stdin, _ := setupCmd.StdinPipe()
@@ -45,6 +46,7 @@ func TestInvokeVM(t *testing.T) {
 
 	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")))
 	destroyCmd.Stdout = &destroyStdout
+	destroyCmd.Stderr = &destroyStderr
 	err = destroyCmd.Run()
 	require.NoError(t, err, "Error found destroying stack: %s", destroyStdout.String())
 }

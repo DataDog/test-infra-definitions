@@ -4,12 +4,12 @@ go 1.19
 
 require (
 	github.com/Masterminds/semver v1.5.0
-	github.com/alessio/shellescape v1.4.1
+	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2/config v1.18.28
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.27.4
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.28.1
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v5 v5.41.0
+	github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0
 	github.com/pulumi/pulumi-awsx/sdk v1.0.2
 	github.com/pulumi/pulumi-azure-native-sdk v1.104.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute v1.103.0
@@ -17,10 +17,10 @@ require (
 	github.com/pulumi/pulumi-azure-native-sdk/network v1.104.0
 	github.com/pulumi/pulumi-command/sdk v0.7.2
 	github.com/pulumi/pulumi-eks/sdk v1.0.1
-	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.30.1
+	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.30.2
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.0
 	github.com/pulumi/pulumi-random/sdk/v4 v4.13.2
-	github.com/pulumi/pulumi/sdk/v3 v3.73.0
+	github.com/pulumi/pulumi/sdk/v3 v3.76.1
 	github.com/samber/lo v1.38.1
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20230522175609-2e198f4a06a1
@@ -101,7 +101,7 @@ require (
 	golang.org/x/text v0.10.0 // indirect
 	golang.org/x/tools v0.9.3 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20230530153820-e85fd2cbaebc // indirect
-	google.golang.org/grpc v1.55.0 // indirect
+	google.golang.org/grpc v1.56.1 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect

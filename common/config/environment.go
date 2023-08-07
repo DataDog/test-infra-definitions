@@ -115,7 +115,7 @@ func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
 
 func EnvVariableResourceTags() map[string]string {
 	tags := map[string]string{}
-	lookupVars := []string{"TEAM", "PIPELINE_ID"}
+	lookupVars := []string{"TEAM", "CI_PIPELINE_ID"}
 	for _, varName := range lookupVars {
 		if val := os.Getenv(varName); val != "" {
 			tags[varName] = val

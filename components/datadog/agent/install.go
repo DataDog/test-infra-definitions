@@ -123,24 +123,29 @@ func installIntegrations(
 	var parts []string
 	for filePath, content := range files {
 		var err error
+		var fullPath string
+		useSudo := false
 		// filePath is absolute path from params.WithFile but relative from params.WithIntegration
 		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {
-			filePath = path.Join(configFolder, filePath)
+			fullPath = path.Join(configFolder, filePath)
+			useSudo = true
+		} else {
+			fullPath = filePath
 		}
-		folderPath, confPath := path.Split(filePath)
+		folderPath, _ := path.Split(fullPath)
 
 		// create directory, if it does not exist
-		lastCommand, err = fileManager.CreateDirectory(folderPath, pulumi.String(folderPath), true, utils.PulumiDependsOn(lastCommand))
+		lastCommand, err = fileManager.CreateDirectory(filePath, pulumi.String(folderPath), useSudo, utils.PulumiDependsOn(lastCommand))
 		if err != nil {
 			return nil, "", err
 		}
 		lastCommand, err = fileManager.CopyInlineFile(
 			pulumi.String(content),
-			confPath, true, utils.PulumiDependsOn(lastCommand))
+			fullPath, useSudo, utils.PulumiDependsOn(lastCommand))
 		if err != nil {
 			return nil, "", err
 		}
-		parts = append(parts, folderPath, content)
+		parts = append(parts, filePath, content)
 	}
 
 	return lastCommand, utils.StrHash(parts...), nil

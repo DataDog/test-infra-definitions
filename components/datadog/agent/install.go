@@ -2,6 +2,7 @@ package agent
 
 import (
 	"path"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -115,17 +116,21 @@ func updateAgentConfig(
 
 func installIntegrations(
 	fileManager *command.FileManager,
-	integrations map[string]string,
+	files map[string]string,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, string, error) {
 	configFolder := os.GetAgentConfigFolder()
 	var parts []string
-	for folderName, content := range integrations {
+	for filePath, content := range integrations {
 		var err error
-		folderPath := path.Join(configFolder, "conf.d", folderName)
-		confPath := path.Join(folderPath, "conf.yaml")
+		// filePath is absolute path from params.WithFile but relative from params.WithIntegration
+		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {
+			filePath = path.Join(configFolder, filePath)
+		}
+		folderPath, confPath := path.Split(filePath)
+
 		// create directory, if it does not exist
-		lastCommand, err = fileManager.CreateDirectory(folderName, pulumi.String(folderPath), true, utils.PulumiDependsOn(lastCommand))
+		lastCommand, err = fileManager.CreateDirectory(folderPath, pulumi.String(folderPath), true, utils.PulumiDependsOn(lastCommand))
 		if err != nil {
 			return nil, "", err
 		}
@@ -135,7 +140,7 @@ func installIntegrations(
 		if err != nil {
 			return nil, "", err
 		}
-		parts = append(parts, folderName, content)
+		parts = append(parts, folderPath, content)
 	}
 
 	return lastCommand, utils.StrHash(parts...), nil

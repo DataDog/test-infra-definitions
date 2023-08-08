@@ -1,7 +1,9 @@
 package agentparams
 
 import (
+	"errors"
 	"fmt"
+	"path"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
@@ -19,6 +21,7 @@ import (
 //   - [WithVersion]
 //   - [WithPipelineID]
 //   - [WithAgentConfig]
+//   - [WithFile]
 //   - [WithIntegration]
 //   - [WithTelemetry]
 //   - [WithFakeintake]
@@ -117,7 +120,19 @@ func WithAgentConfig(config string) func(*Params) error {
 // WithIntegration adds the configuration for an integration.
 func WithIntegration(folderName string, content string) func(*Params) error {
 	return func(p *Params) error {
-		p.Integrations[folderName] = content
+		confPath := path.Join("conf.d", folderName, "conf.yaml")
+		p.Integrations[confPath] = content
+		return nil
+	}
+}
+
+// WithFile adds a file to the install with the contents at the given path
+func WithFile(filePath string, content string) func(*Params) error {
+	return func(p *Params) error {
+		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {
+			return errors.New("Filepath must be absolute path")
+		}
+		p.Integrations[filePath] = content
 		return nil
 	}
 }
@@ -128,7 +143,7 @@ func WithTelemetry() func(*Params) error {
 		config := `instances:
   - expvar_url: http://localhost:5000/debug/vars
     max_returned_metrics: 1000
-    metrics:      
+    metrics:
       - path: ".*"
       - path: ".*/.*"
       - path: ".*/.*/.*"

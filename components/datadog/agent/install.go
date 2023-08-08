@@ -121,7 +121,7 @@ func installIntegrations(
 	lastCommand *remote.Command) (*remote.Command, string, error) {
 	configFolder := os.GetAgentConfigFolder()
 	var parts []string
-	for filePath, content := range integrations {
+	for filePath, content := range files {
 		var err error
 		// filePath is absolute path from params.WithFile but relative from params.WithIntegration
 		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {

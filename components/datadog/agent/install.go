@@ -59,8 +59,8 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		return nil, err
 	}
 
-	var integsHash string
-	lastCommand, integsHash, err = installIntegrations(vm.GetFileManager(), params.Integrations, os, lastCommand)
+	var filesHash string
+	lastCommand, filesHash, err = writeFileDefinitions(vm.GetFileManager(), params.Files, os, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 			restartAgentRes,
 			&command.Args{
 				Create:   cmdPulumiStr,
-				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTrigger, pulumi.String(integsHash)},
+				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTrigger, pulumi.String(filesHash)},
 			}, utils.PulumiDependsOn(lastCommand))
 	}
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
@@ -114,7 +114,7 @@ func updateAgentConfig(
 	return lastCommand, pulumiAgentString, nil
 }
 
-func installIntegrations(
+func writeFileDefinitions(
 	fileManager *command.FileManager,
 	files map[string]string,
 	os os.OS,

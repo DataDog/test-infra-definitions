@@ -31,7 +31,7 @@ import (
 type Params struct {
 	Version          os.AgentVersion
 	AgentConfig      string
-	Integrations     map[string]string
+	Files            map[string]string
 	ExtraAgentConfig []pulumi.StringInput
 }
 
@@ -39,7 +39,7 @@ type Option = func(*Params) error
 
 func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
 	p := &Params{
-		Integrations: make(map[string]string),
+		Files: make(map[string]string),
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
@@ -121,7 +121,7 @@ func WithAgentConfig(config string) func(*Params) error {
 func WithIntegration(folderName string, content string) func(*Params) error {
 	return func(p *Params) error {
 		confPath := path.Join("conf.d", folderName, "conf.yaml")
-		p.Integrations[confPath] = content
+		p.Files[confPath] = content
 		return nil
 	}
 }
@@ -130,9 +130,9 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 func WithFile(filePath string, content string) func(*Params) error {
 	return func(p *Params) error {
 		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {
-			return errors.New("Filepath must be absolute path")
+			return errors.New("filepath must be absolute path")
 		}
-		p.Integrations[filePath] = content
+		p.Files[filePath] = content
 		return nil
 	}
 }

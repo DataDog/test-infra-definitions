@@ -74,7 +74,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
 
-    command = f"KUBECONFIG={config} {tool.get_aws_wrapper(local_config.get_aws().get_account())} -- kubectl get nodes"
+    command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} -- kubectl get nodes"
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

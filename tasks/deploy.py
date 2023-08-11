@@ -103,7 +103,7 @@ def _deploy(
     stack_name: Optional[str],
     flags: Dict[str, Any],
     debug: Optional[bool],
-    use_aws_vault: Optional[bool],
+    use_aws_vault: Optional[bool] = True,
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     aws_account = flags["ddinfra:env"][len("aws/") :]

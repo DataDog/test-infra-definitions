@@ -14,7 +14,7 @@ import (
 
 func TestInvokeVM(t *testing.T) {
 
-	var setupStdout, setupStderr, createStdout, createStderr, destroyStdout, destroyStderr bytes.Buffer
+	var setupStdout, setupStderr bytes.Buffer
 
 	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard")
 	setupCmd.Stdout = &setupStdout
@@ -46,14 +46,10 @@ func TestInvokeVM(t *testing.T) {
 	require.Contains(t, setupStdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
 
 	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault")
-	createCmd.Stdout = &createStdout
-	createCmd.Stderr = &createStderr
-	err = createCmd.Run()
-	assert.NoError(t, err, "Error found: %s %s", createStdout.String(), createStderr.String())
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found: %s", string(createOutput))
 
 	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault")
-	destroyCmd.Stdout = &destroyStdout
-	destroyCmd.Stderr = &destroyStderr
-	err = destroyCmd.Run()
-	require.NoError(t, err, "Error found destroying stack: %s %s", destroyStdout.String(), destroyStderr.String())
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
 }

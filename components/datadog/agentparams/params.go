@@ -129,12 +129,12 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 }
 
 // WithFile adds a file to the install with the contents at the given path
-func WithFile(filePath string, content string) func(*Params) error {
+func WithFile(absolutePath string, content string) func(*Params) error {
 	return func(p *Params) error {
-		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {
+		if !strings.HasPrefix(absolutePath, "/") && !strings.HasPrefix(absolutePath, "C:\\") {
 			return errors.New("filepath must be absolute path")
 		}
-		p.Files[filePath] = content
+		p.Files[absolutePath] = content
 		return nil
 	}
 }

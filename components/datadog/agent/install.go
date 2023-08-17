@@ -2,7 +2,6 @@ package agent
 
 import (
 	"path"
-	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -60,7 +59,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 	}
 
 	var filesHash string
-	lastCommand, filesHash, err = writeFileDefinitions(vm.GetFileManager(), params.Files, os, lastCommand)
+	lastCommand, filesHash, err = writeFileDefinitions(vm.GetFileManager(), params.Integrations, params.Files, os, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -116,22 +115,17 @@ func updateAgentConfig(
 
 func writeFileDefinitions(
 	fileManager *command.FileManager,
+	integrations map[string]string,
 	files map[string]string,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, string, error) {
-	configFolder := os.GetAgentConfigFolder()
 	var parts []string
-	for filePath, content := range files {
-		var err error
-		var fullPath string
-		useSudo := false
-		// filePath is absolute path from params.WithFile but relative from params.WithIntegration
-		if !strings.HasPrefix(filePath, "/") && !strings.HasPrefix(filePath, "C:\\") {
-			fullPath = path.Join(configFolder, filePath)
-			useSudo = true
-		} else {
-			fullPath = filePath
-		}
+	var err error
+	for filePath, content := range integrations {
+		useSudo := true
+		configFolder := os.GetAgentConfigFolder()
+		fullPath := path.Join(configFolder, filePath)
+
 		folderPath, _ := path.Split(fullPath)
 
 		// create directory, if it does not exist
@@ -146,6 +140,25 @@ func writeFileDefinitions(
 			return nil, "", err
 		}
 		parts = append(parts, filePath, content)
+	}
+
+	for fullPath, content := range files {
+		useSudo := false
+		// filePath is absolute path from params.WithFile but relative from params.WithIntegration
+		folderPath, _ := path.Split(fullPath)
+
+		// create directory, if it does not exist
+		lastCommand, err = fileManager.CreateDirectory(fullPath, pulumi.String(folderPath), useSudo, utils.PulumiDependsOn(lastCommand))
+		if err != nil {
+			return nil, "", err
+		}
+		lastCommand, err = fileManager.CopyInlineFile(
+			pulumi.String(content),
+			fullPath, useSudo, utils.PulumiDependsOn(lastCommand))
+		if err != nil {
+			return nil, "", err
+		}
+		parts = append(parts, fullPath, content)
 	}
 
 	return lastCommand, utils.StrHash(parts...), nil

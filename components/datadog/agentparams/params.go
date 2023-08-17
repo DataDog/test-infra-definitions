@@ -31,6 +31,7 @@ import (
 type Params struct {
 	Version          os.AgentVersion
 	AgentConfig      string
+	Integrations     map[string]string
 	Files            map[string]string
 	ExtraAgentConfig []pulumi.StringInput
 }
@@ -39,7 +40,8 @@ type Option = func(*Params) error
 
 func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
 	p := &Params{
-		Files: make(map[string]string),
+		Integrations: make(map[string]string),
+		Files:        make(map[string]string),
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
@@ -121,7 +123,7 @@ func WithAgentConfig(config string) func(*Params) error {
 func WithIntegration(folderName string, content string) func(*Params) error {
 	return func(p *Params) error {
 		confPath := path.Join("conf.d", folderName, "conf.yaml")
-		p.Files[confPath] = content
+		p.Integrations[confPath] = content
 		return nil
 	}
 }

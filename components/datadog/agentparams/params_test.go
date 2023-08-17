@@ -35,13 +35,14 @@ func TestParams(t *testing.T) {
 	})
 	t.Run("WithIntegration should correctly add conf.d/integration/conf.yaml to the path", func(t *testing.T) {
 		p := &Params{
-			Files: make(map[string]string),
+			Integrations: make(map[string]string),
+			Files:        make(map[string]string),
 		}
 		options := []Option{WithIntegration("http_check", "some_config")}
 		result, err := common.ApplyOption(p, options)
 		assert.NoError(t, err)
 
-		for filePath, content := range result.Files {
+		for filePath, content := range result.Integrations {
 			assert.Contains(t, filePath, "conf.d")
 			assert.Contains(t, filePath, "http_check")
 			assert.Contains(t, filePath, "conf.yaml")
@@ -50,7 +51,8 @@ func TestParams(t *testing.T) {
 	})
 	t.Run("WithFile should error if not given an absolute path", func(t *testing.T) {
 		p := &Params{
-			Files: make(map[string]string),
+			Integrations: make(map[string]string),
+			Files:        make(map[string]string),
 		}
 		options := []Option{WithFile("http_check", "some_config")}
 		_, err := common.ApplyOption(p, options)
@@ -58,7 +60,8 @@ func TestParams(t *testing.T) {
 	})
 	t.Run("WithFile should store an absolute path and contents", func(t *testing.T) {
 		p := &Params{
-			Files: make(map[string]string),
+			Integrations: make(map[string]string),
+			Files:        make(map[string]string),
 		}
 		options := []Option{WithFile("/etc/datadog-agent/security.yaml", "some_config")}
 		result, err := common.ApplyOption(p, options)
@@ -71,14 +74,15 @@ func TestParams(t *testing.T) {
 	})
 	t.Run("WithFile should work with Windows absolute paths", func(t *testing.T) {
 		p := &Params{
-			Files: make(map[string]string),
+			Integrations: make(map[string]string),
+			Files:        make(map[string]string),
 		}
-		options := []Option{WithFile("C:\\ProgramData\\Datadog\\security.yaml", "some_config")}
+		options := []Option{WithFile(`C:\ProgramData\Datadog\security.yaml`, "some_config")}
 		result, err := common.ApplyOption(p, options)
 		assert.NoError(t, err)
 
 		for filePath, content := range result.Files {
-			assert.Equal(t, filePath, "C:\\ProgramData\\Datadog\\security.yaml")
+			assert.Equal(t, filePath, `C:\ProgramData\Datadog\security.yaml`)
 			assert.Equal(t, content, "some_config")
 		}
 	})

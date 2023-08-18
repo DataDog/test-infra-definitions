@@ -30,7 +30,7 @@ func (unixOSCommand) CreateDirectory(
 	opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
 	createCmd := fmt.Sprintf("mkdir -p %v", remotePath)
-	deleteCmd := fmt.Sprintf("bash -c 'if [ -z '$(ls -A %v)' ]; then rm -d %v; fi'", remotePath, remotePath)
+	deleteCmd := fmt.Sprintf(`bash -c 'if [ -z "$(ls -A %v)" ]; then rm -d %v; fi'`, remotePath, remotePath)
 	// check if directory already exist
 	return createDirectory(
 		runner,

@@ -2,6 +2,7 @@ package os
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -21,6 +22,10 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 	return getDefaultInstanceType(u.env, arch)
 }
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
+
+func (*Unix) CheckIsAbsPath(path string) bool {
+	return filepath.IsAbs(path)
+}
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
 	if version.PipelineID != "" {

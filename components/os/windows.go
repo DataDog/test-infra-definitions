@@ -34,6 +34,22 @@ func (*Windows) GetServiceManager() *ServiceManager {
 
 func (*Windows) GetAgentConfigFolder() string { return `C:\ProgramData\Datadog` }
 
+func (*Windows) CheckIsAbsPath(path string) bool {
+	// valid absolute path prefixes: "x:\", "x:/", "\\", "//" ]
+
+	if len(path) < 2 {
+		return false
+	}
+	if strings.HasPrefix(path, "//") || strings.HasPrefix(path, `\\`) {
+		return true
+	} else if strings.Index(path, ":/") == 1 {
+		return true
+	} else if strings.Index(path, `:\`) == 1 {
+		return true
+	}
+	return false
+}
+
 func (*Windows) CreatePackageManager(*command.Runner) (command.PackageManager, error) {
 	return nil, errors.New("package manager is not supported on Windows")
 }

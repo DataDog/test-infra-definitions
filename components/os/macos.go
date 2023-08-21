@@ -1,6 +1,10 @@
 package os
 
-import "github.com/DataDog/test-infra-definitions/components/command"
+import (
+	"path/filepath"
+
+	"github.com/DataDog/test-infra-definitions/components/command"
+)
 
 type MacOS struct{}
 
@@ -24,4 +28,8 @@ func (*MacOS) CreatePackageManager(runner *command.Runner) (command.PackageManag
 
 func (*MacOS) GetRunAgentCmd(parameters string) string {
 	return "datadog-agent " + parameters
+}
+
+func (*MacOS) CheckIsAbsPath(path string) bool {
+	return filepath.IsAbs(path)
 }

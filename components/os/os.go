@@ -35,4 +35,5 @@ type OS interface {
 	GetRunAgentCmd(parameters string) string
 	GetType() Type
 	CreatePackageManager(runner *command.Runner) (command.PackageManager, error)
+	CheckIsAbsPath(string) bool
 }

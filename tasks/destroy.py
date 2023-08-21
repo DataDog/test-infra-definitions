@@ -13,6 +13,7 @@ def destroy(
     ctx: Context,
     scenario_name: str,
     stack: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
     force_yes: Optional[bool] = False,
 ):
     """
@@ -49,10 +50,10 @@ def destroy(
         for stack_name in short_stack_names:
             error(f" {stack_name}")
     else:
-        ctx.run(
-            f"{get_aws_wrapper(aws_account)} -- pulumi destroy --remove -s {full_stack_name} {force_destroy}",
-            pty=True,
-        )
+        cmd = f"pulumi destroy --remove -s {full_stack_name} {force_destroy}"
+        if use_aws_vault:
+            cmd = get_aws_wrapper(aws_account) + cmd
+        ctx.run(cmd, pty=True)
 
 
 def _get_existing_stacks() -> Tuple[List[str], List[str]]:

@@ -67,7 +67,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
         raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
 
     command = (
-        f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} -- aws ecs list-tasks --cluster {cluster_name}"
+        f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
     )
     pyperclip.copy(command)
     print(

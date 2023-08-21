@@ -17,16 +17,16 @@ type Type int
 
 const (
 	WindowsOS           Type = iota
-	UbuntuOS                 = iota
-	AmazonLinuxDockerOS      = iota
-	// MacosOS            = iota // Not yet supported
-	AmazonLinuxOS = iota
-	DebianOS      = iota
-	RedHatOS      = iota
-	SuseOS        = iota
-	FedoraOS      = iota
-	CentOS        = iota
-	RockyLinux    = iota
+	UbuntuOS            Type = iota
+	AmazonLinuxDockerOS Type = iota
+	// MacosOS         Type   = iota // Not yet supported
+	AmazonLinuxOS Type = iota
+	DebianOS      Type = iota
+	RedHatOS      Type = iota
+	SuseOS        Type = iota
+	FedoraOS      Type = iota
+	CentOS        Type = iota
+	RockyLinux    Type = iota
 )
 
 func GetOS(env aws.Environment, osType Type) (OS, error) {

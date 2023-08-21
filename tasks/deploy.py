@@ -103,7 +103,7 @@ def _deploy(
     stack_name: Optional[str],
     flags: Dict[str, Any],
     debug: Optional[bool],
-    use_aws_vault: Optional[bool] = True,
+    use_aws_vault: Optional[bool],
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     aws_account = flags["ddinfra:env"][len("aws/") :]
@@ -123,10 +123,11 @@ def _deploy(
     if debug:
         global_flags += " --logflow --logtostderr -v 3"
         up_flags += " --debug"
+    
 
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
-    if use_aws_vault:
+    if use_aws_vault is None or use_aws_vault:
         cmd = tool.get_aws_wrapper(aws_account) + cmd
     ctx.run(cmd, pty=True)
     return stack_name

@@ -2,6 +2,7 @@ import getpass
 import os
 import os.path
 from pathlib import Path
+from typing import Optional
 
 import pyperclip
 from invoke.context import Context
@@ -10,11 +11,11 @@ from invoke.tasks import task
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
-available_aws_accounts = ["agent-sandbox", "sandbox"]
+available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 
 
 @task
-def setup(_: Context) -> None:
+def setup(_: Context, copy_to_clipboard: Optional[bool] = True) -> None:
     """
     Setup a local environment interactively
     """
@@ -39,7 +40,8 @@ def setup(_: Context) -> None:
 
     config.save_to_local_config()
     cat_profile_command = f"cat {get_full_profile_path()}"
-    pyperclip.copy(cat_profile_command)
+    if copy_to_clipboard:
+        pyperclip.copy(cat_profile_command)
     print(
         f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
     )

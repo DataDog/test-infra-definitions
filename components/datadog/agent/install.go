@@ -38,9 +38,10 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 	commonNamer := env.CommonNamer
 	runner := vm.GetRunner()
 	lastCommand, err := runner.Command(
-		commonNamer.ResourceName("agent-install", utils.StrHash(cmd)),
+		commonNamer.ResourceName("agent-install"),
 		&command.Args{
-			Create: pulumi.Sprintf(cmd, env.AgentAPIKey()),
+			Create:   pulumi.Sprintf(cmd, env.AgentAPIKey()),
+			Triggers: pulumi.Array{pulumi.String(cmd)},
 		})
 	if err != nil {
 		return nil, err

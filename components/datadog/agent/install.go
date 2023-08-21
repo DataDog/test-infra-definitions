@@ -112,38 +112,36 @@ func updateAgentConfig(
 
 func installIntegrationsAndFiles(
 	fileManager *command.FileManager,
-	integrations map[string]string,
-	files map[string]string,
+	integrations map[string]*agentparams.FileDefinition,
+	files map[string]*agentparams.FileDefinition,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, string, error) {
 	var parts []string
 	var err error
 	// filePath is absolute path from params.WithFile but relative from params.WithIntegration
-	for filePath, content := range integrations {
+	for filePath, fileDef := range integrations {
 		configFolder := os.GetAgentConfigFolder()
 		fullPath := path.Join(configFolder, filePath)
 
-		lastCommand, err = writeFileDefinition(fileManager, fullPath, content, true, lastCommand)
+		lastCommand, err = writeFileDefinition(fileManager, fullPath, fileDef.Content, fileDef.UseSudo, lastCommand)
 		if err != nil {
 			return nil, "", err
 		}
 
-		parts = append(parts, filePath, content)
+		parts = append(parts, filePath, fileDef.Content)
 	}
 
-	for fullPath, content := range files {
+	for fullPath, fileDef := range files {
 		if !os.CheckIsAbsPath(fullPath) {
 			return nil, "", fmt.Errorf("failed to write file: \"%s\" is not an absolute filepath", fullPath)
 		}
 
-		// WithFile should not write as root
-		// TODO: extend to WithFilemanager so user can specify file permissions better
-		lastCommand, err = writeFileDefinition(fileManager, fullPath, content, false, lastCommand)
+		lastCommand, err = writeFileDefinition(fileManager, fullPath, fileDef.Content, fileDef.UseSudo, lastCommand)
 		if err != nil {
 			return nil, "", err
 		}
 
-		parts = append(parts, fullPath, content)
+		parts = append(parts, fullPath, fileDef.Content)
 	}
 
 	return lastCommand, utils.StrHash(parts...), nil

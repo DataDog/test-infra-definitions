@@ -35,18 +35,18 @@ func TestParams(t *testing.T) {
 	})
 	t.Run("WithIntegration should correctly add conf.d/integration/conf.yaml to the path", func(t *testing.T) {
 		p := &Params{
-			Integrations: make(map[string]string),
-			Files:        make(map[string]string),
+			Integrations: make(map[string]*FileDefinition),
+			Files:        make(map[string]*FileDefinition),
 		}
 		options := []Option{WithIntegration("http_check", "some_config")}
 		result, err := common.ApplyOption(p, options)
 		assert.NoError(t, err)
 
-		for filePath, content := range result.Integrations {
+		for filePath, definition := range result.Integrations {
 			assert.Contains(t, filePath, "conf.d")
 			assert.Contains(t, filePath, "http_check")
 			assert.Contains(t, filePath, "conf.yaml")
-			assert.Equal(t, content, "some_config")
+			assert.Equal(t, definition.Content, "some_config")
 		}
 	})
 }

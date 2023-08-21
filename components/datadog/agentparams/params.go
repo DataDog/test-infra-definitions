@@ -27,11 +27,17 @@ import (
 //   - [WithLogs]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+
+type FileDefinition struct {
+	Content string
+	UseSudo bool
+}
+
 type Params struct {
 	Version          os.AgentVersion
 	AgentConfig      string
-	Integrations     map[string]string
-	Files            map[string]string
+	Integrations     map[string]*FileDefinition
+	Files            map[string]*FileDefinition
 	ExtraAgentConfig []pulumi.StringInput
 }
 
@@ -39,8 +45,8 @@ type Option = func(*Params) error
 
 func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
 	p := &Params{
-		Integrations: make(map[string]string),
-		Files:        make(map[string]string),
+		Integrations: make(map[string]*FileDefinition),
+		Files:        make(map[string]*FileDefinition),
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
@@ -122,15 +128,21 @@ func WithAgentConfig(config string) func(*Params) error {
 func WithIntegration(folderName string, content string) func(*Params) error {
 	return func(p *Params) error {
 		confPath := path.Join("conf.d", folderName, "conf.yaml")
-		p.Integrations[confPath] = content
+		p.Integrations[confPath] = &FileDefinition{
+			Content: content,
+			UseSudo: true,
+		}
 		return nil
 	}
 }
 
-// WithFile adds a file to the install with the contents at the given path
-func WithFile(absolutePath string, content string) func(*Params) error {
+// WithFile adds a file with contents to the install at the given path. This should only be used when the agent needs to be restarted after writing the file.
+func WithFile(absolutePath string, content string, useSudo bool) func(*Params) error {
 	return func(p *Params) error {
-		p.Files[absolutePath] = content
+		p.Files[absolutePath] = &FileDefinition{
+			Content: content,
+			UseSudo: useSudo,
+		}
 		return nil
 	}
 }

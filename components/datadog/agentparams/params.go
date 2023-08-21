@@ -1,7 +1,6 @@
 package agentparams
 
 import (
-	"errors"
 	"fmt"
 	"path"
 	"strings"
@@ -131,9 +130,6 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 // WithFile adds a file to the install with the contents at the given path
 func WithFile(absolutePath string, content string) func(*Params) error {
 	return func(p *Params) error {
-		if !strings.HasPrefix(absolutePath, "/") && !strings.HasPrefix(absolutePath, "C:\\") {
-			return errors.New("filepath must be absolute path")
-		}
 		p.Files[absolutePath] = content
 		return nil
 	}

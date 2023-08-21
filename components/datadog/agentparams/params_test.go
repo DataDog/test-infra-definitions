@@ -49,41 +49,4 @@ func TestParams(t *testing.T) {
 			assert.Equal(t, content, "some_config")
 		}
 	})
-	t.Run("WithFile should error if not given an absolute path", func(t *testing.T) {
-		p := &Params{
-			Integrations: make(map[string]string),
-			Files:        make(map[string]string),
-		}
-		options := []Option{WithFile("http_check", "some_config")}
-		_, err := common.ApplyOption(p, options)
-		assert.Error(t, err)
-	})
-	t.Run("WithFile should store an absolute path and contents", func(t *testing.T) {
-		p := &Params{
-			Integrations: make(map[string]string),
-			Files:        make(map[string]string),
-		}
-		options := []Option{WithFile("/etc/datadog-agent/security.yaml", "some_config")}
-		result, err := common.ApplyOption(p, options)
-		assert.NoError(t, err)
-
-		for filePath, content := range result.Files {
-			assert.Equal(t, filePath, "/etc/datadog-agent/security.yaml")
-			assert.Equal(t, content, "some_config")
-		}
-	})
-	t.Run("WithFile should work with Windows absolute paths", func(t *testing.T) {
-		p := &Params{
-			Integrations: make(map[string]string),
-			Files:        make(map[string]string),
-		}
-		options := []Option{WithFile(`C:\ProgramData\Datadog\security.yaml`, "some_config")}
-		result, err := common.ApplyOption(p, options)
-		assert.NoError(t, err)
-
-		for filePath, content := range result.Files {
-			assert.Equal(t, filePath, `C:\ProgramData\Datadog\security.yaml`)
-			assert.Equal(t, content, "some_config")
-		}
-	})
 }

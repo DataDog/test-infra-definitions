@@ -35,7 +35,7 @@ def create_vm(
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
-    use_fakeintake: Optional[bool] = True,
+    use_fakeintake: Optional[bool] = False,
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,

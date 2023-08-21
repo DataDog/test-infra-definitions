@@ -66,19 +66,39 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		return nil, err
 	}
 
-	// When the file content has changed, make sure the Agent is restarted.
-	serviceManager := os.GetServiceManager()
-	for _, cmd := range serviceManager.RestartAgentCmd() {
-		restartAgentRes := commonNamer.ResourceName("restart-agent")
-		cmdPulumiStr := pulumi.String(cmd)
-		lastCommand, err = runner.Command(
-			restartAgentRes,
-			&command.Args{
-				Create:   cmdPulumiStr,
-				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTrigger, pulumi.String(integsHash)},
-			}, utils.PulumiDependsOn(lastCommand))
-	}
+	// When the config file content or the integration changed, restart the Agent.
+	lastCommand, err = restartAgent(
+		func(cmd pulumi.String) *command.Args {
+			return &command.Args{
+				Create:   cmd,
+				Triggers: pulumi.Array{updateConfigTrigger, pulumi.String(integsHash)},
+			}
+		},
+		os, runner, commonNamer.ResourceName("restart-agent"), lastCommand)
+
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
+}
+
+func restartAgent(
+	argsFactory func(cmd pulumi.String) *command.Args,
+	os os.OS,
+	runner *command.Runner,
+	resourceName string,
+	lastCommand *remote.Command) (*remote.Command, error) {
+
+	serviceManager := os.GetServiceManager()
+	var err error
+	for _, cmd := range serviceManager.RestartAgentCmd() {
+		cmdPulumiStr := pulumi.String(cmd)
+		args := argsFactory(cmdPulumiStr)
+		lastCommand, err = runner.Command(
+			resourceName,
+			args, utils.PulumiDependsOn(lastCommand))
+		if err != nil {
+			return nil, err
+		}
+	}
+	return lastCommand, nil
 }
 
 func updateAgentConfig(

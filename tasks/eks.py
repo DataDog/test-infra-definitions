@@ -73,7 +73,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
         local_config = config.get_local_config()
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
- 
+
     command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} kubectl get nodes"
 
     pyperclip.copy(command)

@@ -123,7 +123,6 @@ def _deploy(
     if debug:
         global_flags += " --logflow --logtostderr -v 3"
         up_flags += " --debug"
-    
 
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"

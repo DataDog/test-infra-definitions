@@ -50,7 +50,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 	}
 
 	var updateConfigTrigger pulumi.StringInput
-	lastCommand, updateConfigTrigger, err = updateAgentConfig(
+	lastCommand, _, err = updateAgentConfig(
 		vm.GetFileManager(),
 		env,
 		params.AgentConfig,

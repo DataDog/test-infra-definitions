@@ -20,6 +20,8 @@ import (
 //   - [WithVersion]
 //   - [WithPipelineID]
 //   - [WithAgentConfig]
+//   - [WithSystemProbeConfig]
+//   - [WithSecurityAgentConfig]
 //   - [WithFile]
 //   - [WithIntegration]
 //   - [WithTelemetry]
@@ -34,11 +36,13 @@ type FileDefinition struct {
 }
 
 type Params struct {
-	Version          os.AgentVersion
-	AgentConfig      string
-	Integrations     map[string]*FileDefinition
-	Files            map[string]*FileDefinition
-	ExtraAgentConfig []pulumi.StringInput
+	Version             os.AgentVersion
+	AgentConfig         string
+	SystemProbeConfig   string
+	SecurityAgentConfig string
+	Integrations        map[string]*FileDefinition
+	Files               map[string]*FileDefinition
+	ExtraAgentConfig    []pulumi.StringInput
 }
 
 type Option = func(*Params) error
@@ -120,6 +124,22 @@ func parsePipelineVersion(s string) os.AgentVersion {
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.AgentConfig = config
+		return nil
+	}
+}
+
+// WithSystemProbeConfig sets the configuration of system-probe.
+func WithSystemProbeConfig(config string) func(*Params) error {
+	return func(p *Params) error {
+		p.SystemProbeConfig = config
+		return nil
+	}
+}
+
+// WithSecurityAgentConfig sets the configuration of the security-agent.
+func WithSecurityAgentConfig(config string) func(*Params) error {
+	return func(p *Params) error {
+		p.SystemProbeConfig = config
 		return nil
 	}
 }

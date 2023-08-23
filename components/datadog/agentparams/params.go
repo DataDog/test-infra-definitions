@@ -139,7 +139,7 @@ func WithSystemProbeConfig(config string) func(*Params) error {
 // WithSecurityAgentConfig sets the configuration of the security-agent.
 func WithSecurityAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
-		p.SystemProbeConfig = config
+		p.SecurityAgentConfig = config
 		return nil
 	}
 }

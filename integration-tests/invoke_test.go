@@ -13,6 +13,9 @@ import (
 )
 
 func TestInvokeVM(t *testing.T) {
+	if _, ok := os.LookupEnv("CI"); !ok {
+		t.Skip()
+	}
 
 	var setupStdout, setupStderr bytes.Buffer
 

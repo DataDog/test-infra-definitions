@@ -15,6 +15,7 @@ scenario_name = "aws/ecs"
 
 @task(
     help={
+        "config_path": doc.config_path,
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
@@ -27,6 +28,7 @@ scenario_name = "aws/ecs"
 )
 def create_ecs(
     ctx: Context,
+    config_path: Optional[str]= None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
@@ -49,22 +51,23 @@ def create_ecs(
     full_stack_name = deploy(
         ctx,
         scenario_name,
+        config_path,
         stack_name=stack_name,
         install_agent=install_agent,
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, config_path, full_stack_name)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, config_path: Optional[str], full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     cluster_name = outputs["ecs-cluster-name"]
 
     try:
-        local_config = config.get_local_config()
+        local_config = config.get_local_config(config_path)
     except ValidationError as e:
-        raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
+        raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
     command = (
         f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"

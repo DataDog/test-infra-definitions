@@ -11,6 +11,7 @@ profile_filename = ".test_infra_config.yaml"
 
 
 class Config(BaseModel, extra=Extra.forbid):
+    
     class Params(BaseModel, extra=Extra.forbid):
         class Aws(BaseModel, extra=Extra.forbid):
             keyPairName: Optional[str]
@@ -66,8 +67,8 @@ class Config(BaseModel, extra=Extra.forbid):
             return {}
         return self.stackParams
 
-    def save_to_local_config(self):
-        profile_path = get_full_profile_path()
+    def save_to_local_config(self, config_path: Optional[str] = None):
+        profile_path = get_full_profile_path(config_path)
         try:
             with open(profile_path, "w") as outfile:
                 yaml.dump(self.dict(), outfile)
@@ -76,8 +77,8 @@ class Config(BaseModel, extra=Extra.forbid):
         info(f"Configuration file saved at {profile_path}")
 
 
-def get_local_config() -> Config:
-    profile_path = get_full_profile_path()
+def get_local_config(profile_path: Optional[str] = None) -> Config:
+    profile_path = get_full_profile_path(profile_path)
     try:
         with open(profile_path) as f:
             content = f.read()
@@ -87,5 +88,7 @@ def get_local_config() -> Config:
         return Config.parse_obj({})
 
 
-def get_full_profile_path() -> str:
+def get_full_profile_path(profile_path: Optional[str] = None) -> str:
+    if profile_path:
+        return str(Path(profile_path).expanduser().absolute()) # Return absolute path to config file, handle "~"" with expanduser
     return str(Path.home().joinpath(profile_filename))

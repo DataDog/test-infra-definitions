@@ -1,7 +1,7 @@
 package os
 
 import (
-	"path/filepath"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
@@ -31,5 +31,5 @@ func (*MacOS) GetRunAgentCmd(parameters string) string {
 }
 
 func (*MacOS) CheckIsAbsPath(path string) bool {
-	return filepath.IsAbs(path)
+	return strings.HasPrefix(path, "/")
 }

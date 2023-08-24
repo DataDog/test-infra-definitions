@@ -89,9 +89,20 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
     )
 
 
-@task(help={"config_path": doc.config_path, "stack_name": doc.stack_name, "yes": doc.yes, "use_aws_vault":doc.use_aws_vault})
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "yes": doc.yes,
+        "use_aws_vault": doc.use_aws_vault,
+    }
+)
 def destroy_vm(
-    ctx: Context, config_path: Optional[str] = None, stack_name: Optional[str] = None, yes: Optional[bool] = False, use_aws_vault: Optional[bool] = True
+    ctx: Context,
+    config_path: Optional[str] = None,
+    stack_name: Optional[str] = None,
+    yes: Optional[bool] = False,
+    use_aws_vault: Optional[bool] = True,
 ):
     """
     Destroy a new virtual machine on the cloud.

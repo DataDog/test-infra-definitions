@@ -15,9 +15,7 @@ from .tool import ask, info, is_windows, warn
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 
 
-@task(
-        help={"config_path": doc.config_path, "copy_to_clipboard": doc.copy_to_clipboard}
-)
+@task(help={"config_path": doc.config_path, "copy_to_clipboard": doc.copy_to_clipboard})
 def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Optional[bool] = True) -> None:
     """
     Setup a local environment interactively

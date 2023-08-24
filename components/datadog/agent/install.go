@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"path"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -58,8 +59,8 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		return nil, err
 	}
 
-	var integsHash string
-	lastCommand, integsHash, err = installIntegrations(vm.GetFileManager(), params.Integrations, os, lastCommand)
+	var filesHash string
+	lastCommand, filesHash, err = installIntegrationsAndFiles(vm.GetFileManager(), params.Integrations, params.Files, os, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -74,7 +75,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 			restartAgentRes,
 			&command.Args{
 				Create:   cmdPulumiStr,
-				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTrigger, pulumi.String(integsHash)},
+				Triggers: pulumi.Array{cmdPulumiStr, updateConfigTrigger, pulumi.String(filesHash)},
 			}, utils.PulumiDependsOn(lastCommand))
 	}
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
@@ -109,32 +110,65 @@ func updateAgentConfig(
 	return lastCommand, pulumiAgentString, nil
 }
 
-func installIntegrations(
+func installIntegrationsAndFiles(
 	fileManager *command.FileManager,
-	integrations map[string]string,
+	integrations map[string]*agentparams.FileDefinition,
+	files map[string]*agentparams.FileDefinition,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, string, error) {
-	configFolder := os.GetAgentConfigFolder()
 	var parts []string
-	for folderName, content := range integrations {
-		var err error
-		folderPath := path.Join(configFolder, "conf.d", folderName)
-		confPath := path.Join(folderPath, "conf.yaml")
-		// create directory, if it does not exist
-		lastCommand, err = fileManager.CreateDirectory(folderName, pulumi.String(folderPath), true, utils.PulumiDependsOn(lastCommand))
+	var err error
+	// filePath is absolute path from params.WithFile but relative from params.WithIntegration
+	for filePath, fileDef := range integrations {
+		configFolder := os.GetAgentConfigFolder()
+		fullPath := path.Join(configFolder, filePath)
+
+		lastCommand, err = writeFileDefinition(fileManager, fullPath, fileDef.Content, fileDef.UseSudo, lastCommand)
 		if err != nil {
 			return nil, "", err
 		}
-		lastCommand, err = fileManager.CopyInlineFile(
-			pulumi.String(content),
-			confPath, true, utils.PulumiDependsOn(lastCommand))
+
+		parts = append(parts, filePath, fileDef.Content)
+	}
+
+	for fullPath, fileDef := range files {
+		if !os.CheckIsAbsPath(fullPath) {
+			return nil, "", fmt.Errorf("failed to write file: \"%s\" is not an absolute filepath", fullPath)
+		}
+
+		lastCommand, err = writeFileDefinition(fileManager, fullPath, fileDef.Content, fileDef.UseSudo, lastCommand)
 		if err != nil {
 			return nil, "", err
 		}
-		parts = append(parts, folderName, content)
+
+		parts = append(parts, fullPath, fileDef.Content)
 	}
 
 	return lastCommand, utils.StrHash(parts...), nil
+}
+
+func writeFileDefinition(
+	fileManager *command.FileManager,
+	fullPath string,
+	content string,
+	useSudo bool,
+	lastCommand *remote.Command) (*remote.Command, error) {
+
+	var err error
+	folderPath, _ := path.Split(fullPath)
+
+	// create directory, if it does not exist
+	lastCommand, err = fileManager.CreateDirectory(fullPath, pulumi.String(folderPath), useSudo, utils.PulumiDependsOn(lastCommand))
+	if err != nil {
+		return nil, err
+	}
+	lastCommand, err = fileManager.CopyInlineFile(
+		pulumi.String(content),
+		fullPath, useSudo, utils.PulumiDependsOn(lastCommand))
+	if err != nil {
+		return nil, err
+	}
+	return lastCommand, nil
 }
 
 type ClientData struct {

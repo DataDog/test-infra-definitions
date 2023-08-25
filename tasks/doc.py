@@ -25,3 +25,4 @@ architecture: str = f"The architecture to use. Possible values are {tool.get_arc
 yes: str = "Automatically approve and perform the destroy without previewing it"
 use_aws_vault: str = "Wrap aws command with aws-vault, default to True"
 copy_to_clipboard: str = "Enable copy to clipboard, default to True"
+config_path: str = "Specify a custom config path to use"

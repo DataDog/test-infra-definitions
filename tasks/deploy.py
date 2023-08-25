@@ -15,6 +15,7 @@ default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 def deploy(
     ctx: Context,
     scenario_name: str,
+    config_path: Optional[str] = None,
     key_pair_required: bool = False,
     public_key_required: bool = False,
     app_key_required: bool = False,
@@ -36,9 +37,9 @@ def deploy(
     flags["ddagent:deploy"] = install_agent
 
     try:
-        cfg = config.get_local_config()
+        cfg = config.get_local_config(config_path)
     except ValidationError as e:
-        raise Exit(f"Error in config {get_full_profile_path()}:{e}")
+        raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
 
     flags[default_public_path_key_name] = _get_public_path_key_name(cfg, public_key_required)
     flags["scenario"] = scenario_name

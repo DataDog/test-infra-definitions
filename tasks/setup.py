@@ -8,14 +8,15 @@ import pyperclip
 from invoke.context import Context
 from invoke.tasks import task
 
+from . import doc
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_windows, warn
 
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 
 
-@task
-def setup(_: Context, copy_to_clipboard: Optional[bool] = True) -> None:
+@task(help={"config_path": doc.config_path, "copy_to_clipboard": doc.copy_to_clipboard})
+def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Optional[bool] = True) -> None:
     """
     Setup a local environment interactively
     """
@@ -29,7 +30,7 @@ def setup(_: Context, copy_to_clipboard: Optional[bool] = True) -> None:
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     try:
-        config = get_local_config()
+        config = get_local_config(config_path)
     except Exception:
         config = Config.parse_obj({})
 
@@ -38,8 +39,8 @@ def setup(_: Context, copy_to_clipboard: Optional[bool] = True) -> None:
     # Agent config
     setupAgentConfig(config)
 
-    config.save_to_local_config()
-    cat_profile_command = f"cat {get_full_profile_path()}"
+    config.save_to_local_config(config_path)
+    cat_profile_command = f"cat {get_full_profile_path(config_path)}"
     if copy_to_clipboard:
         pyperclip.copy(cat_profile_command)
     print(

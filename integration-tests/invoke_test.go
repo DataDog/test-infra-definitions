@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,13 +14,12 @@ import (
 )
 
 func TestInvokeVM(t *testing.T) {
-	if _, ok := os.LookupEnv("CI"); !ok {
-		t.Skip()
-	}
 
 	var setupStdout, setupStderr bytes.Buffer
 
-	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard")
+	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
+
+	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard", "--config-path", tmpConfigFile)
 	setupCmd.Stdout = &setupStdout
 	setupCmd.Stderr = &setupStderr
 	stdin, _ := setupCmd.StdinPipe()
@@ -46,13 +46,15 @@ func TestInvokeVM(t *testing.T) {
 
 	err = setupCmd.Wait()
 	require.NoError(t, err, "Error found: %s %s", setupStdout.String(), setupStderr.String())
-	require.Contains(t, setupStdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
+	require.Contains(t, setupStdout.String(), fmt.Sprintf("Configuration file saved at %s", tmpConfigFile), fmt.Sprintf("If setup succeeded, last message should contain 'Configuration file saved at %s'", tmpConfigFile))
 
-	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault")
+	defer os.Remove(tmpConfigFile)
+
+	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found: %s", string(createOutput))
 
-	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault")
+	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
 }

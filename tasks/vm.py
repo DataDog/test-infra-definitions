@@ -14,6 +14,7 @@ scenario_name = "aws/vm"
 
 @task(
     help={
+        "config_path": doc.config_path,
         "install_agent": doc.install_agent,
         "pipeline_id": doc.pipeline_id,
         "agent_version": doc.agent_version,
@@ -29,6 +30,7 @@ scenario_name = "aws/vm"
 )
 def create_vm(
     ctx: Context,
+    config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = True,
@@ -58,6 +60,7 @@ def create_vm(
     full_stack_name = deploy(
         ctx,
         scenario_name,
+        config_path,
         key_pair_required=True,
         public_key_required=(os_family.lower() == "windows"),
         stack_name=stack_name,
@@ -86,14 +89,25 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
     )
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "yes": doc.yes,
+        "use_aws_vault": doc.use_aws_vault,
+    }
+)
 def destroy_vm(
-    ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False, use_aws_vault: Optional[bool] = True
+    ctx: Context,
+    config_path: Optional[str] = None,
+    stack_name: Optional[str] = None,
+    yes: Optional[bool] = False,
+    use_aws_vault: Optional[bool] = True,
 ):
     """
     Destroy a new virtual machine on the cloud.
     """
-    destroy(ctx, scenario_name, stack_name, use_aws_vault, force_yes=yes)
+    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

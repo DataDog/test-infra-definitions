@@ -29,7 +29,6 @@ def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Opti
     os.system("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
-    print(config_path)
     try:
         config = get_local_config(config_path)
     except Exception:

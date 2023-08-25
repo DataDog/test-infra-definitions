@@ -46,7 +46,9 @@ func TestInvokeVM(t *testing.T) {
 
 	err = setupCmd.Wait()
 	require.NoError(t, err, "Error found: %s %s", setupStdout.String(), setupStderr.String())
-	require.Contains(t, setupStdout.String(), "Configuration file saved at", "If setup succeeded, last message should contain 'Configuration file saved at'")
+	require.Contains(t, setupStdout.String(), fmt.Sprintf("Configuration file saved at %s", tmpConfigFile), fmt.Sprintf("If setup succeeded, last message should contain 'Configuration file saved at %s'", tmpConfigFile))
+
+	defer os.Remove(tmpConfigFile)
 
 	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	createOutput, err := createCmd.Output()

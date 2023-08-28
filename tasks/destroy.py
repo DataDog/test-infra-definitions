@@ -12,7 +12,9 @@ from .tool import error, get_aws_wrapper, get_stack_name, get_stack_name_prefix,
 def destroy(
     ctx: Context,
     scenario_name: str,
+    config_path: Optional[str] = None,
     stack: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
     force_yes: Optional[bool] = False,
 ):
     """
@@ -28,9 +30,9 @@ def destroy(
         return
 
     try:
-        cfg = config.get_local_config()
+        cfg = config.get_local_config(config_path)
     except ValidationError as e:
-        raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
+        raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
     aws_account = cfg.get_aws().get_account()
 
     if stack is not None:
@@ -49,10 +51,10 @@ def destroy(
         for stack_name in short_stack_names:
             error(f" {stack_name}")
     else:
-        ctx.run(
-            f"{get_aws_wrapper(aws_account)} -- pulumi destroy --remove -s {full_stack_name} {force_destroy}",
-            pty=True,
-        )
+        cmd = f"pulumi destroy --remove -s {full_stack_name} {force_destroy}"
+        if use_aws_vault:
+            cmd = get_aws_wrapper(aws_account) + cmd
+        ctx.run(cmd, pty=True)
 
 
 def _get_existing_stacks() -> Tuple[List[str], List[str]]:

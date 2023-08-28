@@ -14,6 +14,7 @@ scenario_name = "aws/vm"
 
 @task(
     help={
+        "config_path": doc.config_path,
         "install_agent": doc.install_agent,
         "pipeline_id": doc.pipeline_id,
         "agent_version": doc.agent_version,
@@ -23,10 +24,13 @@ scenario_name = "aws/vm"
         "use_fakeintake": doc.fakeintake,
         "ami_id": doc.ami_id,
         "architecture": doc.architecture,
+        "copy_to_clipboard": doc.copy_to_clipboard,
+        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def create_vm(
     ctx: Context,
+    config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = True,
@@ -36,6 +40,8 @@ def create_vm(
     use_fakeintake: Optional[bool] = False,
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
+    copy_to_clipboard: Optional[bool] = True,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -54,6 +60,7 @@ def create_vm(
     full_stack_name = deploy(
         ctx,
         scenario_name,
+        config_path,
         key_pair_required=True,
         public_key_required=(os_family.lower() == "windows"),
         stack_name=stack_name,
@@ -63,29 +70,44 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
+        use_aws_vault=use_aws_vault,
     )
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name, copy_to_clipboard)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool] = True):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     connection = tool.Connection(outputs)
     host = connection.host
     user = connection.user
 
     command = f"ssh {user}@{host}"
-    pyperclip.copy(command)
+    if copy_to_clipboard:
+        pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the host `{command}`. This command was copied to the clipboard\n"
     )
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_vm(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "yes": doc.yes,
+        "use_aws_vault": doc.use_aws_vault,
+    }
+)
+def destroy_vm(
+    ctx: Context,
+    config_path: Optional[str] = None,
+    stack_name: Optional[str] = None,
+    yes: Optional[bool] = False,
+    use_aws_vault: Optional[bool] = True,
+):
     """
     Destroy a new virtual machine on the cloud.
     """
-    destroy(ctx, scenario_name, stack_name, force_yes=yes)
+    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

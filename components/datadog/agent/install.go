@@ -5,6 +5,7 @@ import (
 	"path"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
@@ -61,7 +62,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 	}
 
 	var filesHash string
-	lastCommand, filesHash, err = installIntegrationsAndFiles(vm.GetFileManager(), params.Integrations, params.Files, os, lastCommand)
+	lastCommand, filesHash, err = installIntegrationsAndFiles(vm.GetFileManager(), params.Integrations, params.Files, os, runner, commonNamer, lastCommand)
 
 	if err != nil {
 		return nil, err
@@ -136,9 +137,31 @@ func installIntegrationsAndFiles(
 	integrations map[string]*agentparams.FileDefinition,
 	files map[string]*agentparams.FileDefinition,
 	os os.OS,
+	runner *command.Runner,
+	commonNamer namer.Namer,
 	lastCommand *remote.Command) (*remote.Command, string, error) {
 	var parts []string
+	for filePath, fileDef := range integrations {
+		parts = append(parts, filePath, fileDef.Content)
+	}
+	integrationHash := utils.StrHash(parts...)
 	var err error
+	// When an integration is disabled, its configuration is removed during the pulumi delete action.
+	// Agent must be restarted.
+	// As delete actions are executed in reverse order based on dependency, it is not possible
+	// to use the same restart command as the one used when enabling an integration.
+	lastCommand, err = restartAgent(
+		func(cmd pulumi.String) *command.Args {
+			return &command.Args{
+				Delete:   cmd,
+				Triggers: pulumi.Array{pulumi.String(integrationHash)},
+			}
+		},
+		os, runner, commonNamer.ResourceName("restart-agent-integration-removal"), lastCommand)
+	if err != nil {
+		return nil, "", err
+	}
+
 	// filePath is absolute path from params.WithFile but relative from params.WithIntegration
 	for filePath, fileDef := range integrations {
 		configFolder := os.GetAgentConfigFolder()
@@ -148,8 +171,6 @@ func installIntegrationsAndFiles(
 		if err != nil {
 			return nil, "", err
 		}
-
-		parts = append(parts, filePath, fileDef.Content)
 	}
 
 	for fullPath, fileDef := range files {

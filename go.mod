@@ -8,6 +8,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.18.40
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.29.6
 	github.com/blang/semver v3.5.1+incompatible
+	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0
 	github.com/pulumi/pulumi-awsx/sdk v1.0.5

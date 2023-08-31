@@ -41,6 +41,11 @@ func (*Unix) GetRunAgentCmd(parameters string) string {
 	return "sudo datadog-agent " + parameters
 }
 
+func (u *Unix) GetWaitAgentReadyCmd() string {
+	statudCmd := u.GetRunAgentCmd("status")
+	return fmt.Sprintf("until %s; do sleep 1; done", statudCmd)
+}
+
 func getDefaultInstanceType(env config.Environment, arch Architecture) string {
 	switch arch {
 	case AMD64Arch:

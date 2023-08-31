@@ -39,6 +39,7 @@ type Params struct {
 	Integrations     map[string]*FileDefinition
 	Files            map[string]*FileDefinition
 	ExtraAgentConfig []pulumi.StringInput
+	WaitReady        bool
 }
 
 type Option = func(*Params) error
@@ -47,6 +48,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 	p := &Params{
 		Integrations: make(map[string]*FileDefinition),
 		Files:        make(map[string]*FileDefinition),
+		WaitReady:    true,
 	}
 	defaultVersion := WithLatest()
 	if env.AgentVersion() != "" {
@@ -86,6 +88,14 @@ func WithVersion(version string) func(*Params) error {
 func WithPipelineID(version string) func(*Params) error {
 	return func(p *Params) error {
 		p.Version = parsePipelineVersion(version)
+
+		return nil
+	}
+}
+
+func WithoutWaitReady() func(*Params) error {
+	return func(p *Params) error {
+		p.WaitReady = false
 
 		return nil
 	}

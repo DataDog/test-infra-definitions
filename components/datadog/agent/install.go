@@ -78,6 +78,19 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		},
 		os, runner, commonNamer.ResourceName("restart-agent"), lastCommand)
 
+	if err != nil {
+		return nil, err
+	}
+
+	if params.WaitReady {
+		waitReadyCommand := os.GetWaitAgentReadyCmd()
+		lastCommand, err = runner.Command(
+			commonNamer.ResourceName("wait-ready-agent"),
+			&command.Args{
+				Create: pulumi.String(waitReadyCommand),
+			}, utils.PulumiDependsOn(lastCommand))
+	}
+
 	return &Installer{dependsOn: lastCommand, vm: vm}, err
 }
 

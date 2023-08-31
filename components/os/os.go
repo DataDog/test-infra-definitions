@@ -31,8 +31,10 @@ type OS interface {
 	GetServiceManager() *ServiceManager
 	GetAgentConfigFolder() string
 	GetSSHUser() string
+
 	GetAgentInstallCmd(AgentVersion) (string, error)
 	GetRunAgentCmd(parameters string) string
+	GetWaitAgentReadyCmd() string
 	GetType() Type
 	CreatePackageManager(runner *command.Runner) (command.PackageManager, error)
 	CheckIsAbsPath(string) bool

@@ -31,7 +31,6 @@ type OS interface {
 	GetServiceManager() *ServiceManager
 	GetAgentConfigFolder() string
 	GetSSHUser() string
-
 	GetAgentInstallCmd(AgentVersion) (string, error)
 	GetRunAgentCmd(parameters string) string
 	GetWaitAgentReadyCmd() string

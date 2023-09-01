@@ -94,6 +94,10 @@ def is_windows():
     return platform.system() == "Windows"
 
 
+def is_linux():
+    return platform.system() == "Linux"
+
+
 def get_image_description(ctx: Context, ami_id: str) -> Any:
     buffer = StringIO()
     ctx.run(

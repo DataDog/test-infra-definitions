@@ -10,7 +10,7 @@ from invoke.tasks import task
 
 from . import doc
 from .config import Config, get_full_profile_path, get_local_config
-from .tool import ask, info, is_windows, warn
+from .tool import ask, info, is_windows, is_linux, warn
 
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 
@@ -23,6 +23,8 @@ def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Opti
     info("🤖 Install Pulumi")
     if is_windows():
         os.system("winget install pulumi")
+    elif is_linux():
+        os.system("curl -fsSL https://get.pulumi.com | sh")
     else:
         os.system("brew install pulumi/tap/pulumi")
 

@@ -3,7 +3,6 @@ package fakeintake
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
-	localECS "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
@@ -23,42 +22,11 @@ type Instance struct {
 	Host pulumi.StringOutput
 }
 
-func FargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTaskDefinition, error) {
-	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
-		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-			containerName: *fargateLinuxContainerDefinition(),
-		},
-		Cpu:    pulumi.StringPtr("256"),
-		Memory: pulumi.StringPtr("512"),
-		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
-			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
-		},
-		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
-			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
-		},
-		Family: e.CommonNamer.DisplayName(13, pulumi.String("fakeintake-ecs")),
-	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
+type customECS interface {
+	FargateServiceFakeintake(e aws.Environment) (ipAddress pulumi.StringOutput, err error)
 }
 
-func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
-	return &ecs.TaskDefinitionContainerDefinitionArgs{
-		Name:        pulumi.StringPtr(containerName),
-		Image:       pulumi.StringPtr("public.ecr.aws/datadog/fakeintake:latest"),
-		Essential:   pulumi.BoolPtr(true),
-		MountPoints: ecs.TaskDefinitionMountPointArray{},
-		Environment: ecs.TaskDefinitionKeyValuePairArray{},
-		PortMappings: ecs.TaskDefinitionPortMappingArray{
-			ecs.TaskDefinitionPortMappingArgs{
-				ContainerPort: pulumi.Int(port),
-				HostPort:      pulumi.Int(port),
-				Protocol:      pulumi.StringPtr("tcp"),
-			},
-		},
-		VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
-	}
-}
-
-func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
+func NewECSFargateInstance(e aws.Environment, obj customECS) (*Instance, error) {
 	namer := e.Namer.WithPrefix("fakeintake")
 	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
 
@@ -69,35 +37,38 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 
 	opts = append(opts, pulumi.Parent(instance))
 
-	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
-		SubnetIds:      e.RandomSubnets(),
-		Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
-		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
-			Port:       pulumi.IntPtr(port),
-			Protocol:   pulumi.StringPtr("HTTP"),
-			TargetType: pulumi.StringPtr("ip"),
-			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-		},
-		Listener: &lb.ListenerArgs{
-			Port:     pulumi.IntPtr(port),
-			Protocol: pulumi.StringPtr("HTTP"),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
 	var balancerArray classicECS.ServiceLoadBalancerArray
+	var alb *lb.ApplicationLoadBalancer
+	var err error
 	if os.Getenv("DD_DISABLE_LB") != "" {
 		var FargateErr error
-		instance.Host, FargateErr = localECS.FargateServiceFakeintake(e)
+		instance.Host, FargateErr = obj.FargateServiceFakeintake(e)
 		if FargateErr != nil {
 			return nil, FargateErr
 		}
 		balancerArray = classicECS.ServiceLoadBalancerArray{}
 	} else {
+		alb, err = lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
+			Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
+			SubnetIds:      e.RandomSubnets(),
+			Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
+			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
+			DefaultTargetGroup: &lb.TargetGroupArgs{
+				Name:       e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
+				Port:       pulumi.IntPtr(port),
+				Protocol:   pulumi.StringPtr("HTTP"),
+				TargetType: pulumi.StringPtr("ip"),
+				VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
+			},
+			Listener: &lb.ListenerArgs{
+				Port:     pulumi.IntPtr(port),
+				Protocol: pulumi.StringPtr("HTTP"),
+			},
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
+
 		instance.Host = alb.LoadBalancer.DnsName()
 		balancerArray = classicECS.ServiceLoadBalancerArray{
 			&classicECS.ServiceLoadBalancerArgs{
@@ -150,11 +121,12 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	}, opts...); err != nil {
 		return nil, err
 	}
-
-	if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
-		"host": alb.LoadBalancer.DnsName(),
-	}); err != nil {
-		return nil, err
+	if os.Getenv("DD_DISABLE_LB") == "" {
+		if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
+			"host": alb.LoadBalancer.DnsName(),
+		}); err != nil {
+			return nil, err
+		}
 	}
 
 	return instance, nil

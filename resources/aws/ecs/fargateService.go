@@ -2,11 +2,11 @@ package ecs
 
 import (
 	"fmt"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"reflect"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/cenkalti/backoff/v4"
 
@@ -20,12 +20,52 @@ const (
 	oneSecond     = 1000
 	sleepInterval = 1 * oneSecond
 	maxRetries    = 120
+	containerName = "fakeintake"
+	port          = 80
 )
+
+type OldFargate struct {
+}
+
+func FargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTaskDefinition, error) {
+	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
+		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
+			containerName: *fargateLinuxContainerDefinition(),
+		},
+		Cpu:    pulumi.StringPtr("256"),
+		Memory: pulumi.StringPtr("512"),
+		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
+			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
+		},
+		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
+			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
+		},
+		Family: e.CommonNamer.DisplayName(13, pulumi.String("fakeintake-ecs")),
+	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
+}
+
+func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
+	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Name:        pulumi.StringPtr(containerName),
+		Image:       pulumi.StringPtr("public.ecr.aws/datadog/fakeintake:latest"),
+		Essential:   pulumi.BoolPtr(true),
+		MountPoints: ecs.TaskDefinitionMountPointArray{},
+		Environment: ecs.TaskDefinitionKeyValuePairArray{},
+		PortMappings: ecs.TaskDefinitionPortMappingArray{
+			ecs.TaskDefinitionPortMappingArgs{
+				ContainerPort: pulumi.Int(port),
+				HostPort:      pulumi.Int(port),
+				Protocol:      pulumi.StringPtr("tcp"),
+			},
+		},
+		VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
+	}
+}
 
 // FargateServiceFakeintake deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func FargateServiceFakeintake(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
-	taskDef, err := ddfakeintake.FargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
+func (fg OldFargate) FargateServiceFakeintake(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
+	taskDef, err := FargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

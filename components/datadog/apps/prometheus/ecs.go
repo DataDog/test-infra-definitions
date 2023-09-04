@@ -32,8 +32,8 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"prometheus": {
-					Name:  pulumi.StringPtr("prometheus"),
-					Image: pulumi.StringPtr("ghcr.io/datadog/apps-prometheus:main"),
+					Name:  pulumi.String("prometheus"),
+					Image: pulumi.String("ghcr.io/datadog/apps-prometheus:main"),
 					DockerLabels: pulumi.StringMap{
 						"com.datadoghq.ad.checks": pulumi.String(jsonMustMarshal(
 							map[string]interface{}{

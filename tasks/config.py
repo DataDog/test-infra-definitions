@@ -31,14 +31,14 @@ class Config(BaseModel, extra=Extra.forbid):
 
         agent: Optional[Agent]
 
-    configParams: Optional[Params]
+    configParams: Optional[Params] = None
 
-    stackParams: Optional[Dict[str, Dict[str, str]]]
+    stackParams: Optional[Dict[str, Dict[str, str]]] = None
 
     class Options(BaseModel, extra=Extra.forbid):
         checkKeyPair: Optional[bool]
 
-    options: Optional[Options]
+    options: Optional[Options] = None
 
     def get_options(self) -> Options:
         if self.options is None:
@@ -82,9 +82,9 @@ def get_local_config(profile_path: Optional[str] = None) -> Config:
         with open(profile_path) as f:
             content = f.read()
             config_dict = yaml.load(content, Loader=yaml.Loader)
-            return Config.parse_obj(config_dict)
+            return Config.model_validate(config_dict)
     except FileNotFoundError:
-        return Config.parse_obj({})
+        return Config.model_validate({})
 
 
 def get_full_profile_path(profile_path: Optional[str] = None) -> str:

@@ -61,8 +61,8 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
-		Name:      pulumi.StringPtr("redis"),
-		Image:     pulumi.StringPtr("redis:latest"),
+		Name:      pulumi.String("redis"),
+		Image:     pulumi.String("redis:latest"),
 		Essential: pulumi.BoolPtr(true),
 		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
 			ecs.TaskDefinitionContainerDependencyArgs{
@@ -82,8 +82,8 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		User:      pulumi.StringPtr("0"),
-		Name:      pulumi.StringPtr("log_router"),
-		Image:     pulumi.StringPtr("amazon/aws-for-fluent-bit:latest"),
+		Name:      pulumi.String("log_router"),
+		Image:     pulumi.String("amazon/aws-for-fluent-bit:latest"),
 		Essential: pulumi.BoolPtr(true),
 		FirelensConfiguration: ecs.TaskDefinitionFirelensConfigurationArgs{
 			Type: pulumi.String("fluentbit"),

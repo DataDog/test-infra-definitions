@@ -180,7 +180,8 @@ func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) err
 		extraConfig := pulumi.Sprintf(`dd_url: http://%s:80
 logs_config.logs_dd_url: %s:80
 logs_config.logs_no_ssl: true
-logs_config.force_use_http: true`, fakeintake.Host, fakeintake.Host)
+logs_config.force_use_http: true
+process_config.process_dd_url: http://%s:80`, fakeintake.Host, fakeintake.Host, fakeintake.Host)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}

@@ -32,6 +32,10 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, fmt.Errorf("APM auto-injector component can only be installed on Windows VMs")
 	}
 
+	runner := vm.GetRunner()
+	env := vm.GetCommonEnvironment()
+	commonNamer := env.CommonNamer
+
 	params, err := newParams(options...)
 	if err != nil {
 		return nil, err
@@ -42,11 +46,24 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, err
 	}
 
-	runner := vm.GetRunner()
-	env := vm.GetCommonEnvironment()
-	commonNamer := env.CommonNamer
+	// enable test signed drivers
+	cmd := "bcdedit.exe -set TESTSIGNING ON"
+	lastCommand, err = runner.Command(
+		commonNamer.ResourceName("enable-test-signed-drivers", utils.StrHash(cmd)),
+		&command.Args{
+			Create: pulumi.String(cmd),
+		}, utils.PulumiDependsOn(lastCommand))
 
-	cmd := getInstallCmd(installerPath, env)
+	// reboot for previous command to take effect
+	cmd = "shutdown -r -t 0"
+	lastCommand, err = runner.Command(
+		commonNamer.ResourceName("reboot", utils.StrHash(cmd)),
+		&command.Args{
+			Create: pulumi.String(cmd),
+		}, utils.PulumiDependsOn(lastCommand))
+
+	// complete installation
+	cmd = getInstallCmd(installerPath, env)
 	lastCommand, err = runner.Command(
 		commonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{

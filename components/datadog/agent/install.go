@@ -39,7 +39,6 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 	}
 	commonNamer := env.CommonNamer
 	runner := vm.GetRunner()
-
 	lastCommand, err := runner.Command(
 		commonNamer.ResourceName("agent-install"),
 		&command.Args{

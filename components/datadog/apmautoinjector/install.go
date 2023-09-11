@@ -22,8 +22,8 @@ type ClientData struct {
 
 // Installer is an installer for the APM auto-injector on a virtual machine
 type Installer struct {
-	Depends pulumi.Resource
-	vm      vm.VM
+	LastCommand pulumi.Resource
+	vm          vm.VM
 }
 
 // NewInstaller creates a new instance of [*Installer]
@@ -40,63 +40,54 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		return nil, err
 	}
 
-	var depends []pulumi.Resource
-
+	// enable test signed drivers
 	cmd := "bcdedit.exe -set TESTSIGNING ON"
 	enableTestSignedDrivers, err := runner.Command(
 		env.CommonNamer.ResourceName("enable-test-signed-drivers", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
 		})
-	if err != nil {
-		return nil, err
-	}
-	depends = append(depends, enableTestSignedDrivers)
 
-	// need to reboot in order for previous command to take effect
+	// reboot for previous command to take effect
 	cmd = "shutdown -r -t 0"
 	reboot, err := runner.Command(
 		env.CommonNamer.ResourceName("reboot", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
-		}, pulumi.DependsOn(depends))
+		}, utils.PulumiDependsOn(enableTestSignedDrivers))
+
+	installerResource, installerPath, err := getInstaller(vm, params, reboot)
 	if err != nil {
 		return nil, err
 	}
-	depends = append(depends, reboot)
 
-	installerResource, installerPath, err := getInstaller(vm, params, depends)
-	if err != nil {
-		return nil, err
-	}
-	depends = append(depends, installerResource)
-
+	// complete installation
 	cmd = getInstallCmd(installerPath, env)
 	install, err := runner.Command(
 		env.CommonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
-		}, pulumi.DependsOn(depends))
+		}, utils.PulumiDependsOn(installerResource))
 	if err != nil {
 		return nil, fmt.Errorf("error installing APM auto-injector: %s", err)
 	}
 
-	return &Installer{Depends: install, vm: vm}, err
+	return &Installer{LastCommand: install, vm: vm}, err
 }
 
-func getInstaller(vm vm.VM, params *Params, depends []pulumi.Resource) (pulumi.Resource, string, error) {
+func getInstaller(vm vm.VM, params *Params, depends pulumi.Resource) (pulumi.Resource, string, error) {
 	if params.localInstallerPath != "" {
 		return copyLocalInstallerToVM(vm, params.localInstallerPath, depends)
 	}
 	return installLatest()
 }
 
-func copyLocalInstallerToVM(vm vm.VM, localPath string, depends []pulumi.Resource) (pulumi.Resource, string, error) {
+func copyLocalInstallerToVM(vm vm.VM, localPath string, depends pulumi.Resource) (pulumi.Resource, string, error) {
 	if _, err := os.Stat(localPath); os.IsNotExist(err) {
 		return nil, "", fmt.Errorf("could not find %s on host machine", localPath)
 	}
 
-	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath), pulumi.DependsOn(depends))
+	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath), utils.PulumiDependsOn(depends))
 
 	fileManager := vm.GetFileManager()
 	resource, err := fileManager.CopyFile(localPath, installerPath)

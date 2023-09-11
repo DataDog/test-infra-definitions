@@ -70,8 +70,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		env.CommonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
-			Delete: pulumi.String("cat c:\\ddapm.log"),
-		}, utils.PulumiDependsOn(installerResource))
+		}, pulumi.DependsOn([]pulumi.Resource{lastCommand, installerResource}))
 	if err != nil {
 		return nil, fmt.Errorf("error installing APM auto-injector: %s", err)
 	}

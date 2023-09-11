@@ -42,37 +42,41 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 
 	// enable test signed drivers
 	cmd := "bcdedit.exe -set TESTSIGNING ON"
-	enableTestSignedDrivers, err := runner.Command(
+	lastCommand, err := runner.Command(
 		env.CommonNamer.ResourceName("enable-test-signed-drivers", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
 		})
+	if err != nil {
+		return nil, err
+	}
 
 	// reboot for previous command to take effect
 	cmd = "shutdown -r -t 0"
-	reboot, err := runner.Command(
+	lastCommand, err = runner.Command(
 		env.CommonNamer.ResourceName("reboot", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
-		}, utils.PulumiDependsOn(enableTestSignedDrivers))
+		}, utils.PulumiDependsOn(lastCommand))
 
-	installerResource, installerPath, err := getInstaller(vm, params, reboot)
+	installerResource, installerPath, err := getInstaller(vm, params, lastCommand)
 	if err != nil {
 		return nil, err
 	}
 
 	// complete installation
 	cmd = getInstallCmd(installerPath, env)
-	install, err := runner.Command(
+	lastCommand, err = runner.Command(
 		env.CommonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
+			Delete: pulumi.String("cat c:\\ddapm.log"),
 		}, utils.PulumiDependsOn(installerResource))
 	if err != nil {
 		return nil, fmt.Errorf("error installing APM auto-injector: %s", err)
 	}
 
-	return &Installer{LastCommand: install, vm: vm}, err
+	return &Installer{LastCommand: lastCommand, vm: vm}, err
 }
 
 func getInstaller(vm vm.VM, params *Params, depends pulumi.Resource) (pulumi.Resource, string, error) {

@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"fmt"
 	"path"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -115,9 +114,6 @@ func updateConfig(
 
 	configFullPath := path.Join(os.GetAgentConfigFolder(), configPath)
 	var err error
-
-	fmt.Println("path = ", configPath)
-	fmt.Println("content = ", configContent)
 
 	pulumiAgentString := pulumi.String(configContent).ToStringOutput()
 	// If core agent, set api key and extra configs

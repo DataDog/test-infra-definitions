@@ -65,7 +65,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 	}
 
 	// complete installation
-	cmd = getInstallCmd(installerPath, env)
+	cmd = getInstallCmd(installerPath, params.installArgs, env)
 	lastCommand, err = runner.Command(
 		env.CommonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{
@@ -106,14 +106,15 @@ func installLatest() (pulumi.Resource, string, error) {
 	return nil, "", fmt.Errorf("APM Auto-injector component currently only supports installation via a local installer")
 }
 
-func getInstallCmd(installerPath string, env *config.CommonEnvironment) string {
+func getInstallCmd(installerPath string, installArgs string, env *config.CommonEnvironment) string {
 	// Disable the progress as it slow downs the download.
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
 
 	// Use `if ($?) { .. }` to get an error if the install fails
-	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%v" SITE="datadoghq.com"  /l*v c:\\ddapm.log'}`,
+	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%v" SITE="datadoghq.com" %s'}`,
 		installerPath,
 		env.AgentAPIKey(),
+		installArgs,
 	)
 
 	return cmd

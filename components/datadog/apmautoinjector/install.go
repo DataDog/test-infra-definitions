@@ -70,7 +70,7 @@ func NewInstaller(vm vm.VM, options ...func(*Params) error) (*Installer, error) 
 		env.CommonNamer.ResourceName("apm-auto-inject-install", utils.StrHash(cmd)),
 		&command.Args{
 			Create: pulumi.String(cmd),
-		}, pulumi.DependsOn([]pulumi.Resource{lastCommand, installerResource}))
+		}, utils.PulumiDependsOn(lastCommand, installerResource))
 	if err != nil {
 		return nil, fmt.Errorf("error installing APM auto-injector: %s", err)
 	}
@@ -90,10 +90,10 @@ func copyLocalInstallerToVM(vm vm.VM, localPath string, depends pulumi.Resource)
 		return nil, "", fmt.Errorf("could not find %s on host machine", localPath)
 	}
 
-	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath), utils.PulumiDependsOn(depends))
+	installerPath := fmt.Sprintf("c:\\%s", filepath.Base(localPath))
 
 	fileManager := vm.GetFileManager()
-	resource, err := fileManager.CopyFile(localPath, installerPath)
+	resource, err := fileManager.CopyFile(localPath, installerPath, utils.PulumiDependsOn(depends))
 	if err != nil {
 		return nil, "", fmt.Errorf("error copying directory to remote VM: %s", err)
 	}

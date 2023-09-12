@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"path"
 
 	"github.com/DataDog/test-infra-definitions/common/config"

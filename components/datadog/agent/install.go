@@ -49,16 +49,17 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		return nil, err
 	}
 
-	var updateConfigTrigger pulumi.StringInput
-	lastCommand, updateConfigTrigger, err = updateAgentConfig(
-		vm.GetFileManager(),
-		env,
-		params.AgentConfig,
-		params.ExtraAgentConfig,
-		os,
-		lastCommand)
-	if err != nil {
-		return nil, err
+	fileChangeTriggers := make(map[string]pulumi.StringInput)
+	var trigger pulumi.StringInput
+	for _, input := range []struct{ path, content string }{
+		{"datadog.yaml", params.AgentConfig},
+		{"system-probe.yaml", params.SystemProbeConfig},
+		{"security-agent.yaml", params.SecurityAgentConfig}} {
+		lastCommand, trigger, err = updateConfig(vm.GetFileManager(), input.path, input.content, params.ExtraAgentConfig, env, os, lastCommand)
+		fileChangeTriggers[input.path] = trigger
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	var filesHash string
@@ -73,7 +74,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		func(cmd pulumi.String) *command.Args {
 			return &command.Args{
 				Create:   cmd,
-				Triggers: pulumi.Array{updateConfigTrigger, pulumi.String(filesHash)},
+				Triggers: pulumi.Array{fileChangeTriggers["datadog.yaml"], fileChangeTriggers["system-probe.yaml"], fileChangeTriggers["security-agent.yaml"], pulumi.String(filesHash)},
 			}
 		},
 		os, runner, commonNamer.ResourceName("restart-agent"), lastCommand)
@@ -103,26 +104,29 @@ func restartAgent(
 	return lastCommand, nil
 }
 
-func updateAgentConfig(
+func updateConfig(
 	fileManager *command.FileManager,
-	env *config.CommonEnvironment,
-	agentConfig string,
+	configPath string,
+	configContent string,
 	extraAgentConfig []pulumi.StringInput,
+	env *config.CommonEnvironment,
 	os os.OS,
 	lastCommand *remote.Command) (*remote.Command, pulumi.StringInput, error) {
 
-	agentConfigFullPath := path.Join(os.GetAgentConfigFolder(), "datadog.yaml")
+	configFullPath := path.Join(os.GetAgentConfigFolder(), configPath)
 	var err error
 
-	pulumiAgentString := pulumi.String(agentConfig).ToStringOutput()
-	for _, extraConfig := range extraAgentConfig {
-		pulumiAgentString = pulumi.Sprintf("%v\n%v", pulumiAgentString, extraConfig)
+	pulumiAgentString := pulumi.String(configContent).ToStringOutput()
+	// If core agent, set api key and extra configs
+	if configPath == "datadog.yaml" {
+		for _, extraConfig := range extraAgentConfig {
+			pulumiAgentString = pulumi.Sprintf("%v\n%v", pulumiAgentString, extraConfig)
+		}
+		pulumiAgentString = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
 	}
-
-	agentConfigWithAPIKEY := pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
 	lastCommand, err = fileManager.CopyInlineFile(
-		agentConfigWithAPIKEY,
-		agentConfigFullPath,
+		pulumiAgentString,
+		configFullPath,
 		true,
 		utils.PulumiDependsOn(lastCommand))
 	if err != nil {

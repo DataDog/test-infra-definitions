@@ -39,12 +39,12 @@ const (
 )
 
 var consoles = map[string]libvirt.DomainConsoleArgs{
-	fileConsole: libvirt.DomainConsoleArgs{
+	fileConsole: {
 		Type:       pulumi.String("file"),
 		TargetPort: pulumi.String("0"),
 		TargetType: pulumi.String("serial"),
 	},
-	ptyConsole: libvirt.DomainConsoleArgs{
+	ptyConsole: {
 		Type:       pulumi.String("pty"),
 		TargetPort: pulumi.String("0"),
 		TargetType: pulumi.String("serial"),

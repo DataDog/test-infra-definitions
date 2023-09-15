@@ -3,6 +3,7 @@ package resources
 import (
 	// import embed
 	_ "embed"
+	"fmt"
 	"sort"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -34,7 +35,7 @@ func (a *AMD64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput)
 	return GetDefaultPoolXML(args, a.recipe)
 }
 
-func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error) {
 	var cmdlines []map[string]interface{}
 	for cmd, val := range args.ExtraKernelParams {
 		cmdlines = append(cmdlines, map[string]interface{}{cmd: pulumi.String(val)})
@@ -59,14 +60,15 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		}
 	}
 
+	console, err := setupConsole(args.ConsoleType, args.DomainName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup console for domain %s: %v", args.DomainName, err)
+	}
+
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
-			libvirt.DomainConsoleArgs{
-				Type:       pulumi.String("pty"),
-				TargetPort: pulumi.String("0"),
-				TargetType: pulumi.String("serial"),
-			},
+			console,
 		},
 		Disks:    disks,
 		Kernel:   pulumi.String(args.KernelPath),
@@ -82,5 +84,5 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		domainArgs.Machine = pulumi.String(args.Machine)
 	}
 
-	return &domainArgs
+	return &domainArgs, nil
 }

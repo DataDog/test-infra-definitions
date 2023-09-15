@@ -74,6 +74,6 @@ func (a *DefaultResourceCollection) GetPoolXML(args map[string]pulumi.StringInpu
 	return GetDefaultPoolXML(args, a.recipe)
 }
 
-func (a *DefaultResourceCollection) GetLibvirtDomainArgs(_ *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
-	return nil
+func (a *DefaultResourceCollection) GetLibvirtDomainArgs(_ *RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error) {
+	return nil, nil
 }

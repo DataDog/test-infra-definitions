@@ -2,12 +2,14 @@ package resources
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
 const (
@@ -27,9 +29,27 @@ const (
 )
 
 const (
+	fileConsole = "file"
+	ptyConsole  = "pty"
+)
+
+const (
 	RAMPool     vmconfig.PoolType = "ram"
 	DefaultPool vmconfig.PoolType = "default"
 )
+
+var consoles = map[string]libvirt.DomainConsoleArgs{
+	fileConsole: libvirt.DomainConsoleArgs{
+		Type:       pulumi.String("file"),
+		TargetPort: pulumi.String("0"),
+		TargetType: pulumi.String("serial"),
+	},
+	ptyConsole: libvirt.DomainConsoleArgs{
+		Type:       pulumi.String("pty"),
+		TargetPort: pulumi.String("0"),
+		TargetType: pulumi.String("serial"),
+	},
+}
 
 var kernelCmdlines = []map[string]interface{}{
 	{"acpi": pulumi.String("off")},
@@ -43,7 +63,7 @@ type ResourceCollection interface {
 	GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetVolumeXML(*RecipeLibvirtVolumeArgs) pulumi.StringOutput
 	GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput
-	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
+	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error)
 }
 
 type AttachMethod int
@@ -72,11 +92,37 @@ type RecipeLibvirtDomainArgs struct {
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 	Machine           string
+	ConsoleType       string
 }
 
 type RecipeLibvirtVolumeArgs struct {
 	PoolType vmconfig.PoolType
 	XMLArgs  map[string]pulumi.StringInput
+}
+
+func setupConsole(consoleType, domainName string) (libvirt.DomainConsoleArgs, error) {
+	fmt.Printf("console: %s\n", consoleType)
+
+	if consoleType == fileConsole {
+		fname := fmt.Sprintf("/tmp/%s.log", domainName)
+
+		if err := os.RemoveAll(fname); err != nil {
+			return libvirt.DomainConsoleArgs{}, fmt.Errorf("failed to remove console output file %s: %v", fname, err)
+		}
+
+		f, err := os.Create(fname)
+		if err != nil {
+			return libvirt.DomainConsoleArgs{}, fmt.Errorf("failed to create console output file %s: %v", fname, err)
+		}
+		defer f.Close()
+
+		console := consoles[consoleType]
+		console.SourcePath = pulumi.String(fname)
+		return console, nil
+	}
+
+	// default console type is `pty`
+	return consoles[ptyConsole], nil
 }
 
 func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {

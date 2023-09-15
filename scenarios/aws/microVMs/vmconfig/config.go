@@ -35,16 +35,17 @@ type Image struct {
 }
 
 type VMSet struct {
-	Name    string   `json:"name"`
-	Recipe  string   `json:"recipe"`
-	Kernels []Kernel `json:"kernels"`
-	VCpu    []int    `json:"vcpu"`
-	Memory  []int    `json:"memory"`
-	Img     Image    `json:"image"`
-	Machine string   `json:"machine,omitempty"`
-	Arch    string
-	ID      VMSetID `json:"omitempty"`
-	Disks   []Disk  `json:"disks,omitempty"`
+	Name        string   `json:"name"`
+	Recipe      string   `json:"recipe"`
+	Kernels     []Kernel `json:"kernels"`
+	VCpu        []int    `json:"vcpu"`
+	Memory      []int    `json:"memory"`
+	Img         Image    `json:"image"`
+	Machine     string   `json:"machine,omitempty"`
+	Arch        string
+	ID          VMSetID `json:"omitempty"`
+	Disks       []Disk  `json:"disks,omitempty"`
+	ConsoleType string  `json:"console_type"`
 }
 
 type Config struct {

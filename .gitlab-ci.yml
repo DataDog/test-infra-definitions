@@ -37,6 +37,7 @@ build-runner-image:
   tags: ["arch:amd64"]
   variables:
     PUSH_IMAGE: "false"
+    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       variables:

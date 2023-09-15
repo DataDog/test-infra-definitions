@@ -101,8 +101,6 @@ type RecipeLibvirtVolumeArgs struct {
 }
 
 func setupConsole(consoleType, domainName string) (libvirt.DomainConsoleArgs, error) {
-	fmt.Printf("console: %s\n", consoleType)
-
 	if consoleType == fileConsole {
 		fname := fmt.Sprintf("/tmp/%s.log", domainName)
 

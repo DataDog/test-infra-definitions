@@ -57,8 +57,8 @@ func getUnixInstallFormatString(scriptName string, version AgentVersion) string 
 		testEnvVars := []string{}
 		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
 		// apt testing repo
-		// TESTING_APT_REPO_VERSION="dists/pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="dists/%v-a7 7"`, version.PipelineID))
+		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
+		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v-a7 7"`, version.PipelineID))
 		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"

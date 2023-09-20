@@ -70,7 +70,7 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 # (e.g. in GitHub actions where $HOME points to /github/home).
 ENV XDG_CONFIG_HOME=/root/.config
 ENV XDG_CACHE_HOME=/root/.cache
-RUN curl -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz && \
+RUN curl -fsSLo --retry=10 /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz && \
   echo "${HELM_SHA} /tmp/helm.tgz" | sha256sum -c - && \
   mkdir -p /usr/local/helm && \
   tar -C /usr/local/helm -xzf /tmp/helm.tgz && \

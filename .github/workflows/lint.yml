@@ -14,7 +14,7 @@ jobs:
   lint-go:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: '0'
       - uses: actions/setup-go@v4
@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install Python requirements
         run: pip3 install -r requirements.txt
       - name: Install pyright
@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install lint python requirements
         run: pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/circleci/requirements.txt
       - name: Run linters

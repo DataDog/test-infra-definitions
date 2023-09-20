@@ -57,9 +57,8 @@ RUN apt-get update -y && \
 # Install Go
 RUN curl -fsSLo --retry=10 /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
   echo "${GO_SHA} /tmp/go.tgz" | sha256sum -c - && \
-  tar -C /usr/local -xzf /tmp/go.tgz && \
+  tar -C /usr/local/bin -xzf /tmp/go.tgz --strip-components=2 go/bin && \
   rm /tmp/go.tgz && \
-  export PATH="/usr/local/go/bin:$PATH" && \
   go version
 ENV GOPATH /go
 ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
@@ -72,10 +71,8 @@ ENV XDG_CONFIG_HOME=/root/.config
 ENV XDG_CACHE_HOME=/root/.cache
 RUN curl -fsSLo --retry=10 /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz && \
   echo "${HELM_SHA} /tmp/helm.tgz" | sha256sum -c - && \
-  mkdir /usr/local/helm && \
-  tar -C /usr/local/helm -xzf /tmp/helm.tgz --strip-components=1 linux-amd64/helm && \
+  tar -C /usr/local/bin -xzf /tmp/helm.tgz --strip-components=1 linux-amd64/helm && \
   rm /tmp/helm.tgz && \
-  export PATH="/usr/local/helm:$PATH" && \
   helm version && \
   helm repo add stable https://charts.helm.sh/stable && \
   helm repo update

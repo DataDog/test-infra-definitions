@@ -27,10 +27,10 @@ RUN apt-get update -y && \
   curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
   curl -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add - && \
   # IAM Authenticator for EKS
-  curl -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
+  curl -fsSLo --retry=10 /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
   # AWS v2 cli
-  curl -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
+  curl -fsSLo --retry=10 awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
   rm -rf aws && \
@@ -55,7 +55,7 @@ RUN apt-get update -y && \
   rm -rf /var/lib/apt/lists/*
 
 # Install Go
-RUN curl -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+RUN curl -fsSLo --retry=10 /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
   echo "${GO_SHA} /tmp/go.tgz" | sha256sum -c - && \
   tar -C /usr/local -xzf /tmp/go.tgz && \
   rm /tmp/go.tgz && \

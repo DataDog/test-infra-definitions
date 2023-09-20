@@ -15,7 +15,7 @@ require (
 	github.com/pulumi/pulumi-azure-native-sdk/compute v1.103.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice v1.104.0
 	github.com/pulumi/pulumi-azure-native-sdk/network v1.104.0
-	github.com/pulumi/pulumi-command/sdk v0.7.2
+	github.com/pulumi/pulumi-command/sdk v0.9.0
 	github.com/pulumi/pulumi-eks/sdk v1.0.1
 	github.com/pulumi/pulumi-kubernetes/sdk/v3 v3.30.2
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.0

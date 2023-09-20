@@ -72,10 +72,10 @@ ENV XDG_CONFIG_HOME=/root/.config
 ENV XDG_CACHE_HOME=/root/.cache
 RUN curl -fsSLo --retry=10 /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz && \
   echo "${HELM_SHA} /tmp/helm.tgz" | sha256sum -c - && \
-  mkdir -p /usr/local/helm && \
-  tar -C /usr/local/helm -xzf /tmp/helm.tgz && \
+  mkdir /usr/local/helm && \
+  tar -C /usr/local/helm -xzf /tmp/helm.tgz --strip-components=1 linux-amd64/helm && \
   rm /tmp/helm.tgz && \
-  export PATH="/usr/local/helm/linux-amd64:$PATH" && \
+  export PATH="/usr/local/helm:$PATH" && \
   helm version && \
   helm repo add stable https://charts.helm.sh/stable && \
   helm repo update

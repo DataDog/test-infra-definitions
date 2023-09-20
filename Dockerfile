@@ -5,6 +5,8 @@ FROM python:3.10-slim-bullseye AS base
 
 ENV GO_VERSION=1.20.3
 ENV GO_SHA=979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca
+ENV HELM_VERSION=3.12.3
+ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 
 # Install deps all in one step
 RUN apt-get update -y && \
@@ -68,7 +70,13 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 # (e.g. in GitHub actions where $HOME points to /github/home).
 ENV XDG_CONFIG_HOME=/root/.config
 ENV XDG_CACHE_HOME=/root/.cache
-RUN curl -L https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && \
+RUN curl -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz && \
+  echo "${HELM_SHA} /tmp/helm.tgz" | sha256sum -c - && \
+  mkdir -p /usr/local/helm && \
+  tar -C /usr/local/helm -xzf /tmp/helm.tgz && \
+  rm /tmp/helm.tgz && \
+  export PATH="/usr/local/helm/linux-amd64:$PATH" && \
+  helm version && \
   helm repo add stable https://charts.helm.sh/stable && \
   helm repo update
 

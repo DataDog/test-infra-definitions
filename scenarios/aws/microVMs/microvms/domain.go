@@ -14,7 +14,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+const (
+	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+	sharedFSMountPoint  = "/opt/kernel-version-testing"
+)
 
 func getNextVMIP(ip *net.IP) net.IP {
 	ipv4 := ip.To4()

@@ -78,8 +78,8 @@ func sandboxDefault() environmentDefault {
 			defaultVPCID:               "vpc-d1aac1a8",
 			defaultSubnets:             []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
 			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a", "sg-0e952e295ab41e748"},
-			defaultInstanceType:        "t3.xlarge",
-			defaultARMInstanceType:     "t4g.xlarge",
+			defaultInstanceType:        "t3.medium",
+			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
 
@@ -117,8 +117,8 @@ func agentSandboxDefault() environmentDefault {
 			defaultVPCID:               "vpc-029c0faf8f49dee8d",
 			defaultSubnets:             []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
 			defaultSecurityGroups:      []string{"sg-038231b976eb13d44", "sg-05466e7ce253d21b1"},
-			defaultInstanceType:        "t3.xlarge",
-			defaultARMInstanceType:     "t4g.xlarge",
+			defaultInstanceType:        "t3.medium",
+			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
 
@@ -156,8 +156,8 @@ func agentQADefault() environmentDefault {
 			defaultVPCID:               "vpc-0097b9307ec2c8139",
 			defaultSubnets:             []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
 			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
-			defaultInstanceType:        "t3.xlarge",
-			defaultARMInstanceType:     "t4g.xlarge",
+			defaultInstanceType:        "t3.medium",
+			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
 

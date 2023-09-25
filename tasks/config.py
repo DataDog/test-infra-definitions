@@ -31,14 +31,14 @@ class Config(BaseModel, extra=Extra.forbid):
 
         agent: Optional[Agent]
 
-    configParams: Optional[Params]
+    configParams: Optional[Params] = None
 
-    stackParams: Optional[Dict[str, Dict[str, str]]]
+    stackParams: Optional[Dict[str, Dict[str, str]]] = None
 
     class Options(BaseModel, extra=Extra.forbid):
         checkKeyPair: Optional[bool]
 
-    options: Optional[Options]
+    options: Optional[Options] = None
 
     def get_options(self) -> Options:
         if self.options is None:
@@ -66,8 +66,8 @@ class Config(BaseModel, extra=Extra.forbid):
             return {}
         return self.stackParams
 
-    def save_to_local_config(self):
-        profile_path = get_full_profile_path()
+    def save_to_local_config(self, config_path: Optional[str] = None):
+        profile_path = get_full_profile_path(config_path)
         try:
             with open(profile_path, "w") as outfile:
                 yaml.dump(self.dict(), outfile)
@@ -76,16 +76,20 @@ class Config(BaseModel, extra=Extra.forbid):
         info(f"Configuration file saved at {profile_path}")
 
 
-def get_local_config() -> Config:
-    profile_path = get_full_profile_path()
+def get_local_config(profile_path: Optional[str] = None) -> Config:
+    profile_path = get_full_profile_path(profile_path)
     try:
         with open(profile_path) as f:
             content = f.read()
             config_dict = yaml.load(content, Loader=yaml.Loader)
-            return Config.parse_obj(config_dict)
+            return Config.model_validate(config_dict)
     except FileNotFoundError:
-        return Config.parse_obj({})
+        return Config.model_validate({})
 
 
-def get_full_profile_path() -> str:
+def get_full_profile_path(profile_path: Optional[str] = None) -> str:
+    if profile_path:
+        return str(
+            Path(profile_path).expanduser().absolute()
+        )  # Return absolute path to config file, handle "~"" with expanduser
     return str(Path.home().joinpath(profile_filename))

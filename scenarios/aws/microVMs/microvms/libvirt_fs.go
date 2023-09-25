@@ -38,6 +38,7 @@ type LibvirtFilesystem struct {
 	pool          *LibvirtPool
 	images        []*filesystemImage
 	baseVolumeMap map[string]*filesystemImage
+	fsNamer       namer.Namer
 	isLocal       bool
 }
 
@@ -113,6 +114,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 		pool:          pool,
 		images:        images,
 		baseVolumeMap: baseVolumeMap,
+		fsNamer:       libvirtResourceNamer(ctx, vmset.Name),
 		isLocal:       vmset.Arch == LocalVMSet,
 	}
 }
@@ -149,6 +151,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *
 		images:        []*filesystemImage{img},
 		baseVolumeMap: baseVolumeMap,
 		pool:          pool,
+		fsNamer:       libvirtResourceNamer(ctx, vmset.Name),
 		isLocal:       vmset.Arch == LocalVMSet,
 	}
 }
@@ -220,11 +223,12 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 	}
 
 	if webDownload {
+		configPath := fmt.Sprintf("/tmp/aria2-%s.config", fs.fsNamer.ResourceName("aria2c"))
 		writeConfigFile := command.Args{
-			Create: pulumi.Sprintf("echo \"%s\" > /tmp/aria2.config", aria2DownloadConfig.String()),
-			Update: pulumi.Sprintf("echo \"%s\" > /tmp/aria2.config", aria2DownloadConfig.String()),
+			Create: pulumi.Sprintf("echo \"%s\" > %s", aria2DownloadConfig.String(), configPath),
+			Update: pulumi.Sprintf("echo \"%s\" > %s", aria2DownloadConfig.String(), configPath),
 		}
-		writeConfigFileDone, err := runner.Command(fs.pool.poolNamer.ResourceName("write-aria2c-config"), &writeConfigFile)
+		writeConfigFileDone, err := runner.Command(fs.fsNamer.ResourceName("write-aria2c-config"), &writeConfigFile)
 		if err != nil {
 			return waitFor, err
 		}
@@ -235,15 +239,13 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 		// We let the update fail assuming that most of the failures are due to the above case. If there is
 		// a problem downloading the file for some other reason, subsequent commands will fail, thus alerting us.
 		downloadWithAria2Args := command.Args{
-			Create:   pulumi.String("aria2c --auto-file-renaming=false -i /tmp/aria2.config -x 16 -j $(cat /tmp/aria2.config | grep dir | wc -l) || true"),
+			Create:   pulumi.Sprintf("aria2c --auto-file-renaming=false -i %s -x 16 -j $(cat %s | grep dir | wc -l) || true", configPath, configPath),
 			Triggers: pulumi.Array{pulumi.String(aria2DownloadConfig.String())},
+			Stdin:    pulumi.String(aria2DownloadConfig.String()),
 		}
 
 		depends = append(depends, writeConfigFileDone)
-		downloadWithAria2Done, _ := runner.Command(fs.pool.poolNamer.ResourceName("download-with-aria2c"), &downloadWithAria2Args, pulumi.DependsOn(depends))
-		if err != nil {
-			return waitFor, err
-		}
+		downloadWithAria2Done, _ := runner.Command(fs.fsNamer.ResourceName("download-with-aria2c"), &downloadWithAria2Args, pulumi.DependsOn(depends))
 
 		waitFor = append(waitFor, downloadWithAria2Done)
 	}
@@ -374,18 +376,21 @@ func setupRemoteLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, depends
 	return setupLibvirtVMVolumeDone, nil
 }
 
-func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	var waitFor []pulumi.Resource
-
-	poolReady, err := libvirt.NewPool(fs.ctx, fs.pool.poolNamer.ResourceName("create-libvirt-pool"), &libvirt.PoolArgs{
+func setupLocalLibvirtPool(ctx *pulumi.Context, provider *libvirt.Provider, pool *LibvirtPool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	poolReady, err := libvirt.NewPool(ctx, "create-libvirt-pool", &libvirt.PoolArgs{
 		Type: pulumi.String("dir"),
-		Name: pulumi.String(fs.pool.poolName),
-		Path: pulumi.String(generatePoolPath(fs.pool.poolName)),
+		Name: pulumi.String(pool.poolName),
+		Path: pulumi.String(generatePoolPath(pool.poolName)),
 	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 	if err != nil {
 		return []pulumi.Resource{}, err
 	}
-	waitFor = append(waitFor, poolReady)
+
+	return []pulumi.Resource{poolReady}, nil
+}
+
+func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provider, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
 
 	for _, fsImage := range fs.images {
 		stgvolReady, err := libvirt.NewVolume(fs.ctx, fsImage.volumeNamer.ResourceName("build-libvirt-basevolume"), &libvirt.VolumeArgs{
@@ -395,7 +400,7 @@ func setupLocalLibvirtFilesystem(fs *LibvirtFilesystem, provider *libvirt.Provid
 			Xml: libvirt.VolumeXmlArgs{
 				Xslt: fsImage.volumeXML,
 			},
-		}, pulumi.Provider(provider), pulumi.DependsOn([]pulumi.Resource{poolReady}))
+		}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}

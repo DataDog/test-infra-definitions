@@ -5,6 +5,8 @@ FROM python:3.10-slim-bullseye AS base
 
 ENV GO_VERSION=1.20.3
 ENV GO_SHA=979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca
+ENV HELM_VERSION=3.12.3
+ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 
 # Install deps all in one step
 RUN apt-get update -y && \
@@ -19,16 +21,16 @@ RUN apt-get update -y && \
   wget \
   unzip && \
   # Get all of the signatures we need all at once.
-  curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add - && \
-  curl -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add - && \
-  curl -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add - && \
-  curl -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-  curl -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add - && \
+  curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add - && \
+  curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add - && \
+  curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add - && \
+  curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+  curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add - && \
   # IAM Authenticator for EKS
-  curl -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
+  curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
   # AWS v2 cli
-  curl -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
+  curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
   rm -rf aws && \
@@ -53,7 +55,7 @@ RUN apt-get update -y && \
   rm -rf /var/lib/apt/lists/*
 
 # Install Go
-RUN curl -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
+RUN curl --retry 10 -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \
   echo "${GO_SHA} /tmp/go.tgz" | sha256sum -c - && \
   tar -C /usr/local -xzf /tmp/go.tgz && \
   rm /tmp/go.tgz && \
@@ -68,7 +70,11 @@ ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
 # (e.g. in GitHub actions where $HOME points to /github/home).
 ENV XDG_CONFIG_HOME=/root/.config
 ENV XDG_CACHE_HOME=/root/.cache
-RUN curl -L https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash && \
+RUN curl --retry 10 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz && \
+  echo "${HELM_SHA} /tmp/helm.tgz" | sha256sum -c - && \
+  tar -C /usr/local/bin -xzf /tmp/helm.tgz --strip-components=1 linux-amd64/helm && \
+  rm /tmp/helm.tgz && \
+  helm version && \
   helm repo add stable https://charts.helm.sh/stable && \
   helm repo update
 
@@ -78,7 +84,7 @@ RUN curl -L https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-
 ARG PULUMI_VERSION
 
 # Install the Pulumi SDK, including the CLI and language runtimes.
-RUN curl -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
+RUN curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
   mv ~/.pulumi/bin/* /usr/bin
 
 # Install Pulumi plugins
@@ -95,12 +101,10 @@ RUN cd /tmp/test-infra && \
 # Remove AWS-related deps as we already install AWS CLI v2
 # Remove PyYAML to workaround issues with cpython 3.0.0
 # https://github.com/yaml/pyyaml/issues/724#issuecomment-1638636728
-RUN curl -fsSL https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements.txt | \
+# WORKAROUND: Pining to b468e3cdcbe66e8b8852a29be6c66b03bc08e03d as later changes break the filtering
+RUN curl --retry 10 -fsSL https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/b468e3cdcbe66e8b8852a29be6c66b03bc08e03d/requirements.txt | \
   grep -ivE "boto3|botocore|awscli|urllib3|PyYAML" > requirements-agent.txt && \
   pip3 install "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
   pip3 install -r requirements-agent.txt && \
   go install gotest.tools/gotestsum@latest
-
-# Install go test requirements
-RUN go install gotest.tools/gotestsum@latest

@@ -84,12 +84,18 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     return json.loads(buffer.getvalue())
 
 
-def get_aws_wrapper(aws_account: str) -> str:
-    return f"aws-vault exec sso-{aws_account}-account-admin"
+def get_aws_wrapper(
+    aws_account: str,
+) -> str:
+    return f"aws-vault exec sso-{aws_account}-account-admin -- "
 
 
 def is_windows():
     return platform.system() == "Windows"
+
+
+def is_linux():
+    return platform.system() == "Linux"
 
 
 def get_image_description(ctx: Context, ami_id: str) -> Any:

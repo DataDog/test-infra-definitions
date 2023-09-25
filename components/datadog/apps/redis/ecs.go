@@ -54,8 +54,8 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"redis": {
-					Name:   pulumi.StringPtr("redis"),
-					Image:  pulumi.StringPtr("redis:latest"),
+					Name:   pulumi.String("redis"),
+					Image:  pulumi.String("redis:latest"),
 					Cpu:    pulumi.IntPtr(100),
 					Memory: pulumi.IntPtr(32),
 					PortMappings: ecs.TaskDefinitionPortMappingArray{
@@ -95,8 +95,8 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"query": {
-					Name:  pulumi.StringPtr("query"),
-					Image: pulumi.StringPtr("ghcr.io/datadog/apps-redis-client:main"),
+					Name:  pulumi.String("query"),
+					Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
 					Command: pulumi.StringArray{
 						pulumi.String("-addr"),
 						pulumi.Sprintf("%s:6379", nlb.LoadBalancer.DnsName()),

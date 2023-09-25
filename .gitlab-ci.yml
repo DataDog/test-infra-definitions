@@ -8,7 +8,7 @@ stages:
 
 integration-testing:
   stage: test
-  image: $IMAGE_REPOSITORY/runner:a437f129
+  image: $IMAGE_REPOSITORY/runner:744a75d2
   tags: ["arch:amd64"]
   before_script:
     # Setup AWS Credentials

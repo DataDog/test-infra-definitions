@@ -9,7 +9,7 @@ build-runner-image:
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
   tags: ["runner:docker"]
   variables:
-    PUSH_IMAGE: "false"
+    PUSH_IMAGE: "true"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       variables:

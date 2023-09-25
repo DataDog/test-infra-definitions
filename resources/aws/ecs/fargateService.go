@@ -13,14 +13,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const (
-	oneSecond     = 1000
-	sleepInterval = 1 * oneSecond
-	maxRetries    = 120
-	containerName = "fakeintake"
-	port          = 80
-)
-
 type Instance struct {
 	pulumi.ResourceState
 

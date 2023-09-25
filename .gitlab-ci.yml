@@ -1,14 +1,33 @@
 variables:
-  IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
+  BUILD_STABLE_REGISTRY: 486234852809.dkr.ecr.us-east-1.amazonaws.com
+  CI_IMAGE_REPO: "ci/${CI_PROJECT_NAME}"
+  CI_REGISTRY_IMAGE: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner"
+  CI_REGISTRY_IMAGE_TEST: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner-dev"
   KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "test-infra-definitions"
 
 stages:
-  - test
   - build
+  - test
+  - release
+
+
+build-runner-image:
+  stage: build
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
+  tags: ["arch:amd64"]
+  variables:
+    RELEASE_IMAGE: "false"
+  rules:
+    - when: on_success
+  script:
+    # Tag with 8 and 12 SHA to match go.mod
+    - docker buildx build --no-cache --pull --push --label target=build --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} .
+  retry: 2
+
 
 integration-testing:
   stage: test
-  image: $IMAGE_REPOSITORY/runner:8388801b
+  image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
   tags: ["arch:amd64"]
   before_script:
     # Setup AWS Credentials
@@ -31,21 +50,15 @@ integration-testing:
     KUBERNETES_MEMORY_REQUEST: "6Gi"
     KUBERNETES_MEMORY_LIMIT: "12Gi"
 
-build-runner-image:
-  stage: build
+release-runner-image:
+  stage: release
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
   tags: ["arch:amd64"]
-  variables:
-    PUSH_IMAGE: "false"
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      variables:
-        PUSH_IMAGE: "true"
-    - when: on_success
   script:
-    - TARGET_REPO="${IMAGE_REPOSITORY}/runner"
-    - if [ "$PUSH_IMAGE" = "true" ]; then PUSH_ARG="--push"; fi
-    # Tag with 8 and 12 SHA to match go.mod
-    - docker buildx build --no-cache --pull $PUSH_ARG --tag ${TARGET_REPO}:${CI_COMMIT_SHORT_SHA} --tag ${TARGET_REPO}:${CI_COMMIT_SHA:0:12}  .
-  retry: 2
-
+    - docker pull ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
+    - docker tag  ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA} 
+    - docker tag  ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
+    - docker push --label target=build ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12} --tag ${IMAGE_REPOSITORY}:${CI_COMMIT_SHA:0:12}  .
+  only:
+    - main
+  when: on_success

@@ -2,10 +2,7 @@ package redis
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
-	"os"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
@@ -18,43 +15,17 @@ type EcsComponent struct {
 	pulumi.ResourceState
 }
 
-func GetEcsTargetGroupAndDns(e aws.Environment, namer namer.Namer, opts []pulumi.ResourceOption) (pulumi.StringOutput, pulumi.StringOutput, error) {
-	if os.Getenv("DD_DISABLE_LB") != "" {
-		lbl, err := alb.NewLoadBalancer(e.Ctx, namer.ResourceName("lb"), &alb.LoadBalancerArgs{
-			LoadBalancerType: pulumi.StringPtr("network"),
-			Subnets:          pulumi.ToStringArray(e.DefaultSubnets()),
-			Internal:         pulumi.BoolPtr(true),
-		}, opts...)
-		if err != nil {
-			return pulumi.StringOutput{}, pulumi.StringOutput{}, err
-		}
+func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
+	namer := e.Namer.WithPrefix("redis")
+	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
-		tg, err := alb.NewTargetGroup(e.Ctx, namer.ResourceName("tg"), &alb.TargetGroupArgs{
-			Port:       pulumi.IntPtr(6379),
-			Protocol:   pulumi.StringPtr("TCP"),
-			TargetType: pulumi.StringPtr("instance"),
-			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-		}, opts...)
-		if err != nil {
-			return pulumi.StringOutput{}, pulumi.StringOutput{}, err
-		}
-
-		if _, err = alb.NewListener(e.Ctx, namer.ResourceName("listener"), &alb.ListenerArgs{
-			LoadBalancerArn: lbl.Arn,
-			Port:            pulumi.IntPtr(6379),
-			Protocol:        pulumi.StringPtr("TCP"),
-			DefaultActions: alb.ListenerDefaultActionArray{
-				&alb.ListenerDefaultActionArgs{
-					Type:           pulumi.String("forward"),
-					TargetGroupArn: tg.Arn,
-				},
-			},
-		}, opts...); err != nil {
-			return pulumi.StringOutput{}, pulumi.StringOutput{}, err
-		}
-
-		return tg.Arn, lbl.DnsName, nil
+	ecsComponent := &EcsComponent{}
+	if err := e.Ctx.RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
+		return nil, err
 	}
+
+	opts = append(opts, pulumi.Parent(ecsComponent))
+
 	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
 		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis")),
 		SubnetIds: e.RandomSubnets(),
@@ -71,27 +42,6 @@ func GetEcsTargetGroupAndDns(e aws.Environment, namer namer.Namer, opts []pulumi
 			Protocol: pulumi.StringPtr("TCP"),
 		},
 	}, opts...)
-	if err != nil {
-		return pulumi.StringOutput{}, pulumi.StringOutput{}, err
-	}
-	return nlb.DefaultTargetGroup.Arn(), nlb.LoadBalancer.DnsName(), nil
-
-}
-
-func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
-	namer := e.Namer.WithPrefix("redis")
-	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
-
-	ecsComponent := &EcsComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
-		return nil, err
-	}
-
-	opts = append(opts, pulumi.Parent(ecsComponent))
-	var targetGroup pulumi.StringOutput
-	var Dnsname pulumi.StringOutput
-	var err error
-	targetGroup, Dnsname, err = GetEcsTargetGroupAndDns(e, namer, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -130,7 +80,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			&classicECS.ServiceLoadBalancerArgs{
 				ContainerName:  pulumi.String("redis"),
 				ContainerPort:  pulumi.Int(6379),
-				TargetGroupArn: targetGroup,
+				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
 			},
 		},
 	}, opts...); err != nil {
@@ -149,7 +99,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 					Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
 					Command: pulumi.StringArray{
 						pulumi.String("-addr"),
-						pulumi.Sprintf("%s:6379", Dnsname),
+						pulumi.Sprintf("%s:6379", nlb.LoadBalancer.DnsName()),
 					},
 					Cpu:    pulumi.IntPtr(50),
 					Memory: pulumi.IntPtr(32),

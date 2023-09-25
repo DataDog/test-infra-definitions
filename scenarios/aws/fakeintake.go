@@ -1,13 +1,13 @@
 package aws
 
 import (
+	fakeintake "github.com/DataDog/test-infra-definitions/components/datadog/apps/fakeintake"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
-	ecsFargate "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 )
 
 func NewEcsFakeintake(env resourcesAws.Environment) (*ddfakeintake.ConnectionExporter, error) {
-	fakeintake, err := ecsFargate.NewECSFargateInstance(env)
+	fakeintake, err := fakeintake.NewECSFargateInstance(env)
 	if err != nil {
 		return nil, err
 	}

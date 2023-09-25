@@ -6,32 +6,9 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const sharedDiskCmd = `
-mkdir -p /mnt/kmt-ramfs/deps && 
-mount -t ramfs -o size=5g ramfs /mnt/kmt-ramfs && 
-dd if=/dev/zero of=/mnt/kmt-ramfs/deps.img bs=1G count=3 && 
-mkfs.ext4 -F /mnt/kmt-ramfs/deps.img && 
-sudo mount -o exec,loop /mnt/kmt-ramfs/deps.img /mnt/kmt-ramfs/deps
-`
-
-func setupSharedDisk(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	buildSharedDiskInRamfsArgs := command.Args{
-		Create: pulumi.String(sharedDiskCmd),
-	}
-
-	buildSharedDiskInRamfsDone, err := runner.Command("build-shared-disk", &buildSharedDiskInRamfsArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	return []pulumi.Resource{buildSharedDiskInRamfsDone}, nil
-}
-
 // This function provisions the metal instance for setting up libvirt based micro-vms.
 func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
-	runner := instance.runner
-
-	return setupSharedDisk(runner, []pulumi.Resource{})
+	return []pulumi.Resource{}, nil
 }
 
 func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {

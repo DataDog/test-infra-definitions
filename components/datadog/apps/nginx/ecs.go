@@ -55,8 +55,8 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"nginx": {
-					Name:  pulumi.StringPtr("nginx"),
-					Image: pulumi.StringPtr("ghcr.io/datadog/apps-nginx-server:main"),
+					Name:  pulumi.String("nginx"),
+					Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
 					DockerLabels: pulumi.StringMap{
 						"com.datadoghq.ad.checks": pulumi.String(jsonMustMarshal(
 							map[string]interface{}{
@@ -140,8 +140,8 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"query": {
-					Name:  pulumi.StringPtr("query"),
-					Image: pulumi.StringPtr("ghcr.io/datadog/apps-http-client:main"),
+					Name:  pulumi.String("query"),
+					Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
 					Command: pulumi.StringArray{
 						pulumi.String("-url"),
 						pulumi.Sprintf("http://%s", alb.LoadBalancer.DnsName()),

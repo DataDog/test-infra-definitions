@@ -1,13 +1,40 @@
 variables:
   IMAGE_REPOSITORY: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/test-infra-definitions
+  KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "test-infra-definitions"
 
 stages:
+  - test
   - build
+
+integration-testing:
+  stage: test
+  image: $IMAGE_REPOSITORY/runner:8388801b
+  tags: ["arch:amd64"]
+  before_script:
+    # Setup AWS Credentials
+    - mkdir -p ~/.aws
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config
+    - export AWS_PROFILE=agent-qa-ci
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.ssh_public_key_integration_test --with-decryption --query "Parameter.Value" --out text > $E2E_PUBLIC_KEY_PATH
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.ssh_key_integration_test --with-decryption --query "Parameter.Value" --out text > $E2E_PRIVATE_KEY_PATH
+    - export PULUMI_CONFIG_PASSPHRASE=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.pulumi_config_phrase_integration_test --with-decryption --query "Parameter.Value" --out text)
+    - eval $(ssh-agent -s)
+    - chmod 400 $E2E_PRIVATE_KEY_PATH
+    - ssh-add $E2E_PRIVATE_KEY_PATH
+    - pip install -r requirements.txt
+  script:
+    - go test ./integration-tests -v
+  variables:
+    E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
+    E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key
+    E2E_KEY_PAIR_NAME: e2e-integration-test-ssh-key
+    KUBERNETES_MEMORY_REQUEST: "6Gi"
+    KUBERNETES_MEMORY_LIMIT: "12Gi"
 
 build-runner-image:
   stage: build
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
-  tags: ["runner:docker"]
+  tags: ["arch:amd64"]
   variables:
     PUSH_IMAGE: "false"
   rules:
@@ -21,3 +48,4 @@ build-runner-image:
     # Tag with 8 and 12 SHA to match go.mod
     - docker buildx build --no-cache --pull $PUSH_ARG --tag ${TARGET_REPO}:${CI_COMMIT_SHORT_SHA} --tag ${TARGET_REPO}:${CI_COMMIT_SHA:0:12}  .
   retry: 2
+

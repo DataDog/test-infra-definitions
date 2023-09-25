@@ -22,6 +22,10 @@ func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
 }
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
+func (*Unix) CheckIsAbsPath(path string) bool {
+	return strings.HasPrefix(path, "/")
+}
+
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
 	if version.PipelineID != "" {
 		return getUnixInstallFormatString("install_script_agent7.sh", version), nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
@@ -44,13 +45,14 @@ func NewGenericVM(
 	commonEnv := env.GetCommonEnvironment()
 	ctx := commonEnv.Ctx
 
+	vmNamer := namer.NewNamer(ctx, name)
 	readyFunc := func(r *command.Runner) (*remote.Command, error) { return command.WaitForCloudInit(r) }
 	var osCommand command.OSCommand
 	if osValue.GetType() == os.WindowsType {
 		readyFunc = func(r *command.Runner) (*remote.Command, error) {
 			// Wait until a command can be executed.
 			return r.Command(
-				"wait-openssh-require-win2019-win10-or-above",
+				vmNamer.ResourceName("wait-openssh-require-win2019-win10-or-above"),
 				&command.Args{
 					Create: pulumi.String(`Write-Host "Ready"`),
 				})
@@ -60,7 +62,7 @@ func NewGenericVM(
 		osCommand = command.NewUnixOSCommand()
 	}
 
-	connection, runner, err := createRunner(vmResource, env, instanceIP, osValue.GetSSHUser(), readyFunc, osCommand)
+	connection, runner, err := createRunner(&vmNamer, vmResource, env, instanceIP, osValue.GetSSHUser(), readyFunc, osCommand)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +107,7 @@ func (vm *genericVM) GetIP() pulumi.StringOutput {
 }
 
 func createRunner(
+	vmNamer *namer.Namer,
 	vm pulumi.Resource,
 	env config.Environment,
 	instanceIP pulumi.StringInput,
@@ -118,10 +121,11 @@ func createRunner(
 	}
 
 	commonEnv := env.GetCommonEnvironment()
+
 	runner, err := command.NewRunner(
 		*commonEnv,
 		command.RunnerArgs{
-			ConnectionName: "connection",
+			ConnectionName: vmNamer.ResourceName("connection"),
 			ParentResource: vm,
 			Connection:     connection,
 			ReadyFunc:      readyFunc,

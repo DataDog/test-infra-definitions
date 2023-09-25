@@ -3,6 +3,7 @@ package agentparams
 import (
 	"testing"
 
+	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,5 +32,21 @@ func TestParams(t *testing.T) {
 		assert.Equal(t, version, os.AgentVersion{
 			PipelineID: "pipeline-16362517",
 		})
+	})
+	t.Run("WithIntegration should correctly add conf.d/integration/conf.yaml to the path", func(t *testing.T) {
+		p := &Params{
+			Integrations: make(map[string]*FileDefinition),
+			Files:        make(map[string]*FileDefinition),
+		}
+		options := []Option{WithIntegration("http_check", "some_config")}
+		result, err := common.ApplyOption(p, options)
+		assert.NoError(t, err)
+
+		for filePath, definition := range result.Integrations {
+			assert.Contains(t, filePath, "conf.d")
+			assert.Contains(t, filePath, "http_check")
+			assert.Contains(t, filePath, "conf.yaml")
+			assert.Equal(t, definition.Content, "some_config")
+		}
 	})
 }

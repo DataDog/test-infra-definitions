@@ -17,6 +17,7 @@ scenario_name = "aws/eks"
 
 @task(
     help={
+        "config_path": doc.config_path,
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
@@ -28,6 +29,7 @@ scenario_name = "aws/eks"
 )
 def create_eks(
     ctx: Context,
+    config_path: Optional[str] = None,
     debug: Optional[bool] = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
@@ -57,10 +59,10 @@ def create_eks(
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name, config_path)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Optional[str]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     kubeconfig_output = outputs["kubeconfig"]
     kubeconfig_content = yaml.dump(kubeconfig_output)
@@ -70,11 +72,12 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
         f.write(kubeconfig_content)
 
     try:
-        local_config = config.get_local_config()
+        local_config = config.get_local_config(config_path)
     except ValidationError as e:
-        raise Exit(f"Error in config {config.get_full_profile_path()}:{e}")
+        raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
-    command = f"KUBECONFIG={config} {tool.get_aws_wrapper(local_config.get_aws().get_account())} -- kubectl get nodes"
+    command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} kubectl get nodes"
+
     pyperclip.copy(command)
     print(
         f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n\nThis command was copied to the clipboard\n"

@@ -101,12 +101,9 @@ RUN cd /tmp/test-infra && \
 # Remove AWS-related deps as we already install AWS CLI v2
 # Remove PyYAML to workaround issues with cpython 3.0.0
 # https://github.com/yaml/pyyaml/issues/724#issuecomment-1638636728
-# WORKAROUND: Pining to b468e3cdcbe66e8b8852a29be6c66b03bc08e03d as later changes break the filtering
-RUN curl --retry 10 -fsSL https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/b468e3cdcbe66e8b8852a29be6c66b03bc08e03d/requirements.txt | \
-  grep -ivE "boto3|botocore|awscli|urllib3|PyYAML" > requirements-agent.txt && \
-  pip3 install "cython<3.0.0" && \
+RUN pip3 install "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
-  pip3 install -r requirements-agent.txt && \
+  pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
   go install gotest.tools/gotestsum@latest
 
 # I think it's safe to say if we're using this mega image, we want pulumi

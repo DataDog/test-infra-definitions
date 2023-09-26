@@ -78,7 +78,7 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
     with ctx.cd(_get_root_path()):
         ctx.run(
-            f"pulumi stack output --json -s {full_stack_name}",
+            f"pulumi stack output --show-secrets --json -s {full_stack_name}",
             out_stream=buffer,
         )
     return json.loads(buffer.getvalue())

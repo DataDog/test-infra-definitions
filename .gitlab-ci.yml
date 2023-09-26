@@ -20,7 +20,6 @@ build-runner-image:
   rules:
     - when: on_success
   script:
-    # Tag with 8 and 12 SHA to match go.mod
     - docker buildx build --no-cache --pull --push --label target=build --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} .
   retry: 2
 
@@ -56,9 +55,8 @@ release-runner-image:
   tags: ["arch:amd64"]
   script:
     - docker pull ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
-    - docker tag  ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHORT_SHA} 
-    - docker tag  ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
-    - docker push --label target=build ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12} --tag ${IMAGE_REPOSITORY}:${CI_COMMIT_SHA:0:12}  .
-  only:
-    - main
-  when: on_success
+    - ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
+    - docker push ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success

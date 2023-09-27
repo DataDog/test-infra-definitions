@@ -118,7 +118,6 @@ def notify(text):
         notify_windows(text)
     notify_macos(text)
 
-
 def notify_macos(text):
     CMD = '''
     on run argv

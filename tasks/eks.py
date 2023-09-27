@@ -88,7 +88,6 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
     input("Press a key to copy command to clipboard...")
     pyperclip.copy(command)
 
-    
 
 @task(help={"stack_name": doc.stack_name, "yes": doc.yes})
 def destroy_eks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):

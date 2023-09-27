@@ -52,7 +52,6 @@ def create_docker(
     _show_connection_message(ctx, full_stack_name)
 
 
-
 def _show_connection_message(ctx: Context, full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     connection = tool.Connection(outputs)
@@ -64,9 +63,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
         + f'docker context create pulumi-{host} --docker "host=ssh://{user}@{host}"\n'
         + f"docker --context pulumi-{host} container ls\n"
     )
-    print(
-        f"If you want to use docker context, you can run the following commands \n\n{command}"
-    )
+    print(f"If you want to use docker context, you can run the following commands \n\n{command}")
 
     input("Press a key to copy command to clipboard...")
     pyperclip.copy(command)

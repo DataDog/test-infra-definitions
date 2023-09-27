@@ -63,7 +63,6 @@ def create_ecs(
     _show_connection_message(ctx, config_path, full_stack_name)
 
 
-
 def _show_connection_message(ctx: Context, config_path: Optional[str], full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     cluster_name = outputs["ecs-cluster-name"]
@@ -76,10 +75,8 @@ def _show_connection_message(ctx: Context, config_path: Optional[str], full_stac
     command = (
         f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
     )
-    print(
-        f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n"
-    )
-    
+    print(f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n")
+
     input("Press a key to copy command to clipboard...")
     pyperclip.copy(command)
 

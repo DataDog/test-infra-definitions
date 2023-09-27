@@ -86,9 +86,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
 
     command = f"ssh {user}@{host}"
 
-    print(
-        f"\nYou can run the following command to connect to the host `{command}`.\n"
-    )
+    print(f"\nYou can run the following command to connect to the host `{command}`.\n")
     if copy_to_clipboard:
         input("Press a key to copy command to clipboard...")
         pyperclip.copy(command)

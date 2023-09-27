@@ -59,7 +59,7 @@ def create_eks(
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
-    
+
     tool.notify("Your EKS cluster is now created")
 
     _show_connection_message(ctx, full_stack_name, config_path)
@@ -81,9 +81,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
 
     command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} kubectl get nodes"
 
-    print(
-        f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n"
-    )
+    print(f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n")
 
     input("Press a key to copy command to clipboard...")
     pyperclip.copy(command)

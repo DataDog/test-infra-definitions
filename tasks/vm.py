@@ -72,6 +72,9 @@ def create_vm(
         use_fakeintake=use_fakeintake,
         use_aws_vault=use_aws_vault,
     )
+
+    tool.notify("Your VM is now created")
+
     _show_connection_message(ctx, full_stack_name, copy_to_clipboard)
 
 
@@ -82,11 +85,13 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
     user = connection.user
 
     command = f"ssh {user}@{host}"
-    if copy_to_clipboard:
-        pyperclip.copy(command)
+
     print(
-        f"\nYou can run the following command to connect to the host `{command}`. This command was copied to the clipboard\n"
+        f"\nYou can run the following command to connect to the host `{command}`.\n"
     )
+    if copy_to_clipboard:
+        input("Press a key to copy command to clipboard...")
+        pyperclip.copy(command)
 
 
 @task(

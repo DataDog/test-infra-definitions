@@ -46,7 +46,11 @@ def create_docker(
         agent_version=agent_version,
         extra_flags=extra_flags,
     )
+
+    tool.notify("Your Docker environment is now created")
+
     _show_connection_message(ctx, full_stack_name)
+
 
 
 def _show_connection_message(ctx: Context, full_stack_name: str):
@@ -60,10 +64,12 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
         + f'docker context create pulumi-{host} --docker "host=ssh://{user}@{host}"\n'
         + f"docker --context pulumi-{host} container ls\n"
     )
-    pyperclip.copy(command)
     print(
-        f"If you want to use docker context, you can run the following commands which were copied in the clipboard\n\n{command}"
+        f"If you want to use docker context, you can run the following commands \n\n{command}"
     )
+
+    input("Press a key to copy command to clipboard...")
+    pyperclip.copy(command)
 
 
 @task(help={"stack_name": doc.stack_name, "yes": doc.yes})

@@ -44,7 +44,6 @@ def create_eks(
     """
 
     extra_flags = {}
-    extra_flags["ddinfra:aws/defaultFargateLoadBalancer"] = True
     extra_flags["ddinfra:aws/eks/linuxNodeGroup"] = linux_node_group
     extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
     extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group

@@ -33,8 +33,8 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
 	containersMap := make(map[string]ecs.TaskDefinitionContainerDefinitionArgs)
 	for _, c := range containers {
-		// Ugly hack as the implementation of pulumi.StringPtrInput is just `type stringPtr string`
-		containersMap[reflect.ValueOf(c.Name).Elem().String()] = *c
+		// Ugly hack as the implementation of pulumi.StringInput is just `type String string`
+		containersMap[reflect.ValueOf(c.Name).String()] = *c
 	}
 	containersMap["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containersMap["log_router"] = *FargateFirelensContainerDefinition()

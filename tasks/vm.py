@@ -73,7 +73,7 @@ def create_vm(
         use_aws_vault=use_aws_vault,
     )
 
-    tool.notify("Your VM is now created")
+    tool.notify(ctx, "Your VM is now created")
 
     _show_connection_message(ctx, full_stack_name, copy_to_clipboard)
 

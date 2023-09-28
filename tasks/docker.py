@@ -47,7 +47,7 @@ def create_docker(
         extra_flags=extra_flags,
     )
 
-    tool.notify("Your Docker environment is now created")
+    tool.notify(ctx, "Your Docker environment is now created")
 
     _show_connection_message(ctx, full_stack_name)
 

@@ -60,7 +60,7 @@ def create_eks(
         extra_flags=extra_flags,
     )
 
-    tool.notify("Your EKS cluster is now created")
+    tool.notify(ctx, "Your EKS cluster is now created")
 
     _show_connection_message(ctx, full_stack_name, config_path)
 

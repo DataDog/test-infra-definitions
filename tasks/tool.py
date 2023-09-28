@@ -2,7 +2,6 @@ import getpass
 import json
 import pathlib
 import platform
-import subprocess
 from io import StringIO
 from typing import Any, List, Optional
 
@@ -112,21 +111,21 @@ def get_image_description(ctx: Context, ami_id: str) -> Any:
         return result["Images"][0]
 
 
-def notify(text):
+def notify(ctx, text):
     if is_linux():
         notify_linux()
     if is_windows():
         notify_windows()
-    notify_macos(text)
+    notify_macos(ctx, text)
 
 
-def notify_macos(text):
+def notify_macos(ctx, text):
     CMD = '''
     on run argv
     display notification (item 2 of argv) with title (item 1 of argv)
     end run
     '''
-    subprocess.call(['osascript', '-e', CMD, "test-infra-definitions", text])
+    ctx.run(f"osascript -e '{CMD}' test-infra-definitions '{text}'")
 
 
 def notify_linux():

@@ -58,7 +58,7 @@ def create_ecs(
         extra_flags=extra_flags,
     )
 
-    tool.notify("Your ECS cluster is now created")
+    tool.notify(ctx, "Your ECS cluster is now created")
 
     _show_connection_message(ctx, config_path, full_stack_name)
 

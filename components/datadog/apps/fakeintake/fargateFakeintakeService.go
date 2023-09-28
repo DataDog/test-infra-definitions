@@ -41,7 +41,6 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	var balancerArray classicECS.ServiceLoadBalancerArray
 	var alb *lb.ApplicationLoadBalancer
 	var err error
-	fmt.Printf("Load balancer state : %t\n", e.DefaultFargateLoadBalancer())
 	if e.DefaultFargateLoadBalancer() {
 		alb, err = lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
 			Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),

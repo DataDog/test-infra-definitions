@@ -1,11 +1,9 @@
 package ecs
 
 import (
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	"reflect"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
@@ -35,17 +33,12 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers []*ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
-	containersMap := make(map[string]ecs.TaskDefinitionContainerDefinitionArgs)
-	for _, c := range containers {
-		// Ugly hack as the implementation of pulumi.StringPtrInput is just `type stringPtr string`
-		containersMap[reflect.ValueOf(&c.Name).Elem().String()] = *c
-	}
-	containersMap["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
-	containersMap["log_router"] = *FargateFirelensContainerDefinition()
+func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
-		Containers: containersMap,
+		Containers: containers,
 		Cpu:        pulumi.StringPtr("1024"),
 		Memory:     pulumi.StringPtr("2048"),
 		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{

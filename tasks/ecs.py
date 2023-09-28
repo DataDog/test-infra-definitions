@@ -43,6 +43,7 @@ def create_ecs(
     """
     extra_flags = {}
     extra_flags["ddinfra:aws/ecs/fargateCapacityProvider"] = use_fargate
+    extra_flags["ddinfra:aws/defaultFargateLoadBalancer"] = True
     extra_flags["ddinfra:aws/ecs/linuxECSOptimizedNodeGroup"] = linux_node_group
     extra_flags["ddinfra:aws/ecs/linuxECSOptimizedARMNodeGroup"] = linux_arm_node_group
     extra_flags["ddinfra:aws/ecs/linuxBottlerocketNodeGroup"] = bottlerocket_node_group

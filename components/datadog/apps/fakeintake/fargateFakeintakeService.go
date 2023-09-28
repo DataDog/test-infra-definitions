@@ -11,7 +11,6 @@ import (
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"os"
 )
 
 const (
@@ -42,14 +41,8 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	var balancerArray classicECS.ServiceLoadBalancerArray
 	var alb *lb.ApplicationLoadBalancer
 	var err error
-	if os.Getenv("DD_DISABLE_LB") != "" {
-		var FargateErr error
-		instance.Host, FargateErr = FargateServiceFakeintake(e)
-		if FargateErr != nil {
-			return nil, FargateErr
-		}
-		balancerArray = classicECS.ServiceLoadBalancerArray{}
-	} else {
+	fmt.Printf("Load balancer state : %t\n", e.DefaultFargateLoadBalancer())
+	if e.DefaultFargateLoadBalancer() {
 		alb, err = lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
 			Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
 			SubnetIds:      e.RandomSubnets(),
@@ -79,7 +72,15 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 				TargetGroupArn: alb.DefaultTargetGroup.Arn(),
 			},
 		}
+	} else {
+		var FargateErr error
+		instance.Host, FargateErr = FargateServiceFakeintake(e)
+		if FargateErr != nil {
+			return nil, FargateErr
+		}
+		balancerArray = classicECS.ServiceLoadBalancerArray{}
 	}
+
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
 		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("fakeintake")),
@@ -123,7 +124,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	}, opts...); err != nil {
 		return nil, err
 	}
-	if os.Getenv("DD_DISABLE_LB") == "" {
+	if e.DefaultFargateLoadBalancer() {
 		if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
 			"host": alb.LoadBalancer.DnsName(),
 		}); err != nil {

@@ -27,6 +27,7 @@ type ddInfra struct {
 	defaultARMInstanceType     string
 	defaultInstanceStorageSize int
 	defaultShutdownBehavior    string
+	defaultFargateLoadBalancer bool
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -40,6 +41,7 @@ type ddInfraECS struct {
 	instanceProfile               string
 	serviceAllocatePublicIP       bool
 	fargateCapacityProvider       bool
+	fargateLoadBalancer           bool
 	linuxECSOptimizedNodeGroup    bool
 	linuxECSOptimizedARMNodeGroup bool
 	linuxBottlerocketNodeGroup    bool
@@ -50,6 +52,7 @@ type ddInfraEKS struct {
 	allowedInboundSecurityGroups []string
 	allowedInboundPrefixList     []string
 	fargateNamespace             string
+	fargateLoadBalancer          bool
 	linuxNodeGroup               bool
 	linuxARMNodeGroup            bool
 	linuxBottlerocketNodeGroup   bool
@@ -91,6 +94,7 @@ func sandboxDefault() environmentDefault {
 				instanceProfile:             "arn:aws:iam::601427279990:instance-profile/ecsInstanceRole",
 				serviceAllocatePublicIP:     false,
 				fargateCapacityProvider:     true,
+				fargateLoadBalancer:         true,
 				linuxECSOptimizedNodeGroup:  true,
 				linuxBottlerocketNodeGroup:  true,
 				windowsLTSCNodeGroup:        true,
@@ -130,6 +134,7 @@ func agentSandboxDefault() environmentDefault {
 				instanceProfile:             "arn:aws:iam::376334461865:instance-profile/ecsInstanceRole",
 				serviceAllocatePublicIP:     false,
 				fargateCapacityProvider:     true,
+				fargateLoadBalancer:         true,
 				linuxECSOptimizedNodeGroup:  true,
 				linuxBottlerocketNodeGroup:  true,
 				windowsLTSCNodeGroup:        true,
@@ -169,6 +174,7 @@ func agentQADefault() environmentDefault {
 				instanceProfile:             "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole",
 				serviceAllocatePublicIP:     false,
 				fargateCapacityProvider:     true,
+				fargateLoadBalancer:         true,
 				linuxECSOptimizedNodeGroup:  true,
 				linuxBottlerocketNodeGroup:  true,
 				windowsLTSCNodeGroup:        true,

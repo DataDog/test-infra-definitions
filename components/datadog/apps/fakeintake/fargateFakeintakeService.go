@@ -72,7 +72,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 			},
 		}
 	} else {
-		instance.Host, err = FargateServiceFakeintake(e)
+		instance.Host, err = FargateServiceFakeintakeWithoutLoadBalancer(e)
 		if err != nil {
 			return nil, err
 		}
@@ -168,7 +168,7 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 	}
 }
 
-// FargateServiceFakeintake deploys one fakeintake container to a dedicated Fargate cluster
+// FargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
 func FargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
 	taskDef, err := FargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))

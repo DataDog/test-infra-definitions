@@ -1,6 +1,7 @@
 from . import tool
 
 install_agent: str = f"Install the Agent (default {tool.get_default_agent_install()})."
+install_workload: str = f"Install test workload (default {tool.get_default_workload_install()})."
 pipeline_id: str = (
     "The pipeline id of the custom Agent build for example '16497585' (may be taken form the gitlab url)'"
 )

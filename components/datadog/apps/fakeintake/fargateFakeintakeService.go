@@ -170,7 +170,7 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 
 // FargateServiceFakeintake deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func FargateServiceFakeintake(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
+func FargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
 	taskDef, err := FargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
 	if err != nil {
 		return pulumi.StringOutput{}, err

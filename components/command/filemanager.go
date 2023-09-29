@@ -26,6 +26,11 @@ func NewFileManager(runner *Runner) *FileManager {
 	}
 }
 
+// CreateDirectoryFromPulumiString if it does not exist from directory name as a Pulumi String
+func (fm *FileManager) CreateDirectoryFromPulumiString(name string, remotePath pulumi.String, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
+}
+
 // CreateDirectory if it does not exist
 func (fm *FileManager) CreateDirectory(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.command.CreateDirectory(fm.runner, "create-directory-"+remotePath, pulumi.String(remotePath), useSudo, opts...)

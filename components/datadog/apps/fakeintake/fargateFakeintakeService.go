@@ -72,10 +72,9 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 			},
 		}
 	} else {
-		var FargateErr error
-		instance.Host, FargateErr = FargateServiceFakeintake(e)
-		if FargateErr != nil {
-			return nil, FargateErr
+		instance.Host, err = FargateServiceFakeintake(e)
+		if err != nil {
+			return nil, err
 		}
 		balancerArray = classicECS.ServiceLoadBalancerArray{}
 	}

@@ -19,6 +19,7 @@ scenario_name = "aws/eks"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
+        "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "linux_node_group": doc.linux_node_group,
@@ -33,6 +34,7 @@ def create_eks(
     debug: Optional[bool] = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
+    install_workload: Optional[bool] = True,
     agent_version: Optional[str] = None,
     linux_node_group: bool = True,
     linux_arm_node_group: bool = False,
@@ -48,6 +50,7 @@ def create_eks(
     extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
     extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
     extra_flags["ddinfra:aws/eks/windowsNodeGroup"] = windows_node_group
+    extra_flags["ddtestworkload:deploy"] = install_workload
 
     full_stack_name = deploy(
         ctx,

@@ -61,6 +61,10 @@ def get_default_agent_install() -> bool:
     return True
 
 
+def get_default_workload_install() -> bool:
+    return True
+
+
 def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
     if stack_name is None:
         stack_name = scenario_name.replace("/", "-")

@@ -38,9 +38,24 @@ type sshKeyPair struct {
 }
 
 const (
-	LocalVMSet            = "local"
-	defaultShutdownPeriod = 360 // minutes
+	LocalVMSet              = "local"
+	defaultShutdownPeriod   = 360 // minutes
+	libvirtSSHPrivateKeyX86 = "libvirt_rsa-x86"
+	libvirtSSHPrivateKeyArm = "libvirt_rsa-arm"
 )
+
+var SSHKeyFileNames = map[string]string{
+	ec2.AMD64Arch: libvirtSSHPrivateKeyX86,
+	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
+}
+
+var GetWorkingDirectory func() string
+
+func getKernelVersionTestingWorkingDir(m *config.DDMicroVMConfig) func() string {
+	return func() string {
+		return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMWorkingDirectory, "/tmp")
+	}
+}
 
 func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	var pair sshKeyPair

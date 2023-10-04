@@ -16,7 +16,7 @@ import (
 
 const (
 	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
-	sharedFSMountPoint  = "/opt/kernel-version-testing"
+	sharedFSMountPoint  = "/home/kernel-version-testing/kmt-ramfs/"
 )
 
 func getNextVMIP(ip *net.IP) net.IP {

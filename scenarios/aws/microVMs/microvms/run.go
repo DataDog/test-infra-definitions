@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"time"
 
+	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	commonConfig "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -12,9 +16,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
-	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type InstanceEnvironment struct {
@@ -335,11 +336,56 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		return nil, err
 	}
 
-	microVMIPMap := GetDomainIPMap(vmCollections)
-	for domainID, ip := range microVMIPMap {
-		instanceEnv.Ctx.Export(domainID, pulumi.String(ip))
+	// populate microVM IP mapping
+	for _, collection := range vmCollections {
+		for _, domain := range collection.domains {
+			instanceEnv.Ctx.Export(domain.domainID, pulumi.String(domain.ip))
+		}
 	}
 
+	// provision microVMs
+	for _, collection := range vmCollections {
+		if collection.instance.Arch == LocalVMSet {
+			continue
+		}
+
+		sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, microVMGroupSubnet, waitFor)
+		if err != nil {
+			return nil, err
+		}
+
+		microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, domain := range collection.domains {
+			if domain.lvDomain == nil {
+				continue
+			}
+
+			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, collection.instance.Connection)
+			remoteRunner, err := command.NewRunner(
+				*collection.instance.e.CommonEnvironment,
+				command.RunnerArgs{
+					ParentResource: domain.lvDomain,
+					Connection:     pc,
+					ConnectionName: collection.instance.instanceNamer.ResourceName("conn-" + domain.ip),
+					OSCommand:      command.NewUnixOSCommand(),
+				},
+			)
+			microRunner := NewRunner(WithRemoteRunner(remoteRunner))
+
+			allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
+			if err != nil {
+				return nil, err
+			}
+			_, err = reloadSSHD(microRunner, allowEnvDone)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	return &scenarioReady, nil
 }
 

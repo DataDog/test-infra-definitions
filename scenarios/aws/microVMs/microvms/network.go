@@ -6,12 +6,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/DataDog/test-infra-definitions/components/command"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 )
 
 // The microvm subnet changed from /16 to /24 because the underlying libvirt sdk would identify
@@ -60,6 +61,13 @@ func freeSubnet(subnet string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func getMicroVMGroupSubnetPattern(subnet string) string {
+	ip, _, _ := net.ParseCIDR(subnet)
+	ipv4 := ip.To4()
+	// this assumes a /24
+	return fmt.Sprintf("%d.%d.%d.*", ipv4[0], ipv4[1], ipv4[2])
 }
 
 func getMicroVMGroupSubnet() (string, error) {

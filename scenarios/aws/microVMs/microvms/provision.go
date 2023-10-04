@@ -3,11 +3,14 @@ package microvms
 import (
 	"sync"
 
-	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/components/command"
 )
+
+const sharedFSMountPoint = "/opt/kernel-version-testing"
 
 const sharedDiskCmd = `MYUSER=$(id -u) MYGROUP=$(id -g) sh -c \
 'mkdir -p %[1]s/kmt-ramfs && \
@@ -45,17 +48,87 @@ func setupSharedDisk(runner *Runner, ctx *pulumi.Context, isLocal bool, depends 
 
 	buildSharedDiskInRamfsDone, err := runner.Command("build-shared-disk", &buildSharedDiskInRamfsArgs, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
+	}
+	return []pulumi.Resource{buildSharedDiskInRamfsDone}, nil
+}
+
+func setupMicroVMSSHConfig(instance *Instance, microVMIPSubnet string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	createSSHDirArgs := command.Args{
+		Create: pulumi.Sprintf("mkdir -p /home/ubuntu/.ssh && chmod 700 /home/ubuntu/.ssh"),
+	}
+	createDirDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-dir", microVMIPSubnet), &createSSHDirArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return nil, err
 	}
 
-	return []pulumi.Resource{buildSharedDiskInRamfsDone}, nil
+	pattern := getMicroVMGroupSubnetPattern(microVMIPSubnet)
+	args := command.Args{
+		Create: pulumi.Sprintf(`echo -e "Host %s\nIdentityFile /home/kernel-version-testing/ddvm_rsa\nUser root\nStrictHostKeyChecking no\n" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, pattern),
+	}
+	done, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-config", microVMIPSubnet), &args, pulumi.DependsOn([]pulumi.Resource{createDirDone}))
+	if err != nil {
+		return nil, err
+	}
+	return []pulumi.Resource{done}, nil
+}
+
+func readMicroVMSSHKey(instance *Instance, depends []pulumi.Resource) (pulumi.StringOutput, []pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("cat /home/kernel-version-testing/ddvm_rsa"),
+	}
+	done, err := instance.runner.RemoteCommand(instance.instanceNamer.ResourceName("read-microvm-ssh-key"), &args, pulumi.DependsOn(depends))
+	if err != nil {
+		return pulumi.StringOutput{}, nil, err
+	}
+	s := pulumi.ToSecret(done.Stdout).(pulumi.StringOutput)
+	return s, []pulumi.Resource{done}, err
+}
+
+func setupSSHAllowEnv(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("echo -e 'AcceptEnv DD_API_KEY\n' | sudo tee -a /etc/ssh/sshd_config"),
+	}
+	done, err := runner.Command("allow-ssh-env", &args, pulumi.DependsOn(depends))
+	if err != nil {
+		return nil, err
+	}
+	return []pulumi.Resource{done}, nil
+}
+
+func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("sudo systemctl reload sshd.service"),
+	}
+	done, err := runner.Command("reload sshd", &args, pulumi.DependsOn(depends))
+	if err != nil {
+		return nil, err
+	}
+	return []pulumi.Resource{done}, nil
 }
 
 // This function provisions the metal instance for setting up libvirt based micro-vms.
 func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
 	runner := instance.runner
 
-	return setupSharedDisk(runner, instance.e.Ctx, instance.Arch == LocalVMSet, []pulumi.Resource{})
+	sharedDiskDone, err := setupSharedDisk(runner, instance.e.Ctx, instance.Arch == LocalVMSet, []pulumi.Resource{})
+	if err != nil {
+		return nil, err
+	}
+	if instance.Arch == LocalVMSet {
+		return sharedDiskDone, nil
+	}
+
+	allowEnvDone, err := setupSSHAllowEnv(instance.runner, sharedDiskDone)
+	if err != nil {
+		return nil, err
+	}
+
+	reloadSSHDDone, err := reloadSSHD(instance.runner, allowEnvDone)
+	if err != nil {
+		return nil, err
+	}
+	return reloadSSHDDone, nil
 }
 
 func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -65,7 +138,7 @@ func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, res
 	}
 	sshgenDone, err := localRunner.Command(resourceNamer.ResourceName("gen-libvirt-sshkey"), &sshGenArgs)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	// This command writes the public ssh key which pulumi uses to talk to the libvirt daemon, in the authorized_keys
@@ -81,8 +154,7 @@ func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, res
 	wait := append(depends, sshgenDone)
 	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs, pulumi.DependsOn(wait))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
-
 	return []pulumi.Resource{sshWrite}, nil
 }

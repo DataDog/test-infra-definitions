@@ -3,12 +3,13 @@ package command
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 )
 
 type Args struct {
@@ -81,12 +82,14 @@ func NewRunner(e config.CommonEnvironment, args RunnerArgs) (*Runner, error) {
 		runner.options = append(runner.options, pulumi.Parent(args.ParentResource), pulumi.DeletedWith(args.ParentResource))
 	}
 
-	var err error
-	runner.waitCommand, err = args.ReadyFunc(runner)
-	if err != nil {
-		return nil, err
+	if args.ReadyFunc != nil {
+		var err error
+		runner.waitCommand, err = args.ReadyFunc(runner)
+		if err != nil {
+			return nil, err
+		}
+		runner.options = append(runner.options, utils.PulumiDependsOn(runner.waitCommand))
 	}
-	runner.options = append(runner.options, utils.PulumiDependsOn(runner.waitCommand))
 
 	return runner, nil
 }

@@ -24,7 +24,7 @@ scenario_name = "aws/vm"
         "use_fakeintake": doc.fakeintake,
         "ami_id": doc.ami_id,
         "architecture": doc.architecture,
-        "copy_to_clipboard": doc.copy_to_clipboard,
+        "interactive": doc.interactive,
         "use_aws_vault": doc.use_aws_vault,
     }
 )
@@ -41,7 +41,7 @@ def create_vm(
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,
-    copy_to_clipboard: Optional[bool] = True,
+    interactive: Optional[bool] = True,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -73,9 +73,10 @@ def create_vm(
         use_aws_vault=use_aws_vault,
     )
 
-    tool.notify(ctx, "Your VM is now created")
+    if interactive:
+        tool.notify(ctx, "Your VM is now created")
 
-    _show_connection_message(ctx, full_stack_name, copy_to_clipboard)
+    _show_connection_message(ctx, full_stack_name, interactive)
 
 
 def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool] = True):

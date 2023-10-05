@@ -50,7 +50,7 @@ func TestInvokeVM(t *testing.T) {
 
 	defer os.Remove(tmpConfigFile)
 
-	createCmd := exec.Command("invoke", "create-vm", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-copy-to-clipboard", "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found: %s", string(createOutput))
 

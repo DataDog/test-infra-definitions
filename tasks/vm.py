@@ -22,6 +22,7 @@ scenario_name = "aws/vm"
         "debug": doc.debug,
         "os_family": doc.os_family,
         "use_fakeintake": doc.fakeintake,
+        "use_loadBalancer": doc.use_loadBalancer,
         "ami_id": doc.ami_id,
         "architecture": doc.architecture,
         "copy_to_clipboard": doc.copy_to_clipboard,
@@ -38,6 +39,7 @@ def create_vm(
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
+    use_loadBalancer: Optional[bool] = False,
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,
@@ -50,6 +52,7 @@ def create_vm(
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
     extra_flags["ddinfra:osFamily"] = os_family
+    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
     if os_arch is not None:
         extra_flags["ddinfra:osArchitecture"] = os_arch

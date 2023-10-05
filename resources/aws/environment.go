@@ -100,7 +100,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
 	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
-		Inputs:      pulumi.ToStringArray(env.defaultSubnets()),
+		Inputs:      pulumi.ToStringArray(env.DefaultSubnets()),
 		ResultCount: pulumi.IntPtr(2),
 	})
 	if err != nil {
@@ -120,7 +120,7 @@ func (e *Environment) DefaultVPCID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultVPCIDParamName, e.envDefault.ddInfra.defaultVPCID)
 }
 
-func (e *Environment) defaultSubnets() []string {
+func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 

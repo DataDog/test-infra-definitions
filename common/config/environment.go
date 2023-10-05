@@ -21,12 +21,13 @@ const (
 	DDTestingWorkloadNamespace = "ddtestworkload"
 
 	// Infra namespace
-	DDInfraEnvironment        = "env"
-	DDInfraKubernetesVersion  = "kubernetesVersion"
-	DDInfraOSFamily           = "osFamily"
-	DDInfraOSArchitecture     = "osArchitecture"
-	DDInfraOSAmiID            = "osAmiId"
-	DDInfraExtraResourcesTags = "extraResourcesTags"
+	DDInfraEnvironment                      = "env"
+	DDInfraKubernetesVersion                = "kubernetesVersion"
+	DDInfraOSFamily                         = "osFamily"
+	DDInfraOSArchitecture                   = "osArchitecture"
+	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
+	DDInfraOSAmiID                          = "osAmiId"
+	DDInfraExtraResourcesTags               = "extraResourcesTags"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -80,6 +81,11 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 }
 
 // Infra namespace
+
+func (e *CommonEnvironment) InfraShouldDeployFakeintakeWithLB() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraDeployFakeintakeWithLoadBalancer, true)
+}
+
 func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 	envsStr := e.InfraConfig.Require(DDInfraEnvironment)
 	return strings.Split(envsStr, multiValueSeparator)

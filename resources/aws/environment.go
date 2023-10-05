@@ -166,10 +166,6 @@ func (e *Environment) DefaultShutdownBehavior() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
 }
 
-func (e *Environment) DefaultFargateLoadBalancer() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsFargateCapacityProvider, e.envDefault.ddInfra.defaultFargateLoadBalancer)
-}
-
 // ECS
 func (e *Environment) ECSExecKMSKeyID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsExecKMSKeyID, e.envDefault.ddInfra.ecs.execKMSKeyID)

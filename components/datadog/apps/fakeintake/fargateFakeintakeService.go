@@ -41,7 +41,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	var balancerArray classicECS.ServiceLoadBalancerArray
 	var alb *lb.ApplicationLoadBalancer
 	var err error
-	if e.DefaultFargateLoadBalancer() {
+	if e.InfraShouldDeployFakeintakeWithLB() {
 		alb, err = lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
 			Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
 			SubnetIds:      e.RandomSubnets(),
@@ -72,7 +72,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 			},
 		}
 	} else {
-		instance.Host, err = FargateServiceFakeintakeWithoutLoadBalancer(e)
+		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e)
 		if err != nil {
 			return nil, err
 		}
@@ -122,18 +122,16 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	}, opts...); err != nil {
 		return nil, err
 	}
-	if e.DefaultFargateLoadBalancer() {
-		if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
-			"host": alb.LoadBalancer.DnsName(),
-		}); err != nil {
-			return nil, err
-		}
+	if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
+		"host": instance.Host,
+	}); err != nil {
+		return nil, err
 	}
 
 	return instance, nil
 }
 
-func FargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTaskDefinition, error) {
+func fargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTaskDefinition, error) {
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			containerName: *fargateLinuxContainerDefinition(),
@@ -168,10 +166,10 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 	}
 }
 
-// FargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
+// fargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func FargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
-	taskDef, err := FargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
+func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
+	taskDef, err := fargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

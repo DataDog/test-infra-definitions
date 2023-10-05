@@ -52,7 +52,7 @@ def create_vm(
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
     extra_flags["ddinfra:osFamily"] = os_family
-    extra_flags["ddinfra:aws/defaultFargateLoadBalancer"] = use_loadBalancer
+    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
     if os_arch is not None:
         extra_flags["ddinfra:osArchitecture"] = os_arch

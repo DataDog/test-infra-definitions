@@ -26,24 +26,29 @@ func NewFileManager(runner *Runner) *FileManager {
 	}
 }
 
-// CreateDirectory if it does not exist
-func (fm *FileManager) CreateDirectory(name string, remotePath pulumi.StringInput, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+// CreateDirectoryFromPulumiString if it does not exist from directory name as a Pulumi String
+func (fm *FileManager) CreateDirectoryFromPulumiString(name string, remotePath pulumi.String, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
 }
 
+// CreateDirectory if it does not exist
+func (fm *FileManager) CreateDirectory(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return fm.command.CreateDirectory(fm.runner, "create-directory-"+remotePath, pulumi.String(remotePath), useSudo, opts...)
+}
+
 // TempDirectory creates a temporary directory
-func (fm *FileManager) TempDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	tempDir := path.Join(fm.command.GetTemporaryDirectory(), resourceName)
-	folderCmd, err := fm.CreateDirectory("create-temporary-folder-"+resourceName, pulumi.String(tempDir), false, opts...)
+func (fm *FileManager) TempDirectory(folderName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+	tempDir := path.Join(fm.command.GetTemporaryDirectory(), folderName)
+	folderCmd, err := fm.CreateDirectory(tempDir, false, opts...)
 	return folderCmd, tempDir, err
 }
 
 // HomeDirectory creates a directory in home directory, if it does not exist
 // A home directory is a file system directory on a multi-user operating system containing files for a given user of the system.
 // It does not require sudo, using sudo in home directory allows to change default ownership and it is discouraged.
-func (fm *FileManager) HomeDirectory(resourceName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
-	homeDir := path.Join(fm.command.GetHomeDirectory(), resourceName)
-	folderCmd, err := fm.CreateDirectory("create-home-folder-"+resourceName, pulumi.String(homeDir), false, opts...)
+func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+	homeDir := path.Join(fm.command.GetHomeDirectory(), folderName)
+	folderCmd, err := fm.CreateDirectory(homeDir, false, opts...)
 	return folderCmd, homeDir, err
 }
 
@@ -65,12 +70,12 @@ func (fm *FileManager) CopyRelativeFolder(relativeFolder string, remoteFolder st
 	// `./` cannot be used with os.DirFS
 	relativeFolder = strings.TrimPrefix(relativeFolder, "."+string(filepath.Separator))
 
-	fullPath, rootFolder, err := getFullPath(relativeFolder, 2)
+	_, rootFolder, err := getFullPath(relativeFolder, 2)
 	if err != nil {
 		return nil, err
 	}
 
-	return fm.CopyFSFolder(fullPath, os.DirFS(rootFolder), relativeFolder, remoteFolder, opts...)
+	return fm.CopyFSFolder(os.DirFS(rootFolder), relativeFolder, remoteFolder, opts...)
 }
 
 // CopyAbsoluteFolder copies recursively a folder to a remote folder.
@@ -79,7 +84,7 @@ func (fm *FileManager) CopyAbsoluteFolder(absoluteFolder string, remoteFolder st
 	baseFolder := filepath.Base(absoluteFolder)
 	rootWithoutBase := absoluteFolder[:len(absoluteFolder)-len(baseFolder)]
 	// Use remoteFolder as `absoluteFolder` may be a random file path that is different for each run.
-	return fm.CopyFSFolder(remoteFolder, os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
+	return fm.CopyFSFolder(os.DirFS(rootWithoutBase), baseFolder, remoteFolder, opts...)
 }
 
 // CopyRelativeFile copies relative path to a remote path.
@@ -97,15 +102,14 @@ func (fm *FileManager) CopyRelativeFile(relativePath string, remotePath string, 
 // CopyFSFolder copies recursively a local folder to a remote folder.
 // You may consider using `CopyRelativeFolder` which has a simpler API.
 func (fm *FileManager) CopyFSFolder(
-	resourceName string,
 	folderFS fs.FS,
 	folderPath string,
 	remoteFolder string,
 	opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
 	useSudo := true
-	folderCommand, err := fm.CreateDirectory(resourceName, pulumi.String(remoteFolder), useSudo, opts...)
+	folderCommand, err := fm.CreateDirectory(remoteFolder, useSudo, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("cannot create a temporary folder: %v for resource %v", err, resourceName)
+		return nil, fmt.Errorf("cannot create a temporary folder: %v for resource %v", err, remoteFolder)
 	}
 
 	files, folders, err := readFilesAndFolders(folderFS, folderPath)
@@ -120,7 +124,7 @@ func (fm *FileManager) CopyFSFolder(
 			return nil, err
 		}
 		remotePath := path.Join(remoteFolder, destFolder)
-		resources, err := fm.CreateDirectory("createFolder-"+remotePath, pulumi.String(remotePath), useSudo, pulumi.DependsOn([]pulumi.Resource{folderCommand}))
+		resources, err := fm.CreateDirectory(remotePath, useSudo, pulumi.DependsOn([]pulumi.Resource{folderCommand}))
 		if err != nil {
 			return nil, err
 		}

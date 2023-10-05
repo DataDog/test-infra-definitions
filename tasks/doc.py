@@ -26,5 +26,6 @@ architecture: str = f"The architecture to use. Possible values are {tool.get_arc
 yes: str = "Automatically approve and perform the destroy without previewing it"
 use_aws_vault: str = "Wrap aws command with aws-vault, default to True"
 copy_to_clipboard: str = "Enable copy to clipboard, default to True"
+interactive: str = "Enable interactive mode, if set to False notifications and copy to clipboard are disabled"
 config_path: str = "Specify a custom config path to use"
 use_loadBalancer: str = "Use a loadBalancer to instantiate the fakeintake (default False)"

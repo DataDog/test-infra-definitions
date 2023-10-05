@@ -115,6 +115,33 @@ def get_image_description(ctx: Context, ami_id: str) -> Any:
         return result["Images"][0]
 
 
+def notify(ctx, text):
+    if is_linux():
+        notify_linux()
+    if is_windows():
+        notify_windows()
+    notify_macos(ctx, text)
+
+
+def notify_macos(ctx, text):
+    CMD = '''
+    on run argv
+    display notification (item 2 of argv) with title (item 1 of argv)
+    end run
+    '''
+    ctx.run(f"osascript -e '{CMD}' test-infra-definitions '{text}'")
+
+
+def notify_linux():
+    # TODO: Implement notification on linux. Would require linux computer (with desktop) to test
+    return
+
+
+def notify_windows():
+    # TODO: Implenent notification on windows. Would require windows computer (with desktop) to test
+    return
+
+
 def _get_root_path() -> str:
     folder = pathlib.Path(__file__).parent.resolve()
     return str(folder.parent)

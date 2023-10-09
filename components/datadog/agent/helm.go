@@ -1,7 +1,8 @@
 package agent
 
 import (
-	"fmt"
+	"encoding/base64"
+	"encoding/json"
 
 	"golang.org/x/exp/maps"
 
@@ -79,7 +80,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	secret, err := corev1.NewSecret(e.Ctx, "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
-			Name:      pulumi.String(fmt.Sprintf("%s-datadog-credentials", installName)),
+			Name:      pulumi.Sprintf("%s-datadog-credentials", installName),
 		},
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
@@ -90,6 +91,38 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		return nil, err
 	}
 	opts = append(opts, utils.PulumiDependsOn(secret))
+
+	// Create image pull secret if necessary
+	var imgPullSecret *corev1.Secret
+	if e.ImagePullRegistry() != "" {
+		dockerConfigJSON := e.ImagePullPassword().ApplyT(func(password string) (string, error) {
+			dockerConfigJSON, err := json.Marshal(map[string]map[string]map[string]string{
+				"auths": {
+					e.ImagePullRegistry(): {
+						"username": e.ImagePullUsername(),
+						"password": password,
+						"auth":     base64.StdEncoding.EncodeToString([]byte(e.ImagePullUsername() + ":" + password)),
+					},
+				},
+			})
+			return string(dockerConfigJSON), err
+		}).(pulumi.StringOutput)
+
+		imgPullSecret, err = corev1.NewSecret(e.Ctx, "registry-credentials", &corev1.SecretArgs{
+			Metadata: metav1.ObjectMetaArgs{
+				Namespace: ns.Metadata.Name(),
+				Name:      pulumi.Sprintf("%s-registry-credentials", installName),
+			},
+			StringData: pulumi.StringMap{
+				".dockerconfigjson": dockerConfigJSON,
+			},
+			Type: pulumi.StringPtr("kubernetes.io/dockerconfigjson"),
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
+		opts = append(opts, utils.PulumiDependsOn(imgPullSecret))
+	}
 
 	// Compute some values
 	agentImagePath := DockerAgentFullImagePath(&e, "")
@@ -104,9 +137,8 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
-	if args.Fakeintake != nil {
-		configureFakeintake(values, args.Fakeintake)
-	}
+	values.configureImagePullSecret(imgPullSecret)
+	values.configureFakeintake(args.Fakeintake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -114,7 +146,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  args.ValuesYAML,
-		Values:      values,
+		Values:      pulumi.Map(values),
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -130,9 +162,8 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
-		if args.Fakeintake != nil {
-			configureFakeintake(values, args.Fakeintake)
-		}
+		values.configureImagePullSecret(imgPullSecret)
+		values.configureFakeintake(args.Fakeintake)
 
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
 			RepoURL:     DatadogHelmRepo,
@@ -140,7 +171,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 			InstallName: installName + "-windows",
 			Namespace:   args.Namespace,
 			ValuesYAML:  args.ValuesYAML,
-			Values:      values,
+			Values:      pulumi.Map(values),
 		}, opts...)
 		if err != nil {
 			return nil, err
@@ -162,8 +193,10 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	return helmComponent, nil
 }
 
-func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) pulumi.Map {
-	return pulumi.Map{
+type HelmValues pulumi.Map
+
+func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {
+	return HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -221,8 +254,8 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 	}
 }
 
-func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _, _ string) pulumi.Map {
-	return pulumi.Map{
+func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _, _ string) HelmValues {
+	return HelmValues{
 		"targetSystem": pulumi.String("windows"),
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -270,7 +303,27 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 	}
 }
 
-func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionExporter) {
+func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
+	if secret == nil {
+		return
+	}
+
+	for _, section := range []string{"agents", "clusterAgent", "clusterChecksRunner"} {
+		if _, found := values[section].(pulumi.Map)["image"]; found {
+			values[section].(pulumi.Map)["image"].(pulumi.Map)["pullSecrets"] = pulumi.MapArray{
+				pulumi.Map{
+					"name": secret.Metadata.Name(),
+				},
+			}
+		}
+	}
+}
+
+func (values HelmValues) configureFakeintake(fakeintake *ddfakeintake.ConnectionExporter) {
+	if fakeintake == nil {
+		return
+	}
+
 	additionalEndpointsEnvVar := pulumi.MapArray{
 		pulumi.Map{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
@@ -283,7 +336,7 @@ func configureFakeintake(values pulumi.Map, fakeintake *ddfakeintake.ConnectionE
 	}
 
 	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
-		if values[section].(pulumi.Map)["env"] == nil {
+		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
 		} else {
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)

@@ -37,6 +37,13 @@ func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 }
 
 func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+	var disks libvirt.DomainDiskArray
+	for _, vol := range args.Volumes {
+		disks = append(disks, libvirt.DomainDiskArgs{
+			VolumeId: vol.ID(),
+		})
+	}
+
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
@@ -46,11 +53,7 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 				TargetType: pulumi.String("serial"),
 			},
 		},
-		Disks: libvirt.DomainDiskArray{
-			libvirt.DomainDiskArgs{
-				VolumeId: args.Volume.ID(),
-			},
-		},
+		Disks:  disks,
 		Memory: pulumi.Int(args.Memory),
 		Vcpu:   pulumi.Int(args.Vcpu),
 		Xml: libvirt.DomainXmlArgs{
@@ -88,6 +91,13 @@ func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 }
 
 func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+	var disks libvirt.DomainDiskArray
+	for _, vol := range args.Volumes {
+		disks = append(disks, libvirt.DomainDiskArgs{
+			VolumeId: vol.ID(),
+		})
+	}
+
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
@@ -97,11 +107,7 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 				TargetType: pulumi.String("serial"),
 			},
 		},
-		Disks: libvirt.DomainDiskArray{
-			libvirt.DomainDiskArgs{
-				VolumeId: args.Volume.ID(),
-			},
-		},
+		Disks:   disks,
 		Memory:  pulumi.Int(args.Memory),
 		Vcpu:    pulumi.Int(args.Vcpu),
 		Machine: pulumi.String("virt"),

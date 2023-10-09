@@ -167,6 +167,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 				if err != nil {
 					return []*Domain{}, err
 				}
+				domain.RecipeLibvirtDomainArgs.Volumes = append(domain.RecipeLibvirtDomainArgs.Volumes, rootVolume)
 
 				domain.domainArgs = domain.RecipeLibvirtDomainArgs.Resources.GetLibvirtDomainArgs(
 					&domain.RecipeLibvirtDomainArgs,

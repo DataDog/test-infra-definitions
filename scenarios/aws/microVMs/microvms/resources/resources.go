@@ -47,7 +47,7 @@ type RecipeLibvirtDomainArgs struct {
 	Memory            int
 	Xls               pulumi.StringOutput
 	KernelPath        string
-	Volume            *libvirt.Volume
+	Volumes           []*libvirt.Volume
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 	Machine           string

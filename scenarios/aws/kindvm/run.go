@@ -30,7 +30,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	// Export the cluster's kubeconfig.
+	// Export cluster’s properties
 	ctx.Export("kubeconfig", kubeConfig)
 
 	// Building Kubernetes provider
@@ -71,6 +71,7 @@ datadog:
 			return err
 		}
 
+		ctx.Export("kind-cluster-name", pulumi.String(ctx.Stack()))
 		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
 		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
 

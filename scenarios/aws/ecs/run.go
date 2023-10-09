@@ -28,6 +28,10 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	// Export cluster’s properties
+	ctx.Export("ecs-cluster-name", ecsCluster.Name)
+	ctx.Export("ecs-cluster-arn", ecsCluster.Arn)
+
 	// Handle capacity providers
 	capacityProviders := pulumi.StringArray{}
 	if awsEnv.ECSFargateCapacityProvider() {
@@ -145,7 +149,5 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
-	ctx.Export("ecs-cluster-name", ecsCluster.Name)
-	ctx.Export("ecs-cluster-arn", ecsCluster.Arn)
 	return nil
 }

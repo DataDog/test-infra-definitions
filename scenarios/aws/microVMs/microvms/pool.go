@@ -68,6 +68,16 @@ Setup for remote pool and local pool is different for a number of reasons:
     have a complicated permissions setup.
 */
 func remoteGlobalPool(p *globalLibvirtPool, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	poolXMLWrittenArgs := command.Args{
+		Create: pulumi.Sprintf("echo \"%s\" > %s", p.poolXML, p.poolXMLPath),
+		Delete: pulumi.Sprintf("rm -f %s", p.poolXMLPath),
+	}
+	poolXMLWritten, err := runner.Command(p.poolNamer.ResourceName("write-pool-xml"), &poolXMLWrittenArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	depends = append(depends, poolXMLWritten)
+
 	poolBuildReadyArgs := command.Args{
 		Create: pulumi.Sprintf("virsh pool-build %s", p.poolName),
 		Delete: pulumi.Sprintf("virsh pool-delete %s", p.poolName),

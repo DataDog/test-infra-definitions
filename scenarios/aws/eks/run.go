@@ -122,7 +122,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Export cluster’s properties
-	ctx.Export("eks-cluster-name", cluster.EksCluster.Name())
+	ctx.Export("kube-cluster-name", cluster.EksCluster.Name())
 	ctx.Export("kubeconfig", cluster.Kubeconfig)
 
 	nodeGroups := make([]pulumi.Resource, 0)

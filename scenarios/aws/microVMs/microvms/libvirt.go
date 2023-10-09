@@ -26,8 +26,6 @@ func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
 	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), identifier))
 }
 
-var initLibvirtProvider sync.Once
-
 type LibvirtProviderFn func() (*libvirt.Provider, error)
 
 func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool LibvirtPool) (*LibvirtFilesystem, error) {
@@ -70,6 +68,12 @@ func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 	}
 }
 
+type LibvirtProvider struct {
+	libvirtProviderFn   LibvirtProviderFn
+	initLibvirtProvider sync.Once
+	provider            *libvirt.Provider
+}
+
 // Each VMCollection represents the resources needed to setup a collection of libvirt VMs per instance.
 // Each VMCollection corresponds to a single instance
 // It is composed of
@@ -79,12 +83,12 @@ func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 // fs: This is the filesystem consisting of pools and basevolumes. Each VMSet will result in 1 filesystems.
 // domains: This represents a single libvirt VM. Each VMSet will result in 1 or more domains to be built.
 type VMCollection struct {
-	instance          *Instance
-	vmsets            []vmconfig.VMSet
-	pool              LibvirtPool
-	fs                map[vmconfig.VMSetID]*LibvirtFilesystem
-	domains           []*Domain
-	libvirtProviderFn LibvirtProviderFn
+	instance *Instance
+	vmsets   []vmconfig.VMSet
+	pool     LibvirtPool
+	fs       map[vmconfig.VMSetID]*LibvirtFilesystem
+	domains  []*Domain
+	LibvirtProvider
 }
 
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -212,6 +216,25 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 	return nil
 }
 
+func buildLibvirtProviderFn(collection *VMCollection, depends []pulumi.Resource) func() (*libvirt.Provider, error) {
+	var err error
+	return func() (*libvirt.Provider, error) {
+		collection.initLibvirtProvider.Do(func() {
+			collection.provider, err = libvirt.NewProvider(
+				collection.instance.e.Ctx,
+				collection.instance.instanceNamer.ResourceName("libvirt-provider"),
+				&libvirt.ProviderArgs{
+					Uri: collection.instance.libvirtURI,
+				}, pulumi.DependsOn(depends))
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return collection.provider, nil
+	}
+}
+
 func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*VMCollection, []pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var vmCollections []*VMCollection
@@ -229,25 +252,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		// which essentially creates a connection with the libvirt daemon, and the provider
 		// created connection being used, the libvirt daemon drops the connection
 		// causing our scenario to fail.
-		collection.libvirtProviderFn = func() func() (*libvirt.Provider, error) {
-			var provider *libvirt.Provider
-			var err error
-			return func() (*libvirt.Provider, error) {
-				initLibvirtProvider.Do(func() {
-					provider, err = libvirt.NewProvider(
-						instance.e.Ctx,
-						instance.instanceNamer.ResourceName("provider"),
-						&libvirt.ProviderArgs{
-							Uri: instance.libvirtURI,
-						}, pulumi.DependsOn(depends))
-				})
-				if err != nil {
-					return nil, err
-				}
-
-				return provider, nil
-			}
-		}()
+		collection.libvirtProviderFn = buildLibvirtProviderFn(collection, depends)
 
 		// add the VMSets required to build this collection
 		// This function decides how to partition the sets across collections.

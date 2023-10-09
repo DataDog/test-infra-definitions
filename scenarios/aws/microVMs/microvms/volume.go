@@ -54,7 +54,6 @@ func remoteLibvirtVolume(v *volume, runner *Runner, depends []pulumi.Resource) (
 	var baseVolumeReady pulumi.Resource
 
 	volumeXMLPath := fmt.Sprintf("/tmp/volume-%s.xml", v.filesystemImage.imageName)
-
 	volXMLWrittenArgs := command.Args{
 		Create: pulumi.Sprintf("echo \"%s\" > %s", v.volumeXML, volumeXMLPath),
 		Delete: pulumi.Sprintf("rm -f %s", volumeXMLPath),

@@ -15,7 +15,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
-const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+const (
+	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+	sharedFSMountPoint  = "/opt/kernel-version-testing"
+)
 
 func getNextVMIP(ip *net.IP) net.IP {
 	ipv4 := ip.To4()
@@ -120,7 +123,12 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	return domain, nil
 }
 
-func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
+func setupDomainVolume(ctx *pulumi.Context, providerFn LibvirtProviderFn, depends []pulumi.Resource, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
+	provider, err := providerFn()
+	if err != nil {
+		return nil, err
+	}
+
 	volume, err := libvirt.NewVolume(ctx, resourceName, &libvirt.VolumeArgs{
 		BaseVolumeId: pulumi.String(baseVolumeID),
 		Pool:         pulumi.String(poolName),
@@ -133,7 +141,7 @@ func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, depends 
 	return volume, nil
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider *libvirt.Provider, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
+func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
 	var domains []*Domain
 
 	for _, vcpu := range set.VCpu {
@@ -156,12 +164,12 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 				}
 
 				// setup volume to be used by this domain
-				domain.RecipeLibvirtDomainArgs.Volume, err = setupDomainVolume(
+				rootVolume, err := setupDomainVolume(
 					e.Ctx,
-					provider,
+					providerFn,
 					depends,
-					fs.baseVolumeMap[kernel.Tag].volumeKey,
-					fs.pool.poolName,
+					fs.baseVolumeMap[kernel.Tag].Key(),
+					fs.pool.Name(),
 					domain.domainNamer.ResourceName("volume"),
 				)
 				if err != nil {

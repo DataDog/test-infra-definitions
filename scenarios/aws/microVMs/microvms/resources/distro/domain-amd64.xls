@@ -17,10 +17,6 @@
           <target dir='kernel-version-testing'/>
       </filesystem>
       <readonly/>
-      <channel type='unix'>
-          <source mode='bind' path='/tmp/{domainID}.sock'/>
-          <target type='virtio' name='logs-output-socket' state='disconnected'/>
-      </channel>
       <xsl:copy>
           <xsl:apply-templates select="@*|node()"/>
       </xsl:copy>

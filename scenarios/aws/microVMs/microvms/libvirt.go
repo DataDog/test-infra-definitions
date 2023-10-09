@@ -248,20 +248,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			return vmCollections, waitFor, err
 		}
 		waitFor = append(waitFor, wait...)
-
-		// setup domain sockets for communicating with the domains
-		for _, domain := range collection.domains {
-			createDomainSocketDone, err := buildDomainSocket(collection.instance.runner,
-				domain.domainID,
-				domain.domainNamer.ResourceName("create-domain-socket", domain.domainID),
-				depends,
-			)
-			if err != nil {
-				return vmCollections, waitFor, err
-			}
-			waitFor = append(waitFor, createDomainSocketDone)
-		}
-
 	}
 
 	// map domains to ips

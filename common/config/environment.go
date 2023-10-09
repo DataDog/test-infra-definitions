@@ -36,6 +36,9 @@ const (
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
+	DDImagePullRegistryParamName         = "imagePullRegistry"
+	DDImagePullUsernameParamName         = "imagePullUsername"
+	DDImagePullPasswordParamName         = "imagePullPassword"
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
@@ -166,6 +169,18 @@ func (e *CommonEnvironment) AgentFullImagePath() string {
 
 func (e *CommonEnvironment) ClusterAgentFullImagePath() string {
 	return e.AgentConfig.Get(DDClusterAgentFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) ImagePullRegistry() string {
+	return e.AgentConfig.Get(DDImagePullRegistryParamName)
+}
+
+func (e *CommonEnvironment) ImagePullUsername() string {
+	return e.AgentConfig.Require(DDImagePullUsernameParamName)
+}
+
+func (e *CommonEnvironment) ImagePullPassword() pulumi.StringOutput {
+	return e.AgentConfig.RequireSecret(DDImagePullPasswordParamName)
 }
 
 func (e *CommonEnvironment) AgentAPIKey() pulumi.StringOutput {

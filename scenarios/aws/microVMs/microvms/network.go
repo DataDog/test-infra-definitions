@@ -8,7 +8,6 @@ import (
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -82,14 +81,7 @@ func getMicroVMGroupSubnet() (string, error) {
 }
 
 func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
-	var sudoPassword pulumi.StringOutput
-	rootConfig := config.New(ctx, "")
-	if isLocal {
-		sudoPassword = rootConfig.RequireSecret("sudo-password-local")
-	} else {
-		sudoPassword = rootConfig.RequireSecret("sudo-password-remote")
-	}
-
+	sudoPassword := GetSudoPassword(ctx, isLocal)
 	iptablesAllowTCPArgs := command.Args{
 		Create:                   pulumi.Sprintf(iptablesTCPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),
 		Delete:                   pulumi.Sprintf(iptablesTCPRule, iptablesDeleteRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),
@@ -117,7 +109,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 	return []pulumi.Resource{iptablesAllowTCPDone, iptablesAllowUDPDone}, nil
 }
 
-func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
+func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
 	// Collect all DHCP entries in a single string to be
 	// formatted in network XML.
 	dhcpEntriesJoined := pulumi.All(dhcpEntries...).ApplyT(
@@ -131,6 +123,11 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, de
 			return sb.String(), nil
 		},
 	).(pulumi.StringInput)
+
+	provider, err := providerFn()
+	if err != nil {
+		return nil, err
+	}
 
 	netXML := resources.GetDefaultNetworkXLS(
 		map[string]pulumi.StringInput{

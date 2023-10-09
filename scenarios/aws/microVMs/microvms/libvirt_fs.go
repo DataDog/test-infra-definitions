@@ -55,8 +55,6 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool L
 	baseVolumeMap := make(map[string]LibvirtVolume)
 	for _, k := range vmset.Kernels {
 		imageName := pool.Name() + "-" + k.Tag
-		fmt.Println(k.Tag)
-		fmt.Println(imageName)
 		vol := NewLibvirtVolume(
 			pool,
 			filesystemImage{

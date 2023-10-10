@@ -53,5 +53,7 @@ release-runner-image:
   stage: release
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/images/mirror/crane:latest
   tags: ["arch:amd64"]
+  variables:
+    FF_KUBERNETES_HONOR_ENTRYPOINT: "true"
   script:
     - copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}

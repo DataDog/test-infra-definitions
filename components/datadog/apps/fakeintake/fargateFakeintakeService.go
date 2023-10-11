@@ -2,6 +2,7 @@ package fakeintake
 
 import (
 	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
@@ -109,7 +110,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 				},
 			},
 			Cpu:    pulumi.StringPtr("256"),
-			Memory: pulumi.StringPtr("512"),
+			Memory: pulumi.StringPtr("1024"),
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
 			},

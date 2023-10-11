@@ -374,6 +374,9 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 					OSCommand:      command.NewUnixOSCommand(),
 				},
 			)
+			if err != nil {
+				return nil, err
+			}
 			microRunner := NewRunner(WithRemoteRunner(remoteRunner))
 
 			allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))

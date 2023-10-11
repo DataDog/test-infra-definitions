@@ -81,7 +81,8 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	}
 
 	for _, d := range vmset.Disks {
-		imageName := d.ImageName
+		imgName := filepath.Base(strings.TrimPrefix(d.BackingStore, "file://"))
+		imageName := pools[d.Type].Name() + "-" + imgName
 		storePath := strings.TrimPrefix(d.BackingStore, "file://")
 		vol := NewLibvirtVolume(
 			pools[d.Type],
@@ -147,7 +148,8 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	}
 
 	for _, d := range vmset.Disks {
-		imageName := pools[d.Type].Name() + "-" + d.ImageName
+		imgName := filepath.Base(strings.TrimPrefix(d.BackingStore, "file://"))
+		imageName := pools[d.Type].Name() + "-" + imgName
 		storePath := strings.TrimPrefix(d.BackingStore, "file://")
 		vol := NewLibvirtVolume(
 			pools[d.Type],

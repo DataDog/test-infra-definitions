@@ -17,7 +17,6 @@ const (
 type Disk struct {
 	Type         PoolType `json:"type"`
 	BackingStore string   `json:"backing_store"`
-	ImageName    string   `json:"image_name"`
 	Size         string   `json:"size,omitempty"`
 }
 

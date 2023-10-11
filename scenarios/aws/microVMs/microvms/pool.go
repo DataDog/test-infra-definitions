@@ -2,6 +2,7 @@ package microvms
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -164,47 +165,50 @@ func (p *globalLibvirtPool) Path() string {
 }
 
 type rambackedLibvirtPool struct {
-	poolName    string
-	poolXML     pulumi.StringOutput
-	poolXMLPath string
-	poolNamer   namer.Namer
-	poolType    vmconfig.PoolType
-	poolPath    string
-	poolSize    string
-}
-
-func generateRamPoolPath() string {
-	return fmt.Sprintf("%s/kmt-ramfs", GetWorkingDirectory())
+	poolName      string
+	poolXML       pulumi.StringOutput
+	poolXMLPath   string
+	poolNamer     namer.Namer
+	poolType      vmconfig.PoolType
+	poolPath      string
+	poolSize      string
+	baseImagePath string
 }
 
 const sharedDiskCmd = `MYUSER=$(id -u) MYGROUP=$(id -g) sh -c \
 'mkdir -p %[1]s && \
 sudo -E -S mount -t ramfs -o size=%[2]s,uid=$MYUSER,gid=$MYGROUP,othmask=0077,mode=0777 ramfs %[1]s && \
 mkdir %[1]s/deps && \
-dd if=/dev/zero of=%[1]s/deps.img bs=%[2]s count=1 && \
-mkfs.ext4 -F %[1]s/deps.img' \
+dd if=/dev/zero of=%[3]s bs=%[2]s count=1 && \
+mkfs.ext4 -F %[3]s' \
 `
 
 func NewRamBackedLibvirtPool(ctx *pulumi.Context, disk *vmconfig.Disk) (LibvirtPool, error) {
 	poolName := libvirtResourceName(ctx.Stack(), "ram-pool")
-	path := strings.TrimPrefix(disk.BackingStore, "file://")
+	baseImagePath := strings.TrimPrefix(disk.BackingStore, "file://")
+	poolPath := filepath.Dir(baseImagePath)
+
+	if disk.Size == "" {
+		return nil, ErrZeroRamDiskSize
+	}
 
 	if !(strings.HasSuffix(disk.Size, "G") || strings.HasSuffix(disk.Size, "M")) {
 		return nil, ErrInvalidPoolSize
 	}
 
 	return &rambackedLibvirtPool{
-		poolName:  poolName,
-		poolNamer: libvirtResourceNamer(ctx, poolName),
-		poolType:  RamPool,
-		poolPath:  path,
-		poolSize:  disk.Size,
+		poolName:      poolName,
+		poolNamer:     libvirtResourceNamer(ctx, poolName),
+		poolType:      RamPool,
+		poolPath:      poolPath,
+		poolSize:      disk.Size,
+		baseImagePath: baseImagePath,
 	}, nil
 }
 
 func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	buildSharedDiskInRamfsArgs := command.Args{
-		Create: pulumi.Sprintf(sharedDiskCmd, p.poolPath, p.poolSize),
+		Create: pulumi.Sprintf(sharedDiskCmd, p.poolPath, p.poolSize, p.baseImagePath),
 		Delete: pulumi.Sprintf("umount %[1]s && rm -r %[1]s", p.poolPath),
 		Stdin:  GetSudoPassword(ctx, isLocal),
 	}

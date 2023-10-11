@@ -87,13 +87,13 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 			pools[d.Type],
 			filesystemImage{
 				imageName:   imageName,
-				imagePath:   getImagePath(storePath, imageName),
+				imagePath:   storePath,
 				imageSource: d.BackingStore,
 			},
 			buildVolumeResourceXMLFn(
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
-					resources.ImagePath: pulumi.String(getImagePath(storePath, imageName)),
+					resources.ImagePath: pulumi.String(storePath),
 				},
 				vmset.Recipe,
 			),
@@ -153,13 +153,13 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 			pools[d.Type],
 			filesystemImage{
 				imageName:   imageName,
-				imagePath:   getImagePath(storePath, imageName),
+				imagePath:   storePath,
 				imageSource: d.BackingStore,
 			},
 			buildVolumeResourceXMLFn(
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
-					resources.ImagePath: pulumi.String(getImagePath(storePath, imageName)),
+					resources.ImagePath: pulumi.String(storePath),
 				},
 				vmset.Recipe,
 			),

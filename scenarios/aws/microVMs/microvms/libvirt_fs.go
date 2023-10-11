@@ -17,9 +17,9 @@ const refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioen
 
 type LibvirtFilesystem struct {
 	ctx           *pulumi.Context
-	pool          LibvirtPool
+	pools         map[vmconfig.PoolType]LibvirtPool
 	volumes       []LibvirtVolume
-	baseVolumeMap map[string]LibvirtVolume
+	baseVolumeMap map[string][]LibvirtVolume
 	fsNamer       namer.Namer
 	isLocal       bool
 }
@@ -47,37 +47,70 @@ func buildVolumeResourceXMLFn(base map[string]pulumi.StringInput, recipe string)
 	}
 }
 
+func getImagePath(base, name string) string {
+	return filepath.Join(base, name)
+}
+
 // vms created with the distro recipe can have different backing filesystem images for different VMs.
 // For example ubuntu and fedora VMs would have different backing images.
-func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool LibvirtPool) *LibvirtFilesystem {
+func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools map[vmconfig.PoolType]LibvirtPool) *LibvirtFilesystem {
 	var volumes []LibvirtVolume
 
-	baseVolumeMap := make(map[string]LibvirtVolume)
+	baseVolumeMap := make(map[string][]LibvirtVolume)
+	defaultPool := pools[DefaultPool]
 	for _, k := range vmset.Kernels {
-		imageName := pool.Name() + "-" + k.Tag
+		imageName := defaultPool.Name() + "-" + k.Tag
 		vol := NewLibvirtVolume(
-			pool,
+			defaultPool,
 			filesystemImage{
 				imageName:   imageName,
-				imagePath:   getImagePath(k.Dir),
+				imagePath:   getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir),
 				imageSource: k.ImageSource,
 			},
 			buildVolumeResourceXMLFn(
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
-					resources.ImagePath: pulumi.String(getImagePath(k.Dir)),
+					resources.ImagePath: pulumi.String(getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)),
 				},
 				vmset.Recipe,
 			),
 			getNamer(ctx),
 		)
 		volumes = append(volumes, vol)
-		baseVolumeMap[k.Tag] = vol
+		baseVolumeMap[k.Tag] = append(baseVolumeMap[k.Tag], vol)
+	}
+
+	for _, d := range vmset.Disks {
+		imageName := d.ImageName
+		storePath := strings.TrimPrefix(d.BackingStore, "file://")
+		vol := NewLibvirtVolume(
+			pools[d.Type],
+			filesystemImage{
+				imageName:   imageName,
+				imagePath:   getImagePath(storePath, imageName),
+				imageSource: d.BackingStore,
+			},
+			buildVolumeResourceXMLFn(
+				map[string]pulumi.StringInput{
+					resources.ImageName: pulumi.String(imageName),
+					resources.ImagePath: pulumi.String(getImagePath(storePath, imageName)),
+				},
+				vmset.Recipe,
+			),
+			getNamer(ctx),
+		)
+
+		// associate extra disks with all vms
+		for _, k := range vmset.Kernels {
+			baseVolumeMap[k.Tag] = append(baseVolumeMap[k.Tag], vol)
+		}
+
+		volumes = append(volumes, vol)
 	}
 
 	return &LibvirtFilesystem{
 		ctx:           ctx,
-		pool:          pool,
+		pools:         pools,
 		volumes:       volumes,
 		baseVolumeMap: baseVolumeMap,
 		fsNamer:       libvirtResourceNamer(ctx, vmset.Name),
@@ -86,35 +119,66 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool L
 }
 
 // vms created with the custom recipe all share the same debian based backing filesystem image.
-func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool LibvirtPool) *LibvirtFilesystem {
-	baseVolumeMap := make(map[string]LibvirtVolume)
-	imageName := vmset.Img.ImageName
+func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools map[vmconfig.PoolType]LibvirtPool) *LibvirtFilesystem {
+	var volumes []LibvirtVolume
 
+	baseVolumeMap := make(map[string][]LibvirtVolume)
+	imageName := vmset.Img.ImageName
 	vol := NewLibvirtVolume(
-		pool,
+		pools[DefaultPool],
 		filesystemImage{
 			imageName:   imageName,
-			imagePath:   getImagePath(imageName),
+			imagePath:   getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName),
 			imageSource: vmset.Img.ImageSourceURI,
 		},
 		buildVolumeResourceXMLFn(
 			map[string]pulumi.StringInput{
 				resources.ImageName: pulumi.String(imageName),
-				resources.ImagePath: pulumi.String(getImagePath(imageName)),
+				resources.ImagePath: pulumi.String(getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)),
 			},
 			vmset.Recipe,
 		),
 		getNamer(ctx),
 	)
+	volumes = append(volumes, vol)
+
 	for _, k := range vmset.Kernels {
-		baseVolumeMap[k.Tag] = vol
+		baseVolumeMap[k.Tag] = append(baseVolumeMap[k.Tag], vol)
+	}
+
+	for _, d := range vmset.Disks {
+		imageName := pools[d.Type].Name() + "-" + d.ImageName
+		storePath := strings.TrimPrefix(d.BackingStore, "file://")
+		vol := NewLibvirtVolume(
+			pools[d.Type],
+			filesystemImage{
+				imageName:   imageName,
+				imagePath:   getImagePath(storePath, imageName),
+				imageSource: d.BackingStore,
+			},
+			buildVolumeResourceXMLFn(
+				map[string]pulumi.StringInput{
+					resources.ImageName: pulumi.String(imageName),
+					resources.ImagePath: pulumi.String(getImagePath(storePath, imageName)),
+				},
+				vmset.Recipe,
+			),
+			getNamer(ctx),
+		)
+
+		// associate extra disks with all vms
+		for _, k := range vmset.Kernels {
+			baseVolumeMap[k.Tag] = append(baseVolumeMap[k.Tag], vol)
+		}
+
+		volumes = append(volumes, vol)
 	}
 
 	return &LibvirtFilesystem{
 		ctx:           ctx,
-		volumes:       []LibvirtVolume{vol},
+		volumes:       volumes,
 		baseVolumeMap: baseVolumeMap,
-		pool:          pool,
+		pools:         pools,
 		fsNamer:       libvirtResourceNamer(ctx, vmset.Name),
 		isLocal:       vmset.Arch == LocalVMSet,
 	}
@@ -169,6 +233,14 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 
 	webDownload := false
 	for _, volume := range fs.volumes {
+		// only download backing stores for volumes inside default pool since these are
+		// the iamges from which VMs boot
+		//
+		// ignore other volume types since they are created by this scenario and not downloaded.
+		if volume.Pool().Type() != DefaultPool {
+			continue
+		}
+
 		fsImage := volume.UnderlyingImage()
 		url, err := url.Parse(fsImage.imageSource)
 		if err != nil {

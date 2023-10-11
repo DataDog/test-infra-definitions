@@ -1,5 +1,7 @@
 package vmconfig
 
+type PoolType string
+
 type VMSetID string
 
 const (
@@ -11,6 +13,13 @@ const (
 	RecipeDistroLocal = "distro-local"
 	RecipeDefault     = "default"
 )
+
+type Disk struct {
+	Type         PoolType `json:"type"`
+	BackingStore string   `json:"backing_store"`
+	ImageName    string   `json:"image_name"`
+	Size         string   `json:"size,omitempty"`
+}
 
 type Kernel struct {
 	Dir         string            `json:"dir"`
@@ -34,6 +43,7 @@ type VMSet struct {
 	Machine string   `json:"machine,omitempty"`
 	Arch    string
 	ID      VMSetID `json:"omitempty"`
+	Disks   []Disk  `json:"disks,omitempty"`
 }
 
 type Config struct {

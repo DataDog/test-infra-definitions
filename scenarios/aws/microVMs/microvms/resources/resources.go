@@ -41,13 +41,33 @@ type ResourceCollection interface {
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
 }
 
+type AttachMethod int
+
+const (
+	AttachAsFile AttachMethod = iota
+	AttachAsVolume
+)
+
+type DiskTarget string
+
+const (
+	VDADisk = "vda"
+	VDBDisk = "vdb"
+)
+
+type DomainDisk struct {
+	VolumeID pulumi.StringPtrInput
+	Attach   AttachMethod
+	Target   DiskTarget
+}
+
 type RecipeLibvirtDomainArgs struct {
 	DomainName        string
 	Vcpu              int
 	Memory            int
 	Xls               pulumi.StringOutput
 	KernelPath        string
-	Volumes           []*libvirt.Volume
+	Disks             []DomainDisk
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 	Machine           string

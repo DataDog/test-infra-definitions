@@ -2,7 +2,6 @@ package microvms
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -15,6 +14,7 @@ type LibvirtVolume interface {
 	UnderlyingImage() *filesystemImage
 	FullResourceName(string) string
 	Key() string
+	Pool() LibvirtPool
 }
 
 type filesystemImage struct {
@@ -31,16 +31,12 @@ type volume struct {
 	volumeNamer namer.Namer
 }
 
-func generateVolumeKey(poolPathFn func() string, volName string) string {
-	return fmt.Sprintf("%s/%s", poolPathFn(), volName)
-}
-
-func getImagePath(name string) string {
-	return filepath.Join(rootFSDir(), name)
+func generateVolumeKey(poolPath string, volName string) string {
+	return fmt.Sprintf("%s/%s", poolPath, volName)
 }
 
 func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(string) pulumi.StringOutput, volNamerFn func(string) namer.Namer) LibvirtVolume {
-	volKey := generateVolumeKey(func() string { return generateGlobalPoolPath(pool.Name()) }, fsImage.imageName)
+	volKey := generateVolumeKey(pool.Path(), fsImage.imageName)
 	return &volume{
 		filesystemImage: fsImage,
 		volumeKey:       volKey,
@@ -125,4 +121,8 @@ func (v *volume) FullResourceName(name string) string {
 
 func (v *volume) Key() string {
 	return v.volumeKey
+}
+
+func (v *volume) Pool() LibvirtPool {
+	return v.pool
 }

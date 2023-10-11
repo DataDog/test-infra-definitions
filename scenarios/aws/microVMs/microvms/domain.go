@@ -123,6 +123,12 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	return domain, nil
 }
 
+// We create a final overlay here so that each VM has its own unique writable disk.
+// At this stage the chain of images is as follows: base-image -> overlay-1
+// After this function we have: base-image -> overlay-1 -> overlay-2
+// We have to do this because we have as many overlay-1's as the number of unique base images.
+// However, we may want multiple VMs booted from the same underlying filesystem. To support this
+// case we create a final overlay-2 for each VM to boot from.
 func setupDomainVolume(ctx *pulumi.Context, providerFn LibvirtProviderFn, depends []pulumi.Resource, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
 	provider, err := providerFn()
 	if err != nil {
@@ -164,18 +170,33 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				}
 
 				// setup volume to be used by this domain
-				rootVolume, err := setupDomainVolume(
-					e.Ctx,
-					providerFn,
-					depends,
-					fs.baseVolumeMap[kernel.Tag].Key(),
-					fs.pool.Name(),
-					domain.domainNamer.ResourceName("volume"),
-				)
-				if err != nil {
-					return []*Domain{}, err
+				libvirtVolumes := fs.baseVolumeMap[kernel.Tag]
+				for _, vol := range libvirtVolumes {
+					if vol.Pool().Type() != DefaultPool {
+						domain.Disks = append(domain.Disks, resources.DomainDisk{
+							VolumeID: pulumi.String(vol.Key()),
+							Attach:   resources.AttachAsFile,
+							Target:   resources.VDBDisk,
+						})
+						continue
+					}
+					rootVolume, err := setupDomainVolume(
+						e.Ctx,
+						providerFn,
+						depends,
+						vol.Key(),
+						vol.Pool().Name(),
+						vol.FullResourceName("final-overlay"),
+					)
+					if err != nil {
+						return []*Domain{}, err
+					}
+					domain.Disks = append(domain.Disks, resources.DomainDisk{
+						VolumeID: pulumi.StringPtrInput(rootVolume.ID()),
+						Attach:   resources.AttachAsVolume,
+						Target:   resources.VDADisk,
+					})
 				}
-				domain.RecipeLibvirtDomainArgs.Volumes = append(domain.RecipeLibvirtDomainArgs.Volumes, rootVolume)
 
 				domain.domainArgs = domain.RecipeLibvirtDomainArgs.Resources.GetLibvirtDomainArgs(
 					&domain.RecipeLibvirtDomainArgs,

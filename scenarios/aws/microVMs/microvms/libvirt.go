@@ -28,7 +28,7 @@ func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
 
 type LibvirtProviderFn func() (*libvirt.Provider, error)
 
-func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool LibvirtPool) (*LibvirtFilesystem, error) {
+func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools map[vmconfig.PoolType]LibvirtPool) (*LibvirtFilesystem, error) {
 	switch vmset.Recipe {
 
 	case vmconfig.RecipeCustomLocal:
@@ -36,13 +36,13 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool LibvirtPool) 
 	case vmconfig.RecipeCustomARM64:
 		fallthrough
 	case vmconfig.RecipeCustomAMD64:
-		return NewLibvirtFSCustomRecipe(ctx, vmset, pool), nil
+		return NewLibvirtFSCustomRecipe(ctx, vmset, pools), nil
 	case vmconfig.RecipeDistroLocal:
 		fallthrough
 	case vmconfig.RecipeDistroARM64:
 		fallthrough
 	case vmconfig.RecipeDistroAMD64:
-		return NewLibvirtFSDistroRecipe(ctx, vmset, pool), nil
+		return NewLibvirtFSDistroRecipe(ctx, vmset, pools), nil
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}
@@ -85,7 +85,7 @@ type LibvirtProvider struct {
 type VMCollection struct {
 	instance *Instance
 	vmsets   []vmconfig.VMSet
-	pool     LibvirtPool
+	pools    map[vmconfig.PoolType]LibvirtPool
 	fs       map[vmconfig.VMSetID]*LibvirtFilesystem
 	domains  []*Domain
 	LibvirtProvider
@@ -93,22 +93,23 @@ type VMCollection struct {
 
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
-	var err error
 
-	libvirtPoolReady, err := vm.pool.SetupLibvirtPool(
-		vm.instance.e.Ctx,
-		vm.instance.runner,
-		vm.libvirtProviderFn,
-		vm.instance.Arch == LocalVMSet,
-		depends,
-	)
-	if err != nil {
-		return []pulumi.Resource{}, err
+	for _, pool := range vm.pools {
+		libvirtPoolReady, err := pool.SetupLibvirtPool(
+			vm.instance.e.Ctx,
+			vm.instance.runner,
+			vm.libvirtProviderFn,
+			vm.instance.Arch == LocalVMSet,
+			depends,
+		)
+		if err != nil {
+			return []pulumi.Resource{}, err
+		}
+		depends = append(depends, libvirtPoolReady...)
 	}
-	depends = append(depends, libvirtPoolReady...)
 
 	for _, set := range vm.vmsets {
-		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pool)
+		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pools)
 		if err != nil {
 			return []pulumi.Resource{}, err
 		}
@@ -235,6 +236,34 @@ func buildLibvirtProviderFn(collection *VMCollection, depends []pulumi.Resource)
 	}
 }
 
+func buildCollectionPools(ctx *pulumi.Context, collection *VMCollection) error {
+	if len(collection.vmsets) == 0 {
+		return ErrVMSetsNotMapped
+	}
+
+	collection.pools = make(map[vmconfig.PoolType]LibvirtPool)
+	collection.pools[DefaultPool] = NewGlobalLibvirtPool(ctx)
+
+	var err error
+	for _, v := range collection.vmsets {
+		for _, d := range v.Disks {
+			switch d.Type {
+			case RamPool:
+				if _, ok := collection.pools[RamPool]; !ok {
+					collection.pools[RamPool], err = NewRamBackedLibvirtPool(ctx, &d)
+				}
+			default:
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*VMCollection, []pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var vmCollections []*VMCollection
@@ -244,7 +273,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		collection := &VMCollection{
 			fs:       make(map[vmconfig.VMSetID]*LibvirtFilesystem),
 			instance: instance,
-			pool:     NewGlobalLibvirtPool(instance.e.Ctx),
 		}
 
 		// We want to lazily initialize the libvirt provider.
@@ -257,6 +285,11 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		// add the VMSets required to build this collection
 		// This function decides how to partition the sets across collections.
 		addVMSets(vmsets, collection)
+
+		// builds pools once sets have been mapped
+		if err := buildCollectionPools(instance.e.Ctx, collection); err != nil {
+			return vmCollections, waitFor, err
+		}
 
 		vmCollections = append(vmCollections, collection)
 	}

@@ -10,17 +10,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-const sharedFSMountPoint = "/opt/kernel-version-testing"
-
-const sharedDiskCmd = `MYUSER=$(id -u) MYGROUP=$(id -g) sh -c \
-'mkdir -p %[1]s/kmt-ramfs && \
-sudo -E -S mount -t ramfs -o size=5g,uid=$MYUSER,gid=$MYGROUP,othmask=0077,mode=0777 ramfs %[1]s/kmt-ramfs && \
-mkdir %[1]s/kmt-ramfs/deps && \
-dd if=/dev/zero of=%[1]s/kmt-ramfs/deps.img bs=1G count=3 && \
-mkfs.ext4 -F %[1]s/kmt-ramfs/deps.img && \
-sudo -S mount -o exec,loop %[1]s/kmt-ramfs/deps.img %[1]s/kmt-ramfs/deps' \
-`
-
 var initSudoPassword sync.Once
 var SudoPasswordLocal pulumi.StringOutput
 var SudoPasswordRemote pulumi.StringOutput
@@ -37,20 +26,6 @@ func GetSudoPassword(ctx *pulumi.Context, isLocal bool) pulumi.StringOutput {
 	}
 
 	return SudoPasswordRemote
-}
-
-func setupSharedDisk(runner *Runner, ctx *pulumi.Context, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	buildSharedDiskInRamfsArgs := command.Args{
-		Create: pulumi.Sprintf(sharedDiskCmd, GetWorkingDirectory()),
-		Delete: pulumi.Sprintf("umount %[1]s/kmt-ramfs/deps && umount %[1]s/kmt-ramfs && rm -r %[1]s/kmt-ramfs", GetWorkingDirectory()),
-		Stdin:  GetSudoPassword(ctx, isLocal),
-	}
-
-	buildSharedDiskInRamfsDone, err := runner.Command("build-shared-disk", &buildSharedDiskInRamfsArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return nil, err
-	}
-	return []pulumi.Resource{buildSharedDiskInRamfsDone}, nil
 }
 
 func setupMicroVMSSHConfig(instance *Instance, microVMIPSubnet string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -111,12 +86,8 @@ func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, e
 func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
 	runner := instance.runner
 
-	sharedDiskDone, err := setupSharedDisk(runner, instance.e.Ctx, instance.Arch == LocalVMSet, []pulumi.Resource{})
-	if err != nil {
-		return nil, err
-	}
 	if instance.Arch == LocalVMSet {
-		return sharedDiskDone, nil
+		return nil, nil
 	}
 
 	allowEnvDone, err := setupSSHAllowEnv(instance.runner, sharedDiskDone)

@@ -3,6 +3,7 @@ package resources
 import (
 	// import embed
 	_ "embed"
+	"sort"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -38,10 +39,21 @@ func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 
 func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	var disks libvirt.DomainDiskArray
-	for _, vol := range args.Volumes {
-		disks = append(disks, libvirt.DomainDiskArgs{
-			VolumeId: vol.ID(),
-		})
+	sort.Slice(args.Disks, func(i, j int) bool {
+		return args.Disks[i].Target < args.Disks[i].Target
+	})
+	for _, disk := range args.Disks {
+		switch disk.Attach {
+		case AttachAsFile:
+			disks = append(disks, libvirt.DomainDiskArgs{
+				File: disk.VolumeID,
+			})
+		case AttachAsVolume:
+			disks = append(disks, libvirt.DomainDiskArgs{
+				VolumeId: disk.VolumeID,
+			})
+		default:
+		}
 	}
 
 	domainArgs := libvirt.DomainArgs{
@@ -92,10 +104,22 @@ func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 
 func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	var disks libvirt.DomainDiskArray
-	for _, vol := range args.Volumes {
-		disks = append(disks, libvirt.DomainDiskArgs{
-			VolumeId: vol.ID(),
-		})
+
+	sort.Slice(args.Disks, func(i, j int) bool {
+		return args.Disks[i].Target < args.Disks[i].Target
+	})
+	for _, disk := range args.Disks {
+		switch disk.Attach {
+		case AttachAsFile:
+			disks = append(disks, libvirt.DomainDiskArgs{
+				File: disk.VolumeID,
+			})
+		case AttachAsVolume:
+			disks = append(disks, libvirt.DomainDiskArgs{
+				VolumeId: disk.VolumeID,
+			})
+		default:
+		}
 	}
 
 	domainArgs := libvirt.DomainArgs{

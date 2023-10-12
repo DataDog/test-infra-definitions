@@ -370,7 +370,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 				command.RunnerArgs{
 					ParentResource: domain.lvDomain,
 					Connection:     pc,
-					ConnectionName: collection.instance.instanceNamer.ResourceName("conn-" + domain.ip),
+					ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
 					OSCommand:      command.NewUnixOSCommand(),
 				},
 			)

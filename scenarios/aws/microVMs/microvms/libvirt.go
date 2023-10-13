@@ -5,6 +5,7 @@ import (
 	"net"
 	"path/filepath"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -22,8 +23,8 @@ func libvirtResourceName(stack, identifier string) string {
 	return fmt.Sprintf("%s-ddvm-%s", stack, identifier)
 }
 
-func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
-	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), identifier))
+func libvirtResourceNamer(ctx *pulumi.Context, identifiers ...string) namer.Namer {
+	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), strings.Join(identifiers, "-")))
 }
 
 type LibvirtProviderFn func() (*libvirt.Provider, error)
@@ -100,6 +101,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 			vm.instance.runner,
 			vm.libvirtProviderFn,
 			vm.instance.Arch == LocalVMSet,
+			vm.instance.instanceNamer,
 			depends,
 		)
 		if err != nil {
@@ -242,15 +244,15 @@ func buildCollectionPools(ctx *pulumi.Context, collection *VMCollection) error {
 	}
 
 	collection.pools = make(map[vmconfig.PoolType]LibvirtPool)
-	collection.pools[DefaultPool] = NewGlobalLibvirtPool(ctx)
+	collection.pools[resources.DefaultPool] = NewGlobalLibvirtPool(ctx)
 
 	var err error
 	for _, v := range collection.vmsets {
 		for _, d := range v.Disks {
 			switch d.Type {
-			case RamPool:
-				if _, ok := collection.pools[RamPool]; !ok {
-					collection.pools[RamPool], err = NewRamBackedLibvirtPool(ctx, &d)
+			case resources.RamPool:
+				if _, ok := collection.pools[resources.RamPool]; !ok {
+					collection.pools[resources.RamPool], err = NewRamBackedLibvirtPool(ctx, &d)
 				}
 			default:
 			}

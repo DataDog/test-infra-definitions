@@ -26,7 +26,7 @@ func (a *AMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInpu
 	return formatResourceXML(amd64DomainXLS, args)
 }
 
-func (a *AMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *AMD64ResourceCollection) GetVolumeXML(args *RecipeLibvirtVolumeArgs) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args, a.recipe)
 }
 

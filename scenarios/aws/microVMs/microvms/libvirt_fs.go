@@ -33,22 +33,39 @@ func fsPathToLibvirtResource(path string) string {
 	return strings.TrimPrefix(strings.ReplaceAll(path, "/", "-"), "-")
 }
 
-func getNamer(ctx *pulumi.Context) func(string) namer.Namer {
+// the vmset name deduplicates volume resource name for the same VMs launched in different vmsets
+// the architecture deduplicates volume resource name for the same VMs launched with different archs.
+func getNamer(ctx *pulumi.Context, vmsetNamer, arch string) func(string) namer.Namer {
 	return func(volKey string) namer.Namer {
-		return libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey))
+		return libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey), vmsetNamer, arch)
 	}
 }
 
-func buildVolumeResourceXMLFn(base map[string]pulumi.StringInput, recipe string) func(volumeKey string) pulumi.StringOutput {
+func buildVolumeResourceXMLFn(base map[string]pulumi.StringInput, recipe string) func(string, vmconfig.PoolType) pulumi.StringOutput {
 	rc := resources.NewResourceCollection(recipe)
-	return func(volumeKey string) pulumi.StringOutput {
+	return func(volumeKey string, poolType vmconfig.PoolType) pulumi.StringOutput {
 		base[resources.VolumeKey] = pulumi.String(volumeKey)
-		return rc.GetVolumeXML(base)
+		return rc.GetVolumeXML(&resources.RecipeLibvirtVolumeArgs{
+			PoolType: poolType,
+			XMLArgs:  base,
+		})
 	}
 }
 
 func getImagePath(base, name string) string {
 	return filepath.Join(base, name)
+}
+
+func isQCOW2(name string) bool {
+	return strings.HasSuffix(name, "qcow2")
+}
+
+func format(name string) string {
+	if isQCOW2(name) {
+		return "qcow2"
+	}
+
+	return "raw"
 }
 
 // vms created with the distro recipe can have different backing filesystem images for different VMs.
@@ -57,24 +74,26 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	var volumes []LibvirtVolume
 
 	baseVolumeMap := make(map[string][]LibvirtVolume)
-	defaultPool := pools[DefaultPool]
+	defaultPool := pools[resources.DefaultPool]
 	for _, k := range vmset.Kernels {
 		imageName := defaultPool.Name() + "-" + k.Tag
+		imagePath := getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)
 		vol := NewLibvirtVolume(
 			defaultPool,
 			filesystemImage{
 				imageName:   imageName,
-				imagePath:   getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir),
+				imagePath:   imagePath,
 				imageSource: k.ImageSource,
 			},
 			buildVolumeResourceXMLFn(
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
-					resources.ImagePath: pulumi.String(getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)),
+					resources.ImagePath: pulumi.String(imagePath),
+					resources.Format:    pulumi.String(format(imagePath)),
 				},
 				vmset.Recipe,
 			),
-			getNamer(ctx),
+			getNamer(ctx, vmset.Name, vmset.Arch),
 		)
 		volumes = append(volumes, vol)
 		baseVolumeMap[k.Tag] = append(baseVolumeMap[k.Tag], vol)
@@ -84,6 +103,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 		imgName := filepath.Base(strings.TrimPrefix(d.BackingStore, "file://"))
 		imageName := pools[d.Type].Name() + "-" + imgName
 		storePath := strings.TrimPrefix(d.BackingStore, "file://")
+		fmt.Printf("store path: %s\n", storePath)
 		vol := NewLibvirtVolume(
 			pools[d.Type],
 			filesystemImage{
@@ -95,10 +115,11 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
 					resources.ImagePath: pulumi.String(storePath),
+					resources.Format:    pulumi.String(format(storePath)),
 				},
 				vmset.Recipe,
 			),
-			getNamer(ctx),
+			getNamer(ctx, vmset.Name, vmset.Arch),
 		)
 
 		// associate extra disks with all vms
@@ -125,21 +146,23 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 
 	baseVolumeMap := make(map[string][]LibvirtVolume)
 	imageName := vmset.Img.ImageName
+	path := getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)
 	vol := NewLibvirtVolume(
-		pools[DefaultPool],
+		pools[resources.DefaultPool],
 		filesystemImage{
 			imageName:   imageName,
-			imagePath:   getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName),
+			imagePath:   path,
 			imageSource: vmset.Img.ImageSourceURI,
 		},
 		buildVolumeResourceXMLFn(
 			map[string]pulumi.StringInput{
 				resources.ImageName: pulumi.String(imageName),
-				resources.ImagePath: pulumi.String(getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)),
+				resources.ImagePath: pulumi.String(path),
+				resources.Format:    pulumi.String(format(path)),
 			},
 			vmset.Recipe,
 		),
-		getNamer(ctx),
+		getNamer(ctx, vmset.Name, vmset.Arch),
 	)
 	volumes = append(volumes, vol)
 
@@ -162,10 +185,11 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
 					resources.ImagePath: pulumi.String(storePath),
+					resources.Format:    pulumi.String(format(imageName)),
 				},
 				vmset.Recipe,
 			),
-			getNamer(ctx),
+			getNamer(ctx, vmset.Name, vmset.Arch),
 		)
 
 		// associate extra disks with all vms
@@ -239,7 +263,7 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 		// the iamges from which VMs boot
 		//
 		// ignore other volume types since they are created by this scenario and not downloaded.
-		if volume.Pool().Type() != DefaultPool {
+		if volume.Pool().Type() != resources.DefaultPool {
 			continue
 		}
 

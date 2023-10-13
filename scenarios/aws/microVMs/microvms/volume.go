@@ -5,6 +5,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -35,12 +36,12 @@ func generateVolumeKey(poolPath string, volName string) string {
 	return fmt.Sprintf("%s/%s", poolPath, volName)
 }
 
-func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(string) pulumi.StringOutput, volNamerFn func(string) namer.Namer) LibvirtVolume {
+func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(string, vmconfig.PoolType) pulumi.StringOutput, volNamerFn func(string) namer.Namer) LibvirtVolume {
 	volKey := generateVolumeKey(pool.Path(), fsImage.imageName)
 	return &volume{
 		filesystemImage: fsImage,
 		volumeKey:       volKey,
-		volumeXML:       xmlDataFn(volKey),
+		volumeXML:       xmlDataFn(volKey, pool.Type()),
 		volumeNamer:     volNamerFn(volKey),
 		pool:            pool,
 	}

@@ -29,7 +29,7 @@ func (a *DistroAMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.Stri
 	return formatResourceXML(distroDomainXLS, args)
 }
 
-func (a *DistroAMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroAMD64ResourceCollection) GetVolumeXML(args *RecipeLibvirtVolumeArgs) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args, a.recipe)
 }
 
@@ -94,7 +94,7 @@ func (a *DistroARM64ResourceCollection) GetDomainXLS(args map[string]pulumi.Stri
 	return formatResourceXML(distroARM64DomainXLS, args)
 }
 
-func (a *DistroARM64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DistroARM64ResourceCollection) GetVolumeXML(args *RecipeLibvirtVolumeArgs) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args, a.recipe)
 }
 

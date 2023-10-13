@@ -26,6 +26,11 @@ const (
 	VCPU          = "vcpu"
 )
 
+const (
+	RamPool     vmconfig.PoolType = "ram"
+	DefaultPool vmconfig.PoolType = "default"
+)
+
 var kernelCmdlines = []map[string]interface{}{
 	{"acpi": pulumi.String("off")},
 	{"panic": pulumi.String("-1")},
@@ -36,7 +41,7 @@ var kernelCmdlines = []map[string]interface{}{
 
 type ResourceCollection interface {
 	GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
-	GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput
+	GetVolumeXML(*RecipeLibvirtVolumeArgs) pulumi.StringOutput
 	GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
 }
@@ -71,6 +76,11 @@ type RecipeLibvirtDomainArgs struct {
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 	Machine           string
+}
+
+type RecipeLibvirtVolumeArgs struct {
+	PoolType vmconfig.PoolType
+	XMLArgs  map[string]pulumi.StringInput
 }
 
 func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {

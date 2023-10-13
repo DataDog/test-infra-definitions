@@ -172,7 +172,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				// setup volume to be used by this domain
 				libvirtVolumes := fs.baseVolumeMap[kernel.Tag]
 				for _, vol := range libvirtVolumes {
-					if vol.Pool().Type() != DefaultPool {
+					if vol.Pool().Type() != resources.DefaultPool {
 						domain.Disks = append(domain.Disks, resources.DomainDisk{
 							VolumeID: pulumi.String(vol.Key()),
 							Attach:   resources.AttachAsFile,

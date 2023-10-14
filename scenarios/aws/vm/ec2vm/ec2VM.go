@@ -53,7 +53,7 @@ func NewEC2VMWithEnv(env aws.Environment, options ...ec2params.Option) (*EC2VM, 
 	}
 	instance, err := awsEc2.NewEC2Instance(
 		env,
-		env.CommonNamer.ResourceName(commonParams.ImageName),
+		env.CommonNamer.ResourceName(commonParams.InstanceName),
 		commonParams.ImageName,
 		osValue.GetAMIArch(commonParams.Arch),
 		commonParams.InstanceType,

@@ -98,7 +98,12 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 					Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
 					Essential:   pulumi.BoolPtr(true),
 					MountPoints: ecs.TaskDefinitionMountPointArray{},
-					Environment: ecs.TaskDefinitionKeyValuePairArray{},
+					Environment: ecs.TaskDefinitionKeyValuePairArray{
+						ecs.TaskDefinitionKeyValuePairArgs{
+							Name:  pulumi.StringPtr("GOMEMLIMIT"),
+							Value: pulumi.StringPtr("768MiB"),
+						},
+					},
 					PortMappings: ecs.TaskDefinitionPortMappingArray{
 						ecs.TaskDefinitionPortMappingArgs{
 							ContainerPort: pulumi.Int(port),

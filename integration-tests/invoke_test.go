@@ -2,53 +2,40 @@ package tests
 
 import (
 	"bytes"
+	_ "embed"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+//go:embed testfixture/config.yaml
+var testInfraTestConfig string
+
 func TestInvokeVM(t *testing.T) {
 
 	var setupStdout, setupStderr bytes.Buffer
 
 	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", os.Getenv("E2E_KEY_PAIR_NAME"))
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", os.Getenv("E2E_PUBLIC_KEY_PATH"))
+	err := os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
+	require.NoError(t, err, "Error writing temporary configuration")
+	defer os.Remove(tmpConfigFile)
 
-	setupCmd := exec.Command("invoke", "setup", "--no-copy-to-clipboard", "--config-path", tmpConfigFile)
+	setupCmd := exec.Command("invoke", "setup", "--no-interactive", "--config-path", tmpConfigFile)
 	setupCmd.Stdout = &setupStdout
 	setupCmd.Stderr = &setupStderr
-	stdin, _ := setupCmd.StdinPipe()
 
-	err := setupCmd.Start()
-	require.NoError(t, err)
-
-	_, err = io.WriteString(stdin, "agent-qa\n")
-	require.NoError(t, err, "Failed to write user input to stdin")
-	_, err = io.WriteString(stdin, fmt.Sprintf("%s\n", os.Getenv("E2E_KEY_PAIR_NAME")))
-	require.NoError(t, err, "Failed to write user input to stdin")
-	_, err = io.WriteString(stdin, "N\n")
-	require.NoError(t, err, "Failed to write user input to stdin")
-	_, err = io.WriteString(stdin, fmt.Sprintf("%s\n", os.Getenv("E2E_PUBLIC_KEY_PATH")))
-	require.NoError(t, err, "Failed to write user input to stdin")
-	_, err = io.WriteString(stdin, "test-ci\n")
-	require.NoError(t, err, "Failed to write user input to stdin")
-	_, err = io.WriteString(stdin, "00000000000000000000000000000000\n")
-	require.NoError(t, err, "Failed to write user input to stdin")
-	_, err = io.WriteString(stdin, "0000000000000000000000000000000000000000\n")
-	require.NoError(t, err, "Failed to write user input to stdin")
-	err = stdin.Close()
-	require.NoError(t, err, "Failed to close stdin pipe")
-
-	err = setupCmd.Wait()
-	require.NoError(t, err, "Error found: %s %s", setupStdout.String(), setupStderr.String())
+	setupCmd.Dir = "../"
+	err = setupCmd.Run()
+	require.NoError(t, err, "Error found.\nstdout: %s\n%s", setupStdout.String(), setupStderr.String())
 	require.Contains(t, setupStdout.String(), fmt.Sprintf("Configuration file saved at %s", tmpConfigFile), fmt.Sprintf("If setup succeeded, last message should contain 'Configuration file saved at %s'", tmpConfigFile))
-
-	defer os.Remove(tmpConfigFile)
 
 	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	createOutput, err := createCmd.Output()

@@ -161,8 +161,6 @@ func (p *globalLibvirtPool) Path() string {
 
 type rambackedLibvirtPool struct {
 	poolName      string
-	poolXML       pulumi.StringOutput
-	poolXMLPath   string
 	poolNamer     namer.Namer
 	poolType      vmconfig.PoolType
 	poolPath      string
@@ -179,13 +177,13 @@ mkfs.ext4 -F %[3]s' && \
 sudo mount -o exec,loop %[3]s %[1]s/deps && cd %[1]s/deps && sudo touch win.123 && cd %[1]s && sudo umount %[1]s/deps \
 `
 
-func NewRamBackedLibvirtPool(ctx *pulumi.Context, disk *vmconfig.Disk) (LibvirtPool, error) {
+func NewRAMBackedLibvirtPool(ctx *pulumi.Context, disk *vmconfig.Disk) (LibvirtPool, error) {
 	poolName := libvirtResourceName(ctx.Stack(), "ram-pool")
 	baseImagePath := strings.TrimPrefix(disk.BackingStore, "file://")
 	poolPath := filepath.Dir(baseImagePath)
 
 	if disk.Size == "" {
-		return nil, ErrZeroRamDiskSize
+		return nil, ErrZeroRAMDiskSize
 	}
 
 	if !(strings.HasSuffix(disk.Size, "G") || strings.HasSuffix(disk.Size, "M")) {

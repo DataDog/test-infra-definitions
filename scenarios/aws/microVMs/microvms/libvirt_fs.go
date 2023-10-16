@@ -24,10 +24,6 @@ type LibvirtFilesystem struct {
 	isLocal       bool
 }
 
-func rootFSDir() string {
-	return filepath.Join(GetWorkingDirectory(), "rootfs")
-}
-
 // libvirt complains when volume name contains '/'. We replace with '-'
 func fsPathToLibvirtResource(path string) string {
 	return strings.TrimPrefix(strings.ReplaceAll(path, "/", "-"), "-")

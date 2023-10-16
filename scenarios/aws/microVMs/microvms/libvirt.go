@@ -252,7 +252,7 @@ func buildCollectionPools(ctx *pulumi.Context, collection *VMCollection) error {
 			switch d.Type {
 			case resources.RamPool:
 				if _, ok := collection.pools[resources.RamPool]; !ok {
-					collection.pools[resources.RamPool], err = NewRamBackedLibvirtPool(ctx, &d)
+					collection.pools[resources.RamPool], err = NewRAMBackedLibvirtPool(ctx, &d)
 				}
 			default:
 			}

@@ -8,10 +8,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const (
-	stackKey = "fakeintake-host"
-)
-
 // ConnectionExporter contains pulumi side data and the export key
 type ConnectionExporter struct {
 	Host     pulumi.StringInput
@@ -36,7 +32,8 @@ func (exporter *ConnectionExporter) Deserialize(result auto.UpResult) (*ClientDa
 }
 
 // NewExporter registers a fakeintake url into a Pulumi context.
-func NewExporter(ctx *pulumi.Context, host pulumi.StringInput) *ConnectionExporter {
+func NewExporter(ctx *pulumi.Context, host pulumi.StringInput, name string) *ConnectionExporter {
+	stackKey := fmt.Sprintf("%s-host", name)
 	ctx.Export(stackKey, host)
 	return &ConnectionExporter{
 		stackKey: stackKey,

@@ -7,10 +7,14 @@ import (
 )
 
 func NewEcsFakeintake(env resourcesAws.Environment) (*ddfakeintake.ConnectionExporter, error) {
-	fargateInstance, err := fakeintake.NewECSFargateInstance(env)
+	return NewEcsFakeintakeWithName(env, "fakeintake")
+}
+
+func NewEcsFakeintakeWithName(env resourcesAws.Environment, name string) (*ddfakeintake.ConnectionExporter, error) {
+	fargateInstance, err := fakeintake.NewECSFargateInstance(env, name)
 	if err != nil {
 		return nil, err
 	}
 
-	return ddfakeintake.NewExporter(env.Ctx, fargateInstance.Host), nil
+	return ddfakeintake.NewExporter(env.Ctx, fargateInstance.Host, name), nil
 }

@@ -40,7 +40,7 @@ func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	var disks libvirt.DomainDiskArray
 	sort.Slice(args.Disks, func(i, j int) bool {
-		return args.Disks[i].Target < args.Disks[i].Target
+		return args.Disks[i].Target < args.Disks[j].Target
 	})
 	for _, disk := range args.Disks {
 		switch disk.Attach {
@@ -106,7 +106,7 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 	var disks libvirt.DomainDiskArray
 
 	sort.Slice(args.Disks, func(i, j int) bool {
-		return args.Disks[i].Target < args.Disks[i].Target
+		return args.Disks[i].Target < args.Disks[j].Target
 	})
 	for _, disk := range args.Disks {
 		switch disk.Attach {

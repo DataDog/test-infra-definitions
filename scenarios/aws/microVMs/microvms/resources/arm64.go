@@ -44,7 +44,7 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 
 	var disks libvirt.DomainDiskArray
 	sort.Slice(args.Disks, func(i, j int) bool {
-		return args.Disks[i].Target < args.Disks[i].Target
+		return args.Disks[i].Target < args.Disks[j].Target
 	})
 	for _, disk := range args.Disks {
 		switch disk.Attach {

@@ -34,13 +34,6 @@
       </xsl:attribute>
   </xsl:template>
 
-    <xsl:template match="/domain/devices/interface[@type='network']">
-        <model type='virtio'/>
-        <xsl:copy>
-            <xsl:apply-templates select="@*|node()"/>
-        </xsl:copy>
-    </xsl:template>
-
   <xsl:template match="/domain/devices">
     <xsl:copy>
         <xsl:apply-templates select="node()|@*"/>

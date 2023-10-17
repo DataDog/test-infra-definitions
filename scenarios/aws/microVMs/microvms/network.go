@@ -132,7 +132,7 @@ func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, de
 		},
 	).(pulumi.StringInput)
 
-	netXML := resources.GetDefaultNetworkXLS(
+	netXML := resources.GetDefaultNetworkXSL(
 		map[string]pulumi.StringInput{
 			resources.DHCPEntries: dhcpEntriesJoined,
 		},

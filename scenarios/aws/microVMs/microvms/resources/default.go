@@ -8,11 +8,11 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed default/domain.xls
-var defaultDomainXLS string
+//go:embed default/domain.xsl
+var defaultDomainXSL string
 
-//go:embed default/network.xls
-var defaultNetworkXLS string
+//go:embed default/network.xsl
+var defaultNetworkXSL string
 
 //go:embed default/pool.xml
 var defaultPoolXML string
@@ -20,20 +20,20 @@ var defaultPoolXML string
 //go:embed default/volume.xml
 var defaultVolumeXML string
 
-//go:embed default/volume_local.xls
-var defaultLocalVolumeXLS string
+//go:embed default/volume_local.xsl
+var defaultLocalVolumeXSL string
 
-func GetDefaultDomainXLS(...interface{}) string {
-	return defaultDomainXLS
+func GetDefaultDomainXSL(...interface{}) string {
+	return defaultDomainXSL
 }
 
-func GetDefaultNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return formatResourceXML(defaultNetworkXLS, args)
+func GetDefaultNetworkXSL(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(defaultNetworkXSL, args)
 }
 
 func GetDefaultVolumeXML(args map[string]pulumi.StringInput, recipe string) pulumi.StringOutput {
 	if isLocalRecipe(recipe) {
-		return formatResourceXML(defaultLocalVolumeXLS, args)
+		return formatResourceXML(defaultLocalVolumeXSL, args)
 	}
 
 	return formatResourceXML(defaultVolumeXML, args)
@@ -53,8 +53,8 @@ func NewDefaultResourceCollection(recipe string) *DefaultResourceCollection {
 	}
 }
 
-func (a *DefaultResourceCollection) GetDomainXLS(_ map[string]pulumi.StringInput) pulumi.StringOutput {
-	return pulumi.Sprintf("%s", GetDefaultDomainXLS())
+func (a *DefaultResourceCollection) GetDomainXSL(_ map[string]pulumi.StringInput) pulumi.StringOutput {
+	return pulumi.Sprintf("%s", GetDefaultDomainXSL())
 }
 
 func (a *DefaultResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {

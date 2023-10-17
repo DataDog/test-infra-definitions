@@ -8,8 +8,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed arm64/domain.xls
-var arm64DomainXLS string
+//go:embed arm64/domain.xsl
+var arm64DomainXSL string
 
 type ARM64ResourceCollection struct {
 	recipe string
@@ -22,8 +22,8 @@ func NewARM64ResourceCollection(recipe string) *ARM64ResourceCollection {
 
 }
 
-func (a *ARM64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return formatResourceXML(arm64DomainXLS, args)
+func (a *ARM64ResourceCollection) GetDomainXSL(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(arm64DomainXSL, args)
 }
 
 func (a *ARM64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
@@ -62,7 +62,7 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		Memory:   pulumi.Int(args.Memory),
 		Vcpu:     pulumi.Int(args.Vcpu),
 		Xml: libvirt.DomainXmlArgs{
-			Xslt: args.Xls,
+			Xslt: args.Xsl,
 		},
 	}
 

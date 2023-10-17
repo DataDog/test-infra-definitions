@@ -103,7 +103,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
 	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
 	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
-	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
+	domain.RecipeLibvirtDomainArgs.Xsl = rc.GetDomainXSL(
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
 			resources.DomainID:      pulumi.String(domain.domainID),

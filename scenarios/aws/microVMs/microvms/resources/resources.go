@@ -5,9 +5,10 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
 const (
@@ -33,7 +34,7 @@ var kernelCmdlines = []map[string]interface{}{
 }
 
 type ResourceCollection interface {
-	GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
+	GetDomainXSL(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
@@ -43,7 +44,7 @@ type RecipeLibvirtDomainArgs struct {
 	DomainName        string
 	Vcpu              int
 	Memory            int
-	Xls               pulumi.StringOutput
+	Xsl               pulumi.StringOutput
 	KernelPath        string
 	Volume            *libvirt.Volume
 	Resources         ResourceCollection

@@ -8,11 +8,11 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed distro/domain-amd64.xls
-var distroDomainXLS string
+//go:embed distro/domain-amd64.xsl
+var distroDomainXSL string
 
-//go:embed distro/domain-arm64.xls
-var distroARM64DomainXLS string
+//go:embed distro/domain-arm64.xsl
+var distroARM64DomainXSL string
 
 type DistroAMD64ResourceCollection struct {
 	recipe string
@@ -24,8 +24,8 @@ func NewDistroAMD64ResourceCollection(recipe string) *DistroAMD64ResourceCollect
 	}
 }
 
-func (a *DistroAMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return formatResourceXML(distroDomainXLS, args)
+func (a *DistroAMD64ResourceCollection) GetDomainXSL(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(distroDomainXSL, args)
 }
 
 func (a *DistroAMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
@@ -54,7 +54,7 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		Memory: pulumi.Int(args.Memory),
 		Vcpu:   pulumi.Int(args.Vcpu),
 		Xml: libvirt.DomainXmlArgs{
-			Xslt: args.Xls,
+			Xslt: args.Xsl,
 		},
 	}
 
@@ -75,8 +75,8 @@ func NewDistroARM64ResourceCollection(recipe string) *DistroARM64ResourceCollect
 	}
 }
 
-func (a *DistroARM64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput {
-	return formatResourceXML(distroARM64DomainXLS, args)
+func (a *DistroARM64ResourceCollection) GetDomainXSL(args map[string]pulumi.StringInput) pulumi.StringOutput {
+	return formatResourceXML(distroARM64DomainXSL, args)
 }
 
 func (a *DistroARM64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
@@ -106,7 +106,7 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		Vcpu:    pulumi.Int(args.Vcpu),
 		Machine: pulumi.String("virt"),
 		Xml: libvirt.DomainXmlArgs{
-			Xslt: args.Xls,
+			Xslt: args.Xsl,
 		},
 	}
 

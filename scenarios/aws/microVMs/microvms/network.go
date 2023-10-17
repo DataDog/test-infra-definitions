@@ -117,6 +117,29 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 	return []pulumi.Resource{iptablesAllowTCPDone, iptablesAllowUDPDone}, nil
 }
 
+func allowDockerPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+	var sudoPassword pulumi.StringOutput
+	rootConfig := config.New(ctx, "")
+	if isLocal {
+		sudoPassword = rootConfig.RequireSecret("sudo-password-local")
+	} else {
+		sudoPassword = rootConfig.RequireSecret("sudo-password-remote")
+	}
+
+	iptablesAllowTCPArgs := command.Args{
+		Create:                   pulumi.Sprintf(iptablesTCPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, "echo -n 5000"),
+		Delete:                   pulumi.Sprintf(iptablesTCPRule, iptablesDeleteRuleFlag, bridge, microVMGroupSubnet, "echo -n 5000"),
+		Sudo:                     true,
+		RequirePasswordFromStdin: true,
+		Stdin:                    sudoPassword,
+	}
+	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-docker-ports-tcp"), &iptablesAllowTCPArgs)
+	if err != nil {
+		return []pulumi.Resource{}, err
+	}
+	return []pulumi.Resource{iptablesAllowTCPDone}, nil
+}
+
 func generateNetworkResource(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
 	// Collect all DHCP entries in a single string to be
 	// formatted in network XML.

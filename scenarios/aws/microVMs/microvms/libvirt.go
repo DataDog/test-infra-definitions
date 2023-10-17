@@ -202,6 +202,12 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 		return err
 	}
 
+	// set iptable rules for allowing ports to access docker server
+	_, err = allowDockerPortsForBridge(vm.instance.e.Ctx, vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

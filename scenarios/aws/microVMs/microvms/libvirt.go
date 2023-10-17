@@ -20,7 +20,7 @@ import (
 const domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 
 func libvirtResourceName(stack, identifier string) string {
-	return fmt.Sprintf("%s-ddvm-%s", stack, identifier)
+	return fmt.Sprintf("ddvm-%s", identifier)
 }
 
 func libvirtResourceNamer(ctx *pulumi.Context, identifiers ...string) namer.Namer {

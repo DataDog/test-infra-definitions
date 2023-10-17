@@ -317,7 +317,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	}
 
 	for _, instance := range instances {
-		waitFor, err = configureInstance(instance, &m)
+		configureDone, err := configureInstance(instance, &m)
 		if err != nil {
 			return nil, fmt.Errorf("failed to configure instance: %w", err)
 		}
@@ -326,6 +326,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		if instance.Arch != LocalVMSet {
 			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
 		}
+
+		waitFor = append(waitFor, configureDone...)
 	}
 
 	vmCollections, waitFor, err := BuildVMCollections(instances, cfg.VMSets, waitFor)

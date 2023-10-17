@@ -26,3 +26,6 @@ Pulumi.*.yaml
 
 # config file, should never be in this folder
 .test_infra_config.yaml
+
+# JetBrains IDE
+.idea/

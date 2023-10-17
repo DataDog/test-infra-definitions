@@ -5,13 +5,14 @@ import (
 	"net"
 	"path/filepath"
 
+	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
-	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
@@ -31,6 +32,7 @@ type Domain struct {
 	domainNamer namer.Namer
 	ip          string
 	mac         pulumi.StringOutput
+	lvDomain    *libvirt.Domain
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) string {

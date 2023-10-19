@@ -16,7 +16,8 @@ const (
 
 type Disk struct {
 	Type         PoolType `json:"type"`
-	BackingStore string   `json:"backing_store"`
+	BackingStore string   `json:"source"`
+	Target       string   `json:"target"`
 	Size         string   `json:"size,omitempty"`
 }
 

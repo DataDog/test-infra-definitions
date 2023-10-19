@@ -96,21 +96,20 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	}
 
 	for _, d := range vmset.Disks {
-		imgName := filepath.Base(strings.TrimPrefix(d.BackingStore, "file://"))
+		imgName := filepath.Base(d.Target)
 		imageName := pools[d.Type].Name() + "-" + imgName
-		storePath := strings.TrimPrefix(d.BackingStore, "file://")
 		vol := NewLibvirtVolume(
 			pools[d.Type],
 			filesystemImage{
 				imageName:   imageName,
-				imagePath:   storePath,
+				imagePath:   d.Target,
 				imageSource: d.BackingStore,
 			},
 			buildVolumeResourceXMLFn(
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
-					resources.ImagePath: pulumi.String(storePath),
-					resources.Format:    pulumi.String(format(storePath)),
+					resources.ImagePath: pulumi.String(d.Target),
+					resources.Format:    pulumi.String(format(imageName)),
 				},
 				vmset.Recipe,
 			),
@@ -166,20 +165,19 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	}
 
 	for _, d := range vmset.Disks {
-		imgName := filepath.Base(strings.TrimPrefix(d.BackingStore, "file://"))
+		imgName := filepath.Base(d.Target)
 		imageName := pools[d.Type].Name() + "-" + imgName
-		storePath := strings.TrimPrefix(d.BackingStore, "file://")
 		vol := NewLibvirtVolume(
 			pools[d.Type],
 			filesystemImage{
 				imageName:   imageName,
-				imagePath:   storePath,
+				imagePath:   d.Target,
 				imageSource: d.BackingStore,
 			},
 			buildVolumeResourceXMLFn(
 				map[string]pulumi.StringInput{
 					resources.ImageName: pulumi.String(imageName),
-					resources.ImagePath: pulumi.String(storePath),
+					resources.ImagePath: pulumi.String(d.Target),
 					resources.Format:    pulumi.String(format(imageName)),
 				},
 				vmset.Recipe,

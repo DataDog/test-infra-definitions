@@ -124,7 +124,7 @@ func GetOpenSSHInstallCmd(publicKeyPath string) (string, error) {
 	$service = Get-Service -Name sshd -ErrorAction SilentlyContinue
 	# Don't try to reinstall OpenSSH if the user uses <persist>true</persist> on UserData.
 	if ($service -eq $null) {
-		Add-WindowsCapability -Online -Name OpenSSH.Server
+		Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
 		Set-Service -Name sshd -StartupType Automatic
 		Add-Content -Path $env:ProgramData\ssh\administrators_authorized_keys -Value '%v'
 		icacls.exe ""$env:ProgramData\ssh\administrators_authorized_keys"" /inheritance:r /grant ""Administrators:F"" /grant ""SYSTEM:F""

@@ -13,7 +13,7 @@ import (
 type LibvirtVolume interface {
 	SetupLibvirtVMVolume(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) (pulumi.Resource, error)
 	UnderlyingImage() *filesystemImage
-	FullResourceName(string) string
+	FullResourceName(...string) string
 	Key() string
 	Pool() LibvirtPool
 }
@@ -38,6 +38,7 @@ func generateVolumeKey(poolPath string, volName string) string {
 
 func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(string, vmconfig.PoolType) pulumi.StringOutput, volNamerFn func(string) namer.Namer) LibvirtVolume {
 	volKey := generateVolumeKey(pool.Path(), fsImage.imageName)
+	fmt.Printf("%s\n", volKey)
 	return &volume{
 		filesystemImage: fsImage,
 		volumeKey:       volKey,
@@ -116,8 +117,8 @@ func (v *volume) UnderlyingImage() *filesystemImage {
 	return &v.filesystemImage
 }
 
-func (v *volume) FullResourceName(name string) string {
-	return v.volumeNamer.ResourceName(name)
+func (v *volume) FullResourceName(name ...string) string {
+	return v.volumeNamer.ResourceName(name...)
 }
 
 func (v *volume) Key() string {

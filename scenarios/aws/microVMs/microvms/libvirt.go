@@ -19,12 +19,13 @@ import (
 
 const domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 
-func libvirtResourceName(stack, identifier string) string {
-	return fmt.Sprintf("ddvm-%s", identifier)
+func libvirtResourceName(identifiers ...string) string {
+	return strings.Join(identifiers, "-")
 }
 
 func libvirtResourceNamer(ctx *pulumi.Context, identifiers ...string) namer.Namer {
-	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), strings.Join(identifiers, "-")))
+	fmt.Println(identifiers)
+	return namer.NewNamer(ctx, libvirtResourceName(identifiers...))
 }
 
 type LibvirtProviderFn func() (*libvirt.Provider, error)

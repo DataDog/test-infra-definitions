@@ -17,6 +17,7 @@ import (
 
 const (
 	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+	sharedFSMountPoint  = "/opt/kernel-version-testing"
 )
 
 func getNextVMIP(ip *net.IP) net.IP {
@@ -107,7 +108,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
-			resources.SharedFSMount: pulumi.String(sharedFSMountpoint()),
+			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
 			resources.DomainID:      pulumi.String(domain.domainID),
 			resources.MACAddress:    domain.mac,
 			resources.Nvram:         pulumi.String(varstore),
@@ -185,7 +186,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						depends,
 						vol.Key(),
 						vol.Pool().Name(),
-						vol.FullResourceName("final-overlay"),
+						vol.FullResourceName("final-overlay", domain.domainID),
 					)
 					if err != nil {
 						return []*Domain{}, err

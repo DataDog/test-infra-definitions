@@ -31,9 +31,9 @@ func fsPathToLibvirtResource(path string) string {
 
 // the vmset name deduplicates volume resource name for the same VMs launched in different vmsets
 // the architecture deduplicates volume resource name for the same VMs launched with different archs.
-func getNamer(ctx *pulumi.Context, vmsetNamer, arch string) func(string) namer.Namer {
+func getNamer(ctx *pulumi.Context, vmsetName, arch string) func(string) namer.Namer {
 	return func(volKey string) namer.Namer {
-		return libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey), vmsetNamer, arch)
+		return libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey), vmsetName, arch)
 	}
 }
 
@@ -99,7 +99,6 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 		imgName := filepath.Base(strings.TrimPrefix(d.BackingStore, "file://"))
 		imageName := pools[d.Type].Name() + "-" + imgName
 		storePath := strings.TrimPrefix(d.BackingStore, "file://")
-		fmt.Printf("store path: %s\n", storePath)
 		vol := NewLibvirtVolume(
 			pools[d.Type],
 			filesystemImage{
@@ -226,6 +225,7 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 	} else {
 		refreshCmd = fmt.Sprintf(refreshFromEBS, urlPath)
 	}
+	refreshCmd = "true"
 	// We do this because reading the EBS blocks is the only way to download the files
 	// from the backing storage. Not doing this means, that the file is downloaded when
 	// it is first accessed in other commands. This can cause other problems, on top of

@@ -225,7 +225,7 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 	} else {
 		refreshCmd = fmt.Sprintf(refreshFromEBS, urlPath)
 	}
-	refreshCmd = "true"
+
 	// We do this because reading the EBS blocks is the only way to download the files
 	// from the backing storage. Not doing this means, that the file is downloaded when
 	// it is first accessed in other commands. This can cause other problems, on top of

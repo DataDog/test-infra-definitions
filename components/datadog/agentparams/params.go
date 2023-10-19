@@ -53,11 +53,11 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 		Files:        make(map[string]*FileDefinition),
 	}
 	defaultVersion := WithLatest()
-	if env.AgentVersion() != "" {
-		defaultVersion = WithVersion(env.AgentVersion())
-	}
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipelineID(env.PipelineID())
+	}
+	if env.AgentVersion() != "" {
+		defaultVersion = WithVersion(env.AgentVersion())
 	}
 	options = append([]Option{defaultVersion}, options...)
 	return common.ApplyOption(p, options)

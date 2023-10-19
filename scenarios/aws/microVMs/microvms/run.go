@@ -280,7 +280,6 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	}
 
 	GetWorkingDirectory = getKernelVersionTestingWorkingDir(&m)
-	fmt.Printf("Working dir: %s\n", GetWorkingDirectory())
 
 	archs := make(map[string]bool)
 	for _, set := range cfg.VMSets {

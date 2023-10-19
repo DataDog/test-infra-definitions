@@ -201,7 +201,6 @@ func NewRAMBackedLibvirtPool(ctx *pulumi.Context, disk *vmconfig.Disk) (LibvirtP
 }
 
 func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	fmt.Printf("p.baseImagePath: %s\n", p.baseImagePath)
 	buildSharedDiskInRamfsArgs := command.Args{
 		Create: pulumi.Sprintf(sharedDiskCmd, p.poolPath, p.poolSize, p.baseImagePath),
 		Delete: pulumi.Sprintf("umount %[1]s && rm -r %[1]s", p.poolPath),

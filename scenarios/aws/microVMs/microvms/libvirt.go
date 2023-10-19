@@ -24,7 +24,6 @@ func libvirtResourceName(identifiers ...string) string {
 }
 
 func libvirtResourceNamer(ctx *pulumi.Context, identifiers ...string) namer.Namer {
-	fmt.Println(identifiers)
 	return namer.NewNamer(ctx, libvirtResourceName(identifiers...))
 }
 

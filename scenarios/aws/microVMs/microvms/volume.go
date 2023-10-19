@@ -38,7 +38,6 @@ func generateVolumeKey(poolPath string, volName string) string {
 
 func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(string, vmconfig.PoolType) pulumi.StringOutput, volNamerFn func(string) namer.Namer) LibvirtVolume {
 	volKey := generateVolumeKey(pool.Path(), fsImage.imageName)
-	fmt.Printf("%s\n", volKey)
 	return &volume{
 		filesystemImage: fsImage,
 		volumeKey:       volKey,

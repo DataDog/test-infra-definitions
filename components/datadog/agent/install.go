@@ -203,7 +203,7 @@ func writeFileDefinition(
 	var err error
 
 	// create directory, if it does not exist
-	lastCommand, err = fileManager.CreateDirectory(fullPath, useSudo, utils.PulumiDependsOn(lastCommand))
+	lastCommand, err = fileManager.CreateDirectoryForFile(fullPath, useSudo, utils.PulumiDependsOn(lastCommand))
 	if err != nil {
 		return nil, err
 	}

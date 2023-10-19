@@ -47,7 +47,7 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
 				Type:       pulumi.String("file"),
-				SourcePath: pulumi.Sprintf("/var/log/libvirt/%s.log", args.DomainName),
+				SourcePath: pulumi.Sprintf("/var/log/libvirt/microvm-%s.log", args.DomainName),
 				TargetPort: pulumi.String("0"),
 				TargetType: pulumi.String("serial"),
 			},

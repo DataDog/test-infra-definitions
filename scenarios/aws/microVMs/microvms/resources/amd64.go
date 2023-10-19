@@ -46,7 +46,8 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
 			libvirt.DomainConsoleArgs{
-				Type:       pulumi.String("pty"),
+				Type:       pulumi.String("file"),
+				SourcePath: pulumi.Sprintf("/var/log/libvirt/%s.log", args.DomainName),
 				TargetPort: pulumi.String("0"),
 				TargetType: pulumi.String("serial"),
 			},

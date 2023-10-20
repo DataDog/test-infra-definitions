@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/cenkalti/backoff/v4"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
@@ -28,9 +29,11 @@ type Instance struct {
 	Host pulumi.StringOutput
 }
 
-func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
+func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option) (*Instance, error) {
 	namer := e.Namer.WithPrefix("fakeintake")
 	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
+
+	params := fakeintakeparams.NewParams(option...)
 
 	instance := &Instance{}
 	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, opts...); err != nil {
@@ -42,7 +45,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 	var balancerArray classicECS.ServiceLoadBalancerArray
 	var alb *lb.ApplicationLoadBalancer
 	var err error
-	if e.InfraShouldDeployFakeintakeWithLB() {
+	if params.LoadBalancerEnabled {
 		alb, err = lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
 			Name:           e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
 			SubnetIds:      e.RandomSubnets(),

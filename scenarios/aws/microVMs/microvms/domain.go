@@ -199,7 +199,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						depends,
 						vol.Key(),
 						vol.Pool().Name(),
-						vol.FullResourceName("final-overlay", domain.domainID),
+						vol.FullResourceName("final-overlay", kernel.Tag),
 					)
 					if err != nil {
 						return []*Domain{}, err

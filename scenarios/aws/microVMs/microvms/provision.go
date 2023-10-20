@@ -11,6 +11,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 )
 
+const DockerMountpoint = "/mnt/docker"
+
 var initSudoPassword sync.Once
 var SudoPasswordLocal pulumi.StringOutput
 var SudoPasswordRemote pulumi.StringOutput

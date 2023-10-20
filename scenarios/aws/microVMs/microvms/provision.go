@@ -83,7 +83,7 @@ func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, e
 }
 
 // This function provisions the metal instance for setting up libvirt based micro-vms.
-func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
+func provisionMetalInstance(instance *Instance) ([]pulumi.Resource, error) {
 	if instance.Arch == LocalVMSet {
 		return nil, nil
 	}

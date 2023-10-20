@@ -218,7 +218,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 
 	shouldProvision := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionEC2Instance, true)
 	if shouldProvision && instance.Arch != LocalVMSet {
-		waitProvision, err := provisionInstance(instance)
+		waitProvision, err := provisionMetalInstance(instance)
 		if err != nil {
 			return nil, err
 		}

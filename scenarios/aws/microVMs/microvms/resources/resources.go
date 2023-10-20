@@ -102,7 +102,7 @@ type RecipeLibvirtVolumeArgs struct {
 
 func setupConsole(consoleType, domainName string) (libvirt.DomainConsoleArgs, error) {
 	if consoleType == fileConsole {
-		fname := fmt.Sprintf("/tmp/%s.log", domainName)
+		fname := fmt.Sprintf("/tmp/ddvm-%s.log", domainName)
 
 		if err := os.RemoveAll(fname); err != nil {
 			return libvirt.DomainConsoleArgs{}, fmt.Errorf("failed to remove console output file %s: %v", fname, err)

@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"sort"
 
+	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
-	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
@@ -329,21 +330,11 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 			if err != nil {
 				return libvirtDomains, err
 			}
+			domain.lvDomain = d
 
 			libvirtDomains = append(libvirtDomains, d)
 		}
 	}
 
 	return libvirtDomains, nil
-}
-
-func GetDomainIPMap(vmCollections []*VMCollection) map[string]string {
-	ipInformation := make(map[string]string)
-	for _, collection := range vmCollections {
-		for _, domain := range collection.domains {
-			ipInformation[domain.domainID] = domain.ip
-		}
-	}
-
-	return ipInformation
 }

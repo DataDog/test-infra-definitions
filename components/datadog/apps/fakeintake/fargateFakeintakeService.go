@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/cenkalti/backoff/v4"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
@@ -26,13 +27,21 @@ type Instance struct {
 	pulumi.ResourceState
 
 	Host pulumi.StringOutput
+	Name string
 }
 
-func NewECSFargateInstance(e aws.Environment, name string) (*Instance, error) {
-	namer := e.Namer.WithPrefix(name)
+func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option) (*Instance, error) {
+	params, paramsErr := fakeintakeparams.NewParams(option...)
+	if paramsErr != nil {
+		return nil, paramsErr
+	}
+
+	namer := e.Namer.WithPrefix(params.Name)
 	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
 
-	instance := &Instance{}
+	instance := &Instance{
+		Name: params.Name,
+	}
 	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, opts...); err != nil {
 		return nil, err
 	}
@@ -42,14 +51,14 @@ func NewECSFargateInstance(e aws.Environment, name string) (*Instance, error) {
 	var balancerArray classicECS.ServiceLoadBalancerArray
 	var alb *lb.ApplicationLoadBalancer
 	var err error
-	if e.InfraShouldDeployFakeintakeWithLB() {
+	if params.LoadBalancerEnabled {
 		alb, err = lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-			Name:           e.CommonNamer.DisplayName(32, pulumi.String(name)),
+			Name:           e.CommonNamer.DisplayName(32, pulumi.String(params.Name)),
 			SubnetIds:      e.RandomSubnets(),
 			Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			DefaultTargetGroup: &lb.TargetGroupArgs{
-				Name:       e.CommonNamer.DisplayName(32, pulumi.String(name)),
+				Name:       e.CommonNamer.DisplayName(32, pulumi.String(params.Name)),
 				Port:       pulumi.IntPtr(port),
 				Protocol:   pulumi.StringPtr("HTTP"),
 				TargetType: pulumi.StringPtr("ip"),
@@ -73,7 +82,7 @@ func NewECSFargateInstance(e aws.Environment, name string) (*Instance, error) {
 			},
 		}
 	} else {
-		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e)
+		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, params.Name)
 		if err != nil {
 			return nil, err
 		}
@@ -82,7 +91,7 @@ func NewECSFargateInstance(e aws.Environment, name string) (*Instance, error) {
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.String(name)),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String(params.Name)),
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		NetworkConfiguration: &classicECS.ServiceNetworkConfigurationArgs{
@@ -98,7 +107,12 @@ func NewECSFargateInstance(e aws.Environment, name string) (*Instance, error) {
 					Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
 					Essential:   pulumi.BoolPtr(true),
 					MountPoints: ecs.TaskDefinitionMountPointArray{},
-					Environment: ecs.TaskDefinitionKeyValuePairArray{},
+					Environment: ecs.TaskDefinitionKeyValuePairArray{
+						ecs.TaskDefinitionKeyValuePairArgs{
+							Name:  pulumi.StringPtr("GOMEMLIMIT"),
+							Value: pulumi.StringPtr("768MiB"),
+						},
+					},
 					PortMappings: ecs.TaskDefinitionPortMappingArray{
 						ecs.TaskDefinitionPortMappingArgs{
 							ContainerPort: pulumi.Int(port),
@@ -169,18 +183,18 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 
 // fargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment) (ipAddress pulumi.StringOutput, err error) {
-	taskDef, err := fargateLinuxTaskDefinition(e, e.Namer.ResourceName("fakeintake-taskdef"))
+func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string) (ipAddress pulumi.StringOutput, err error) {
+	taskDef, err := fargateLinuxTaskDefinition(e, e.Namer.ResourceName(name, "taskdef"))
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
-	fargateService, err := ecsClient.FargateService(e, e.Namer.ResourceName("fakeintake-srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
+	fargateService, err := ecsClient.FargateService(e, e.Namer.ResourceName(name, "srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
 	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
 	// when taskDef has an ARN, thus it is defined on AWS side
 	ipAddress = pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(args []any) (string, error) {
 		var ipAddress string
 		err := backoff.Retry(func() error {
-			fmt.Println("waiting for fakeintake task private ip")
+			e.Ctx.Log.Debug("waiting for fakeintake task private ip", nil)
 			serviceName := args[1].(string)
 			ecsClient, err := ecsClient.NewECSClient(e.Ctx.Context(), e.Region())
 			if err != nil {
@@ -190,7 +204,7 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment) (ipAddress p
 			if err != nil {
 				return err
 			}
-			fmt.Printf("fakeintake task private ip found: %s\n", ipAddress)
+			e.Ctx.Log.Info(fmt.Sprintf("fakeintake task private ip found: %s\n", ipAddress), nil)
 			return err
 		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
 		return ipAddress, err

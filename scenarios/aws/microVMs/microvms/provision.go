@@ -1,146 +1,134 @@
 package microvms
 
 import (
-	"fmt"
-	"path/filepath"
+	"sync"
+
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
-	"github.com/DataDog/test-infra-definitions/components/os"
-	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
-	sconfig "github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const (
-	libvirtSSHPrivateKeyX86 = "libvirt_rsa-x86"
-	libvirtSSHPrivateKeyArm = "libvirt_rsa-arm"
-	sharedFSMountPoint      = "/opt/kernel-version-testing"
-)
+const sharedFSMountPoint = "/opt/kernel-version-testing"
 
-var SSHKeyFileNames = map[string]string{
-	ec2.AMD64Arch: libvirtSSHPrivateKeyX86,
-	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
+const sharedDiskCmd = `MYUSER=$(id -u) MYGROUP=$(id -g) sh -c \
+'mkdir -p %[1]s/kmt-ramfs && \
+sudo -E -S mount -t ramfs -o size=5g,uid=$MYUSER,gid=$MYGROUP,othmask=0077,mode=0777 ramfs %[1]s/kmt-ramfs && \
+mkdir %[1]s/kmt-ramfs/deps && \
+dd if=/dev/zero of=%[1]s/kmt-ramfs/deps.img bs=1G count=3 && \
+mkfs.ext4 -F %[1]s/kmt-ramfs/deps.img && \
+sudo -S mount -o exec,loop %[1]s/kmt-ramfs/deps.img %[1]s/kmt-ramfs/deps' \
+`
+
+var initSudoPassword sync.Once
+var SudoPasswordLocal pulumi.StringOutput
+var SudoPasswordRemote pulumi.StringOutput
+
+func GetSudoPassword(ctx *pulumi.Context, isLocal bool) pulumi.StringOutput {
+	initSudoPassword.Do(func() {
+		rootConfig := config.New(ctx, "")
+		SudoPasswordLocal = rootConfig.RequireSecret("sudo-password-local")
+		SudoPasswordRemote = rootConfig.RequireSecret("sudo-password-remote")
+	})
+
+	if isLocal {
+		return SudoPasswordLocal
+	}
+
+	return SudoPasswordRemote
 }
 
-var kernelHeadersDir = filepath.Join(sharedFSMountPoint, "kernel-headers")
-
-var (
-	disableSELinuxArgs = command.Args{
-		Create: pulumi.String("sed --in-place 's/#security_driver = \"selinux\"/security_driver = \"none\"/' /etc/libvirt/qemu.conf"),
-		Sudo:   true,
-	}
-	libvirtSockPerms = command.Args{
-		Create: pulumi.String("sed --in-place 's/#unix_sock_group = \"libvirt\"/unix_sock_group = \"libvirt\"/g' /etc/libvirt/libvirtd.conf && sed --in-place 's/#unix_sock_ro_perms = \"0777\"/unix_sock_ro_perms = \"0777\"/g' /etc/libvirt/libvirtd.conf && sed --in-place 's/#unix_sock_rw_perms = \"0770\"/unix_sock_rw_perms = \"0770\"/g' /etc/libvirt/libvirtd.conf "),
-		Sudo:   true,
-	}
-	libvirtReadyArgs = command.Args{
-		Create: pulumi.String("systemctl restart libvirtd"),
-		Sudo:   true,
+func setupSharedDisk(runner *Runner, ctx *pulumi.Context, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	buildSharedDiskInRamfsArgs := command.Args{
+		Create: pulumi.Sprintf(sharedDiskCmd, GetWorkingDirectory()),
+		Delete: pulumi.Sprintf("umount %[1]s/kmt-ramfs/deps && umount %[1]s/kmt-ramfs && rm -r %[1]s/kmt-ramfs", GetWorkingDirectory()),
+		Stdin:  GetSudoPassword(ctx, isLocal),
 	}
 
-	buildSharedDirArgs = command.Args{
-		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g libvirt %s", sharedFSMountPoint),
-		Delete: pulumi.Sprintf("rm -rf %s", sharedFSMountPoint),
-		Sudo:   true,
+	buildSharedDiskInRamfsDone, err := runner.Command("build-shared-disk", &buildSharedDiskInRamfsArgs, pulumi.DependsOn(depends))
+	if err != nil {
+		return nil, err
 	}
-
-	buildKernelHeadersDirArgs = command.Args{
-		Create: pulumi.Sprintf("install -d -m 0777 -o $USER -g libvirt %s", kernelHeadersDir),
-		Delete: pulumi.Sprintf("rm -rf %s", kernelHeadersDir),
-		Sudo:   true,
-	}
-)
-
-var GetWorkingDirectory func() string
-
-func getKernelVersionTestingWorkingDir(m *sconfig.DDMicroVMConfig) func() string {
-	return func() string {
-		return m.GetStringWithDefault(m.MicroVMConfig, sconfig.DDMicroVMWorkingDirectory, "/tmp")
-	}
+	return []pulumi.Resource{buildSharedDiskInRamfsDone}, nil
 }
 
-func downloadAndExtractKernelPackage(runner *Runner, arch string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	kernelPackages := fmt.Sprintf("kernel-packages-%s.tar", arch)
-	kernelPackagesDownloadDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
-
-	kernelPackagesDownloadTarget := filepath.Join(kernelPackagesDownloadDir, kernelPackages)
-	downloadKernelArgs := command.Args{
-		Create: pulumi.Sprintf("wget -q https://dd-agent-omnibus.s3.amazonaws.com/kernel-version-testing/%s -O %s", kernelPackages, kernelPackagesDownloadTarget),
+func setupMicroVMSSHConfig(instance *Instance, microVMIPSubnet string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	createSSHDirArgs := command.Args{
+		Create: pulumi.Sprintf("mkdir -p /home/ubuntu/.ssh && chmod 700 /home/ubuntu/.ssh"),
 	}
-	downloadKernelPackage, err := runner.Command("download-kernel-image", &downloadKernelArgs, pulumi.DependsOn(depends))
+	createDirDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-dir", microVMIPSubnet), &createSSHDirArgs, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
-	extractPackageArgs := command.Args{
-		Create: pulumi.Sprintf("cd %s && tar xvf %s | xargs -i tar xzf {};", kernelPackagesDownloadDir, kernelPackages),
+	pattern := getMicroVMGroupSubnetPattern(microVMIPSubnet)
+	args := command.Args{
+		Create: pulumi.Sprintf(`echo -e "Host %s\nIdentityFile /home/kernel-version-testing/ddvm_rsa\nUser root\nStrictHostKeyChecking no\n" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, pattern),
 	}
-	extractPackageDone, err := runner.Command("extract-kernel-packages", &extractPackageArgs, pulumi.DependsOn([]pulumi.Resource{downloadKernelPackage}))
+	done, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-config", microVMIPSubnet), &args, pulumi.DependsOn([]pulumi.Resource{createDirDone}))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
-
-	return []pulumi.Resource{extractPackageDone}, nil
+	return []pulumi.Resource{done}, nil
 }
 
-func copyKernelHeaders(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	kernelPackagesDownloadDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
-
-	copyKernelHeadersArgs := command.Args{
-		Create: pulumi.Sprintf(
-			"cd %s && find %s -name 'linux-image-*' -type f | xargs -i cp {} %s && find %s -name 'linux-headers-*' -type f | xargs -i cp {} %s", GetWorkingDirectory(), kernelPackagesDownloadDir, kernelHeadersDir, kernelPackagesDownloadDir, kernelHeadersDir,
-		),
+func readMicroVMSSHKey(instance *Instance, depends []pulumi.Resource) (pulumi.StringOutput, []pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("cat /home/kernel-version-testing/ddvm_rsa"),
 	}
-	copyKernelHeadersDone, err := runner.Command("copy-kernel-headers", &copyKernelHeadersArgs, pulumi.DependsOn(depends))
+	done, err := instance.runner.RemoteCommand(instance.instanceNamer.ResourceName("read-microvm-ssh-key"), &args, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return pulumi.StringOutput{}, nil, err
 	}
-
-	return []pulumi.Resource{copyKernelHeadersDone}, nil
+	s := pulumi.ToSecret(done.Stdout).(pulumi.StringOutput)
+	return s, []pulumi.Resource{done}, err
 }
 
-func installPackages(runner *Runner) ([]pulumi.Resource, error) {
-	remoteRunner, err := runner.GetRemoteRunner()
-	if err != nil {
-		return []pulumi.Resource{}, fmt.Errorf("failed to install packages: %w", err)
+func setupSSHAllowEnv(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("echo -e 'AcceptEnv DD_API_KEY\n' | sudo tee -a /etc/ssh/sshd_config"),
 	}
-	aptManager := os.NewAptManager(remoteRunner)
-	installSocat, err := aptManager.Ensure("socat")
+	done, err := runner.Command("allow-ssh-env", &args, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
-
-	installQemu, err := aptManager.Ensure("qemu-kvm", pulumi.DependsOn([]pulumi.Resource{installSocat}))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	installLibVirt, err := aptManager.Ensure("libvirt-daemon-system", pulumi.DependsOn([]pulumi.Resource{installQemu}))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	return []pulumi.Resource{installLibVirt}, nil
+	return []pulumi.Resource{done}, nil
 }
 
-func prepareLibvirtEnvironment(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	disableSELinux, err := runner.Command("disable-selinux-qemu", &disableSELinuxArgs, pulumi.DependsOn(depends))
+func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("sudo systemctl reload sshd.service"),
+	}
+	done, err := runner.Command("reload sshd", &args, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
+	}
+	return []pulumi.Resource{done}, nil
+}
+
+// This function provisions the metal instance for setting up libvirt based micro-vms.
+func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
+	runner := instance.runner
+
+	sharedDiskDone, err := setupSharedDisk(runner, instance.e.Ctx, instance.Arch == LocalVMSet, []pulumi.Resource{})
+	if err != nil {
+		return nil, err
+	}
+	if instance.Arch == LocalVMSet {
+		return sharedDiskDone, nil
 	}
 
-	setLibvirtSockPerms, err := runner.Command("libvirt-sock-perms", &libvirtSockPerms, pulumi.DependsOn(depends))
+	allowEnvDone, err := setupSSHAllowEnv(instance.runner, sharedDiskDone)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
-	libvirtReady, err := runner.Command("restart-libvirtd", &libvirtReadyArgs, pulumi.DependsOn([]pulumi.Resource{disableSELinux, setLibvirtSockPerms}))
+	reloadSSHDDone, err := reloadSSHD(instance.runner, allowEnvDone)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
-
-	return []pulumi.Resource{libvirtReady}, nil
+	return reloadSSHDDone, nil
 }
 
 func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -150,7 +138,7 @@ func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, res
 	}
 	sshgenDone, err := localRunner.Command(resourceNamer.ResourceName("gen-libvirt-sshkey"), &sshGenArgs)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	// This command writes the public ssh key which pulumi uses to talk to the libvirt daemon, in the authorized_keys
@@ -166,77 +154,7 @@ func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, res
 	wait := append(depends, sshgenDone)
 	sshWrite, err := runner.Command("write-ssh-key", &sshWriteArgs, pulumi.DependsOn(wait))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
-
 	return []pulumi.Resource{sshWrite}, nil
-}
-
-func buildDirectoryStructure(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	kernelPackagesDir := filepath.Join(GetWorkingDirectory(), "kernel-packages")
-	rootfsDir := filepath.Join(GetWorkingDirectory(), "rootfs")
-
-	buildDirectoryStructureArgs := command.Args{
-		Create: pulumi.Sprintf("install -d -m 0755 -o $USER -g libvirt %s && install -d -m 0755 -o $USER -g libvirt %s", kernelPackagesDir, rootfsDir),
-		Sudo:   true,
-	}
-	buildDirectoryStructureDone, err := runner.Command("build-directory-structure", &buildDirectoryStructureArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	return []pulumi.Resource{buildDirectoryStructureDone}, nil
-}
-
-// This function provisions the metal instance for setting up libvirt based micro-vms.
-func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
-	runner := instance.runner
-
-	packagesInstallDone, err := installPackages(runner)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	prepareLibvirtEnvDone, err := prepareLibvirtEnvironment(runner, packagesInstallDone)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	buildDirectoryStructureDone, err := buildDirectoryStructure(runner, prepareLibvirtEnvDone)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	// We need to wait until the libvirt group exists before doing this
-	// Hence, the dependency on the libvirt environment.
-	buildSharedDirDone, err := runner.Command("build-kernel-version-testing-dir", &buildSharedDirArgs, pulumi.DependsOn(prepareLibvirtEnvDone))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	buildKernelHeadersDirDone, err := runner.Command("build-kernel-headers-dir", &buildKernelHeadersDirArgs, pulumi.DependsOn([]pulumi.Resource{buildSharedDirDone}))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	kernelPackagesDone, err := setupKernelPackages(instance, append(buildDirectoryStructureDone, buildKernelHeadersDirDone))
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	return kernelPackagesDone, nil
-}
-
-func setupKernelPackages(instance *Instance, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	downloadKernelDone, err := downloadAndExtractKernelPackage(instance.runner, instance.Arch, depends)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	copyKernelHeadersDone, err := copyKernelHeaders(instance.runner, downloadKernelDone)
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-
-	return copyKernelHeadersDone, nil
 }

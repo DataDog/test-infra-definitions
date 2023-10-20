@@ -9,6 +9,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
@@ -45,7 +46,14 @@ func Run(ctx *pulumi.Context) error {
 	if vm.GetCommonEnvironment().AgentDeploy() {
 		agentOptions := []func(*agentparams.Params) error{}
 		if vm.GetCommonEnvironment().AgentUseFakeintake() {
-			fakeintake, err := aws.NewEcsFakeintake(vm.Infra.GetAwsEnvironment())
+
+			fakeIntakeOptions := []fakeintakeparams.Option{}
+
+			if !vm.Infra.GetAwsEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithoutLoadBalancer())
+			}
+
+			fakeintake, err := aws.NewEcsFakeintake(vm.Infra.GetAwsEnvironment(), fakeIntakeOptions...)
 			if err != nil {
 				return err
 			}

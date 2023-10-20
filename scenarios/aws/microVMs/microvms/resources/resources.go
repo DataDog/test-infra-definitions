@@ -27,7 +27,7 @@ const (
 )
 
 const (
-	RamPool     vmconfig.PoolType = "ram"
+	RAMPool     vmconfig.PoolType = "ram"
 	DefaultPool vmconfig.PoolType = "default"
 )
 

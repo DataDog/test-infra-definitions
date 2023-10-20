@@ -101,7 +101,6 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 			vm.instance.runner,
 			vm.libvirtProviderFn,
 			vm.instance.Arch == LocalVMSet,
-			vm.instance.instanceNamer,
 			depends,
 		)
 		if err != nil {
@@ -250,9 +249,9 @@ func buildCollectionPools(ctx *pulumi.Context, collection *VMCollection) error {
 	for _, v := range collection.vmsets {
 		for _, d := range v.Disks {
 			switch d.Type {
-			case resources.RamPool:
-				if _, ok := collection.pools[resources.RamPool]; !ok {
-					collection.pools[resources.RamPool], err = NewRAMBackedLibvirtPool(ctx, &d)
+			case resources.RAMPool:
+				if _, ok := collection.pools[resources.RAMPool]; !ok {
+					collection.pools[resources.RAMPool], err = NewRAMBackedLibvirtPool(ctx, &d)
 				}
 			default:
 			}

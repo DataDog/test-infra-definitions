@@ -14,7 +14,7 @@ import (
 )
 
 type LibvirtPool interface {
-	SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error)
+	SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error)
 	Name() string
 	Type() vmconfig.PoolType
 	Path() string
@@ -139,7 +139,7 @@ func localGlobalPool(ctx *pulumi.Context, p *globalLibvirtPool, providerFn Libvi
 	return []pulumi.Resource{poolReady}, nil
 }
 
-func (p *globalLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func (p *globalLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	if isLocal {
 		return localGlobalPool(ctx, p, providerFn, depends)
 	}
@@ -193,14 +193,14 @@ func NewRAMBackedLibvirtPool(ctx *pulumi.Context, disk *vmconfig.Disk) (LibvirtP
 	return &rambackedLibvirtPool{
 		poolName:      poolName,
 		poolNamer:     libvirtResourceNamer(ctx, poolName),
-		poolType:      resources.RamPool,
+		poolType:      resources.RAMPool,
 		poolPath:      poolPath,
 		poolSize:      disk.Size,
 		baseImagePath: baseImagePath,
 	}, nil
 }
 
-func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	buildSharedDiskInRamfsArgs := command.Args{
 		Create: pulumi.Sprintf(sharedDiskCmd, p.poolPath, p.poolSize, p.baseImagePath),
 		Delete: pulumi.Sprintf("umount %[1]s && rm -r %[1]s", p.poolPath),
@@ -217,7 +217,7 @@ func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Run
 		return []pulumi.Resource{}, err
 	}
 
-	poolReady, err := libvirt.NewPool(ctx, namer.ResourceName("create-libvirt-ram-pool"), &libvirt.PoolArgs{
+	poolReady, err := libvirt.NewPool(ctx, p.poolNamer.ResourceName("create-libvirt-ram-pool"), &libvirt.PoolArgs{
 		Type: pulumi.String("dir"),
 		Name: pulumi.String(p.poolName),
 		Path: pulumi.String(p.poolPath),

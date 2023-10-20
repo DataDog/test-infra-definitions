@@ -29,7 +29,7 @@ var defaultLocalVolumeXLS string
 
 var remoteVolumeXMLs = map[vmconfig.PoolType]string{
 	DefaultPool: defaultVolumeXML,
-	RamPool:     defaultRawVolumeXML,
+	RAMPool:     defaultRawVolumeXML,
 }
 
 func GetDefaultDomainXLS(...interface{}) string {

@@ -33,7 +33,10 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	namer := e.Namer.WithPrefix("fakeintake")
 	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
 
-	params := fakeintakeparams.NewParams(option...)
+	params, paramsErr := fakeintakeparams.NewParams(option...)
+	if paramsErr != nil {
+		return nil, paramsErr
+	}
 
 	instance := &Instance{}
 	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, opts...); err != nil {

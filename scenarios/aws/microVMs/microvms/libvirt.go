@@ -104,7 +104,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 			depends,
 		)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 		depends = append(depends, libvirtPoolReady...)
 	}
@@ -112,7 +112,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	for _, set := range vm.vmsets {
 		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pools)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 		vm.fs[set.ID] = fs
 	}
@@ -138,7 +138,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	for _, fs := range vm.fs {
 		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProviderFn, vm.instance.runner, depends)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 		waitFor = append(waitFor, fsDone...)
 	}
@@ -152,11 +152,11 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
-			return []pulumi.Resource{}, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
+			return nil, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
 		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 
 		// Setup individual Nvram disk for arm64 distro images
@@ -173,7 +173,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 					pulumi.DependsOn(depends),
 				)
 				if err != nil {
-					return []pulumi.Resource{}, err
+					return nil, err
 				}
 
 				waitFor = append(waitFor, varstoreDone)

@@ -74,7 +74,7 @@ func remoteGlobalPool(p *globalLibvirtPool, runner *Runner, depends []pulumi.Res
 	}
 	poolXMLWritten, err := runner.Command(p.poolNamer.ResourceName("write-pool-xml"), &poolXMLWrittenArgs, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 	depends = append(depends, poolXMLWritten)
 
@@ -100,22 +100,22 @@ func remoteGlobalPool(p *globalLibvirtPool, runner *Runner, depends []pulumi.Res
 
 	poolDefineReady, err := runner.Command(p.poolNamer.ResourceName("define-libvirt-pool"), &poolDefineReadyArgs, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	poolBuildReady, err := runner.Command(p.poolNamer.ResourceName("build-libvirt-pool"), &poolBuildReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolDefineReady}))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	poolStartReady, err := runner.Command(p.poolNamer.ResourceName("start-libvirt-pool"), &poolStartReadyArgs, pulumi.DependsOn([]pulumi.Resource{poolBuildReady}))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	poolRefreshDone, err := runner.Command(p.poolNamer.ResourceName("refresh-libvirt-pool"), &poolRefreshDoneArgs, pulumi.DependsOn([]pulumi.Resource{poolStartReady}))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	return []pulumi.Resource{poolRefreshDone}, nil
@@ -124,7 +124,7 @@ func remoteGlobalPool(p *globalLibvirtPool, runner *Runner, depends []pulumi.Res
 func localGlobalPool(ctx *pulumi.Context, p *globalLibvirtPool, providerFn LibvirtProviderFn, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	provider, err := providerFn()
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	poolReady, err := libvirt.NewPool(ctx, "create-libvirt-pool", &libvirt.PoolArgs{
@@ -133,7 +133,7 @@ func localGlobalPool(ctx *pulumi.Context, p *globalLibvirtPool, providerFn Libvi
 		Path: pulumi.String(p.poolPath),
 	}, pulumi.Provider(provider), pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	return []pulumi.Resource{poolReady}, nil
@@ -209,12 +209,12 @@ func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Run
 
 	buildSharedDiskInRamfsDone, err := runner.Command("build-shared-disk", &buildSharedDiskInRamfsArgs, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	provider, err := providerFn()
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	poolReady, err := libvirt.NewPool(ctx, p.poolNamer.ResourceName("create-libvirt-ram-pool"), &libvirt.PoolArgs{
@@ -223,7 +223,7 @@ func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Run
 		Path: pulumi.String(p.poolPath),
 	}, pulumi.Provider(provider), pulumi.DependsOn([]pulumi.Resource{buildSharedDiskInRamfsDone}))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 	return []pulumi.Resource{poolReady}, nil
 }

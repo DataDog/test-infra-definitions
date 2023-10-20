@@ -91,7 +91,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 	}
 	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp"), &iptablesAllowTCPArgs)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	iptablesAllowUDPArgs := command.Args{
@@ -103,7 +103,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 	}
 	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp"), &iptablesAllowUDPArgs)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	return []pulumi.Resource{iptablesAllowTCPDone, iptablesAllowUDPDone}, nil

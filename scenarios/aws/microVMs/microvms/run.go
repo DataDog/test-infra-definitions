@@ -233,7 +233,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			localRunner,
 			instance.instanceNamer,
 			pair,
-			[]pulumi.Resource{},
 		)
 		if err != nil {
 			return nil, err
@@ -254,7 +253,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		if instance.e.DefaultShutdownBehavior() == "terminate" {
 			shutdownTimerDone, err := setShutdownTimer(instance, m)
 			if err != nil {
-				return []pulumi.Resource{}, err
 			}
 			waitFor = append(waitFor, shutdownTimerDone)
 		}

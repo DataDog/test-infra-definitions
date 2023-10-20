@@ -248,7 +248,7 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 
 	res, err := runner.Command(volume.FullResourceName("download-rootfs"), &downloadRootfsArgs, pulumi.DependsOn(depends))
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	return []pulumi.Resource{res}, err
@@ -271,7 +271,7 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 		fsImage := volume.UnderlyingImage()
 		url, err := url.Parse(fsImage.imageSource)
 		if err != nil {
-			return []pulumi.Resource{}, fmt.Errorf("error parsing url %s: %w", fsImage.imageSource, err)
+			return nil, fmt.Errorf("error parsing url %s: %w", fsImage.imageSource, err)
 		}
 
 		if url.Scheme == "file" {
@@ -325,9 +325,9 @@ func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn
 	//
 	// [IMPORTANT] The download may start as the first step. So if the setup changes such that the download
 	// becomes dependent on some prior step, this call should change !!
-	downloadRootfsDone, err := downloadRootfs(fs, runner, []pulumi.Resource{})
+	downloadRootfsDone, err := downloadRootfs(fs, runner, nil)
 	if err != nil {
-		return []pulumi.Resource{}, err
+		return nil, err
 	}
 
 	depends = append(depends, downloadRootfsDone...)
@@ -339,7 +339,7 @@ func setupLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, providerFn Li
 	for _, vol := range fs.volumes {
 		setupLibvirtVMVolumeDone, err := vol.SetupLibvirtVMVolume(fs.ctx, runner, providerFn, fs.isLocal, depends)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 
 		waitFor = append(waitFor, setupLibvirtVMVolumeDone)

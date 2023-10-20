@@ -36,7 +36,7 @@
       </xsl:copy>
   </xsl:template>
 
-   <xsl:template match="/domain/devices/disk[@type='file']/driver">
+  <xsl:template match="/domain/devices/disk[@type='file']/driver">
      <readonly/>
       <xsl:copy>
           <xsl:apply-templates select="@*|node()"/>

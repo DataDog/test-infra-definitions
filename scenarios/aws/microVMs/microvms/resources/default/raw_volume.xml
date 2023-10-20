@@ -9,8 +9,8 @@
       <format type='{format}'/>
     <permissions>
       <mode>0660</mode>
-      <owner>$(cat /etc/passwd | grep $USER | cut -d ':' -f 3)</owner>
-      <group>$(cat /etc/group | grep 'libvirt:' | cut -d ':' -f 3)</group>
+      <owner>$(grep $USER /etc/passwd | cut -d ':' -f 3)</owner>
+      <group>$(grep 'libvirt:' /etc/group | cut -d ':' -f 3)</group>
     </permissions>
   </target>
 </volume>

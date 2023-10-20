@@ -22,12 +22,11 @@
   </xsl:template>
 
   <xsl:template match="/domain/devices/disk[@type='file']/driver">
-     <readonly/>
+      <readonly/>
       <xsl:copy>
           <xsl:apply-templates select="@*|node()"/>
       </xsl:copy>
   </xsl:template>
-
 
   <xsl:template match="/domain/devices/interface[@type='network']/mac/@address">
       <xsl:attribute name="address">

@@ -8,6 +8,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 )
 
 var initSudoPassword sync.Once
@@ -80,6 +81,54 @@ func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, e
 		return nil, err
 	}
 	return []pulumi.Resource{done}, nil
+}
+
+func mountMicroVMDisks(runner *Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+
+	for _, d := range disks {
+		if d.Mountpoint == RootMountpoint {
+			continue
+		}
+
+		args := command.Args{
+			Create: pulumi.Sprintf("mkdir %[1]s && mount %[2]s %[1]s", d.Mountpoint, d.Target),
+		}
+
+		done, err := runner.Command(namer.ResourceName("mount-disk", fsPathToLibvirtResource(d.Target)), &args, pulumi.DependsOn(depends))
+		if err != nil {
+			return nil, err
+		}
+
+		waitFor = append(waitFor, done)
+	}
+
+	return waitFor, nil
+}
+
+func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+
+	for _, d := range disks {
+		if d.Mountpoint != DockerMountpoint {
+			continue
+		}
+
+		args := command.Args{
+			Create: pulumi.Sprintf("sh -c 'systemctl stop docker && echo '{}' | jq -n '. += {\"data-root\":\"/mnt/docker\"}' > /etc/docker/daemon.json && systemctl start docker'", d.Mountpoint),
+			Sudo:   true,
+		}
+		done, err := runner.Command(namer.ResourceName("set-docker-data-root"), &args, pulumi.DependsOn(depends))
+		if err != nil {
+			return nil, err
+		}
+
+		waitFor = append(waitFor, done)
+
+		break
+	}
+
+	return waitFor, nil
 }
 
 // This function provisions the metal instance for setting up libvirt based micro-vms.

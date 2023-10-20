@@ -55,8 +55,6 @@ const (
 
 type DiskTarget string
 
-const VDADisk = "vda"
-
 type DomainDisk struct {
 	VolumeID   pulumi.StringPtrInput
 	Attach     AttachMethod

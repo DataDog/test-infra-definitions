@@ -147,16 +147,12 @@ func setupDomainVolume(ctx *pulumi.Context, providerFn LibvirtProviderFn, depend
 	return volume, nil
 }
 
-func nextDisk(disk string) string {
-	return fmt.Sprintf("vd%c", rune(int(disk[len(disk)-1])+1))
-}
-
 func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	if isRootVolume {
-		return resources.VDADisk
+		return "/dev/vda"
 	}
 
-	return nextDisk(lastDisk)
+	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
 func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
@@ -183,7 +179,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 
 				// setup volume to be used by this domain
 				libvirtVolumes := fs.baseVolumeMap[kernel.Tag]
-				lastDisk := resources.VDADisk
+				lastDisk := getVolumeDiskTarget(true, "")
 				for _, vol := range libvirtVolumes {
 					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
 					if vol.Pool().Type() != resources.DefaultPool {

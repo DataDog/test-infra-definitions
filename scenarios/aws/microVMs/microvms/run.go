@@ -233,6 +233,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			localRunner,
 			instance.instanceNamer,
 			pair,
+			nil,
 		)
 		if err != nil {
 			return nil, err
@@ -253,6 +254,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		if instance.e.DefaultShutdownBehavior() == "terminate" {
 			shutdownTimerDone, err := setShutdownTimer(instance, m)
 			if err != nil {
+				return nil, err
 			}
 			waitFor = append(waitFor, shutdownTimerDone)
 		}
@@ -384,6 +386,16 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 				return nil, err
 			}
 			_, err = reloadSSHD(microRunner, allowEnvDone)
+			if err != nil {
+				return nil, err
+			}
+
+			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
 			if err != nil {
 				return nil, err
 			}

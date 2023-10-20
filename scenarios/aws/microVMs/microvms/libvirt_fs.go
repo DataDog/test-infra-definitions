@@ -14,8 +14,9 @@ import (
 )
 
 const (
-	refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
-	RootMountpoint = "/"
+	refreshFromEBS   = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
+	RootMountpoint   = "/"
+	DockerMountpoint = "/mnt/docker"
 )
 
 type LibvirtFilesystem struct {

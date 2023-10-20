@@ -117,7 +117,7 @@ func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer
 		}
 
 		args := command.Args{
-			Create: pulumi.Sprintf("sh -c 'systemctl stop docker && echo '{}' | jq -n '. += {\"data-root\":\"/mnt/docker\"}' > /etc/docker/daemon.json && systemctl start docker'", d.Mountpoint),
+			Create: pulumi.Sprintf("sh -c 'systemctl stop docker && echo '{}' | jq -n '. += {\"data-root\":\"%s\"}' > /etc/docker/daemon.json && systemctl start docker'", d.Mountpoint),
 			Sudo:   true,
 		}
 		done, err := runner.Command(namer.ResourceName("set-docker-data-root"), &args, pulumi.DependsOn(depends))

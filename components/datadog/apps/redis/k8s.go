@@ -224,6 +224,14 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("query"),
 							Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
+							Args: pulumi.StringArray{
+								pulumi.String("-min-tps"),
+								pulumi.String("1"),
+								pulumi.String("-max-tps"),
+								pulumi.String("60"),
+								pulumi.String("-period"),
+								pulumi.String("20m"),
+							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),

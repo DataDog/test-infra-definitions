@@ -16,6 +16,7 @@ type LibvirtVolume interface {
 	FullResourceName(...string) string
 	Key() string
 	Pool() LibvirtPool
+	Mountpoint() string
 }
 
 type filesystemImage struct {
@@ -30,13 +31,20 @@ type volume struct {
 	volumeKey   string
 	volumeXML   pulumi.StringOutput
 	volumeNamer namer.Namer
+	mountpoint  string
 }
 
 func generateVolumeKey(poolPath string, volName string) string {
 	return fmt.Sprintf("%s/%s", poolPath, volName)
 }
 
-func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(string, vmconfig.PoolType) pulumi.StringOutput, volNamerFn func(string) namer.Namer) LibvirtVolume {
+func NewLibvirtVolume(
+	pool LibvirtPool,
+	fsImage filesystemImage,
+	xmlDataFn func(string, vmconfig.PoolType) pulumi.StringOutput,
+	volNamerFn func(string) namer.Namer,
+	mountpoint string,
+) LibvirtVolume {
 	volKey := generateVolumeKey(pool.Path(), fsImage.imageName)
 	return &volume{
 		filesystemImage: fsImage,
@@ -44,6 +52,7 @@ func NewLibvirtVolume(pool LibvirtPool, fsImage filesystemImage, xmlDataFn func(
 		volumeXML:       xmlDataFn(volKey, pool.Type()),
 		volumeNamer:     volNamerFn(volKey),
 		pool:            pool,
+		mountpoint:      mountpoint,
 	}
 }
 
@@ -126,4 +135,8 @@ func (v *volume) Key() string {
 
 func (v *volume) Pool() LibvirtPool {
 	return v.pool
+}
+
+func (v *volume) Mountpoint() string {
+	return v.mountpoint
 }

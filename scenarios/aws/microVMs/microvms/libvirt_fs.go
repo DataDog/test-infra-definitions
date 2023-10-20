@@ -13,7 +13,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
+const (
+	refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
+	RootMountpoint = "/"
+)
 
 type LibvirtFilesystem struct {
 	ctx           *pulumi.Context
@@ -90,6 +93,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				vmset.Recipe,
 			),
 			getNamer(ctx, vmset.Name, vmset.Arch),
+			RootMountpoint,
 		)
 		volumes = append(volumes, vol)
 		baseVolumeMap[k.Tag] = append(baseVolumeMap[k.Tag], vol)
@@ -114,6 +118,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				vmset.Recipe,
 			),
 			getNamer(ctx, vmset.Name, vmset.Arch),
+			d.Mountpoint,
 		)
 
 		// associate extra disks with all vms
@@ -157,6 +162,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 			vmset.Recipe,
 		),
 		getNamer(ctx, vmset.Name, vmset.Arch),
+		RootMountpoint,
 	)
 	volumes = append(volumes, vol)
 
@@ -183,6 +189,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				vmset.Recipe,
 			),
 			getNamer(ctx, vmset.Name, vmset.Arch),
+			d.Mountpoint,
 		)
 
 		// associate extra disks with all vms

@@ -19,6 +19,7 @@ type Disk struct {
 	BackingStore string   `json:"source"`
 	Target       string   `json:"target"`
 	Size         string   `json:"size,omitempty"`
+	Mountpoint   string   `json:"mount_point"`
 }
 
 type Kernel struct {

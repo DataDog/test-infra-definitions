@@ -55,15 +55,13 @@ const (
 
 type DiskTarget string
 
-const (
-	VDADisk = "vda"
-	VDBDisk = "vdb"
-)
+const VDADisk = "vda"
 
 type DomainDisk struct {
-	VolumeID pulumi.StringPtrInput
-	Attach   AttachMethod
-	Target   DiskTarget
+	VolumeID   pulumi.StringPtrInput
+	Attach     AttachMethod
+	Target     string
+	Mountpoint string
 }
 
 type RecipeLibvirtDomainArgs struct {

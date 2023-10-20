@@ -147,6 +147,18 @@ func setupDomainVolume(ctx *pulumi.Context, providerFn LibvirtProviderFn, depend
 	return volume, nil
 }
 
+func nextDisk(disk string) string {
+	return fmt.Sprintf("vd%c", rune(int(disk[len(disk)-1])+1))
+}
+
+func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
+	if isRootVolume {
+		return resources.VDADisk
+	}
+
+	return nextDisk(lastDisk)
+}
+
 func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
 	var domains []*Domain
 
@@ -171,13 +183,18 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 
 				// setup volume to be used by this domain
 				libvirtVolumes := fs.baseVolumeMap[kernel.Tag]
+				lastDisk := resources.VDADisk
 				for _, vol := range libvirtVolumes {
+					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
 					if vol.Pool().Type() != resources.DefaultPool {
 						domain.Disks = append(domain.Disks, resources.DomainDisk{
-							VolumeID: pulumi.String(vol.Key()),
-							Attach:   resources.AttachAsFile,
-							Target:   resources.VDBDisk,
+							VolumeID:   pulumi.String(vol.Key()),
+							Attach:     resources.AttachAsFile,
+							Target:     lastDisk,
+							Mountpoint: vol.Mountpoint(),
 						})
+
+						// For disks to be attached as Files, we do not create an overlay
 						continue
 					}
 					rootVolume, err := setupDomainVolume(
@@ -192,9 +209,10 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						return []*Domain{}, err
 					}
 					domain.Disks = append(domain.Disks, resources.DomainDisk{
-						VolumeID: pulumi.StringPtrInput(rootVolume.ID()),
-						Attach:   resources.AttachAsVolume,
-						Target:   resources.VDADisk,
+						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
+						Attach:     resources.AttachAsVolume,
+						Target:     lastDisk,
+						Mountpoint: vol.Mountpoint(),
 					})
 				}
 

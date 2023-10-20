@@ -16,6 +16,7 @@ func NewParams(options ...Option) (*Params, error) {
 	return common.ApplyOption(params, options)
 }
 
+// WithoutLoadBalancer disable load balancer in front of the fakeintake
 func WithoutLoadBalancer() Option {
 	return func(p *Params) error {
 		p.LoadBalancerEnabled = false

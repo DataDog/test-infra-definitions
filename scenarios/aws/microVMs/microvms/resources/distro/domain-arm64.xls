@@ -14,9 +14,7 @@
        <xsl:copy>
            <xsl:apply-templates select="@*|node()"/>
        </xsl:copy>
-       <cpu mode='custom' match='exact'>
-           <model fallback='allow'>host</model>
-       </cpu>
+       <cpu mode='host-passthrough' check='full'/>
   </xsl:template>
 
   <xsl:template match="/domain/os">

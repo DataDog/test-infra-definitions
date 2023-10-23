@@ -104,7 +104,7 @@ func setupConsole(consoleType, domainName string) (libvirt.DomainConsoleArgs, er
 	if consoleType == fileConsole {
 		fname := fmt.Sprintf("/var/log/libvirt/ddvm-%s.log", domainName)
 
-		if err := os.RemoveAll(fname); err != nil {
+		if err := os.Remove(fname); err != nil {
 			return libvirt.DomainConsoleArgs{}, fmt.Errorf("failed to remove console output file %s: %v", fname, err)
 		}
 

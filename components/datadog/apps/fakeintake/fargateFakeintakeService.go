@@ -95,7 +95,7 @@ func NewECSFargateInstance(e aws.Environment) (*Instance, error) {
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				containerName: {
 					Name:        pulumi.String(containerName),
-					Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
+					Image:       pulumi.String("kaderinho/fakeintake:0.0.3"),
 					Essential:   pulumi.BoolPtr(true),
 					MountPoints: ecs.TaskDefinitionMountPointArray{},
 					Environment: ecs.TaskDefinitionKeyValuePairArray{},
@@ -152,7 +152,7 @@ func fargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTas
 func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
-		Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
+		Image:       pulumi.String("kaderinho/fakeintake:0.0.3"),
 		Essential:   pulumi.BoolPtr(true),
 		MountPoints: ecs.TaskDefinitionMountPointArray{},
 		Environment: ecs.TaskDefinitionKeyValuePairArray{},

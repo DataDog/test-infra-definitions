@@ -22,6 +22,13 @@ const (
 	PoolPath      = "poolPath"
 	Nvram         = "nvram"
 	Efi           = "efi"
+	Format        = "format"
+	VCPU          = "vcpu"
+)
+
+const (
+	RAMPool     vmconfig.PoolType = "ram"
+	DefaultPool vmconfig.PoolType = "default"
 )
 
 var kernelCmdlines = []map[string]interface{}{

@@ -110,6 +110,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 			resources.MACAddress:    domain.mac,
 			resources.Nvram:         pulumi.String(varstore),
 			resources.Efi:           pulumi.String(efi),
+			resources.VCPU:          pulumi.String(cfg.vcpu),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = cfg.machine

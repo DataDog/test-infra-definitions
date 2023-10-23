@@ -49,7 +49,7 @@
       </xsl:attribute>
   </xsl:template>
 
-  <xsl:template match="/domain/devices/interface[@type='network']">
+  <xsl:template match="/domain/devices/interface[@type='network']/mac">
       <driver name="vhost" queues="{vcpu}"/>
       <xsl:copy>
           <xsl:apply-templates select="@*|node()"/>

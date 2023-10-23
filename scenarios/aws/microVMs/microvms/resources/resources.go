@@ -2,7 +2,6 @@ package resources
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"strings"
 
@@ -102,14 +101,7 @@ type RecipeLibvirtVolumeArgs struct {
 
 func setupConsole(consoleType, domainName string) (libvirt.DomainConsoleArgs, error) {
 	if consoleType == fileConsole {
-		fname := fmt.Sprintf("/var/log/libvirt/ddvm-%s.log", domainName)
-		_ = os.Remove(fname)
-		f, err := os.Create(fname)
-		if err != nil {
-			return libvirt.DomainConsoleArgs{}, fmt.Errorf("failed to create console output file %s: %v", fname, err)
-		}
-		defer f.Close()
-
+		fname := fmt.Sprintf("/tmp/ddvm-%s.log", domainName)
 		console := consoles[consoleType]
 		console.SourcePath = pulumi.String(fname)
 		return console, nil

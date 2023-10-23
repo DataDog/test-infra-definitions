@@ -51,10 +51,6 @@ func buildVolumeResourceXMLFn(base map[string]pulumi.StringInput, recipe string)
 	}
 }
 
-func getImagePath(base, name string) string {
-	return filepath.Join(base, name)
-}
-
 func isQCOW2(name string) bool {
 	return strings.HasSuffix(name, "qcow2")
 }
@@ -76,7 +72,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	defaultPool := pools[resources.DefaultPool]
 	for _, k := range vmset.Kernels {
 		imageName := defaultPool.Name() + "-" + k.Tag
-		imagePath := getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)
+		imagePath := filepath.Join(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)
 		vol := NewLibvirtVolume(
 			defaultPool,
 			filesystemImage{
@@ -145,7 +141,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 
 	baseVolumeMap := make(map[string][]LibvirtVolume)
 	imageName := vmset.Img.ImageName
-	path := getImagePath(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)
+	path := filepath.Join(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)
 	vol := NewLibvirtVolume(
 		pools[resources.DefaultPool],
 		filesystemImage{

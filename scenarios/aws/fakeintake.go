@@ -13,5 +13,5 @@ func NewEcsFakeintake(env resourcesAws.Environment, options ...fakeintakeparams.
 		return nil, err
 	}
 
-	return ddfakeintake.NewExporter(env.Ctx, fargateInstance.Host), nil
+	return ddfakeintake.NewExporter(env.Ctx, fargateInstance.Host, fargateInstance.Name), nil
 }

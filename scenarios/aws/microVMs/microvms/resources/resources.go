@@ -99,11 +99,14 @@ type RecipeLibvirtVolumeArgs struct {
 	XMLArgs  map[string]pulumi.StringInput
 }
 
+func GetConsolePath(domainName string) string {
+	return fmt.Sprintf("/tmp/ddvm-%s.log", domainName)
+}
+
 func setupConsole(consoleType, domainName string) (libvirt.DomainConsoleArgs, error) {
 	if consoleType == fileConsole {
-		fname := fmt.Sprintf("/tmp/ddvm-%s.log", domainName)
 		console := consoles[consoleType]
-		console.SourcePath = pulumi.String(fname)
+		console.SourcePath = pulumi.String(GetConsolePath(domainName))
 		return console, nil
 	}
 

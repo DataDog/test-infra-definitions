@@ -22,6 +22,8 @@ const (
 	PoolPath      = "poolPath"
 	Nvram         = "nvram"
 	Efi           = "efi"
+	Format        = "format"
+	VCPU          = "vcpu"
 )
 
 var kernelCmdlines = []map[string]interface{}{

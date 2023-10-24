@@ -47,6 +47,13 @@
       </xsl:attribute>
   </xsl:template>
 
+  <xsl:template match="/domain/devices/interface[@type='network']/mac">
+      <driver name="vhost" queues="{vcpu}"/>
+      <xsl:copy>
+          <xsl:apply-templates select="@*|node()"/>
+      </xsl:copy>
+  </xsl:template>
+
   <xsl:template match="features/acpi"/>
   <xsl:template match="domain/devices/graphics"/>
   <xsl:template match="domain/devices/audio"/>

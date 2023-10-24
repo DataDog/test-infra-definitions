@@ -61,6 +61,13 @@ func buildDomainSocket(runner *Runner, domainID, resourceName string, depends []
 	return createDomainSocketDone, nil
 }
 
+func createDomainConsoleLog(runner *Runner, domainName string, resourceName string, depends []pulumi.Resource) (pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("truncate --size=0 %s", resources.GetConsolePath(domainName)),
+	}
+	return runner.Command(resourceName, &args, pulumi.DependsOn(depends))
+}
+
 func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 	for _, set := range vmsets {
 		if set.Arch == collection.instance.Arch {
@@ -311,6 +318,20 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			return vmCollections, waitFor, err
 		}
 		waitFor = append(waitFor, wait...)
+		// setup console logs
+		for _, domain := range collection.domains {
+			if domain.ConsoleType == "file" {
+				createConsoleLogFile, err := createDomainConsoleLog(collection.instance.runner,
+					domain.DomainName,
+					domain.domainNamer.ResourceName("create-console-log", domain.domainID),
+					depends,
+				)
+				if err != nil {
+					return vmCollections, waitFor, err
+				}
+				waitFor = append(waitFor, createConsoleLogFile)
+			}
+		}
 	}
 
 	// map domains to ips

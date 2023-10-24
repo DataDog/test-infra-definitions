@@ -3,6 +3,7 @@ package resources
 import (
 	// import embed
 	_ "embed"
+	"fmt"
 	"sort"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -37,7 +38,7 @@ func (a *DistroAMD64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 	return GetDefaultPoolXML(args, a.recipe)
 }
 
-func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error) {
 	var disks libvirt.DomainDiskArray
 	sort.Slice(args.Disks, func(i, j int) bool {
 		return args.Disks[i].Target < args.Disks[j].Target
@@ -56,14 +57,15 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		}
 	}
 
+	console, err := setupConsole(args.ConsoleType, args.DomainName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup console for domain %s: %v", args.DomainName, err)
+	}
+
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
-			libvirt.DomainConsoleArgs{
-				Type:       pulumi.String("pty"),
-				TargetPort: pulumi.String("0"),
-				TargetType: pulumi.String("serial"),
-			},
+			console,
 		},
 		Disks:  disks,
 		Memory: pulumi.Int(args.Memory),
@@ -77,7 +79,7 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		domainArgs.Machine = pulumi.String(args.Machine)
 	}
 
-	return &domainArgs
+	return &domainArgs, nil
 }
 
 type DistroARM64ResourceCollection struct {
@@ -102,7 +104,7 @@ func (a *DistroARM64ResourceCollection) GetPoolXML(args map[string]pulumi.String
 	return GetDefaultPoolXML(args, a.recipe)
 }
 
-func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
+func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error) {
 	var disks libvirt.DomainDiskArray
 
 	sort.Slice(args.Disks, func(i, j int) bool {
@@ -122,14 +124,15 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		}
 	}
 
+	console, err := setupConsole(args.ConsoleType, args.DomainName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to setup console for domain %s: %v", args.DomainName, err)
+	}
+
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
 		Consoles: libvirt.DomainConsoleArray{
-			libvirt.DomainConsoleArgs{
-				Type:       pulumi.String("pty"),
-				TargetPort: pulumi.String("0"),
-				TargetType: pulumi.String("serial"),
-			},
+			console,
 		},
 		Disks:   disks,
 		Memory:  pulumi.Int(args.Memory),
@@ -144,5 +147,5 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		domainArgs.Machine = pulumi.String(args.Machine)
 	}
 
-	return &domainArgs
+	return &domainArgs, nil
 }

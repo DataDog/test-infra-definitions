@@ -76,13 +76,14 @@ func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.Stri
 }
 
 type domainConfiguration struct {
-	vcpu    int
-	memory  int
-	setName string
-	machine string
-	arch    string
-	recipe  string
-	kernel  vmconfig.Kernel
+	vcpu        int
+	memory      int
+	setName     string
+	machine     string
+	arch        string
+	recipe      string
+	consoleType string
+	kernel      vmconfig.Kernel
 }
 
 func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration) (*Domain, error) {
@@ -101,6 +102,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	domain.RecipeLibvirtDomainArgs.Resources = rc
 	domain.RecipeLibvirtDomainArgs.Vcpu = cfg.vcpu
 	domain.RecipeLibvirtDomainArgs.Memory = cfg.memory
+	domain.RecipeLibvirtDomainArgs.ConsoleType = cfg.consoleType
 	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", cfg.kernel.Dir, "bzImage")
 
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
@@ -164,13 +166,14 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				domain, err := newDomainConfiguration(
 					e,
 					domainConfiguration{
-						vcpu:    vcpu,
-						memory:  memory,
-						setName: set.Name,
-						machine: set.Machine,
-						arch:    set.Arch,
-						recipe:  set.Recipe,
-						kernel:  kernel,
+						vcpu:        vcpu,
+						memory:      memory,
+						setName:     set.Name,
+						machine:     set.Machine,
+						arch:        set.Arch,
+						recipe:      set.Recipe,
+						kernel:      kernel,
+						consoleType: set.ConsoleType,
 					},
 				)
 				if err != nil {
@@ -212,9 +215,12 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					})
 				}
 
-				domain.domainArgs = domain.RecipeLibvirtDomainArgs.Resources.GetLibvirtDomainArgs(
+				domain.domainArgs, err = domain.RecipeLibvirtDomainArgs.Resources.GetLibvirtDomainArgs(
 					&domain.RecipeLibvirtDomainArgs,
 				)
+				if err != nil {
+					return []*Domain{}, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
+				}
 
 				domains = append(domains, domain)
 			}

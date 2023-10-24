@@ -8,18 +8,10 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 )
 
-const sharedFSMountPoint = "/opt/kernel-version-testing"
-
-const sharedDiskCmd = `MYUSER=$(id -u) MYGROUP=$(id -g) sh -c \
-'mkdir -p %[1]s/kmt-ramfs && \
-sudo -E -S mount -t ramfs -o size=5g,uid=$MYUSER,gid=$MYGROUP,othmask=0077,mode=0777 ramfs %[1]s/kmt-ramfs && \
-mkdir %[1]s/kmt-ramfs/deps && \
-dd if=/dev/zero of=%[1]s/kmt-ramfs/deps.img bs=1G count=3 && \
-mkfs.ext4 -F %[1]s/kmt-ramfs/deps.img && \
-sudo -S mount -o exec,loop %[1]s/kmt-ramfs/deps.img %[1]s/kmt-ramfs/deps' \
-`
+const DockerMountpoint = "/mnt/docker"
 
 var initSudoPassword sync.Once
 var SudoPasswordLocal pulumi.StringOutput
@@ -37,20 +29,6 @@ func GetSudoPassword(ctx *pulumi.Context, isLocal bool) pulumi.StringOutput {
 	}
 
 	return SudoPasswordRemote
-}
-
-func setupSharedDisk(runner *Runner, ctx *pulumi.Context, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	buildSharedDiskInRamfsArgs := command.Args{
-		Create: pulumi.Sprintf(sharedDiskCmd, GetWorkingDirectory()),
-		Delete: pulumi.Sprintf("umount %[1]s/kmt-ramfs/deps && umount %[1]s/kmt-ramfs && rm -r %[1]s/kmt-ramfs", GetWorkingDirectory()),
-		Stdin:  GetSudoPassword(ctx, isLocal),
-	}
-
-	buildSharedDiskInRamfsDone, err := runner.Command("build-shared-disk", &buildSharedDiskInRamfsArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return nil, err
-	}
-	return []pulumi.Resource{buildSharedDiskInRamfsDone}, nil
 }
 
 func setupMicroVMSSHConfig(instance *Instance, microVMIPSubnet string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -107,19 +85,61 @@ func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, e
 	return []pulumi.Resource{done}, nil
 }
 
+func mountMicroVMDisks(runner *Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+
+	for _, d := range disks {
+		if d.Mountpoint == RootMountpoint {
+			continue
+		}
+
+		args := command.Args{
+			Create: pulumi.Sprintf("mkdir %[1]s && mount %[2]s %[1]s", d.Mountpoint, d.Target),
+		}
+
+		done, err := runner.Command(namer.ResourceName("mount-disk", fsPathToLibvirtResource(d.Target)), &args, pulumi.DependsOn(depends))
+		if err != nil {
+			return nil, err
+		}
+
+		waitFor = append(waitFor, done)
+	}
+
+	return waitFor, nil
+}
+
+func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+
+	for _, d := range disks {
+		if d.Mountpoint != DockerMountpoint {
+			continue
+		}
+
+		args := command.Args{
+			Create: pulumi.Sprintf("echo -e '{\n\t\"data-root\":\"%s\"\n}' > /etc/docker/daemon.json && sudo systemctl restart docker", d.Mountpoint),
+			Sudo:   true,
+		}
+		done, err := runner.Command(namer.ResourceName("set-docker-data-root"), &args, pulumi.DependsOn(depends))
+		if err != nil {
+			return nil, err
+		}
+
+		waitFor = append(waitFor, done)
+
+		break
+	}
+
+	return waitFor, nil
+}
+
 // This function provisions the metal instance for setting up libvirt based micro-vms.
-func provisionInstance(instance *Instance) ([]pulumi.Resource, error) {
-	runner := instance.runner
-
-	sharedDiskDone, err := setupSharedDisk(runner, instance.e.Ctx, instance.Arch == LocalVMSet, []pulumi.Resource{})
-	if err != nil {
-		return nil, err
-	}
+func provisionMetalInstance(instance *Instance) ([]pulumi.Resource, error) {
 	if instance.Arch == LocalVMSet {
-		return sharedDiskDone, nil
+		return nil, nil
 	}
 
-	allowEnvDone, err := setupSSHAllowEnv(instance.runner, sharedDiskDone)
+	allowEnvDone, err := setupSSHAllowEnv(instance.runner, nil)
 	if err != nil {
 		return nil, err
 	}

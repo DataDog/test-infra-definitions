@@ -217,8 +217,8 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	}
 
 	shouldProvision := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionEC2Instance, true)
-	if shouldProvision {
-		waitProvision, err := provisionInstance(instance)
+	if shouldProvision && instance.Arch != LocalVMSet {
+		waitProvision, err := provisionMetalInstance(instance)
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +233,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			localRunner,
 			instance.instanceNamer,
 			pair,
-			[]pulumi.Resource{},
+			nil,
 		)
 		if err != nil {
 			return nil, err
@@ -254,7 +254,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		if instance.e.DefaultShutdownBehavior() == "terminate" {
 			shutdownTimerDone, err := setShutdownTimer(instance, m)
 			if err != nil {
-				return []pulumi.Resource{}, err
+				return nil, err
 			}
 			waitFor = append(waitFor, shutdownTimerDone)
 		}
@@ -316,7 +316,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	}
 
 	for _, instance := range instances {
-		waitFor, err = configureInstance(instance, &m)
+		configureDone, err := configureInstance(instance, &m)
 		if err != nil {
 			return nil, fmt.Errorf("failed to configure instance: %w", err)
 		}
@@ -325,6 +325,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		if instance.Arch != LocalVMSet {
 			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
 		}
+
+		waitFor = append(waitFor, configureDone...)
 	}
 
 	vmCollections, waitFor, err := BuildVMCollections(instances, cfg.VMSets, waitFor)
@@ -384,6 +386,16 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 				return nil, err
 			}
 			_, err = reloadSSHD(microRunner, allowEnvDone)
+			if err != nil {
+				return nil, err
+			}
+
+			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
 			if err != nil {
 				return nil, err
 			}

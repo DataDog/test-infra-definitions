@@ -26,6 +26,11 @@ const (
 	VCPU          = "vcpu"
 )
 
+const (
+	RAMPool     vmconfig.PoolType = "ram"
+	DefaultPool vmconfig.PoolType = "default"
+)
+
 var kernelCmdlines = []map[string]interface{}{
 	{"acpi": pulumi.String("off")},
 	{"panic": pulumi.String("-1")},
@@ -36,9 +41,25 @@ var kernelCmdlines = []map[string]interface{}{
 
 type ResourceCollection interface {
 	GetDomainXLS(args map[string]pulumi.StringInput) pulumi.StringOutput
-	GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput
+	GetVolumeXML(*RecipeLibvirtVolumeArgs) pulumi.StringOutput
 	GetPoolXML(args map[string]pulumi.StringInput) pulumi.StringOutput
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) *libvirt.DomainArgs
+}
+
+type AttachMethod int
+
+const (
+	AttachAsFile AttachMethod = iota
+	AttachAsVolume
+)
+
+type DiskTarget string
+
+type DomainDisk struct {
+	VolumeID   pulumi.StringPtrInput
+	Attach     AttachMethod
+	Target     string
+	Mountpoint string
 }
 
 type RecipeLibvirtDomainArgs struct {
@@ -47,10 +68,15 @@ type RecipeLibvirtDomainArgs struct {
 	Memory            int
 	Xls               pulumi.StringOutput
 	KernelPath        string
-	Volume            *libvirt.Volume
+	Disks             []DomainDisk
 	Resources         ResourceCollection
 	ExtraKernelParams map[string]string
 	Machine           string
+}
+
+type RecipeLibvirtVolumeArgs struct {
+	PoolType vmconfig.PoolType
+	XMLArgs  map[string]pulumi.StringInput
 }
 
 func formatResourceXML(xml string, args map[string]pulumi.StringInput) pulumi.StringOutput {

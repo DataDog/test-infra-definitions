@@ -15,7 +15,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
-const dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+const (
+	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
+	sharedFSMountPoint  = "/opt/kernel-version-testing"
+)
 
 func getNextVMIP(ip *net.IP) net.IP {
 	ipv4 := ip.To4()
@@ -120,7 +123,18 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	return domain, nil
 }
 
-func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, depends []pulumi.Resource, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
+// We create a final overlay here so that each VM has its own unique writable disk.
+// At this stage the chain of images is as follows: base-image -> overlay-1
+// After this function we have: base-image -> overlay-1 -> overlay-2
+// We have to do this because we have as many overlay-1's as the number of unique base images.
+// However, we may want multiple VMs booted from the same underlying filesystem. To support this
+// case we create a final overlay-2 for each VM to boot from.
+func setupDomainVolume(ctx *pulumi.Context, providerFn LibvirtProviderFn, depends []pulumi.Resource, baseVolumeID, poolName, resourceName string) (*libvirt.Volume, error) {
+	provider, err := providerFn()
+	if err != nil {
+		return nil, err
+	}
+
 	volume, err := libvirt.NewVolume(ctx, resourceName, &libvirt.VolumeArgs{
 		BaseVolumeId: pulumi.String(baseVolumeID),
 		Pool:         pulumi.String(poolName),
@@ -133,7 +147,15 @@ func setupDomainVolume(ctx *pulumi.Context, provider *libvirt.Provider, depends 
 	return volume, nil
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider *libvirt.Provider, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
+func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
+	if isRootVolume {
+		return "/dev/vda"
+	}
+
+	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
+}
+
+func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
 	var domains []*Domain
 
 	for _, vcpu := range set.VCpu {
@@ -156,16 +178,38 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, provider 
 				}
 
 				// setup volume to be used by this domain
-				domain.RecipeLibvirtDomainArgs.Volume, err = setupDomainVolume(
-					e.Ctx,
-					provider,
-					depends,
-					fs.baseVolumeMap[kernel.Tag].volumeKey,
-					fs.pool.poolName,
-					domain.domainNamer.ResourceName("volume"),
-				)
-				if err != nil {
-					return []*Domain{}, err
+				libvirtVolumes := fs.baseVolumeMap[kernel.Tag]
+				lastDisk := getVolumeDiskTarget(true, "")
+				for _, vol := range libvirtVolumes {
+					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
+					if vol.Pool().Type() != resources.DefaultPool {
+						domain.Disks = append(domain.Disks, resources.DomainDisk{
+							VolumeID:   pulumi.String(vol.Key()),
+							Attach:     resources.AttachAsFile,
+							Target:     lastDisk,
+							Mountpoint: vol.Mountpoint(),
+						})
+
+						// For disks to be attached as Files, we do not create an overlay
+						continue
+					}
+					rootVolume, err := setupDomainVolume(
+						e.Ctx,
+						providerFn,
+						depends,
+						vol.Key(),
+						vol.Pool().Name(),
+						vol.FullResourceName("final-overlay", kernel.Tag),
+					)
+					if err != nil {
+						return []*Domain{}, err
+					}
+					domain.Disks = append(domain.Disks, resources.DomainDisk{
+						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
+						Attach:     resources.AttachAsVolume,
+						Target:     lastDisk,
+						Mountpoint: vol.Mountpoint(),
+					})
 				}
 
 				domain.domainArgs = domain.RecipeLibvirtDomainArgs.Resources.GetLibvirtDomainArgs(

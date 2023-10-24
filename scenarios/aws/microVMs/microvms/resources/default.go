@@ -4,6 +4,7 @@ import (
 	// import embed
 	_ "embed"
 
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -20,8 +21,16 @@ var defaultPoolXML string
 //go:embed default/volume.xml
 var defaultVolumeXML string
 
+//go:embed default/raw_volume.xml
+var defaultRawVolumeXML string
+
 //go:embed default/volume_local.xls
 var defaultLocalVolumeXLS string
+
+var remoteVolumeXMLs = map[vmconfig.PoolType]string{
+	DefaultPool: defaultVolumeXML,
+	RAMPool:     defaultRawVolumeXML,
+}
 
 func GetDefaultDomainXLS(...interface{}) string {
 	return defaultDomainXLS
@@ -31,12 +40,12 @@ func GetDefaultNetworkXLS(args map[string]pulumi.StringInput) pulumi.StringOutpu
 	return formatResourceXML(defaultNetworkXLS, args)
 }
 
-func GetDefaultVolumeXML(args map[string]pulumi.StringInput, recipe string) pulumi.StringOutput {
+func GetDefaultVolumeXML(args *RecipeLibvirtVolumeArgs, recipe string) pulumi.StringOutput {
 	if isLocalRecipe(recipe) {
-		return formatResourceXML(defaultLocalVolumeXLS, args)
+		return formatResourceXML(defaultLocalVolumeXLS, args.XMLArgs)
 	}
 
-	return formatResourceXML(defaultVolumeXML, args)
+	return formatResourceXML(remoteVolumeXMLs[args.PoolType], args.XMLArgs)
 }
 
 func GetDefaultPoolXML(args map[string]pulumi.StringInput, _ string) pulumi.StringOutput {
@@ -57,7 +66,7 @@ func (a *DefaultResourceCollection) GetDomainXLS(_ map[string]pulumi.StringInput
 	return pulumi.Sprintf("%s", GetDefaultDomainXLS())
 }
 
-func (a *DefaultResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *DefaultResourceCollection) GetVolumeXML(args *RecipeLibvirtVolumeArgs) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args, a.recipe)
 }
 

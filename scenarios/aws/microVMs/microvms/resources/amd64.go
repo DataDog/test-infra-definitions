@@ -3,6 +3,7 @@ package resources
 import (
 	// import embed
 	_ "embed"
+	"sort"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -25,7 +26,7 @@ func (a *AMD64ResourceCollection) GetDomainXLS(args map[string]pulumi.StringInpu
 	return formatResourceXML(amd64DomainXLS, args)
 }
 
-func (a *AMD64ResourceCollection) GetVolumeXML(args map[string]pulumi.StringInput) pulumi.StringOutput {
+func (a *AMD64ResourceCollection) GetVolumeXML(args *RecipeLibvirtVolumeArgs) pulumi.StringOutput {
 	return GetDefaultVolumeXML(args, a.recipe)
 }
 
@@ -35,12 +36,28 @@ func (a *AMD64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput)
 
 func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) *libvirt.DomainArgs {
 	var cmdlines []map[string]interface{}
-
 	for cmd, val := range args.ExtraKernelParams {
 		cmdlines = append(cmdlines, map[string]interface{}{cmd: pulumi.String(val)})
 	}
-
 	cmdlines = append(cmdlines, kernelCmdlines...)
+
+	var disks libvirt.DomainDiskArray
+	sort.Slice(args.Disks, func(i, j int) bool {
+		return args.Disks[i].Target < args.Disks[j].Target
+	})
+	for _, disk := range args.Disks {
+		switch disk.Attach {
+		case AttachAsFile:
+			disks = append(disks, libvirt.DomainDiskArgs{
+				File: disk.VolumeID,
+			})
+		case AttachAsVolume:
+			disks = append(disks, libvirt.DomainDiskArgs{
+				VolumeId: disk.VolumeID,
+			})
+		default:
+		}
+	}
 
 	domainArgs := libvirt.DomainArgs{
 		Name: pulumi.String(args.DomainName),
@@ -51,11 +68,7 @@ func (a *AMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 				TargetType: pulumi.String("serial"),
 			},
 		},
-		Disks: libvirt.DomainDiskArray{
-			libvirt.DomainDiskArgs{
-				VolumeId: args.Volume.ID(),
-			},
-		},
+		Disks:    disks,
 		Kernel:   pulumi.String(args.KernelPath),
 		Cmdlines: pulumi.ToMapArray(cmdlines),
 		Memory:   pulumi.Int(args.Memory),

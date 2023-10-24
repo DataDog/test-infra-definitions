@@ -1,20 +1,17 @@
 <volume type='file'>
     <name>{imageName}</name>
     <key>{volumeKey}</key>
+  <capacity unit='bytes'>104857600</capacity>
+  <allocation unit='bytes'>104857600</allocation>
+  <physical unit='bytes'>104857600</physical>
   <target>
-    <format type='qcow2'/>
+      <path>{imagePath}</path>
+      <format type='{format}'/>
     <permissions>
       <mode>0660</mode>
       <owner>$(grep $USER /etc/passwd | cut -d ':' -f 3)</owner>
       <group>$(grep 'libvirt:' /etc/group | cut -d ':' -f 3)</group>
     </permissions>
-    <compat>1.1</compat>
-    <clusterSize unit='B'>65536</clusterSize>
-    <features/>
   </target>
-  <backingStore>
-      <path>{imagePath}</path>
-    <format type='qcow2'/>
-  </backingStore>
 </volume>
 

@@ -5,6 +5,8 @@ import (
 	"net"
 	"path/filepath"
 	"sort"
+	"strings"
+	"sync"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -17,28 +19,31 @@ import (
 
 const domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
 
-func libvirtResourceName(stack, identifier string) string {
-	return fmt.Sprintf("%s-ddvm-%s", stack, identifier)
+func libvirtResourceName(identifiers ...string) string {
+	return strings.Join(identifiers, "-")
 }
 
-func libvirtResourceNamer(ctx *pulumi.Context, identifier string) namer.Namer {
-	return namer.NewNamer(ctx, libvirtResourceName(ctx.Stack(), identifier))
+func libvirtResourceNamer(ctx *pulumi.Context, identifiers ...string) namer.Namer {
+	return namer.NewNamer(ctx, libvirtResourceName(identifiers...))
 }
 
-func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pool *LibvirtPool) (*LibvirtFilesystem, error) {
+type LibvirtProviderFn func() (*libvirt.Provider, error)
+
+func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools map[vmconfig.PoolType]LibvirtPool) (*LibvirtFilesystem, error) {
 	switch vmset.Recipe {
+
 	case vmconfig.RecipeCustomLocal:
 		fallthrough
 	case vmconfig.RecipeCustomARM64:
 		fallthrough
 	case vmconfig.RecipeCustomAMD64:
-		return NewLibvirtFSCustomRecipe(ctx, vmset, pool), nil
+		return NewLibvirtFSCustomRecipe(ctx, vmset, pools), nil
 	case vmconfig.RecipeDistroLocal:
 		fallthrough
 	case vmconfig.RecipeDistroARM64:
 		fallthrough
 	case vmconfig.RecipeDistroAMD64:
-		return NewLibvirtFSDistroRecipe(ctx, vmset, pool), nil
+		return NewLibvirtFSDistroRecipe(ctx, vmset, pools), nil
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}
@@ -64,6 +69,12 @@ func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 	}
 }
 
+type LibvirtProvider struct {
+	libvirtProviderFn   LibvirtProviderFn
+	initLibvirtProvider sync.Once
+	provider            *libvirt.Provider
+}
+
 // Each VMCollection represents the resources needed to setup a collection of libvirt VMs per instance.
 // Each VMCollection corresponds to a single instance
 // It is composed of
@@ -73,59 +84,61 @@ func addVMSets(vmsets []vmconfig.VMSet, collection *VMCollection) {
 // fs: This is the filesystem consisting of pools and basevolumes. Each VMSet will result in 1 filesystems.
 // domains: This represents a single libvirt VM. Each VMSet will result in 1 or more domains to be built.
 type VMCollection struct {
-	instance        *Instance
-	vmsets          []vmconfig.VMSet
-	pool            *LibvirtPool
-	fs              map[vmconfig.VMSetID]*LibvirtFilesystem
-	domains         []*Domain
-	libvirtProvider *libvirt.Provider
+	instance *Instance
+	vmsets   []vmconfig.VMSet
+	pools    map[vmconfig.PoolType]LibvirtPool
+	fs       map[vmconfig.VMSetID]*LibvirtFilesystem
+	domains  []*Domain
+	LibvirtProvider
 }
 
 func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
-	var err error
 
-	var libvirtPoolReady []pulumi.Resource
-	if vm.instance.Arch != LocalVMSet {
-		libvirtPoolReady, err = setupRemoteLibvirtPool(vm.pool, vm.instance.runner, depends)
-	} else {
-		libvirtPoolReady, err = setupLocalLibvirtPool(vm.instance.e.Ctx, vm.libvirtProvider, vm.pool, depends)
-
+	for _, pool := range vm.pools {
+		libvirtPoolReady, err := pool.SetupLibvirtPool(
+			vm.instance.e.Ctx,
+			vm.instance.runner,
+			vm.libvirtProviderFn,
+			vm.instance.Arch == LocalVMSet,
+			depends,
+		)
+		if err != nil {
+			return nil, err
+		}
+		depends = append(depends, libvirtPoolReady...)
 	}
-	if err != nil {
-		return []pulumi.Resource{}, err
-	}
-	depends = append(depends, libvirtPoolReady...)
 
 	for _, set := range vm.vmsets {
-		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pool)
+		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pools)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 		vm.fs[set.ID] = fs
 	}
 
 	// Duplicate VMs maybe be booted in different VMSets.
 	// In order to avoid downloading and building the baseVolumes twice,
-	// we prune the list of `filesystemImage`.
+	// we prune the list of `volumes`.
 	seen := make(map[string]bool)
 	for _, fs := range vm.fs {
-		imagesToKeep := []*filesystemImage{}
-		for _, fsImage := range fs.images {
+		imagesToKeep := []LibvirtVolume{}
+		for _, volume := range fs.volumes {
+			fsImage := volume.UnderlyingImage()
 			if present, _ := seen[fsImage.imagePath]; present {
 				continue
 			}
-			imagesToKeep = append(imagesToKeep, fsImage)
+			imagesToKeep = append(imagesToKeep, volume)
 
 			seen[fsImage.imagePath] = true
 		}
-		fs.images = imagesToKeep
+		fs.volumes = imagesToKeep
 	}
 
 	for _, fs := range vm.fs {
-		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProvider, vm.instance.runner, depends)
+		fsDone, err := fs.SetupLibvirtFilesystem(vm.libvirtProviderFn, vm.instance.runner, depends)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 		waitFor = append(waitFor, fsDone...)
 	}
@@ -139,11 +152,11 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
-			return []pulumi.Resource{}, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
+			return nil, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProvider, depends, &set, fs)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs)
 		if err != nil {
-			return []pulumi.Resource{}, err
+			return nil, err
 		}
 
 		// Setup individual Nvram disk for arm64 distro images
@@ -160,7 +173,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 					pulumi.DependsOn(depends),
 				)
 				if err != nil {
-					return []pulumi.Resource{}, err
+					return nil, err
 				}
 
 				waitFor = append(waitFor, varstoreDone)
@@ -182,7 +195,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 
 	}
 
-	network, err := generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProvider, depends, vm.instance.instanceNamer, dhcpEntries)
+	network, err := generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProviderFn, depends, vm.instance.instanceNamer, dhcpEntries)
 	if err != nil {
 		return err
 	}
@@ -205,29 +218,79 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 	return nil
 }
 
+func buildLibvirtProviderFn(collection *VMCollection, depends []pulumi.Resource) func() (*libvirt.Provider, error) {
+	var err error
+	return func() (*libvirt.Provider, error) {
+		collection.initLibvirtProvider.Do(func() {
+			collection.provider, err = libvirt.NewProvider(
+				collection.instance.e.Ctx,
+				collection.instance.instanceNamer.ResourceName("libvirt-provider"),
+				&libvirt.ProviderArgs{
+					Uri: collection.instance.libvirtURI,
+				}, pulumi.DependsOn(depends))
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		return collection.provider, nil
+	}
+}
+
+func buildCollectionPools(ctx *pulumi.Context, collection *VMCollection) error {
+	if len(collection.vmsets) == 0 {
+		return ErrVMSetsNotMapped
+	}
+
+	collection.pools = make(map[vmconfig.PoolType]LibvirtPool)
+	collection.pools[resources.DefaultPool] = NewGlobalLibvirtPool(ctx)
+
+	var err error
+	for _, v := range collection.vmsets {
+		for _, d := range v.Disks {
+			switch d.Type {
+			case resources.RAMPool:
+				if _, ok := collection.pools[resources.RAMPool]; !ok {
+					collection.pools[resources.RAMPool], err = NewRAMBackedLibvirtPool(ctx, &d)
+				}
+			default:
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
 func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet, depends []pulumi.Resource) ([]*VMCollection, []pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var vmCollections []*VMCollection
 
 	// Map instances and vmsets to VMCollections
 	for _, instance := range instances {
-		provider, err := libvirt.NewProvider(instance.e.Ctx, instance.instanceNamer.ResourceName("provider"), &libvirt.ProviderArgs{
-			Uri: instance.libvirtURI,
-		}, pulumi.DependsOn(depends))
-		if err != nil {
-			return vmCollections, waitFor, err
+		collection := &VMCollection{
+			fs:       make(map[vmconfig.VMSetID]*LibvirtFilesystem),
+			instance: instance,
 		}
 
-		collection := &VMCollection{
-			fs:              make(map[vmconfig.VMSetID]*LibvirtFilesystem),
-			instance:        instance,
-			libvirtProvider: provider,
-			pool:            NewLibvirtPool(instance.e.Ctx),
-		}
+		// We want to lazily initialize the libvirt provider.
+		// If there is too long a time between the provider being initialized,
+		// which essentially creates a connection with the libvirt daemon, and the provider
+		// created connection being used, the libvirt daemon drops the connection
+		// causing our scenario to fail.
+		collection.libvirtProviderFn = buildLibvirtProviderFn(collection, depends)
 
 		// add the VMSets required to build this collection
 		// This function decides how to partition the sets across collections.
 		addVMSets(vmsets, collection)
+
+		// builds pools once sets have been mapped
+		if err := buildCollectionPools(instance.e.Ctx, collection); err != nil {
+			return vmCollections, waitFor, err
+		}
 
 		vmCollections = append(vmCollections, collection)
 	}
@@ -248,20 +311,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			return vmCollections, waitFor, err
 		}
 		waitFor = append(waitFor, wait...)
-
-		// setup domain sockets for communicating with the domains
-		for _, domain := range collection.domains {
-			createDomainSocketDone, err := buildDomainSocket(collection.instance.runner,
-				domain.domainID,
-				domain.domainNamer.ResourceName("create-domain-socket", domain.domainID),
-				depends,
-			)
-			if err != nil {
-				return vmCollections, waitFor, err
-			}
-			waitFor = append(waitFor, createDomainSocketDone)
-		}
-
 	}
 
 	// map domains to ips
@@ -316,11 +365,15 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 	var libvirtDomains []pulumi.Resource
 
 	for _, collection := range vmCollections {
+		provider, err := collection.libvirtProviderFn()
+		if err != nil {
+			return libvirtDomains, err
+		}
 		for _, domain := range collection.domains {
 			d, err := libvirt.NewDomain(collection.instance.e.Ctx,
 				domain.domainNamer.ResourceName(domain.domainID),
 				domain.domainArgs,
-				pulumi.Provider(collection.libvirtProvider),
+				pulumi.Provider(provider),
 				pulumi.ReplaceOnChanges([]string{"*"}),
 				pulumi.DeleteBeforeReplace(true),
 				pulumi.DependsOn(depends),

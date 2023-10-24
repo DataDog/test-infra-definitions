@@ -196,34 +196,29 @@ func WithTelemetry() func(*Params) error {
 // WithFakeintake installs the fake intake and configures the Agent to use it.
 func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
 	return func(p *Params) error {
-		// configure metrics and check run intake
-		args := make([]interface{}, 12) // number of %s in the configuration (horribly hardcoded)
-		for idx := range args {
-			args[idx] = fakeintake.Host
-		}
-		extraConfig := pulumi.Sprintf(`dd_url: http://%s:80
-logs_config.logs_dd_url: %s:80
+		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:80
+logs_config.logs_dd_url: %[1]s:80
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true
-process_config.process_dd_url: http://%s:80
-database_monitoring.metrics.logs_dd_url: %s:80
+process_config.process_dd_url: http://%[1]s:80
+database_monitoring.metrics.logs_dd_url: %[1]s:80
 database_monitoring.metrics.logs_no_ssl: true
-database_monitoring.activity.logs_dd_url: %s:80
+database_monitoring.activity.logs_dd_url: %[1]s:80
 database_monitoring.activity.logs_no_ssl: true
-database_monitoring.samples.logs_dd_url: %s:80
+database_monitoring.samples.logs_dd_url: %[1]s:80
 database_monitoring.samples.logs_no_ssl: true
-network_devices.metadata.logs_dd_url: %s:80
+network_devices.metadata.logs_dd_url: %[1]s:80
 network_devices.metadata.logs_no_ssl: true
-network_devices.snmp_traps.forwarder.logs_dd_url: %s:80
+network_devices.snmp_traps.forwarder.logs_dd_url: %[1]s:80
 network_devices.snmp_traps.forwarder.logs_no_ssl: true
-network_devices.netflow.forwarder.logs_dd_url: %s:80
+network_devices.netflow.forwarder.logs_dd_url: %[1]s:80
 network_devices.netflow.forwarder.logs_no_ssl: true
-container_lifecycle.logs_dd_url: %s:80
+container_lifecycle.logs_dd_url: %[1]s:80
 container_lifecycle.logs_no_ssl: true
-container_image.logs_dd_url: %s:80
+container_image.logs_dd_url: %[1]s:80
 container_image.logs_no_ssl: true
-sbom.logs_dd_url: %s:80
-sbom.logs_no_ssl: true`, args...)
+sbom.logs_dd_url: %[1]s:80
+sbom.logs_no_ssl: true`, fakeintake.Host)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}

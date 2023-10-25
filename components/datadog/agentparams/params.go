@@ -224,14 +224,18 @@ sbom.logs_no_ssl: true`, hostname)
 	}
 }
 
-// WithIntakeName configures the agent to use the given hostname as intake
-// This option is incompatible with `WithFakeintake`.
+// WithIntakeName configures the agent to use the given hostname as intake.
+//
+// To use a fakeintake, see WithFakeintake.
+//
+// This option is overwritten by `WithFakeintake`.
 func WithIntakeHostname(hostname string) func(*Params) error {
 	return withIntakeHostname(pulumi.String(hostname))
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
-// This option is incompatible with `WithIntakeHostname`.
+//
+// This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
 	return withIntakeHostname(fakeintake.Host)
 }

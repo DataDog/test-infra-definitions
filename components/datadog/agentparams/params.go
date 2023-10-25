@@ -26,6 +26,7 @@ import (
 //   - [WithIntegration]
 //   - [WithTelemetry]
 //   - [WithFakeintake]
+//   - [WithIntakeHostname]
 //   - [WithLogs]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
@@ -193,8 +194,7 @@ func WithTelemetry() func(*Params) error {
 	}
 }
 
-// WithFakeintake installs the fake intake and configures the Agent to use it.
-func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
+func withIntakeHostname(hostname pulumi.StringInput) func(*Params) error {
 	return func(p *Params) error {
 		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:80
 logs_config.logs_dd_url: %[1]s:80
@@ -218,10 +218,26 @@ container_lifecycle.logs_no_ssl: true
 container_image.logs_dd_url: %[1]s:80
 container_image.logs_no_ssl: true
 sbom.logs_dd_url: %[1]s:80
-sbom.logs_no_ssl: true`, fakeintake.Host)
+sbom.logs_no_ssl: true`, hostname)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}
+}
+
+// WithIntakeName configures the agent to use the given hostname as intake.
+//
+// To use a fakeintake, see WithFakeintake.
+//
+// This option is overwritten by `WithFakeintake`.
+func WithIntakeHostname(hostname string) func(*Params) error {
+	return withIntakeHostname(pulumi.String(hostname))
+}
+
+// WithFakeintake installs the fake intake and configures the Agent to use it.
+//
+// This option is overwritten by `WithIntakeHostname`.
+func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
+	return withIntakeHostname(fakeintake.Host)
 }
 
 // WithLogs enables the log agent

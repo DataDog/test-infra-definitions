@@ -17,8 +17,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
-const domainSocketCreateCmd = `rm -f /tmp/%s.sock && python3 -c "import socket as s; sock = s.socket(s.AF_UNIX); sock.bind('/tmp/%s.sock')"`
-
 func libvirtResourceName(identifiers ...string) string {
 	return strings.Join(identifiers, "-")
 }
@@ -47,18 +45,6 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools map[vmconfig
 	default:
 		return nil, fmt.Errorf("unknown recipe: %s", vmset.Recipe)
 	}
-}
-
-func buildDomainSocket(runner *Runner, domainID, resourceName string, depends []pulumi.Resource) (pulumi.Resource, error) {
-	createDomainSocketArgs := command.Args{
-		Create: pulumi.Sprintf(domainSocketCreateCmd, domainID, domainID),
-	}
-	createDomainSocketDone, err := runner.Command(resourceName, &createDomainSocketArgs, pulumi.DependsOn(depends))
-	if err != nil {
-		return nil, err
-	}
-
-	return createDomainSocketDone, nil
 }
 
 func createDomainConsoleLog(runner *Runner, domainName string, resourceName string, depends []pulumi.Resource) (pulumi.Resource, error) {

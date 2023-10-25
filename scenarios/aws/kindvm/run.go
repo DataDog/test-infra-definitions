@@ -9,6 +9,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
@@ -76,6 +77,13 @@ datadog:
 		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
 
 		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
+	}
+
+	// Deploy standalone dogstatsd
+	if awsEnv.DogstatsdDeploy() {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone"); err != nil {
+			return err
+		}
 	}
 
 	// Deploy testing workload

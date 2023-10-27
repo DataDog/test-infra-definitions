@@ -345,6 +345,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		}
 	}
 
+	return nil, fmt.Errorf("force-fail")
+
 	// provision microVMs
 	for _, collection := range vmCollections {
 		if collection.instance.Arch == LocalVMSet {

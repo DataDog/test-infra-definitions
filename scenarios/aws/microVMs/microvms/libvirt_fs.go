@@ -314,6 +314,31 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 	return waitFor, nil
 }
 
+func extractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	var waitFor []pulumi.Resource
+	for _, volume := range fs.volumes {
+		fsImage := volume.UnderlyingImage()
+
+		// Extract archive if it is xz compressed, which will be the case when downloading from remote S3 bucket.
+		// To do this we check if the magic bytes of the file at imagePath is fd377a585a00. If so then this is already
+		// a qcow2 file. No need to extract it. Otherwise it SHOULD be xz compressed file. Attempt to uncompress.
+		//
+		// Magic bytes of xz: fd377a585a00
+		// Magic bytes of qcow2: 514649fb
+		extractTopLevelArchive := command.Args{
+			Create: pulumi.Sprintf("if xxd -p -l 6 %[1]s | grep -E '^fd377a585a00$'; then mv %[1]s %[2]s && xz -d %[2]s; elif xxd -p -l 4 %[1]s | grep -E '^514649fb$'; then echo '%[1]s is qcow2 file'; else false; fi", fsImage.imagePath, fmt.Sprintf("%s.xz", fsImage.imagePath)),
+		}
+		res, err := runner.Command(volume.FullResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
+		if err != nil {
+			return []pulumi.Resource{}, err
+		}
+
+		waitFor = append(waitFor, res)
+	}
+
+	return waitFor, nil
+}
+
 func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	// Downloading the base images for the volumes is the slowest part of the entire setup.
 	// We want this step to start as soon as our remote VMs are ready. Therefore, we do not
@@ -326,7 +351,12 @@ func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn
 		return nil, err
 	}
 
-	depends = append(depends, downloadRootfsDone...)
+	extractRootfsDone, err := extractRootfs(fs, runner, downloadRootfsDone)
+	if err != nil {
+		return nil, err
+	}
+
+	depends = append(depends, extractRootfsDone...)
 	return setupLibvirtFilesystem(fs, runner, providerFn, depends)
 }
 

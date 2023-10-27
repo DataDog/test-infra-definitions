@@ -224,7 +224,7 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd"); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
 			return err
 		}
 

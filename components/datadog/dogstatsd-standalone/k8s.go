@@ -11,6 +11,14 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// HostPort defines the port used by the dogstatsd standalone deployment. The
+// standard port for dogstatsd is 8125, but it's already used by the agent.
+const HostPort = 8128
+
+// Socket defines the socket exposed by the dogstatsd standalone deployment.
+// It's not the default to avoid conflict with the agent.
+const Socket = "/var/run/datadog/dsd-standalone.socket"
+
 type K8sComponent struct {
 	pulumi.ResourceState
 }
@@ -68,7 +76,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Ports: corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
 									ContainerPort: pulumi.Int(8125),
-									HostPort:      pulumi.Int(8125),
+									HostPort:      pulumi.Int(HostPort),
 									Name:          pulumi.StringPtr("dogstatsdport"),
 									Protocol:      pulumi.StringPtr("UDP"),
 								},
@@ -96,7 +104,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								},
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("DD_DOGSTATSD_SOCKET"),
-									Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),
+									Value: pulumi.StringPtr(Socket),
 								},
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("DD_DOGSTATSD_TAG_CARDINALITY"),

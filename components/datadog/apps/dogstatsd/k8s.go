@@ -1,6 +1,8 @@
 package dogstatsd
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
@@ -15,11 +17,11 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, statsdPort int, statsdSocket string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", "dogstatsd", k8sComponent, opts...); err != nil {
+	if err := e.Ctx.RegisterComponentResource("dd:apps", fmt.Sprintf("dogstatsd-%d", statsdPort), k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
@@ -36,7 +38,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "dogstatsd-uds", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("dogstatsd-uds-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-uds"),
 			Namespace: pulumi.String(namespace),
@@ -65,7 +67,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("STATSD_URL"),
-									Value: pulumi.StringPtr("unix:///var/run/datadog/dsd.socket"),
+									Value: pulumi.String("unix:///var/dsd.socket"),
 								},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
@@ -80,18 +82,18 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							},
 							VolumeMounts: &corev1.VolumeMountArray{
 								&corev1.VolumeMountArgs{
-									Name:      pulumi.String("var-run-datadog"),
-									MountPath: pulumi.String("/var/run/datadog"),
+									Name:      pulumi.String("dogstatsd-socket"),
+									MountPath: pulumi.String("/var/dsd.socket"),
 								},
 							},
 						},
 					},
 					Volumes: corev1.VolumeArray{
 						&corev1.VolumeArgs{
-							Name: pulumi.String("var-run-datadog"),
+							Name: pulumi.String("dogstatsd-socket"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
-								Path: pulumi.String("/var/run/datadog"),
-								Type: pulumi.StringPtr("Directory"),
+								Path: pulumi.String(statsdSocket),
+								Type: pulumi.StringPtr("Socket"),
 							},
 						},
 					},
@@ -102,7 +104,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "dogstatsd-udp", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("dogstatsd-udp-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-udp"),
 			Namespace: pulumi.String(namespace),
@@ -139,7 +141,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								},
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("STATSD_URL"),
-									Value: pulumi.StringPtr("$(HOST_IP):8125"),
+									Value: pulumi.Sprintf("$(HOST_IP):%d", statsdPort),
 								},
 								&corev1.EnvVarArgs{
 									Name: pulumi.String("DD_ENTITY_ID"),

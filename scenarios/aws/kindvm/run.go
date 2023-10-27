@@ -96,7 +96,13 @@ datadog:
 			return err
 		}
 
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd"); err != nil {
+		// dogstatsd clients that report to the Agent
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			return err
+		}
+
+		// dogstatsd clients that report to the dogstatsd standalone deployment
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 			return err
 		}
 

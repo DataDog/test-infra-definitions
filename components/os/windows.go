@@ -25,7 +25,7 @@ func NewWindows(env config.Environment) *Windows {
 }
 
 func (w *Windows) GetDefaultInstanceType(arch Architecture) string {
-	return getDefaultInstanceType(w.env, arch)
+	return GetDefaultInstanceType(w.env, arch)
 }
 
 func (*Windows) GetServiceManager() *ServiceManager {

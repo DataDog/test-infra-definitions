@@ -3,23 +3,14 @@ package os
 import (
 	"fmt"
 	"strings"
-
-	"github.com/DataDog/test-infra-definitions/common/config"
 )
 
-type Unix struct {
-	env config.Environment
+type Unix struct{}
+
+func NewUnix() *Unix {
+	return &Unix{}
 }
 
-func NewUnix(env config.Environment) *Unix {
-	return &Unix{
-		env: env,
-	}
-}
-
-func (u *Unix) GetDefaultInstanceType(arch Architecture) string {
-	return getDefaultInstanceType(u.env, arch)
-}
 func (*Unix) GetAgentConfigFolder() string { return "/etc/datadog-agent" }
 
 func (*Unix) CheckIsAbsPath(path string) bool {
@@ -39,17 +30,6 @@ func (*Unix) GetType() Type {
 
 func (*Unix) GetRunAgentCmd(parameters string) string {
 	return "sudo datadog-agent " + parameters
-}
-
-func getDefaultInstanceType(env config.Environment, arch Architecture) string {
-	switch arch {
-	case AMD64Arch:
-		return env.DefaultInstanceType()
-	case ARM64Arch:
-		return env.DefaultARMInstanceType()
-	default:
-		panic("Architecture not supported")
-	}
 }
 
 func getUnixInstallFormatString(scriptName string, version AgentVersion) string {

@@ -20,9 +20,9 @@ var _ OS = &centos{}
 
 func newCentos(env aws.Environment) *centos {
 	return &centos{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*centos) GetSSHUser() string { return "centos" }

@@ -25,12 +25,20 @@ type AgentVersion struct {
 	PipelineID  string
 }
 
-type OS interface {
+// Create an alias to avoid changing too many code.
+type OS CloudProviderOS
+
+type CloudProviderOS interface {
+	RawOS
 	GetImage(Architecture) (string, error)
 	GetDefaultInstanceType(Architecture) string
+	GetSSHUser() string
+}
+
+// RawOS defines the methods which doesn't depend on any cloud provider for an OS.
+type RawOS interface {
 	GetServiceManager() *ServiceManager
 	GetAgentConfigFolder() string
-	GetSSHUser() string
 	GetAgentInstallCmd(AgentVersion) (string, error)
 	GetRunAgentCmd(parameters string) string
 	GetType() Type

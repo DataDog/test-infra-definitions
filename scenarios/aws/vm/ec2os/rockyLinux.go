@@ -18,9 +18,9 @@ var _ OS = &rockyLinux{}
 
 func newRockyLinux(env aws.Environment) *rockyLinux {
 	return &rockyLinux{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*rockyLinux) GetSSHUser() string { return "cloud-user" }

@@ -2,8 +2,6 @@ package os
 
 import (
 	"testing"
-
-	"github.com/DataDog/test-infra-definitions/resources/aws"
 )
 
 func TestUnixOS(t *testing.T) {
@@ -22,8 +20,7 @@ func TestUnixOS(t *testing.T) {
 			{"lala", false},
 		}
 
-		env := &aws.Environment{}
-		testos := NewUnix(env)
+		testos := NewUnix()
 
 		var res bool
 		for _, test := range tests {

@@ -15,9 +15,9 @@ type amazonLinux struct {
 
 func newAmazonLinux(env aws.Environment) *amazonLinux {
 	return &amazonLinux{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*amazonLinux) GetSSHUser() string { return "ec2-user" }

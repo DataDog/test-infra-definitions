@@ -15,9 +15,9 @@ type suse struct {
 
 func newSuse(env aws.Environment) *suse {
 	return &suse{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*suse) GetSSHUser() string { return "ec2-user" }

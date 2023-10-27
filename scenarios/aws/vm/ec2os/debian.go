@@ -15,9 +15,9 @@ type debian struct {
 
 func newDebian(env aws.Environment) *debian {
 	return &debian{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*debian) GetSSHUser() string { return "admin" }

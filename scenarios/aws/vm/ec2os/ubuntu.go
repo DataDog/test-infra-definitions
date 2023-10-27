@@ -14,8 +14,8 @@ type ubuntu struct {
 
 func newUbuntu(env aws.Environment) *ubuntu {
 	return &ubuntu{
-		Ubuntu: *os.NewUbuntu(&env),
-		unix:   &unix{},
+		Ubuntu: *os.NewUbuntu(),
+		unix:   newUnix(&env),
 		env:    env,
 	}
 }

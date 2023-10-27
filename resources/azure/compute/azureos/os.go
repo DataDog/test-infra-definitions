@@ -3,6 +3,7 @@ package azureos
 import (
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 	"github.com/DataDog/test-infra-definitions/resources/azure/compute"
@@ -27,12 +28,14 @@ func GetOS(env azure.Environment, osType Type) (os.OS, error) {
 }
 
 type ubuntu struct {
+	env config.Environment
 	os.Ubuntu
 }
 
 func newUbuntu(env azure.Environment) *ubuntu {
 	return &ubuntu{
-		Ubuntu: *os.NewUbuntu(&env),
+		env:    &env,
+		Ubuntu: *os.NewUbuntu(),
 	}
 }
 
@@ -43,6 +46,10 @@ func (u *ubuntu) GetImage(arch os.Architecture) (string, error) {
 		return "", fmt.Errorf("%v is not supported", arch)
 	}
 	return compute.UbuntuLatestURN(), nil
+}
+
+func (u *ubuntu) GetDefaultInstanceType(arch os.Architecture) string {
+	return os.GetDefaultInstanceType(u.env, arch)
 }
 
 type windows struct {

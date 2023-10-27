@@ -18,9 +18,9 @@ type fedora struct {
 
 func newFedora(env aws.Environment) *fedora {
 	return &fedora{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*fedora) GetSSHUser() string { return "fedora" }

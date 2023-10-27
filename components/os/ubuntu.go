@@ -1,15 +1,16 @@
 package os
 
 import (
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-type Ubuntu struct{ Unix }
+var _ RawOS = (*Ubuntu)(nil)
 
-func NewUbuntu(env config.Environment) *Ubuntu {
+type Ubuntu struct{ *Unix }
+
+func NewUbuntu() *Ubuntu {
 	return &Ubuntu{
-		Unix: Unix{env: env},
+		Unix: NewUnix(),
 	}
 }
 

@@ -15,9 +15,9 @@ type redHat struct {
 
 func newRedHat(env aws.Environment) *redHat {
 	return &redHat{
-		unix: &unix{},
+		unix: newUnix(&env),
 		env:  env,
-		Unix: os.NewUnix(&env),
+		Unix: os.NewUnix(),
 	}
 }
 func (*redHat) GetSSHUser() string { return "ec2-user" }

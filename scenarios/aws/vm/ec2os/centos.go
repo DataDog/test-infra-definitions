@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
@@ -12,7 +11,7 @@ import (
 
 type centos struct {
 	*unix
-	*os.Unix
+	*os.Centos
 	env aws.Environment
 }
 
@@ -20,9 +19,9 @@ var _ OS = &centos{}
 
 func newCentos(env aws.Environment) *centos {
 	return &centos{
-		unix: newUnix(&env),
-		env:  env,
-		Unix: os.NewUnix(),
+		unix:   newUnix(&env),
+		env:    env,
+		Centos: os.NewCentos(),
 	}
 }
 func (*centos) GetSSHUser() string { return "centos" }
@@ -37,12 +36,4 @@ func (u *centos) GetImage(arch os.Architecture) (string, error) {
 	default:
 		return "", fmt.Errorf("%v is not supported for CentOS", arch)
 	}
-}
-
-func (*centos) GetServiceManager() *os.ServiceManager {
-	return os.NewSystemCtlServiceManager()
-}
-
-func (*centos) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
-	return newYumManager(runner), nil
 }

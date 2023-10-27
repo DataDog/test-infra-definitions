@@ -3,14 +3,13 @@ package ec2os
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 )
 
 type rockyLinux struct {
 	*unix
-	*os.Unix
+	*os.RockyLinux
 	env aws.Environment
 }
 
@@ -18,9 +17,9 @@ var _ OS = &rockyLinux{}
 
 func newRockyLinux(env aws.Environment) *rockyLinux {
 	return &rockyLinux{
-		unix: newUnix(&env),
-		env:  env,
-		Unix: os.NewUnix(),
+		unix:       newUnix(&env),
+		env:        env,
+		RockyLinux: os.NewRockyLinux(),
 	}
 }
 func (*rockyLinux) GetSSHUser() string { return "cloud-user" }
@@ -36,12 +35,4 @@ func (u *rockyLinux) GetImage(arch os.Architecture) (string, error) {
 	default:
 		return "", fmt.Errorf("%v is not supported for Rocky Linux", arch)
 	}
-}
-
-func (*rockyLinux) GetServiceManager() *os.ServiceManager {
-	return os.NewSystemCtlServiceManager()
-}
-
-func (*rockyLinux) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
-	return newYumManager(runner), nil
 }

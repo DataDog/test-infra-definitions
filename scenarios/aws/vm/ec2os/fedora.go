@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
@@ -12,15 +11,15 @@ import (
 
 type fedora struct {
 	*unix
-	*os.Unix
+	*os.Fedora
 	env aws.Environment
 }
 
 func newFedora(env aws.Environment) *fedora {
 	return &fedora{
-		unix: newUnix(&env),
-		env:  env,
-		Unix: os.NewUnix(),
+		unix:   newUnix(&env),
+		env:    env,
+		Fedora: os.NewFedora(),
 	}
 }
 func (*fedora) GetSSHUser() string { return "fedora" }
@@ -35,12 +34,4 @@ func (u *fedora) GetImage(arch os.Architecture) (string, error) {
 	default:
 		return "", fmt.Errorf("%v is not supported for Fedora", arch)
 	}
-}
-
-func (*fedora) GetServiceManager() *os.ServiceManager {
-	return os.NewSystemCtlServiceManager()
-}
-
-func (*fedora) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
-	return newDnfManager(runner), nil
 }

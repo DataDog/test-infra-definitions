@@ -14,3 +14,15 @@ func NewBrewManager(runner *command.Runner) command.PackageManager {
 	return command.NewGenericPackageManager(runner, "brew", "brew install -y", "brew update -y",
 		pulumi.StringMap{"NONINTERACTIVE": pulumi.String("1")})
 }
+
+func NewYumManager(runner *command.Runner) command.PackageManager {
+	return command.NewGenericPackageManager(runner, "yum", "yum install -y", "", nil)
+}
+
+func NewDnfManager(runner *command.Runner) command.PackageManager {
+	return command.NewGenericPackageManager(runner, "dnf", "dnf install -y", "", nil)
+}
+
+func NewZypperManager(runner *command.Runner) command.PackageManager {
+	return command.NewGenericPackageManager(runner, "zypper", "zypper -n install", "zypper -n refresh", nil)
+}

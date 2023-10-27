@@ -2,8 +2,6 @@ package os
 
 import (
 	"testing"
-
-	"github.com/DataDog/test-infra-definitions/resources/azure"
 )
 
 func TestWindowsOS(t *testing.T) {
@@ -30,8 +28,7 @@ func TestWindowsOS(t *testing.T) {
 			{`//host/share/foo/bar`, true},
 		}
 
-		env := &azure.Environment{}
-		testos := NewWindows(env)
+		testos := NewWindows()
 
 		var res bool
 		for _, test := range tests {

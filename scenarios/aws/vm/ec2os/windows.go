@@ -15,7 +15,7 @@ type windows struct {
 
 func newWindows(env aws.Environment) *windows {
 	return &windows{
-		Windows: os.NewWindows(&env),
+		Windows: os.NewWindows(),
 		env:     env,
 	}
 }
@@ -34,3 +34,7 @@ func (w *windows) GetImage(arch os.Architecture) (string, error) {
 func (*windows) GetAMIArch(arch os.Architecture) string { return string(arch) }
 
 func (*windows) GetTenancy() string { return "default" }
+
+func (w *windows) GetDefaultInstanceType(arch os.Architecture) string {
+	return os.GetDefaultInstanceType(&w.env, arch)
+}

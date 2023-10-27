@@ -10,22 +10,13 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-type Windows struct {
-	env config.Environment
-}
+type Windows struct{}
 
-func NewWindows(env config.Environment) *Windows {
-	return &Windows{
-		env: env,
-	}
-}
-
-func (w *Windows) GetDefaultInstanceType(arch Architecture) string {
-	return GetDefaultInstanceType(w.env, arch)
+func NewWindows() *Windows {
+	return &Windows{}
 }
 
 func (*Windows) GetServiceManager() *ServiceManager {

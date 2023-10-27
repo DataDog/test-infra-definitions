@@ -54,11 +54,13 @@ func (u *ubuntu) GetDefaultInstanceType(arch os.Architecture) string {
 
 type windows struct {
 	*os.Windows
+	env azure.Environment
 }
 
 func newWindows(env azure.Environment) *windows {
 	return &windows{
-		Windows: os.NewWindows(&env),
+		env:     env,
+		Windows: os.NewWindows(),
 	}
 }
 
@@ -69,4 +71,8 @@ func (w *windows) GetImage(arch os.Architecture) (string, error) {
 		return "", fmt.Errorf("%v is not supported", arch)
 	}
 	return compute.WindowsLatestURN(), nil
+}
+
+func (w *windows) GetDefaultInstanceType(arch os.Architecture) string {
+	return os.GetDefaultInstanceType(&w.env, arch)
 }

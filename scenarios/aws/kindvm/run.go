@@ -82,7 +82,7 @@ datadog:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false); err != nil {
 			return err
 		}
 	}

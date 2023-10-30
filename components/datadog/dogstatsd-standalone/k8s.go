@@ -1,6 +1,8 @@
 package dogstatsdstandalone
 
 import (
+	"strconv"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -24,7 +26,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *ddfakeintake.ConnectionExporter, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *ddfakeintake.ConnectionExporter, kubeletTLSVerify bool, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -81,7 +83,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		},
 		&corev1.EnvVarArgs{
 			Name:  pulumi.String("DD_KUBELET_TLS_VERIFY"),
-			Value: pulumi.StringPtr("false"),
+			Value: pulumi.String(strconv.FormatBool(kubeletTLSVerify)),
 		},
 	}
 

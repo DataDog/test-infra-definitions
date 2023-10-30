@@ -12,7 +12,7 @@ from . import doc
 from .config import Config, get_full_profile_path, get_local_config
 from .tool import ask, info, is_linux, is_windows, warn
 
-available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
+available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa", "playground"]
 
 
 @task(help={"config_path": doc.config_path, "copy_to_clipboard": doc.copy_to_clipboard})
@@ -63,7 +63,7 @@ def setupAWSConfig(config: Config):
     while True:
         config.configParams.aws.account = default_aws_account
         aws_account = ask(
-            f"Which aws account do you want to create instances on? Default [{config.configParams.aws.account}], available [agent-sandbox|sandbox]: "
+            f"Which aws account do you want to create instances on? Default [{config.configParams.aws.account}], available [agent-sandbox|sandbox|playground]: "
         )
         if len(aws_account) > 0:
             config.configParams.aws.account = aws_account

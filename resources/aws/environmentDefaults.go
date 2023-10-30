@@ -5,9 +5,10 @@ import (
 )
 
 const (
-	sandboxEnv      = "aws/sandbox"
-	agentSandboxEnv = "aws/agent-sandbox"
-	agentQAEnv      = "aws/agent-qa"
+	sandboxEnv       = "aws/sandbox"
+	agentSandboxEnv  = "aws/agent-sandbox"
+	agentQAEnv       = "aws/agent-qa"
+	tsePlaygroundEnv = "aws/tse-playground"
 )
 
 type environmentDefault struct {
@@ -64,6 +65,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 		return agentSandboxDefault()
 	case agentQAEnv:
 		return agentQADefault()
+	case tsePlaygroundEnv:
+		return tsePlaygroundDefault()
 	default:
 		panic("Unknown environment: " + envName)
 	}
@@ -84,7 +87,7 @@ func sandboxDefault() environmentDefault {
 			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
-				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
+				execKMSKeyID:                "arn:aws:kms:us-east-1:570690476889:key/b2ab346a-12b7-44d7-8d53-1fd24342978d",
 				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:601427279990:cluster/fakeintake-ecs",
 				taskExecutionRole:           "arn:aws:iam::601427279990:role/ecsExecTaskExecutionRole",
 				taskRole:                    "arn:aws:iam::601427279990:role/ecsExecTaskRole",
@@ -177,6 +180,46 @@ func agentQADefault() environmentDefault {
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
+				fargateNamespace:             "fargate",
+				linuxNodeGroup:               true,
+				linuxARMNodeGroup:            true,
+				linuxBottlerocketNodeGroup:   true,
+				windowsLTSCNodeGroup:         true,
+			},
+		},
+	}
+}
+
+func tsePlaygroundDefault() environmentDefault {
+	return environmentDefault{
+		aws: awsProvider{
+			region: string(aws.RegionUSEast1),
+		},
+		ddInfra: ddInfra{
+			defaultVPCID:               "vpc-0ffaa1eb532fad302",
+			defaultSubnets:             []string{"subnet-0b8d13fef69bfeb37", "subnet-05a0f3cf0a4db42eb", "subnet-0b4081008b0ca79ca"},
+			defaultSecurityGroups:      []string{"sg-02c292ff14d38dd76"},
+			defaultInstanceType:        "t3.medium",
+			defaultARMInstanceType:     "t4g.medium",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
+
+			ecs: ddInfraECS{
+				execKMSKeyID:                "arn:aws:kms:us-east-1:570690476889:key/f1694e5a-bb52-42a7-b414-dfd34fbd6759",
+				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs",
+				taskExecutionRole:           "arn:aws:iam::570690476889:role/ecsExecTaskExecutionRole",
+				taskRole:                    "arn:aws:iam::570690476889:role/ecsExecTaskRole",
+				instanceProfile:             "arn:aws:iam::570690476889:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:     false,
+				fargateCapacityProvider:     true,
+				linuxECSOptimizedNodeGroup:  true,
+				linuxBottlerocketNodeGroup:  true,
+				windowsLTSCNodeGroup:        true,
+			},
+
+			eks: ddInfraEKS{
+				allowedInboundSecurityGroups: []string{"sg-02c292ff14d38dd76"},                         // from VPC console
+				allowedInboundPrefixList:     []string{"pl-073555187c4e6ccf2", "pl-07cbd8b5e26960eac"}, // Which one among the many available? Tried VPC
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

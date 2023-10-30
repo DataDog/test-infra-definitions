@@ -10,4 +10,4 @@
 # and another the rest of the directory.
 
 *                                       @DataDog/agent-e2e-testing
-/scenarios/aws/microVMs/                @DataDog/ebpf-platform @DataDog/agent-e2e-testing
+/scenarios/aws/microVMs/                @DataDog/ebpf-platform

@@ -9,6 +9,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
@@ -44,14 +45,15 @@ func Run(ctx *pulumi.Context) error {
 
 	var dependsOnCrd pulumi.ResourceOption
 
+	var fakeIntake *ddfakeintake.ConnectionExporter
+	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+			return err
+		}
+	}
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {
-		var fakeintake *ddfakeintake.ConnectionExporter
-		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
-				return err
-			}
-		}
 		customValues := fmt.Sprintf(`
 datadog:
   kubelet:
@@ -65,7 +67,7 @@ datadog:
 			ValuesYAML: pulumi.AssetOrArchiveArray{
 				pulumi.NewStringAsset(customValues),
 			},
-			Fakeintake: fakeintake,
+			Fakeintake: fakeIntake,
 		}, nil)
 		if err != nil {
 			return err
@@ -78,6 +80,13 @@ datadog:
 		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
 	}
 
+	// Deploy standalone dogstatsd
+	if awsEnv.DogstatsdDeploy() {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false); err != nil {
+			return err
+		}
+	}
+
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
 		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
@@ -88,7 +97,13 @@ datadog:
 			return err
 		}
 
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd"); err != nil {
+		// dogstatsd clients that report to the Agent
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			return err
+		}
+
+		// dogstatsd clients that report to the dogstatsd standalone deployment
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 			return err
 		}
 

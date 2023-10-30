@@ -8,6 +8,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
@@ -186,18 +187,19 @@ func Run(ctx *pulumi.Context) error {
 
 	var dependsOnCrd pulumi.ResourceOption
 
+	var fakeIntake *ddfakeintake.ConnectionExporter
+	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+			return err
+		}
+	}
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {
-		var fakeintake *ddfakeintake.ConnectionExporter
-		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
-				return err
-			}
-		}
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 			KubeProvider:  eksKubeProvider,
 			Namespace:     "datadog",
-			Fakeintake:    fakeintake,
+			Fakeintake:    fakeIntake,
 			DeployWindows: awsEnv.EKSWindowsNodeGroup(),
 		}, nil)
 		if err != nil {
@@ -214,6 +216,13 @@ func Run(ctx *pulumi.Context) error {
 		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
 	}
 
+	// Deploy standalone dogstatsd
+	if awsEnv.DogstatsdDeploy() {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true); err != nil {
+			return err
+		}
+	}
+
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
 		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
@@ -224,7 +233,13 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd"); err != nil {
+		// dogstatsd clients that report to the Agent
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			return err
+		}
+
+		// dogstatsd clients that report to the dogstatsd standalone deployment
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 			return err
 		}
 

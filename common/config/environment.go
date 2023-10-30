@@ -19,6 +19,7 @@ const (
 	DDInfraConfigNamespace     = "ddinfra"
 	DDAgentConfigNamespace     = "ddagent"
 	DDTestingWorkloadNamespace = "ddtestworkload"
+	DDDogstatsdNamespace       = "dddogstatsd"
 
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
@@ -45,6 +46,10 @@ const (
 
 	// Testing workload namerNamespace
 	DDTestingWorkloadDeployParamName = "deploy"
+
+	// Dogstatsd namespace
+	DDDogstatsdDeployParamName        = "deploy"
+	DDDogstatsdFullImagePathParamName = "fullImagePath"
 )
 
 type CommonEnvironment struct {
@@ -56,6 +61,7 @@ type CommonEnvironment struct {
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
+	DogstatsdConfig       *sdkconfig.Config
 
 	username string
 }
@@ -66,6 +72,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
 		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
 		CommonNamer:           namer.NewNamer(ctx, ""),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
@@ -271,4 +278,14 @@ type Environment interface {
 // Testing workload namespace
 func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
 	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
+}
+
+// Dogstatsd namespace
+
+func (e *CommonEnvironment) DogstatsdDeploy() bool {
+	return e.GetBoolWithDefault(e.DogstatsdConfig, DDDogstatsdDeployParamName, true)
+}
+
+func (e *CommonEnvironment) DogstatsdFullImagePath() string {
+	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
 }

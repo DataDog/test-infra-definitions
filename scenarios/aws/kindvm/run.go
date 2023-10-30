@@ -45,14 +45,15 @@ func Run(ctx *pulumi.Context) error {
 
 	var dependsOnCrd pulumi.ResourceOption
 
+	var fakeIntake *ddfakeintake.ConnectionExporter
+	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+			return err
+		}
+	}
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {
-		var fakeintake *ddfakeintake.ConnectionExporter
-		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
-				return err
-			}
-		}
 		customValues := fmt.Sprintf(`
 datadog:
   kubelet:
@@ -66,7 +67,7 @@ datadog:
 			ValuesYAML: pulumi.AssetOrArchiveArray{
 				pulumi.NewStringAsset(customValues),
 			},
-			Fakeintake: fakeintake,
+			Fakeintake: fakeIntake,
 		}, nil)
 		if err != nil {
 			return err
@@ -81,7 +82,7 @@ datadog:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone"); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake); err != nil {
 			return err
 		}
 	}

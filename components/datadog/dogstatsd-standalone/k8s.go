@@ -3,6 +3,7 @@ package dogstatsdstandalone
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
@@ -23,7 +24,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *ddfakeintake.ConnectionExporter, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -48,6 +49,51 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	}
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
+
+	envVars := corev1.EnvVarArray{
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_API_KEY"),
+			Value: e.AgentAPIKey(),
+		},
+		&corev1.EnvVarArgs{
+			Name: pulumi.String("DD_KUBERNETES_KUBELET_HOST"),
+			ValueFrom: corev1.EnvVarSourceArgs{
+				FieldRef: corev1.ObjectFieldSelectorArgs{
+					FieldPath: pulumi.String("status.hostIP"),
+				},
+			},
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_DOGSTATSD_NON_LOCAL_TRAFFIC"),
+			Value: pulumi.StringPtr("true"),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_DOGSTATSD_ORIGIN_DETECTION"),
+			Value: pulumi.StringPtr("true"),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_DOGSTATSD_SOCKET"),
+			Value: pulumi.StringPtr(Socket),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_DOGSTATSD_TAG_CARDINALITY"),
+			Value: pulumi.StringPtr("orchestrator"),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_KUBELET_TLS_VERIFY"),
+			Value: pulumi.StringPtr("false"),
+		},
+	}
+
+	if fakeIntake != nil {
+		envVars = append(
+			envVars,
+			&corev1.EnvVarArgs{
+				Name:  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+				Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeIntake.Host),
+			},
+		)
+	}
 
 	daemonSetArgs := appsv1.DaemonSetArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -81,40 +127,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									Protocol:      pulumi.StringPtr("UDP"),
 								},
 							},
-							Env: &corev1.EnvVarArray{
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("DD_API_KEY"),
-									Value: e.AgentAPIKey(),
-								},
-								&corev1.EnvVarArgs{
-									Name: pulumi.String("DD_KUBERNETES_KUBELET_HOST"),
-									ValueFrom: corev1.EnvVarSourceArgs{
-										FieldRef: corev1.ObjectFieldSelectorArgs{
-											FieldPath: pulumi.String("status.hostIP"),
-										},
-									},
-								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("DD_DOGSTATSD_NON_LOCAL_TRAFFIC"),
-									Value: pulumi.StringPtr("true"),
-								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("DD_DOGSTATSD_ORIGIN_DETECTION"),
-									Value: pulumi.StringPtr("true"),
-								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("DD_DOGSTATSD_SOCKET"),
-									Value: pulumi.StringPtr(Socket),
-								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("DD_DOGSTATSD_TAG_CARDINALITY"),
-									Value: pulumi.StringPtr("orchestrator"),
-								},
-								&corev1.EnvVarArgs{
-									Name:  pulumi.String("DD_KUBELET_TLS_VERIFY"),
-									Value: pulumi.StringPtr("false"),
-								},
-							},
+							Env: &envVars,
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),

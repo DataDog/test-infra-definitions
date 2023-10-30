@@ -218,8 +218,8 @@ func tsePlaygroundDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
-				allowedInboundSecurityGroups: []string{"sg-02c292ff14d38dd76"},                         // from VPC console
-				allowedInboundPrefixList:     []string{"pl-073555187c4e6ccf2", "pl-07cbd8b5e26960eac"}, // Which one among the many available? Tried VPC
+				allowedInboundSecurityGroups: []string{"sg-02c292ff14d38dd76"},
+				allowedInboundPrefixList:     []string{"pl-073555187c4e6ccf2", "pl-07cbd8b5e26960eac"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

@@ -52,6 +52,8 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
+	clusterName := ctx.Stack()
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {
 		customValues := fmt.Sprintf(`
@@ -59,7 +61,7 @@ datadog:
   kubelet:
     tlsVerify: false
   clusterName: "%s"
-`, ctx.Stack())
+`, clusterName)
 
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 			KubeProvider: kindKubeProvider,
@@ -73,7 +75,7 @@ datadog:
 			return err
 		}
 
-		ctx.Export("kube-cluster-name", pulumi.String(ctx.Stack()))
+		ctx.Export("kube-cluster-name", pulumi.String(clusterName))
 		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
 		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
 
@@ -82,7 +84,7 @@ datadog:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, clusterName); err != nil {
 			return err
 		}
 	}

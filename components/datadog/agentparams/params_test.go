@@ -28,9 +28,10 @@ func TestParams(t *testing.T) {
 		})
 	})
 	t.Run("parsePipelineVersion should correctly parse a pipeline ID and format the agent version pipeline", func(t *testing.T) {
-		version := parsePipelineVersion("16362517")
+		version := parsePipelineVersion("16362517", "x86_64")
 		assert.Equal(t, version, os.AgentVersion{
 			PipelineID: "pipeline-16362517",
+			Arch:       "x86_64",
 		})
 	})
 	t.Run("WithIntegration should correctly add conf.d/integration/conf.yaml to the path", func(t *testing.T) {

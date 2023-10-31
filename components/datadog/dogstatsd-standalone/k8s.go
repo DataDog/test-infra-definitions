@@ -79,7 +79,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		},
 		&corev1.EnvVarArgs{
 			Name:  pulumi.String("DD_DOGSTATSD_TAG_CARDINALITY"),
-			Value: pulumi.StringPtr("orchestrator"),
+			Value: pulumi.StringPtr("high"),
 		},
 		&corev1.EnvVarArgs{
 			Name:  pulumi.String("DD_KUBELET_TLS_VERIFY"),

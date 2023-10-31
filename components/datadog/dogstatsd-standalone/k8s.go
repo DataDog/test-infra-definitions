@@ -26,7 +26,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *ddfakeintake.ConnectionExporter, kubeletTLSVerify bool, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *ddfakeintake.ConnectionExporter, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -93,6 +93,16 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			&corev1.EnvVarArgs{
 				Name:  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
 				Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeIntake.Host),
+			},
+		)
+	}
+
+	if clusterName != "" {
+		envVars = append(
+			envVars,
+			&corev1.EnvVarArgs{
+				Name:  pulumi.String("DD_CLUSTER_NAME"),
+				Value: pulumi.String(clusterName),
 			},
 		)
 	}

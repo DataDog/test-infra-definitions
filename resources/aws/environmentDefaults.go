@@ -87,7 +87,7 @@ func sandboxDefault() environmentDefault {
 			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
-				execKMSKeyID:                "arn:aws:kms:us-east-1:570690476889:key/b2ab346a-12b7-44d7-8d53-1fd24342978d",
+				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
 				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:601427279990:cluster/fakeintake-ecs",
 				taskExecutionRole:           "arn:aws:iam::601427279990:role/ecsExecTaskExecutionRole",
 				taskRole:                    "arn:aws:iam::601427279990:role/ecsExecTaskRole",

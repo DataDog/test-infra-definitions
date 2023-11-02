@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
@@ -230,6 +231,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+			return err
+		}
+
+		if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
 

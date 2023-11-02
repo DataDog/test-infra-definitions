@@ -85,6 +85,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			Name:  pulumi.String("DD_KUBELET_TLS_VERIFY"),
 			Value: pulumi.String(strconv.FormatBool(kubeletTLSVerify)),
 		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_CRI_SOCKET_PATH"),
+			Value: pulumi.String("/host/var/run/containerd/containerd.sock"),
+		},
 	}
 
 	if fakeIntake != nil {
@@ -170,6 +174,11 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									Name:      pulumi.String("dsdsocket"),
 									MountPath: pulumi.String("/var/run/datadog"),
 								},
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("runtimesocket"),
+									MountPath: pulumi.String("/host/var/run/containerd/containerd.sock"),
+									ReadOnly:  pulumi.BoolPtr(true),
+								},
 							},
 						},
 					},
@@ -196,6 +205,13 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Name: pulumi.String("dsdsocket"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
 								Path: pulumi.String("/var/run/datadog/"),
+							},
+						},
+						&corev1.VolumeArgs{
+							Name: pulumi.String("runtimesocket"),
+							HostPath: &corev1.HostPathVolumeSourceArgs{
+								Path: pulumi.String("/var/run/containerd/containerd.sock"),
+								Type: pulumi.String("Socket"),
 							},
 						},
 					},

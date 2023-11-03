@@ -1,9 +1,6 @@
 package agent
 
 import (
-	"encoding/base64"
-	"encoding/json"
-
 	"golang.org/x/exp/maps"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -95,29 +92,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	// Create image pull secret if necessary
 	var imgPullSecret *corev1.Secret
 	if e.ImagePullRegistry() != "" {
-		dockerConfigJSON := e.ImagePullPassword().ApplyT(func(password string) (string, error) {
-			dockerConfigJSON, err := json.Marshal(map[string]map[string]map[string]string{
-				"auths": {
-					e.ImagePullRegistry(): {
-						"username": e.ImagePullUsername(),
-						"password": password,
-						"auth":     base64.StdEncoding.EncodeToString([]byte(e.ImagePullUsername() + ":" + password)),
-					},
-				},
-			})
-			return string(dockerConfigJSON), err
-		}).(pulumi.StringOutput)
-
-		imgPullSecret, err = corev1.NewSecret(e.Ctx, "registry-credentials", &corev1.SecretArgs{
-			Metadata: metav1.ObjectMetaArgs{
-				Namespace: ns.Metadata.Name(),
-				Name:      pulumi.Sprintf("%s-registry-credentials", installName),
-			},
-			StringData: pulumi.StringMap{
-				".dockerconfigjson": dockerConfigJSON,
-			},
-			Type: pulumi.StringPtr("kubernetes.io/dockerconfigjson"),
-		}, opts...)
+		imgPullSecret, err = NewImagePullSecret(e, args.Namespace, opts...)
 		if err != nil {
 			return nil, err
 		}

@@ -18,7 +18,7 @@ import (
 // The available options are:
 //   - [WithLatest]
 //   - [WithVersion]
-//   - [WithPipelineID]
+//   - [WithPipeline]
 //   - [WithAgentConfig]
 //   - [WithSystemProbeConfig]
 //   - [WithSecurityAgentConfig]
@@ -55,7 +55,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 	}
 	defaultVersion := WithLatest()
 	if env.PipelineID() != "" {
-		defaultVersion = WithPipelineID(env.PipelineID())
+		defaultVersion = WithPipeline(env.PipelineID(), env.InfraOSArchitecture())
 	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
@@ -87,11 +87,10 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
-// WithPipelineID use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
-func WithPipelineID(version string) func(*Params) error {
+// WithPipeline use a specific version of the Agent by pipeline id. For example: `16497585` uses the version `pipeline-16497585`
+func WithPipeline(pipelineID string, arch string) func(*Params) error {
 	return func(p *Params) error {
-		p.Version = parsePipelineVersion(version)
-
+		p.Version = parsePipelineVersion(pipelineID, arch)
 		return nil
 	}
 }
@@ -115,9 +114,10 @@ func parseVersion(s string) (os.AgentVersion, error) {
 	return version, nil
 }
 
-func parsePipelineVersion(s string) os.AgentVersion {
+func parsePipelineVersion(s string, arch string) os.AgentVersion {
 	version := os.AgentVersion{}
 	version.PipelineID = "pipeline-" + s
+	version.Arch = arch
 	return version
 }
 

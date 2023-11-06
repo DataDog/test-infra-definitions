@@ -106,7 +106,7 @@ func (e *CommonEnvironment) InfraOSFamily() string {
 }
 
 func (e *CommonEnvironment) InfraOSArchitecture() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSArchitecture, "")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSArchitecture, "x86_64")
 }
 
 func (e *CommonEnvironment) InfraOSAmiID() string {

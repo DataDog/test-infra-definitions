@@ -86,7 +86,24 @@ type domainConfiguration struct {
 	arch        string
 	recipe      string
 	consoleType string
+	cputune     string
 	kernel      vmconfig.Kernel
+}
+
+func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
+	var vcpuMap []string
+
+	xml := "<vcpupin vcpu='%d' cpuset='%d'/>"
+
+	for i := 0; i < vmcpus; i++ {
+		vcpuMap = append(vcpuMap, fmt.Sprintf(xml, i, hostCPUSet))
+		hostCPUSet += 1
+		if hostCPUSet >= cpuCount {
+			hostCPUSet = 0
+		}
+	}
+
+	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
 }
 
 func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration) (*Domain, error) {
@@ -119,6 +136,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 			resources.Nvram:         pulumi.String(varstore),
 			resources.Efi:           pulumi.String(efi),
 			resources.VCPU:          pulumi.Sprintf("%d", cfg.vcpu),
+			resources.CPUTune:       pulumi.String(cfg.cputune),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = cfg.machine
@@ -162,10 +180,14 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 
 func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
 	var domains []*Domain
+	var cpuTuneXML string
 
+	cpuSet := 0
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
+				cpuTuneXML, cpuSet = getCPUTuneXML(vcpu, cpuSet, set.VMHost.AvailableCPUs)
+				fmt.Println(cpuTuneXML)
 				domain, err := newDomainConfiguration(
 					e,
 					domainConfiguration{
@@ -177,6 +199,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						recipe:      set.Recipe,
 						kernel:      kernel,
 						consoleType: set.ConsoleType,
+						cputune:     cpuTuneXML,
 					},
 				)
 				if err != nil {

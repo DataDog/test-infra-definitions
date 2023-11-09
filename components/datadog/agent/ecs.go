@@ -84,7 +84,7 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *ddfakeintake.ConnectionExpo
 
 func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) ecs.TaskDefinitionContainerDefinitionArgs {
 	return ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:       pulumi.IntPtr(100),
+		Cpu:       pulumi.IntPtr(200),
 		Memory:    pulumi.IntPtr(512),
 		Name:      pulumi.String("datadog-agent"),
 		Image:     pulumi.String(DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent")),

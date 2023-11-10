@@ -7,6 +7,8 @@ ENV GO_VERSION=1.20.3
 ENV GO_SHA=979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
+# Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
+ENV PULUMI_SKIP_UPDATE_CHECK=true
 
 # Install deps all in one step
 RUN apt-get update -y && \

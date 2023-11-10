@@ -106,5 +106,8 @@ RUN pip3 install "cython<3.0.0" && \
   pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
   go install gotest.tools/gotestsum@latest
 
+# Configure aws retries
+COPY .awsconfig $HOME/.aws/config
+
 # I think it's safe to say if we're using this mega image, we want pulumi
 ENTRYPOINT ["pulumi"]

@@ -2,6 +2,7 @@ package fakeintake
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -16,8 +17,7 @@ import (
 )
 
 const (
-	oneSecond     = 1000
-	sleepInterval = 1 * oneSecond
+	sleepInterval = 1 * time.Second
 	maxRetries    = 120
 	containerName = "fakeintake"
 	port          = 80

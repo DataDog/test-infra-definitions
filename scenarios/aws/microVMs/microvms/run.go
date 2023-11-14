@@ -117,6 +117,9 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, err
 	}
 
+	// Deploy an agent on the launched instance.
+	// In the context of KMT, this agent runs on the host environment. As such,
+	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
 		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {

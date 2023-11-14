@@ -120,7 +120,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	if awsEnv.AgentDeploy() {
 		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
-			return nil, err
+			awsEnv.Ctx.Log.Warn(fmt.Sprintf("failed to deploy datadog agent: %v", err), nil)
 		}
 	}
 

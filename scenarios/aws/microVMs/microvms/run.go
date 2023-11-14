@@ -112,7 +112,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv, ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS), ec2params.WithInstanceType(instanceType))
+	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv, ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS), ec2params.WithInstanceType(instanceType), ec2params.WithName(name))
 	if err != nil {
 		return nil, err
 	}

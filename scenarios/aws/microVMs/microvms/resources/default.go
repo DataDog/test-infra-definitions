@@ -4,15 +4,16 @@ import (
 	// import embed
 	_ "embed"
 
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
-//go:embed default/domain.xls
+//go:embed default/domain.xsl
 var defaultDomainXLS string
 
-//go:embed default/network.xls
+//go:embed default/network.xsl
 var defaultNetworkXLS string
 
 //go:embed default/pool.xml
@@ -24,7 +25,7 @@ var defaultVolumeXML string
 //go:embed default/raw_volume.xml
 var defaultRawVolumeXML string
 
-//go:embed default/volume_local.xls
+//go:embed default/volume_local.xsl
 var defaultLocalVolumeXLS string
 
 var remoteVolumeXMLs = map[vmconfig.PoolType]string{

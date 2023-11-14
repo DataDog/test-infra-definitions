@@ -11,7 +11,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0
-	github.com/pulumi/pulumi-awsx/sdk v1.0.5
+	github.com/pulumi/pulumi-awsx/sdk v1.0.6
 	github.com/pulumi/pulumi-azure-native-sdk v1.104.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute v1.103.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice v1.104.0

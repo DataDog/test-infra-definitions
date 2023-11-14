@@ -1,0 +1,14 @@
+system_probe_config:
+  enabled: true
+  debug_port: 6666
+  telemetry_enabled: true
+network_config:
+  enabled: true
+  collect_tcp_v6: true
+  enable_http_monitoring: true
+  enable_https_monitoring: true
+  enable_protocol_classification: true
+service_monitoring_config:
+  enabled: true
+  enable_go_tls_support: true
+

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
@@ -12,10 +11,16 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 )
 
 type InstanceEnvironment struct {
@@ -25,7 +30,7 @@ type InstanceEnvironment struct {
 
 type Instance struct {
 	e             *InstanceEnvironment
-	instance      *awsEc2.Instance
+	instance      *ec2vm.EC2VM
 	Connection    remote.ConnectionOutput
 	Arch          string
 	instanceNamer namer.Namer
@@ -44,6 +49,12 @@ const (
 	libvirtSSHPrivateKeyX86 = "libvirt_rsa-x86"
 	libvirtSSHPrivateKeyArm = "libvirt_rsa-arm"
 )
+
+//go:embed files/datadog.yaml
+var datadogAgentConfig string
+
+//go:embed file/system-probe.yaml
+var systemProbeConfig string
 
 var SSHKeyFileNames = map[string]string{
 	ec2.AMD64Arch: libvirtSSHPrivateKeyX86,
@@ -77,33 +88,8 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	return pair
 }
 
-func newEC2Instance(awsEnv aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*awsEc2.Instance, error) {
-	var err error
-
-	if ami == "" {
-		ami, err = ec2.LatestUbuntuAMI(awsEnv, arch)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	instance, err := awsEc2.NewInstance(awsEnv.Ctx, awsEnv.Namer.ResourceName(name), &awsEc2.InstanceArgs{
-		Ami:                 pulumi.StringPtr(ami),
-		SubnetId:            awsEnv.RandomSubnets().Index(pulumi.Int(0)),
-		InstanceType:        pulumi.StringPtr(instanceType),
-		VpcSecurityGroupIds: pulumi.ToStringArray(awsEnv.DefaultSecurityGroups()),
-		KeyName:             pulumi.StringPtr(keyPair),
-		UserData:            pulumi.StringPtr(userData),
-		Tenancy:             pulumi.StringPtr(tenancy),
-		RootBlockDevice: awsEc2.InstanceRootBlockDeviceArgs{
-			VolumeSize: pulumi.Int(awsEnv.DefaultInstanceStorageSize()),
-		},
-		Tags: pulumi.StringMap{
-			"Name": awsEnv.Namer.DisplayName(255, pulumi.String(name)),
-		},
-		InstanceInitiatedShutdownBehavior: pulumi.String(awsEnv.DefaultShutdownBehavior()),
-	}, awsEnv.WithProviders(commonConfig.ProviderAWS))
-	return instance, err
+func (i *Instance) GetIP() pulumi.StringOutput {
+	return i.instance.GetIP()
 }
 
 func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
@@ -126,16 +112,16 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := newEC2Instance(*awsEnv, name, ami, arch, instanceType, awsEnv.DefaultKeyPairName(), "", "default")
+	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv, ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS), ec2params.WithInstanceType(instanceType))
 	if err != nil {
 		return nil, err
 	}
 
-	conn := remote.ConnectionArgs{
-		Host: awsInstance.PrivateIp,
-	}
-	if err := utils.ConfigureRemoteSSH("ubuntu", awsEnv.DefaultPrivateKeyPath(), awsEnv.DefaultPrivateKeyPassword(), "", &conn); err != nil {
-		return nil, err
+	if awsEnv.AgentDeploy() {
+		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(agentConfig), agentparams.WithSystemProbeConfig(sysprobeConfig))
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &Instance{
@@ -198,20 +184,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		OSCommand: osCommand,
 	})
 	if instance.Arch != LocalVMSet {
-		remoteRunner, err := command.NewRunner(
-			env,
-			command.RunnerArgs{
-				ParentResource: instance.instance,
-				Connection:     instance.Connection,
-				ConnectionName: instance.instanceNamer.ResourceName("conn"),
-				ReadyFunc:      command.WaitForCloudInit,
-				OSCommand:      osCommand,
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		instance.runner = NewRunner(WithRemoteRunner(remoteRunner))
+		instance.runner = NewRunner(WithRemoteRunner(instance.instance.GetRunner()))
 	} else {
 		instance.runner = NewRunner(WithLocalRunner(localRunner))
 	}
@@ -247,7 +220,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		)
 		url = pulumi.Sprintf(
 			"qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore",
-			instance.instance.PrivateIp,
+			instance.GetIP(),
 			privkey,
 		)
 
@@ -323,7 +296,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
 		if instance.Arch != LocalVMSet {
-			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.PrivateIp)
+			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.GetIP())
 		}
 
 		waitFor = append(waitFor, configureDone...)
@@ -364,6 +337,13 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		for _, domain := range collection.domains {
 			if domain.lvDomain == nil {
 				continue
+			}
+
+			conn := remote.ConnectionArgs{
+				Host: collection.instance.GetIP(),
+			}
+			if err := utils.ConfigureRemoteSSH("ubuntu", awsEnv.DefaultPrivateKeyPath(), awsEnv.DefaultPrivateKeyPassword(), "", &conn); err != nil {
+				return nil, err
 			}
 
 			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, collection.instance.Connection)

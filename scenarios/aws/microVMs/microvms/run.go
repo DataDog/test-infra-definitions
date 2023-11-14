@@ -1,6 +1,7 @@
 package microvms
 
 import (
+	_ "embed"
 	"fmt"
 	"time"
 
@@ -31,7 +32,6 @@ type InstanceEnvironment struct {
 type Instance struct {
 	e             *InstanceEnvironment
 	instance      *ec2vm.EC2VM
-	Connection    remote.ConnectionOutput
 	Arch          string
 	instanceNamer namer.Namer
 	runner        *Runner
@@ -53,7 +53,7 @@ const (
 //go:embed files/datadog.yaml
 var datadogAgentConfig string
 
-//go:embed file/system-probe.yaml
+//go:embed files/system-probe.yaml
 var systemProbeConfig string
 
 var SSHKeyFileNames = map[string]string{
@@ -118,7 +118,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	}
 
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(agentConfig), agentparams.WithSystemProbeConfig(sysprobeConfig))
+		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,6 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	return &Instance{
 		e:             instanceEnv,
 		instance:      awsInstance,
-		Connection:    conn.ToConnectionOutput(),
 		Arch:          arch,
 		instanceNamer: namer,
 	}, nil
@@ -339,14 +338,16 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 				continue
 			}
 
+			// create new ssh connection to build proxy
 			conn := remote.ConnectionArgs{
 				Host: collection.instance.GetIP(),
 			}
+			awsEnv := collection.instance.e
 			if err := utils.ConfigureRemoteSSH("ubuntu", awsEnv.DefaultPrivateKeyPath(), awsEnv.DefaultPrivateKeyPassword(), "", &conn); err != nil {
 				return nil, err
 			}
 
-			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, collection.instance.Connection)
+			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
 			remoteRunner, err := command.NewRunner(
 				*collection.instance.e.CommonEnvironment,
 				command.RunnerArgs{

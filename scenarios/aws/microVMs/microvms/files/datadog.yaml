@@ -3,5 +3,3 @@ process_config:
     enabled: true
 telemetry:
   enabled: true
-service_monitoring_config:
-  enabled: true

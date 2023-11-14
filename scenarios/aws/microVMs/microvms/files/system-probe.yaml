@@ -11,4 +11,3 @@ network_config:
 service_monitoring_config:
   enabled: true
   enable_go_tls_support: true
-

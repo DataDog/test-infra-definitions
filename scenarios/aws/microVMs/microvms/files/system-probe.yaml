@@ -1,3 +1,6 @@
 system_probe_config:
   enabled: true
   debug_port: 6666
+  telemetry_enabled: true
+network_config:
+  enabled: true

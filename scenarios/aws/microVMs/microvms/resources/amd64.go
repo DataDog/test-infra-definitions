@@ -10,7 +10,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed amd64/domain.xls
+//go:embed amd64/domain.xsl
 var amd64DomainXLS string
 
 type AMD64ResourceCollection struct {

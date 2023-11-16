@@ -169,7 +169,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
 			Retries:     pulumi.IntPtr(2),
 			Command:     pulumi.ToStringArray([]string{"CMD-SHELL", "agent health"}),
-			StartPeriod: pulumi.IntPtr(10),
+			StartPeriod: pulumi.IntPtr(30),
 			Interval:    pulumi.IntPtr(30),
 			Timeout:     pulumi.IntPtr(5),
 		},

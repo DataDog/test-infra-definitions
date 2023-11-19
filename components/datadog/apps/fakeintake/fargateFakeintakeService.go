@@ -2,6 +2,10 @@ package fakeintake
 
 import (
 	"fmt"
+	"net"
+	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -21,6 +25,8 @@ const (
 	maxRetries    = 120
 	containerName = "fakeintake"
 	port          = 80
+	cpu           = "256"
+	memory        = "1024"
 )
 
 type Instance struct {
@@ -88,6 +94,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		}
 		balancerArray = classicECS.ServiceLoadBalancerArray{}
 	}
+	checkFakeintakeHealth(e.Ctx, instance.Host)
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
@@ -102,29 +109,10 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		LoadBalancers: balancerArray,
 		TaskDefinitionArgs: &ecs.FargateServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-				containerName: {
-					Name:        pulumi.String(containerName),
-					Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
-					Essential:   pulumi.BoolPtr(true),
-					MountPoints: ecs.TaskDefinitionMountPointArray{},
-					Environment: ecs.TaskDefinitionKeyValuePairArray{
-						ecs.TaskDefinitionKeyValuePairArgs{
-							Name:  pulumi.StringPtr("GOMEMLIMIT"),
-							Value: pulumi.StringPtr("768MiB"),
-						},
-					},
-					PortMappings: ecs.TaskDefinitionPortMappingArray{
-						ecs.TaskDefinitionPortMappingArgs{
-							ContainerPort: pulumi.Int(port),
-							HostPort:      pulumi.Int(port),
-							Protocol:      pulumi.StringPtr("tcp"),
-						},
-					},
-					VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
-				},
+				containerName: *fargateLinuxContainerDefinition(),
 			},
-			Cpu:    pulumi.StringPtr("256"),
-			Memory: pulumi.StringPtr("1024"),
+			Cpu:    pulumi.StringPtr(cpu),
+			Memory: pulumi.StringPtr(memory),
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
 			},
@@ -151,8 +139,8 @@ func fargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTas
 		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			containerName: *fargateLinuxContainerDefinition(),
 		},
-		Cpu:    pulumi.StringPtr("256"),
-		Memory: pulumi.StringPtr("512"),
+		Cpu:    pulumi.StringPtr(cpu),
+		Memory: pulumi.StringPtr(memory),
 		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
 		},
@@ -169,7 +157,12 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 		Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
 		Essential:   pulumi.BoolPtr(true),
 		MountPoints: ecs.TaskDefinitionMountPointArray{},
-		Environment: ecs.TaskDefinitionKeyValuePairArray{},
+		Environment: ecs.TaskDefinitionKeyValuePairArray{
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("GOMEMLIMIT"),
+				Value: pulumi.StringPtr("768MiB"),
+			},
+		},
 		PortMappings: ecs.TaskDefinitionPortMappingArray{
 			ecs.TaskDefinitionPortMappingArgs{
 				ContainerPort: pulumi.Int(port),
@@ -178,6 +171,15 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 			},
 		},
 		VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
+		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
+			Command: pulumi.StringArray{
+				pulumi.String("curl"),
+				pulumi.String("-L"),
+				pulumi.String(getFakeintakeHealthURL("localhost")),
+			},
+			Interval: pulumi.Int(5), // seconds
+			Retries:  pulumi.Int(4),
+		},
 	}
 }
 
@@ -211,4 +213,35 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string)
 	}).(pulumi.StringOutput)
 
 	return ipAddress, err
+}
+
+func checkFakeintakeHealth(ctx *pulumi.Context, host pulumi.StringOutput) {
+	ctx.Export("fakeintake-healthy", host.ApplyT(
+		func(host string) (any, error) {
+			ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", host), nil)
+			return nil, backoff.Retry(func() error {
+				url := getFakeintakeHealthURL(host)
+				ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", url), nil)
+				resp, err := http.Get(url)
+				if err != nil {
+					return err
+				}
+				defer resp.Body.Close()
+
+				if resp.StatusCode != http.StatusOK {
+					return fmt.Errorf("error getting fakeintake health: %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+				}
+				return nil
+			}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
+		},
+	))
+}
+
+func getFakeintakeHealthURL(host string) string {
+	url := &url.URL{
+		Scheme: "http",
+		Host:   net.JoinHostPort(host, strconv.Itoa(port)),
+		Path:   "/fakeintake/health",
+	}
+	return url.String()
 }

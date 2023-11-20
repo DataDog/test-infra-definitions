@@ -172,6 +172,8 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 		},
 		VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
 		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
+			// note that a failing health check doesn't fail the deployment,
+			// but it allows seeing the health of the task directly in AWS
 			Command: pulumi.StringArray{
 				pulumi.String("curl"),
 				pulumi.String("-L"),
@@ -215,6 +217,7 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string)
 	return ipAddress, err
 }
 
+// checkFakeintakeHealth fails the deployment if it isn't healthy
 func checkFakeintakeHealth(ctx *pulumi.Context, host pulumi.StringOutput) {
 	ctx.Export("fakeintake-healthy", host.ApplyT(
 		func(host string) (any, error) {

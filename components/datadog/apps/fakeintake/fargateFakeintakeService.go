@@ -88,7 +88,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 			},
 		}
 	} else {
-		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, params.Name)
+		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, params.Name, params.ImageURL)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +108,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		LoadBalancers: balancerArray,
 		TaskDefinitionArgs: &ecs.FargateServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-				containerName: *fargateLinuxContainerDefinition(),
+				containerName: *fargateLinuxContainerDefinition(params.ImageURL),
 			},
 			Cpu:    pulumi.StringPtr(cpu),
 			Memory: pulumi.StringPtr(memory),
@@ -133,10 +133,10 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	return instance, nil
 }
 
-func fargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTaskDefinition, error) {
+func fargateLinuxTaskDefinition(e aws.Environment, name, imageURL string) (*ecs.FargateTaskDefinition, error) {
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-			containerName: *fargateLinuxContainerDefinition(),
+			containerName: *fargateLinuxContainerDefinition(imageURL),
 		},
 		Cpu:    pulumi.StringPtr(cpu),
 		Memory: pulumi.StringPtr(memory),
@@ -150,10 +150,10 @@ func fargateLinuxTaskDefinition(e aws.Environment, name string) (*ecs.FargateTas
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
+func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
-		Image:       pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
+		Image:       pulumi.String(imageURL),
 		Essential:   pulumi.BoolPtr(true),
 		MountPoints: ecs.TaskDefinitionMountPointArray{},
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
@@ -186,8 +186,8 @@ func fargateLinuxContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArg
 
 // fargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string) (ipAddress pulumi.StringOutput, err error) {
-	taskDef, err := fargateLinuxTaskDefinition(e, e.Namer.ResourceName(name, "taskdef"))
+func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name, imageURL string) (ipAddress pulumi.StringOutput, err error) {
+	taskDef, err := fargateLinuxTaskDefinition(e, e.Namer.ResourceName(name, "taskdef"), imageURL)
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
@@ -215,6 +215,7 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string)
 			return "", err
 		}
 
+		// fail the deployment if the fakeintake is not healthy
 		e.Ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
 		err = backoff.Retry(func() error {
 			url := getFakeintakeHealthURL(ipAddress)

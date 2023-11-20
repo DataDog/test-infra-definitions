@@ -217,10 +217,10 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name, imageU
 
 		// fail the deployment if the fakeintake is not healthy
 		e.Ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
+		fakeintakeURL := getFakeintakeHealthURL(ipAddress)
 		err = backoff.Retry(func() error {
-			url := getFakeintakeHealthURL(ipAddress)
-			e.Ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", url), nil)
-			resp, err := http.Get(url)
+			e.Ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", fakeintakeURL), nil)
+			resp, err := http.Get(fakeintakeURL)
 			if err != nil {
 				return err
 			}

@@ -94,7 +94,6 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		}
 		balancerArray = classicECS.ServiceLoadBalancerArray{}
 	}
-	checkFakeintakeHealth(e.Ctx, instance.Host)
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
@@ -211,33 +210,31 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string)
 			e.Ctx.Log.Info(fmt.Sprintf("fakeintake task private ip found: %s\n", ipAddress), nil)
 			return err
 		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
+
+		if err != nil {
+			return "", err
+		}
+
+		e.Ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
+		err = backoff.Retry(func() error {
+			url := getFakeintakeHealthURL(ipAddress)
+			e.Ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", url), nil)
+			resp, err := http.Get(url)
+			if err != nil {
+				return err
+			}
+			defer resp.Body.Close()
+
+			if resp.StatusCode != http.StatusOK {
+				return fmt.Errorf("error getting fakeintake health: %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
+			}
+			return nil
+		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
+
 		return ipAddress, err
 	}).(pulumi.StringOutput)
 
 	return ipAddress, err
-}
-
-// checkFakeintakeHealth fails the deployment if it isn't healthy
-func checkFakeintakeHealth(ctx *pulumi.Context, host pulumi.StringOutput) {
-	ctx.Export("fakeintake-healthy", host.ApplyT(
-		func(host string) (any, error) {
-			ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", host), nil)
-			return nil, backoff.Retry(func() error {
-				url := getFakeintakeHealthURL(host)
-				ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", url), nil)
-				resp, err := http.Get(url)
-				if err != nil {
-					return err
-				}
-				defer resp.Body.Close()
-
-				if resp.StatusCode != http.StatusOK {
-					return fmt.Errorf("error getting fakeintake health: %d %s", resp.StatusCode, http.StatusText(resp.StatusCode))
-				}
-				return nil
-			}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
-		},
-	))
 }
 
 func getFakeintakeHealthURL(host string) string {

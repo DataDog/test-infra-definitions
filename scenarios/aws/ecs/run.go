@@ -13,7 +13,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
-	ecsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -85,9 +84,10 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	var apiKeyParam *ssm.Parameter
+	var fakeIntake *fakeintakeComp.Fakeintake
 	// Create task and service
 	if awsEnv.AgentDeploy() {
-		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
 			fakeIntakeOptions := []fakeintake.Option{}
 			if awsEnv.InfraShouldDeployFakeintakeWithLB() {
@@ -101,7 +101,7 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 		}
-		apiKeyParam, err := ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
+		apiKeyParam, err = ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
 			Name:  awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
 			Type:  ssm.ParameterTypeSecureString,
 			Value: awsEnv.AgentAPIKey(),
@@ -109,22 +109,6 @@ func Run(ctx *pulumi.Context) error {
 		if err != nil {
 			return err
 		}
-
-		// Deploy Fargate Agent
-		testContainer := ecs.FargateRedisContainerDefinition(apiKeyParam.Arn)
-		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), 1024, 2048, map[string]ecsx.TaskDefinitionContainerDefinitionArgs{"redis": *testContainer}, apiKeyParam.Name, fakeIntake)
-		if err != nil {
-			return err
-		}
-
-		_, err = ecs.FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn(), nil)
-		if err != nil {
-			return err
-		}
-
-		ctx.Export("agent-fargate-task-arn", taskDef.TaskDefinition.Arn())
-		ctx.Export("agent-fargate-task-family", taskDef.TaskDefinition.Family())
-		ctx.Export("agent-fargate-task-version", taskDef.TaskDefinition.Revision())
 
 		// Deploy EC2 Agent
 		if linuxNodeGroupPresent {
@@ -158,6 +142,17 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if _, err := prometheus.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
+		}
+	}
+
+	// Deploy Fargate Agents
+	if awsEnv.TestingWorkloadDeploy() && awsEnv.AgentDeploy() {
+		if _, err := redis.FargateAppDefinition(awsEnv, ecsCluster.Arn, apiKeyParam.Name, fakeIntake); err != nil {
+			return err
+		}
+
+		if _, err = nginx.FargateAppDefinition(awsEnv, ecsCluster.Arn, apiKeyParam.Name, fakeIntake); err != nil {
 			return err
 		}
 	}

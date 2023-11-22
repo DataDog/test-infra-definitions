@@ -35,9 +35,11 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
+func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, opts ...pulumi.ResourceOption) (*ecs.FargateTaskDefinition, error) {
 	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
+
+	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
@@ -55,27 +57,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 				Name: pulumi.String("dd-sockets"),
 			},
 		},
-	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
-}
-
-func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
-	return &ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:       pulumi.IntPtr(0),
-		Name:      pulumi.String("redis"),
-		Image:     pulumi.String("redis:latest"),
-		Essential: pulumi.BoolPtr(true),
-		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
-			ecs.TaskDefinitionContainerDependencyArgs{
-				ContainerName: pulumi.String("datadog-agent"),
-				Condition:     pulumi.String("HEALTHY"),
-			},
-		},
-		LogConfiguration: GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
-		MountPoints:      ecs.TaskDefinitionMountPointArray{},
-		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
-		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
-		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
-	}
+	}, opts...)
 }
 
 func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {

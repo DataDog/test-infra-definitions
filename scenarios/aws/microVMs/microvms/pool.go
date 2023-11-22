@@ -13,6 +13,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const globalPoolName = "global-pool"
+
 type LibvirtPool interface {
 	SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error)
 	Name() string
@@ -34,22 +36,20 @@ func generateGlobalPoolPath(name string) string {
 }
 
 func NewGlobalLibvirtPool(ctx *pulumi.Context) LibvirtPool {
-	//	poolName := libvirtResourceName(ctx.Stack(), "global-pool")
-	poolName := "global-pool"
 	rc := resources.NewResourceCollection(vmconfig.RecipeDefault)
-	poolPath := generateGlobalPoolPath(poolName)
+	poolPath := generateGlobalPoolPath(globalPoolName)
 	poolXML := rc.GetPoolXML(
 		map[string]pulumi.StringInput{
-			resources.PoolName: pulumi.String(poolName),
+			resources.PoolName: pulumi.String(globalPoolName),
 			resources.PoolPath: pulumi.String(poolPath),
 		},
 	)
 
 	return &globalLibvirtPool{
-		poolName:    poolName,
+		poolName:    globalPoolName,
 		poolXML:     poolXML,
-		poolXMLPath: fmt.Sprintf("/tmp/pool-%s.tmp", poolName),
-		poolNamer:   libvirtResourceNamer(ctx, poolName),
+		poolXMLPath: fmt.Sprintf("/tmp/pool-%s.tmp", globalPoolName),
+		poolNamer:   libvirtResourceNamer(ctx, globalPoolName),
 		poolType:    resources.DefaultPool,
 		poolPath:    poolPath,
 	}

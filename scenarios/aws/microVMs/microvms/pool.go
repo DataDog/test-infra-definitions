@@ -34,7 +34,8 @@ func generateGlobalPoolPath(name string) string {
 }
 
 func NewGlobalLibvirtPool(ctx *pulumi.Context) LibvirtPool {
-	poolName := libvirtResourceName(ctx.Stack(), "global-pool")
+	//	poolName := libvirtResourceName(ctx.Stack(), "global-pool")
+	poolName := "global-pool"
 	rc := resources.NewResourceCollection(vmconfig.RecipeDefault)
 	poolPath := generateGlobalPoolPath(poolName)
 	poolXML := rc.GetPoolXML(

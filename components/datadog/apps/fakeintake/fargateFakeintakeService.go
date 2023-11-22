@@ -14,6 +14,11 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/cenkalti/backoff/v4"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
+
+	paws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acm"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acmpca"
+	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
@@ -25,8 +30,9 @@ const (
 	maxRetries    = 120
 	containerName = "fakeintake"
 	port          = 80
+	sslPort       = 443
 	cpu           = "256"
-	memory        = "1024"
+	memory        = "2048"
 )
 
 type Instance struct {
@@ -76,6 +82,89 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 			},
 		}, opts...)
 		if err != nil {
+			return nil, err
+		}
+
+		ca, err := acmpca.NewCertificateAuthority(e.Ctx, namer.ResourceName("ca"), &acmpca.CertificateAuthorityArgs{
+			Type: pulumi.StringPtr("ROOT"),
+			CertificateAuthorityConfiguration: acmpca.CertificateAuthorityCertificateAuthorityConfigurationArgs{
+				KeyAlgorithm:     pulumi.String("RSA_4096"),
+				SigningAlgorithm: pulumi.String("SHA512WITHRSA"),
+				Subject: acmpca.CertificateAuthorityCertificateAuthorityConfigurationSubjectArgs{
+					CommonName: e.CommonNamer.DisplayName(64, pulumi.String("fakeintake CA")),
+				},
+			},
+			RevocationConfiguration: acmpca.CertificateAuthorityRevocationConfigurationArgs{
+				CrlConfiguration: acmpca.CertificateAuthorityRevocationConfigurationCrlConfigurationArgs{
+					Enabled: pulumi.BoolPtr(false),
+				},
+				OcspConfiguration: acmpca.CertificateAuthorityRevocationConfigurationOcspConfigurationArgs{
+					Enabled: pulumi.Bool(false),
+				},
+			},
+			PermanentDeletionTimeInDays: pulumi.IntPtr(7),
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		current, err := paws.GetPartition(e.Ctx, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		caCert, err := acmpca.NewCertificate(e.Ctx, namer.ResourceName("ca-cert"), &acmpca.CertificateArgs{
+			CertificateAuthorityArn:   ca.Arn,
+			CertificateSigningRequest: ca.CertificateSigningRequest,
+			SigningAlgorithm:          pulumi.String("SHA512WITHRSA"),
+			TemplateArn:               pulumi.String(fmt.Sprintf("arn:%v:acm-pca:::template/RootCACertificate/V1", current.Partition)),
+			Validity: acmpca.CertificateValidityArgs{
+				Value: pulumi.String("10"),
+				Type:  pulumi.String("YEARS"),
+			},
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err = acmpca.NewCertificateAuthorityCertificate(e.Ctx, namer.ResourceName("ca-cert-cert"), &acmpca.CertificateAuthorityCertificateArgs{
+			CertificateAuthorityArn: ca.Arn,
+			Certificate:             caCert.Certificate,
+			CertificateChain:        caCert.CertificateChain,
+		}, opts...); err != nil {
+			return nil, err
+		}
+
+		domainName := alb.LoadBalancer.DnsName().ApplyT(func(dnsName string) *string {
+			if len(dnsName) <= 64 {
+				return &dnsName
+			}
+			dummyDNSName := "fakeintake.datadoghq.com"
+			return &dummyDNSName
+		}).(pulumi.StringPtrOutput)
+		cert, err := acm.NewCertificate(e.Ctx, namer.ResourceName("cert"), &acm.CertificateArgs{
+			CertificateAuthorityArn: ca.Arn,
+			KeyAlgorithm:            pulumi.String("RSA_2048"),
+			DomainName:              domainName,
+			SubjectAlternativeNames: pulumi.StringArray{
+				alb.LoadBalancer.DnsName(),
+			},
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
+
+		if _, err = clb.NewListener(e.Ctx, namer.ResourceName("lb-https"), &clb.ListenerArgs{
+			LoadBalancerArn: alb.LoadBalancer.Arn(),
+			Port:            pulumi.IntPtr(sslPort),
+			Protocol:        pulumi.StringPtr("HTTPS"),
+			CertificateArn:  cert.Arn,
+			DefaultActions: clb.ListenerDefaultActionArray{
+				clb.ListenerDefaultActionArgs{
+					Type:           pulumi.String("forward"),
+					TargetGroupArn: alb.DefaultTargetGroup.Arn(),
+				},
+			},
+		}, opts...); err != nil {
 			return nil, err
 		}
 
@@ -159,7 +248,7 @@ func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContain
 		Environment: ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("GOMEMLIMIT"),
-				Value: pulumi.StringPtr("768MiB"),
+				Value: pulumi.StringPtr("1536MiB"),
 			},
 		},
 		PortMappings: ecs.TaskDefinitionPortMappingArray{

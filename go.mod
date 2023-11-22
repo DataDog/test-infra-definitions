@@ -3,7 +3,6 @@ module github.com/DataDog/test-infra-definitions
 go 1.20
 
 require (
-	github.com/DataDog/datadog-agent/pkg/util/pointer v0.49.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2/config v1.18.40

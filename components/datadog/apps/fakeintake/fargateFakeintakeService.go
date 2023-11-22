@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/DataDog/datadog-agent/pkg/util/pointer"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
@@ -103,7 +102,6 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 					Enabled: pulumi.Bool(false),
 				},
 			},
-			// UsageMode:                   pulumi.StringPtr("SHORT_LIVED_CERTIFICATE"),
 			PermanentDeletionTimeInDays: pulumi.IntPtr(7),
 		}, opts...)
 		if err != nil {
@@ -139,9 +137,9 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		domainName := alb.LoadBalancer.DnsName().ApplyT(func(dnsName string) *string {
 			if len(dnsName) <= 64 {
 				return &dnsName
-			} else {
-				return pointer.Ptr("fakeintake.datadoghq.com")
 			}
+			dummyDNSName := "fakeintake.datadoghq.com"
+			return &dummyDNSName
 		}).(pulumi.StringPtrOutput)
 		cert, err := acm.NewCertificate(e.Ctx, namer.ResourceName("cert"), &acm.CertificateArgs{
 			CertificateAuthorityArn: ca.Arn,

@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	kindVersion       = "v0.18.0"
 	kindReadinessWait = "60s"
 )
 
@@ -23,7 +22,7 @@ const (
 var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine
-func NewKindCluster(vm *vm.UnixVM, clusterName, arch string) (*remote.Command, pulumi.StringOutput, error) {
+func NewKindCluster(vm *vm.UnixVM, clusterName, arch, KubernetesVersion string) (*remote.Command, pulumi.StringOutput, error) {
 	runner := vm.GetRunner()
 	commonEnvironment := vm.GetCommonEnvironment()
 	packageManager := vm.GetPackageManager()
@@ -35,10 +34,17 @@ func NewKindCluster(vm *vm.UnixVM, clusterName, arch string) (*remote.Command, p
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err
 	}
+
+	kindVersionConfig, found := kubeToKindVersion[KubernetesVersion]
+
+	if !found {
+		return nil, pulumi.StringOutput{}, fmt.Errorf("unsupported kubernetes version. Supported versions are %s", strings.Join(kubeSupportedVersions(), ", "))
+	}
+
 	kindInstall, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-install"),
 		&command.Args{
-			Create: pulumi.String(fmt.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, arch)),
+			Create: pulumi.String(fmt.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, arch)),
 		},
 		utils.PulumiDependsOn(cmd, curlCommand),
 	)
@@ -58,7 +64,7 @@ func NewKindCluster(vm *vm.UnixVM, clusterName, arch string) (*remote.Command, p
 	createCluster, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", clusterName),
 		&command.Args{
-			Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --wait %s", clusterName, clusterConfigFilePath, kindReadinessWait),
+			Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", clusterName, clusterConfigFilePath, kindVersionConfig.nodeImage, kindReadinessWait),
 			Delete:   pulumi.Sprintf("sleep 10 && kind delete cluster --name %s", clusterName),
 			Triggers: pulumi.Array{pulumi.String(kindClusterConfig)},
 		},

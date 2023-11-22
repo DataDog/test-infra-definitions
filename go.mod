@@ -3,6 +3,7 @@ module github.com/DataDog/test-infra-definitions
 go 1.20
 
 require (
+	github.com/DataDog/datadog-agent/pkg/util/pointer v0.49.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2/config v1.18.40
@@ -11,6 +12,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.0.4
 	github.com/pulumi/pulumi-awsx/sdk v1.0.5
 	github.com/pulumi/pulumi-azure-native-sdk v1.104.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute v1.103.0

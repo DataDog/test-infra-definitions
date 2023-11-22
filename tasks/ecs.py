@@ -35,7 +35,7 @@ def create_ecs(
     use_fargate: bool = True,
     linux_node_group: bool = True,
     linux_arm_node_group: bool = False,
-    bottlerocket_node_group: bool = False,
+    bottlerocket_node_group: bool = True,
     windows_node_group: bool = False,
 ):
     """

@@ -17,7 +17,7 @@ os_family: str = (
 )
 linux_node_group: str = "Install a Linux node group (default True)"
 linux_arm_node_group: str = "Install a Linux ARM node group (default False)"
-bottlerocket_node_group: str = "Install a bottlerocket node group (default False)"
+bottlerocket_node_group: str = "Install a bottlerocket node group (default True)"
 windows_node_group: str = "Install a Windows node group (default False)"
 use_fargate: str = "Use Fargate (default True)"
 fakeintake: str = "Use a dedicated fake Datadog intake (default False)"

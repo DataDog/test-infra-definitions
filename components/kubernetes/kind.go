@@ -15,7 +15,8 @@ import (
 )
 
 const (
-	kindReadinessWait = "60s"
+	kindReadinessWait     = "60s"
+	kindNodeImageRegistry = "kindest/node"
 )
 
 //go:embed kind-cluster.yaml
@@ -35,10 +36,9 @@ func NewKindCluster(vm *vm.UnixVM, clusterName, arch, KubernetesVersion string) 
 		return nil, pulumi.StringOutput{}, err
 	}
 
-	kindVersionConfig, found := kubeToKindVersion[KubernetesVersion]
-
-	if !found {
-		return nil, pulumi.StringOutput{}, fmt.Errorf("unsupported kubernetes version. Supported versions are %s", strings.Join(kubeSupportedVersions(), ", "))
+	kindVersionConfig, err := getKindVersionConfig(KubernetesVersion)
+	if err != nil {
+		return nil, pulumi.StringOutput{}, err
 	}
 
 	kindInstall, err := runner.Command(
@@ -61,10 +61,11 @@ func NewKindCluster(vm *vm.UnixVM, clusterName, arch, KubernetesVersion string) 
 		return nil, pulumi.StringOutput{}, err
 	}
 
+	nodeImage := fmt.Sprintf("%s:%s", kindNodeImageRegistry, kindVersionConfig.nodeImageVersion)
 	createCluster, err := runner.Command(
 		commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", clusterName),
 		&command.Args{
-			Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", clusterName, clusterConfigFilePath, kindVersionConfig.nodeImage, kindReadinessWait),
+			Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", clusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 			Delete:   pulumi.Sprintf("sleep 10 && kind delete cluster --name %s", clusterName),
 			Triggers: pulumi.Array{pulumi.String(kindClusterConfig)},
 		},

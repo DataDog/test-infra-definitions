@@ -47,7 +47,7 @@ func NewECSOptimizedNodeGroup(e aws.Environment, clusterName pulumi.StringInput,
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, ngName, pulumi.String(ecsAmi.Value), pulumi.String(instanceType), getUserData(linuxInitUserData, clusterName))
+	return newNodeGroup(e, ngName, 2, pulumi.String(ecsAmi.Value), pulumi.String(instanceType), getUserData(linuxInitUserData, clusterName))
 }
 
 func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
@@ -58,7 +58,7 @@ func NewBottlerocketNodeGroup(e aws.Environment, clusterName pulumi.StringInput)
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "bottlerocket-ng", pulumi.String(bottlerocketAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(linuxBottlerocketInitUserData, clusterName))
+	return newNodeGroup(e, "bottlerocket-ng", 1, pulumi.String(bottlerocketAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(linuxBottlerocketInitUserData, clusterName))
 }
 
 func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pulumi.StringOutput, error) {
@@ -69,10 +69,10 @@ func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pul
 		return pulumi.StringOutput{}, err
 	}
 
-	return newNodeGroup(e, "win2022-ng", pulumi.String(winAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(windowsInitUserData, clusterName))
+	return newNodeGroup(e, "win2022-ng", 1, pulumi.String(winAmi.Value), pulumi.String(e.DefaultInstanceType()), getUserData(windowsInitUserData, clusterName))
 }
 
-func newNodeGroup(e aws.Environment, ngName string, ami, instanceType, userData pulumi.StringInput) (pulumi.StringOutput, error) {
+func newNodeGroup(e aws.Environment, ngName string, desiredCount int, ami, instanceType, userData pulumi.StringInput) (pulumi.StringOutput, error) {
 	lt, err := ec2.CreateLaunchTemplate(e, ngName,
 		ami,
 		instanceType,
@@ -83,7 +83,7 @@ func newNodeGroup(e aws.Environment, ngName string, ami, instanceType, userData 
 		return pulumi.StringOutput{}, err
 	}
 
-	asg, err := ec2.NewAutoscalingGroup(e, ngName, lt.ID(), lt.LatestVersion, 1, 1, 2)
+	asg, err := ec2.NewAutoscalingGroup(e, ngName, lt.ID(), lt.LatestVersion, desiredCount, desiredCount, 2)
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

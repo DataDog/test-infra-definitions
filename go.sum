@@ -301,8 +301,8 @@ github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d/go.mod h1:c3At6R
 github.com/prometheus/procfs v0.0.0-20190507164030-5867b95ac084/go.mod h1:TjEm7ze935MbeOT/UhFTIMYKhuLP4wbCsTZCD3I8kEA=
 github.com/prometheus/tsdb v0.7.1/go.mod h1:qhTCs0VvXwvX/y3TZrWD7rabWM+ijKTux40TwIPHuXU=
 github.com/pulumi/pulumi-aws/sdk/v5 v5.31.0/go.mod h1:axXtUAYEclH+SVqr/QmWFzMfJchxrrPiyMrywCcMF9A=
-github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0 h1:QdJvPoUklXdNL8faCOuCrv7qmMNp68jiewbGH8ZboUU=
-github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0/go.mod h1:qFeKTFSNIlMHotu9ntOWFjJBHtCiUhJeaiUB/0nVwXk=
+github.com/pulumi/pulumi-aws/sdk/v5 v5.43.0 h1:m+BnGLhaLcW4AoyvA/3DRgtaTf6nmHtD9SFSGUY8XFE=
+github.com/pulumi/pulumi-aws/sdk/v5 v5.43.0/go.mod h1:qFeKTFSNIlMHotu9ntOWFjJBHtCiUhJeaiUB/0nVwXk=
 github.com/pulumi/pulumi-awsx/sdk v1.0.6 h1:oUan8VgA/pqEmbS2vXhh5Zbn7Lhs6yX5bPMzM03QuMI=
 github.com/pulumi/pulumi-awsx/sdk v1.0.6/go.mod h1:2H8uPHxZbfsIg9qr6yAfiIuvNnhBUqyhxw/8mXNLDFg=
 github.com/pulumi/pulumi-azure-native-sdk v1.104.0 h1:vyD4PvKSOkwL1z9WTis3ZE9XC73UM/7AyMNek4Vm1+E=

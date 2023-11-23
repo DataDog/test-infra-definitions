@@ -50,7 +50,7 @@ func NewLibvirtVolume(
 		filesystemImage: fsImage,
 		volumeKey:       volKey,
 		volumeXML:       xmlDataFn(volKey, pool.Type()),
-		volumeNamer:     volNamerFn(volKey),
+		volumeNamer:     volNamerFn(fsImage.imageName),
 		pool:            pool,
 		mountpoint:      mountpoint,
 	}

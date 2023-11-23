@@ -81,7 +81,7 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 		Cpu:       pulumi.IntPtr(0),
 		User:      pulumi.StringPtr("0"),
 		Name:      pulumi.String("log_router"),
-		Image:     pulumi.String("amazon/aws-for-fluent-bit:latest"),
+		Image:     pulumi.String("amazon/aws-for-fluent-bit:stable"),
 		Essential: pulumi.BoolPtr(true),
 		FirelensConfiguration: ecs.TaskDefinitionFirelensConfigurationArgs{
 			Type: pulumi.String("fluentbit"),

@@ -259,17 +259,6 @@ func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContain
 			},
 		},
 		VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
-		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
-			// note that a failing health check doesn't fail the deployment,
-			// but it allows seeing the health of the task directly in AWS
-			Command: pulumi.StringArray{
-				pulumi.String("curl"),
-				pulumi.String("-L"),
-				pulumi.String(getFakeintakeHealthURL("localhost")),
-			},
-			Interval: pulumi.Int(5), // seconds
-			Retries:  pulumi.Int(4),
-		},
 	}
 }
 

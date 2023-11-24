@@ -68,12 +68,12 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	}
 
 	if params.LoadBalancerEnabled {
-		instance.Host, err = fargateServiceFakeIntakeWithLoadBalancer(e, namer, taskDef, opts...)
+		instance.Host, err = fargateServiceFakeIntakeWithLoadBalancer(e, params.Name, namer, taskDef, opts...)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer, taskDef)
+		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, params.Name, namer, taskDef)
 		if err != nil {
 			return nil, err
 		}

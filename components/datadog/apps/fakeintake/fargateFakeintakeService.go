@@ -55,7 +55,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	instance := &Instance{
 		Name: params.Name,
 	}
-	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, e.WithProviders(config.ProviderAWS, config.ProviderAWSX)); err != nil {
+	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, opts...); err != nil {
 		return nil, err
 	}
 	opts = append(opts, pulumi.Parent(instance))
@@ -69,6 +69,9 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 
 	if params.LoadBalancerEnabled {
 		instance.Host, err = fargateServiceFakeIntakeWithLoadBalancer(e, namer, taskDef, opts...)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer, taskDef)
 		if err != nil {

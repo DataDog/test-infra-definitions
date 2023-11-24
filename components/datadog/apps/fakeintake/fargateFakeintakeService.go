@@ -62,22 +62,22 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 
 	var err error
 
-	taskDef, err := fargateLinuxTaskDefinition(e, params.Name, params.ImageURL)
+	taskDef, err := fargateLinuxTaskDefinition(e, namer.ResourceName(params.Name, "taskdef"), params.ImageURL)
 	if err != nil {
 		return nil, err
 	}
 
 	if params.LoadBalancerEnabled {
 		instance.Host, err = fargateServiceFakeIntakeWithLoadBalancer(e, params.Name, namer, taskDef, opts...)
-		if err != nil {
-			return nil, err
-		}
+
 	} else {
-		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, params.Name, namer, taskDef)
-		if err != nil {
-			return nil, err
-		}
+		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer.ResourceName(params.Name, "srv"), taskDef)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
 		"host": instance.Host,
 	}); err != nil {
@@ -88,7 +88,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 }
 
 func fargateLinuxTaskDefinition(e aws.Environment, name, imageURL string) (*ecs.FargateTaskDefinition, error) {
-	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name, "taskdef"), &ecs.FargateTaskDefinitionArgs{
+	return ecs.NewFargateTaskDefinition(e.Ctx, name, &ecs.FargateTaskDefinitionArgs{
 		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			containerName: *fargateLinuxContainerDefinition(imageURL),
 		},
@@ -129,9 +129,9 @@ func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContain
 
 // fargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string, namer namer.Namer, taskDef *ecs.FargateTaskDefinition) (ipAddress pulumi.StringOutput, err error) {
+func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string, taskDef *ecs.FargateTaskDefinition) (ipAddress pulumi.StringOutput, err error) {
 
-	fargateService, err := ecsClient.FargateService(e, namer.ResourceName(name, "srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
+	fargateService, err := ecsClient.FargateService(e, name, pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
 	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
 	// when taskDef has an ARN, thus it is defined on AWS side
 	ipAddress = pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(args []any) (string, error) {

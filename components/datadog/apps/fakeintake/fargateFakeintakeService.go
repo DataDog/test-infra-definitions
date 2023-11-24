@@ -62,7 +62,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 
 	var err error
 
-	taskDef, err := fargateLinuxTaskDefinition(e, namer, params.ImageURL)
+	taskDef, err := fargateLinuxTaskDefinition(e, params.Name, params.ImageURL)
 	if err != nil {
 		return nil, err
 	}
@@ -87,8 +87,8 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	return instance, nil
 }
 
-func fargateLinuxTaskDefinition(e aws.Environment, namer namer.Namer, imageURL string) (*ecs.FargateTaskDefinition, error) {
-	return ecs.NewFargateTaskDefinition(e.Ctx, namer.ResourceName("fakeintake-taskdef"), &ecs.FargateTaskDefinitionArgs{
+func fargateLinuxTaskDefinition(e aws.Environment, name, imageURL string) (*ecs.FargateTaskDefinition, error) {
+	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name, "taskdef"), &ecs.FargateTaskDefinitionArgs{
 		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			containerName: *fargateLinuxContainerDefinition(imageURL),
 		},
@@ -129,9 +129,9 @@ func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContain
 
 // fargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
-func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, namer namer.Namer, taskDef *ecs.FargateTaskDefinition) (ipAddress pulumi.StringOutput, err error) {
+func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string, namer namer.Namer, taskDef *ecs.FargateTaskDefinition) (ipAddress pulumi.StringOutput, err error) {
 
-	fargateService, err := ecsClient.FargateService(e, namer.ResourceName("srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
+	fargateService, err := ecsClient.FargateService(e, namer.ResourceName(name, "srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
 	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
 	// when taskDef has an ARN, thus it is defined on AWS side
 	ipAddress = pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(args []any) (string, error) {
@@ -178,14 +178,14 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, namer namer.
 	return ipAddress, err
 }
 
-func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, namer namer.Namer, taskDef *ecs.FargateTaskDefinition, opts ...pulumi.ResourceOption) (pulumi.StringOutput, error) {
+func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, namer namer.Namer, taskDef *ecs.FargateTaskDefinition, opts ...pulumi.ResourceOption) (pulumi.StringOutput, error) {
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           namer.DisplayName(32, pulumi.String("fakeintake")),
+		Name:           e.CommonNamer.DisplayName(32, pulumi.String(name)),
 		SubnetIds:      e.RandomSubnets(),
 		Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       namer.DisplayName(32, pulumi.String("fakeintake")),
+			Name:       e.CommonNamer.DisplayName(32, pulumi.String("name")),
 			Port:       pulumi.IntPtr(port),
 			Protocol:   pulumi.StringPtr("HTTP"),
 			TargetType: pulumi.StringPtr("ip"),
@@ -206,7 +206,7 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, namer namer.Nam
 			KeyAlgorithm:     pulumi.String("RSA_4096"),
 			SigningAlgorithm: pulumi.String("SHA512WITHRSA"),
 			Subject: acmpca.CertificateAuthorityCertificateAuthorityConfigurationSubjectArgs{
-				CommonName: namer.DisplayName(64, pulumi.String("fakeintake CA")),
+				CommonName: e.CommonNamer.DisplayName(64, pulumi.String("fakeintake CA")),
 			},
 		},
 		RevocationConfiguration: acmpca.CertificateAuthorityRevocationConfigurationArgs{
@@ -292,7 +292,7 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, namer namer.Nam
 	}
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("srv"), &ecs.FargateServiceArgs{
 		Cluster:              pulumi.StringPtr(e.ECSFargateFakeintakeClusterArn()),
-		Name:                 namer.DisplayName(255, pulumi.String("srv")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String(name)),
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		NetworkConfiguration: &classicECS.ServiceNetworkConfigurationArgs{

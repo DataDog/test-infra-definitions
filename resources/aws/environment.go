@@ -102,7 +102,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
 		Inputs:      pulumi.ToStringArray(env.DefaultSubnets()),
 		ResultCount: pulumi.IntPtr(2),
-	})
+	}, env.WithProviders(config.ProviderRandom))
 	if err != nil {
 		return Environment{}, err
 	}

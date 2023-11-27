@@ -223,7 +223,7 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, na
 		return pulumi.StringOutput{}, err
 	}
 
-	current, err := paws.GetPartition(e.Ctx, nil, nil)
+	current, err := paws.GetPartition(e.Ctx, e.WithProvider(config.ProviderAWS))
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

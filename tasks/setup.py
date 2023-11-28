@@ -16,25 +16,26 @@ available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa"]
 
 
 @task(help={"config_path": doc.config_path, "copy_to_clipboard": doc.copy_to_clipboard})
-def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Optional[bool] = True) -> None:
+def setup(ctx: Context, config_path: Optional[str] = None, copy_to_clipboard: Optional[bool] = True) -> None:
     """
     Setup a local environment interactively
     """
     info("🤖 Install Pulumi")
     if is_windows():
-        os.system("winget install pulumi")
+        ctx.run("winget install pulumi")
     elif is_linux():
-        os.system("curl -fsSL https://get.pulumi.com | sh")
+        ctx.run("curl -fsSL https://get.pulumi.com | sh")
     else:
-        os.system("brew install pulumi/tap/pulumi")
+        ctx.run("brew install pulumi/tap/pulumi")
 
-    os.system("pulumi login --local")
+    ctx.run("pulumi plugin install")
+    ctx.run("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     try:
         config = get_local_config(config_path)
     except Exception:
-        config = Config.parse_obj({})
+        config = Config.model_validate({})
 
     # AWS config
     setupAWSConfig(config)

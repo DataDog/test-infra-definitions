@@ -49,7 +49,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	}
 
 	namer := e.Namer.WithPrefix(params.Name)
-	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
+	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX, config.ProviderTLS)}
 
 	instance := &Instance{
 		Name: params.Name,

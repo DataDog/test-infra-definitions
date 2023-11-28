@@ -8,6 +8,7 @@ import (
 	"github.com/pulumi/pulumi-command/sdk/go/command"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
+	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -15,6 +16,7 @@ type ProviderID string
 
 const (
 	ProviderRandom  ProviderID = "random"
+	ProviderTLS     ProviderID = "tls"
 	ProviderCommand ProviderID = "command"
 	ProviderAWS     ProviderID = "aws"
 	ProviderAWSX    ProviderID = "awsx"
@@ -26,6 +28,10 @@ func dummyProvidersFactory() map[ProviderID]func(ctx *pulumi.Context, name strin
 	return map[ProviderID]func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error){
 		ProviderRandom: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
 			provider, err := random.NewProvider(ctx, name, nil)
+			return provider, err
+		},
+		ProviderTLS: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+			provider, err := tls.NewProvider(ctx, name, nil)
 			return provider, err
 		},
 		ProviderCommand: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {

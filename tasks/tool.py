@@ -117,10 +117,11 @@ def get_image_description(ctx: Context, ami_id: str) -> Any:
 
 def notify(ctx, text):
     if is_linux():
-        notify_linux()
-    if is_windows():
+        notify_linux(ctx, text)
+    elif is_windows():
         notify_windows()
-    notify_macos(ctx, text)
+    else:
+        notify_macos(ctx, text)
 
 
 def notify_macos(ctx, text):
@@ -132,9 +133,8 @@ def notify_macos(ctx, text):
     ctx.run(f"osascript -e '{CMD}' test-infra-definitions '{text}'")
 
 
-def notify_linux():
-    # TODO: Implement notification on linux. Would require linux computer (with desktop) to test
-    return
+def notify_linux(ctx, text):
+    ctx.run(f"notify-send 'test-infra-definitions' '{text}'")
 
 
 def notify_windows():

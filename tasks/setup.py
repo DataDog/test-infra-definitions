@@ -28,6 +28,8 @@ def setup(_: Context, config_path: Optional[str] = None, interactive: Optional[b
     else:
         os.system("brew install pulumi/tap/pulumi")
 
+    # install plugins
+    os.system("pulumi --non-interactive plugin install")
     # login to local stack storage
     os.system("pulumi login --local")
 

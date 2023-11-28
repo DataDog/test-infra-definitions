@@ -16,9 +16,7 @@ To run scripts and code in this repository, you will need:
 
 This guide is tested on **MacOS**.
 
-### Linux dependencies
-
-*Only required for Linux laptops*
+##### List of Linux dependencies
 
 ```bash
 sudo apt install libnotify-bin

@@ -27,7 +27,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 	awsEnv := vm.Infra.GetAwsEnvironment()
 
-	kubeConfigCommand, kubeConfig, err := localKubernetes.NewKindCluster(vm.UnixVM, awsEnv.CommonNamer.ResourceName("kind"), "amd64")
+	kubeConfigCommand, kubeConfig, err := localKubernetes.NewKindCluster(vm.UnixVM, awsEnv.CommonNamer.ResourceName("kind"), "amd64", awsEnv.KubernetesVersion())
 	if err != nil {
 		return err
 	}

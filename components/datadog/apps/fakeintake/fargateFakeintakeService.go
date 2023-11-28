@@ -16,13 +16,12 @@ import (
 	"github.com/cenkalti/backoff/v4"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 
-	paws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acm"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acmpca"
 	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
+	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -50,7 +49,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	}
 
 	namer := e.Namer.WithPrefix(params.Name)
-	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX)}
+	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX, config.ProviderTLS)}
 
 	instance := &Instance{
 		Name: params.Name,
@@ -200,69 +199,34 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, na
 		return pulumi.StringOutput{}, err
 	}
 
-	ca, err := acmpca.NewCertificateAuthority(e.Ctx, namer.ResourceName("ca"), &acmpca.CertificateAuthorityArgs{
-		Type: pulumi.StringPtr("ROOT"),
-		CertificateAuthorityConfiguration: acmpca.CertificateAuthorityCertificateAuthorityConfigurationArgs{
-			KeyAlgorithm:     pulumi.String("RSA_4096"),
-			SigningAlgorithm: pulumi.String("SHA512WITHRSA"),
-			Subject: acmpca.CertificateAuthorityCertificateAuthorityConfigurationSubjectArgs{
-				CommonName: e.CommonNamer.DisplayName(64, pulumi.String("fakeintake CA")),
-			},
-		},
-		RevocationConfiguration: acmpca.CertificateAuthorityRevocationConfigurationArgs{
-			CrlConfiguration: acmpca.CertificateAuthorityRevocationConfigurationCrlConfigurationArgs{
-				Enabled: pulumi.BoolPtr(false),
-			},
-			OcspConfiguration: acmpca.CertificateAuthorityRevocationConfigurationOcspConfigurationArgs{
-				Enabled: pulumi.Bool(false),
-			},
-		},
-		PermanentDeletionTimeInDays: pulumi.IntPtr(7),
+	key, err := tls.NewPrivateKey(e.Ctx, namer.ResourceName("key"), &tls.PrivateKeyArgs{
+		Algorithm: pulumi.String("RSA"),
+		RsaBits:   pulumi.IntPtr(4096),
 	}, opts...)
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}
 
-	current, err := paws.GetPartition(e.Ctx, e.WithProvider(config.ProviderAWS))
-	if err != nil {
-		return pulumi.StringOutput{}, err
-	}
-	caCert, err := acmpca.NewCertificate(e.Ctx, namer.ResourceName("ca-cert"), &acmpca.CertificateArgs{
-		CertificateAuthorityArn:   ca.Arn,
-		CertificateSigningRequest: ca.CertificateSigningRequest,
-		SigningAlgorithm:          pulumi.String("SHA512WITHRSA"),
-		TemplateArn:               pulumi.String(fmt.Sprintf("arn:%v:acm-pca:::template/RootCACertificate/V1", current.Partition)),
-		Validity: acmpca.CertificateValidityArgs{
-			Value: pulumi.String("10"),
-			Type:  pulumi.String("YEARS"),
+	selfcert, err := tls.NewSelfSignedCert(e.Ctx, namer.ResourceName("cert"), &tls.SelfSignedCertArgs{
+		AllowedUses: pulumi.StringArray{
+			pulumi.String("server_auth"),
 		},
-	}, opts...)
-	if err != nil {
-		return pulumi.StringOutput{}, err
-	}
-
-	if _, err = acmpca.NewCertificateAuthorityCertificate(e.Ctx, namer.ResourceName("ca-cert-cert"), &acmpca.CertificateAuthorityCertificateArgs{
-		CertificateAuthorityArn: ca.Arn,
-		Certificate:             caCert.Certificate,
-		CertificateChain:        caCert.CertificateChain,
-	}, opts...); err != nil {
-		return pulumi.StringOutput{}, err
-	}
-
-	domainName := alb.LoadBalancer.DnsName().ApplyT(func(dnsName string) *string {
-		if len(dnsName) <= 64 {
-			return &dnsName
-		}
-		dummyDNSName := "fakeintake.datadoghq.com"
-		return &dummyDNSName
-	}).(pulumi.StringPtrOutput)
-	cert, err := acm.NewCertificate(e.Ctx, namer.ResourceName("cert"), &acm.CertificateArgs{
-		CertificateAuthorityArn: ca.Arn,
-		KeyAlgorithm:            pulumi.String("RSA_2048"),
-		DomainName:              domainName,
-		SubjectAlternativeNames: pulumi.StringArray{
+		DnsNames: pulumi.StringArray{
 			alb.LoadBalancer.DnsName(),
 		},
+		PrivateKeyPem: key.PrivateKeyPem,
+		Subject: &tls.SelfSignedCertSubjectArgs{
+			CommonName: alb.LoadBalancer.DnsName(),
+		},
+		ValidityPeriodHours: pulumi.Int(24),
+	}, opts...)
+	if err != nil {
+		return pulumi.StringOutput{}, err
+	}
+
+	cert, err := acm.NewCertificate(e.Ctx, namer.ResourceName("cert"), &acm.CertificateArgs{
+		CertificateBody: selfcert.CertPem,
+		PrivateKey:      key.PrivateKeyPem,
 	}, opts...)
 	if err != nil {
 		return pulumi.StringOutput{}, err

@@ -34,9 +34,9 @@ func fsPathToLibvirtResource(path string) string {
 
 // the vmset name deduplicates volume resource name for the same VMs launched in different vmsets
 // the architecture deduplicates volume resource name for the same VMs launched with different archs.
-func getNamer(ctx *pulumi.Context, arch string, vmsetTags []string) func(string) namer.Namer {
+func getNamer(ctx *pulumi.Context, vmsetID vmconfig.VMSetID) func(string) namer.Namer {
 	return func(volKey string) namer.Namer {
-		return libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey), strings.Join(vmsetTags, "-"), arch)
+		return libvirtResourceNamer(ctx, fsPathToLibvirtResource(volKey), string(vmsetID))
 	}
 }
 
@@ -88,7 +88,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				},
 				vmset.Recipe,
 			),
-			getNamer(ctx, vmset.Arch, vmset.Tags),
+			getNamer(ctx, vmset.ID),
 			RootMountpoint,
 		)
 		volumes = append(volumes, vol)
@@ -113,7 +113,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				},
 				vmset.Recipe,
 			),
-			getNamer(ctx, vmset.Arch, vmset.Tags),
+			getNamer(ctx, vmset.ID),
 			d.Mountpoint,
 		)
 
@@ -157,7 +157,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 			},
 			vmset.Recipe,
 		),
-		getNamer(ctx, vmset.Arch, vmset.Tags),
+		getNamer(ctx, vmset.ID),
 		RootMountpoint,
 	)
 	volumes = append(volumes, vol)
@@ -184,7 +184,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 				},
 				vmset.Recipe,
 			),
-			getNamer(ctx, vmset.Arch, vmset.Tags),
+			getNamer(ctx, vmset.ID),
 			d.Mountpoint,
 		)
 

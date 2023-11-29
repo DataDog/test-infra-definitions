@@ -147,8 +147,8 @@ def _get_root_path() -> str:
     return str(folder.parent)
 
 
-class Connection:
-    def __init__(self, stack_outputs: Any):
-        connection: Any = stack_outputs["vm-connection"]
-        self.host: str = connection["host"]
-        self.user: str = connection["user"]
+class RemoteHost:
+    def __init__(self, name, stack_outputs: Any):
+        remoteHost: Any = stack_outputs[f"dd-Host-{name}"]
+        self.host: str = remoteHost["address"]
+        self.user: str = remoteHost["username"]

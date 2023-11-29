@@ -13,33 +13,41 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func Run(ctx *pulumi.Context) error {
-	vm, err := ec2vm.NewUnixEc2VM(ctx)
-	if err != nil {
-		return err
-	}
-	awsEnv := vm.Infra.GetAwsEnvironment()
-
-	kubeConfigCommand, kubeConfig, err := localKubernetes.NewKindCluster(vm.UnixVM, awsEnv.CommonNamer.ResourceName("kind"), "amd64", awsEnv.KubernetesVersion())
+	awsEnv, err := resAws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
 
-	// Export cluster’s properties
-	ctx.Export("kubeconfig", kubeConfig)
+	vm, err := ec2.NewVM(awsEnv, "kind")
+	if err != nil {
+		return err
+	}
+	if err := vm.Export(ctx, nil); err != nil {
+		return err
+	}
+
+	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), awsEnv.KubernetesVersion())
+	if err != nil {
+		return err
+	}
+	if err := kindCluster.Export(ctx, nil); err != nil {
+		return err
+	}
 
 	// Building Kubernetes provider
 	kindKubeProvider, err := kubernetes.NewProvider(ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 		EnableServerSideApply: pulumi.BoolPtr(true),
-		Kubeconfig:            kubeConfig,
-	}, utils.PulumiDependsOn(kubeConfigCommand))
+		Kubeconfig:            kindCluster.KubeConfig,
+	})
 	if err != nil {
 		return err
 	}

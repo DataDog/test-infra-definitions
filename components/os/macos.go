@@ -1,35 +1,18 @@
 package os
 
 import (
-	"strings"
-
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-type MacOS struct{}
+func newMacOS(e config.CommonEnvironment, desc Descriptor, runner *command.Runner) OS {
+	os := &os{
+		descriptor:     desc,
+		runner:         runner,
+		fileManager:    command.NewFileManager(runner),
+		packageManager: newBrewManager(runner),
+		serviceManager: newMacOSServiceManager(e, runner),
+	}
 
-func NewMacOS() *MacOS {
-	return &MacOS{}
-}
-
-func (*MacOS) GetServiceManager() *ServiceManager {
-	return &ServiceManager{restartCmd: []string{"launchctl stop com.datadoghq.agent", "launchctl start com.datadoghq.agent"}}
-}
-
-func (*MacOS) GetAgentConfigFolder() string { return "~/.datadog-agent" }
-
-func (*MacOS) GetAgentInstallCmd(version AgentVersion) (string, error) {
-	return getUnixInstallFormatString("install_mac_os.sh", version), nil
-}
-
-func (*MacOS) CreatePackageManager(runner *command.Runner) (command.PackageManager, error) {
-	return NewBrewManager(runner), nil
-}
-
-func (*MacOS) GetRunAgentCmd(parameters string) string {
-	return "datadog-agent " + parameters
-}
-
-func (*MacOS) CheckIsAbsPath(path string) bool {
-	return strings.HasPrefix(path, "/")
+	return os
 }

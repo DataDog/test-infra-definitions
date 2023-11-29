@@ -34,7 +34,7 @@ def create_docker(
     """
 
     extra_flags = {}
-    extra_flags["ddinfra:osArchitecture"] = _get_architecture(architecture)
+    extra_flags["ddinfra:osDescriptor"] = f"::{_get_architecture(architecture)}"
 
     full_stack_name = deploy(
         ctx,
@@ -54,9 +54,9 @@ def create_docker(
 
 def _show_connection_message(ctx: Context, full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    connection = tool.Connection(outputs)
-    host = connection.host
-    user = connection.user
+    remoteHost = tool.RemoteHost("aws-vm", outputs)
+    host = remoteHost.host
+    user = remoteHost.user
 
     command = (
         f"\nssh {user}@{host} --  'echo \"Successfully connected to VM\" && exit' \n"

@@ -40,8 +40,9 @@ type Domain struct {
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
-	setTagsWithDelim := fmt.Sprintf("%s-ddvm", vmsetTags)
-	return fmt.Sprintf("%s-%s-%s-%d-%d", arch, tag, setTagsWithDelim, vcpu, memory)
+	// The domain id should always begin with 'arch'-'tag'-'vmsetTags'. This order
+	// is expected in the consumers of this framework
+	return fmt.Sprintf("%s-%s-%s-ddvm-%d-%d", arch, tag, vmsetTags, vcpu, memory)
 }
 func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
 	r := utils.NewRandomGenerator(e, domainID)

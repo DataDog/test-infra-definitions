@@ -40,8 +40,8 @@ type Domain struct {
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
-	domainPrefix := fmt.Sprintf("%s-ddvm", vmsetTags)
-	return fmt.Sprintf("%s-%s-%s-%d-%d", domainPrefix, arch, tag, vcpu, memory)
+	setTagsWithDelim := fmt.Sprintf("%s-ddvm", vmsetTags)
+	return fmt.Sprintf("%s-%s-%s-%d-%d", arch, tag, setTagsWithDelim, vcpu, memory)
 }
 func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
 	r := utils.NewRandomGenerator(e, domainID)

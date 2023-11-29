@@ -35,7 +35,7 @@ type Image struct {
 }
 
 type VMSet struct {
-	Name        string   `json:"name"`
+	Tags        []string `json:"tags"`
 	Recipe      string   `json:"recipe"`
 	Kernels     []Kernel `json:"kernels"`
 	VCpu        []int    `json:"vcpu"`

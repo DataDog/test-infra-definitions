@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"strings"
 )
 
 func LoadConfigFile(filename string) (*Config, error) {
@@ -40,7 +41,7 @@ func loadFile(filename string) (*Config, error) {
 	vmids := make(map[VMSetID]bool)
 	for i := range cfg.VMSets {
 		set := &cfg.VMSets[i]
-		set.ID = VMSetID(fmt.Sprintf("%s_%s", set.Name, set.Arch))
+		set.ID = VMSetID(fmt.Sprintf("%s-%s", strings.Join(set.Tags, "-"), set.Arch))
 		if _, ok := vmids[set.ID]; ok {
 			return nil, fmt.Errorf("loadFile: duplicated vmset id: %s", set.ID)
 		}

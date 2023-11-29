@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -38,8 +39,10 @@ type Domain struct {
 	lvDomain    *libvirt.Domain
 }
 
-func generateDomainIdentifier(vcpu, memory int, vmsetName, tag, arch string) string {
-	return fmt.Sprintf("ddvm-%s-%s-%s-%d-%d", vmsetName, arch, tag, vcpu, memory)
+func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
+	// The domain id should always begin with 'arch'-'tag'-'vmsetTags'. This order
+	// is expected in the consumers of this framework
+	return fmt.Sprintf("%s-%s-%s-ddvm-%d-%d", arch, tag, vmsetTags, vcpu, memory)
 }
 func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
 	r := utils.NewRandomGenerator(e, domainID)
@@ -78,7 +81,7 @@ func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.Stri
 type domainConfiguration struct {
 	vcpu        int
 	memory      int
-	setName     string
+	setTags     string
 	machine     string
 	arch        string
 	recipe      string
@@ -90,7 +93,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 	var err error
 
 	domain := new(Domain)
-	domain.domainID = generateDomainIdentifier(cfg.vcpu, cfg.memory, cfg.setName, cfg.kernel.Tag, cfg.arch)
+	domain.domainID = generateDomainIdentifier(cfg.vcpu, cfg.memory, cfg.setTags, cfg.kernel.Tag, cfg.arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 
 	domain.mac, err = generateMACAddress(e, domain.domainID)
@@ -168,7 +171,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					domainConfiguration{
 						vcpu:        vcpu,
 						memory:      memory,
-						setName:     set.Name,
+						setTags:     strings.Join(set.Tags, "-"),
 						machine:     set.Machine,
 						arch:        set.Arch,
 						recipe:      set.Recipe,

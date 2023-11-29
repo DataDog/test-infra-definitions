@@ -5,29 +5,22 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
-	"github.com/DataDog/test-infra-definitions/components/os"
-	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
-	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type Daemon struct {
+type Composer struct {
 	vm                 *ec2vm.EC2UnixVM
 	dependsOn          pulumi.ResourceOption
 	agentContainerName string
 }
 
-func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Option) (*Daemon, error) {
-	commonEnv := env.GetCommonEnvironment()
-	params, err := dockerparams.NewParams(commonEnv, options...)
-	if err != nil {
-		return nil, err
-	}
-
-	vm, err := ec2vm.NewUnixEc2VMWithEnv(env, ec2params.WithArch(ec2os.AmazonLinuxDockerOS, params.Architecture))
+// NewComposer installs docker-compose on a VM with docker already istalled. It starts compose services with
+// an Agent container if called with `WithAgent` option. It allows running multiple docker applications on the same
+// VM. It does not check if docker is installed, use it with ec2os.AmazonLinuxDockerOS or install docker with
+// `dockerManager.Install` before calling this function.
+func NewComposer(vm *ec2vm.EC2UnixVM, options ...dockerparams.Option) (*Composer, error) {
+	params, err := dockerparams.NewParams(vm.GetCommonEnvironment(), options...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +46,7 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 		imagePath := dockerAgentParams.FullImagePath
 		composeContents = append(composeContents, command.DockerComposeInlineManifest{
 			Name:    "agent",
-			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, agentContainerName, commonEnv.AgentAPIKey()),
+			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, agentContainerName, vm.GetCommonEnvironment().AgentAPIKey()),
 		})
 		for key, value := range dockerAgentParams.Env {
 			pulumiEnv[key] = pulumi.String(value)
@@ -62,52 +55,30 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 
 	var dependOnResource pulumi.Resource
 	dockerManager := vm.GetLazyDocker()
-	if len(composeContents) > 0 {
-		runCommandDeps := params.PulumiResources
-		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, pulumiEnv, runCommandDeps...)
-	} else {
-		dependOnResource, err = dockerManager.InstallCompose()
-	}
 
+	installDockerCommand, err := dockerManager.EnsureCompose(params.PulumiResources...)
 	if err != nil {
 		return nil, err
 	}
+	if len(composeContents) > 0 {
+		runCommandDeps := []pulumi.ResourceOption{utils.PulumiDependsOn(installDockerCommand)}
+		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, pulumiEnv, runCommandDeps...)
+		if err != nil {
+			return nil, err
+		}
+	}
 
-	return &Daemon{
+	return &Composer{
 		vm:                 vm,
 		dependsOn:          utils.PulumiDependsOn(dependOnResource),
-		agentContainerName: agentContainerName}, nil
+		agentContainerName: agentContainerName,
+	}, nil
 }
 
-func NewDaemon(ctx *pulumi.Context, options ...func(*dockerparams.Params) error) (*Daemon, error) {
-	env, err := resourcesAws.NewEnvironment(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return NewDaemonWithEnv(env, options...)
+func (c *Composer) GetDependsOn() pulumi.ResourceOption {
+	return c.dependsOn
 }
 
-func (d *Daemon) GetDependsOn() pulumi.ResourceOption {
-	return d.dependsOn
-}
-
-func (d *Daemon) GetAgentContainerName() string {
-	return d.agentContainerName
-}
-
-type ClientData struct {
-	Connection utils.Connection
-}
-
-func (d *Daemon) Deserialize(result auto.UpResult) (*ClientData, error) {
-	vmData, err := d.vm.Deserialize(result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ClientData{Connection: vmData.Connection}, nil
-}
-
-func (d *Daemon) GetOS() os.OS {
-	return d.vm.GetOS()
+func (c *Composer) GetAgentContainerName() string {
+	return c.agentContainerName
 }

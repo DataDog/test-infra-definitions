@@ -5,6 +5,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -24,9 +27,14 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	vm, err := ec2vm.NewUnixEc2VMWithEnv(env, ec2params.WithArch(ec2os.AmazonLinuxDockerOS, architecture))
+	if err != nil {
+		return err
+	}
+
 	options = append(options, dockerparams.WithArchitecture(architecture))
 
-	_, err = docker.NewDaemonWithEnv(env, options...)
+	_, err = docker.NewComposer(vm, options...)
 
 	return err
 }

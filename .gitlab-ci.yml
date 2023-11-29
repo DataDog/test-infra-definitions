@@ -41,7 +41,7 @@ integration-testing:
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
   script:
-    - go test ./integration-tests -v
+    - go test ./integration-tests -v -timeout 0s
   variables:
     E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
     E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key

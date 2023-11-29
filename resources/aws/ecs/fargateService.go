@@ -34,7 +34,7 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 }
 
 func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
@@ -68,7 +68,7 @@ func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs
 				Condition:     pulumi.String("HEALTHY"),
 			},
 		},
-		LogConfiguration: getFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
+		LogConfiguration: GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 		MountPoints:      ecs.TaskDefinitionMountPointArray{},
 		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
@@ -96,7 +96,7 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 	}
 }
 
-func getFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringInput) ecs.TaskDefinitionLogConfigurationPtrInput {
+func GetFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringInput) ecs.TaskDefinitionLogConfigurationPtrInput {
 	return ecs.TaskDefinitionLogConfigurationArgs{
 		LogDriver: pulumi.String("awsfirelens"),
 		Options: pulumi.StringMap{

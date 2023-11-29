@@ -69,7 +69,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 						"app": pulumi.String("nginx"),
 					},
 					Annotations: pulumi.StringMap{
-						"ad.datadoghq.com/nginx.checks": pulumi.String(jsonMustMarshal(
+						"ad.datadoghq.com/nginx.checks": pulumi.String(utils.JSONMustMarshal(
 							map[string]interface{}{
 								"nginx": map[string]interface{}{
 									"init_config": map[string]interface{}{},
@@ -291,7 +291,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 				"app": pulumi.String("nginx"),
 			},
 			Annotations: pulumi.StringMap{
-				"ad.datadoghq.com/service.checks": pulumi.String(jsonMustMarshal(
+				"ad.datadoghq.com/service.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{
 						"http_check": map[string]interface{}{
 							"init_config": map[string]interface{}{},

@@ -10,6 +10,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
@@ -17,8 +18,9 @@ import (
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acm"
-	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
+	calb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
+	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/lb"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
 	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
@@ -31,8 +33,6 @@ const (
 	containerName = "fakeintake"
 	port          = 80
 	sslPort       = 443
-	cpu           = "256"
-	memory        = "2048"
 )
 
 type Instance struct {
@@ -59,9 +59,16 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	}
 	opts = append(opts, pulumi.Parent(instance))
 
-	var err error
+	apiKeyParam, err := ssm.NewParameter(e.Ctx, e.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
+		Name:  e.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
+		Type:  ssm.ParameterTypeSecureString,
+		Value: e.AgentAPIKey(),
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
 
-	taskDef, err := fargateLinuxTaskDefinition(e, namer.ResourceName(params.Name, "taskdef"), params.ImageURL)
+	taskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, namer.ResourceName(params.Name, "taskdef"), pulumi.String("fakeintake-ecs"), map[string]ecs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)}, apiKeyParam.Name, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -86,24 +93,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	return instance, nil
 }
 
-func fargateLinuxTaskDefinition(e aws.Environment, name, imageURL string) (*ecs.FargateTaskDefinition, error) {
-	return ecs.NewFargateTaskDefinition(e.Ctx, name, &ecs.FargateTaskDefinitionArgs{
-		Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-			containerName: *fargateLinuxContainerDefinition(imageURL),
-		},
-		Cpu:    pulumi.StringPtr(cpu),
-		Memory: pulumi.StringPtr(memory),
-		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
-			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
-		},
-		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
-			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
-		},
-		Family: e.CommonNamer.DisplayName(255, pulumi.String("fakeintake-ecs")),
-	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
-}
-
-func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContainerDefinitionArgs {
+func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
 		Image:       pulumi.String(imageURL),
@@ -122,7 +112,50 @@ func fargateLinuxContainerDefinition(imageURL string) *ecs.TaskDefinitionContain
 				Protocol:      pulumi.StringPtr("tcp"),
 			},
 		},
-		VolumesFrom: ecs.TaskDefinitionVolumeFromArray{},
+		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
+			Command: pulumi.ToStringArray([]string{"CMD-SHELL", "curl --fail http://localhost/fakeintake/health"}),
+			// Explicitly set the following 3 parameters to their default values.
+			// Because otherwise, `pulumi up` wants to recreate the task definition even when it is not needed.
+			Interval: pulumi.IntPtr(30),
+			Retries:  pulumi.IntPtr(3),
+			Timeout:  pulumi.IntPtr(5),
+		},
+		DockerLabels: pulumi.StringMap{
+			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
+				map[string]interface{}{
+					"openmetrics": map[string]interface{}{
+						"init_config": map[string]interface{}{},
+						"instances": []map[string]interface{}{
+							{
+								"openmetrics_endpoint": "http://%%host%%/metrics",
+								"namespace":            "fakeintake",
+								"metrics": []string{
+									".*",
+								},
+							},
+						},
+					},
+					"http_check": map[string]interface{}{
+						"init_config": map[string]interface{}{},
+						"instances": []map[string]interface{}{
+							{
+								"name": "health",
+								"url":  "http://%%host%%/fakeintake/health",
+							},
+							{
+								"name": "metrics query",
+								"url":  "http://%%host%%/fakeintake/payloads?endpoint=/api/v2/series",
+							},
+							{
+								"name": "logs query",
+								"url":  "http://%%host%%/fakeintake/payloads?endpoint=/api/v2/logs",
+							},
+						},
+					},
+				}),
+			),
+		},
+		LogConfiguration: ecsClient.GetFirelensLogConfiguration(pulumi.String("fakeintake"), pulumi.String("fakeintake"), apiKeySSMParamName),
 	}
 }
 
@@ -184,6 +217,9 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, na
 		Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
+			HealthCheck: &clb.TargetGroupHealthCheckArgs{
+				Path: pulumi.StringPtr("/fakeintake/health"),
+			},
 			Name:       e.CommonNamer.DisplayName(32, pulumi.String("name")),
 			Port:       pulumi.IntPtr(port),
 			Protocol:   pulumi.StringPtr("HTTP"),
@@ -232,13 +268,13 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, na
 		return pulumi.StringOutput{}, err
 	}
 
-	if _, err = clb.NewListener(e.Ctx, namer.ResourceName("lb-https"), &clb.ListenerArgs{
+	if _, err = calb.NewListener(e.Ctx, namer.ResourceName("lb-https"), &calb.ListenerArgs{
 		LoadBalancerArn: alb.LoadBalancer.Arn(),
 		Port:            pulumi.IntPtr(sslPort),
 		Protocol:        pulumi.StringPtr("HTTPS"),
 		CertificateArn:  cert.Arn,
-		DefaultActions: clb.ListenerDefaultActionArray{
-			clb.ListenerDefaultActionArgs{
+		DefaultActions: calb.ListenerDefaultActionArray{
+			calb.ListenerDefaultActionArgs{
 				Type:           pulumi.String("forward"),
 				TargetGroupArn: alb.DefaultTargetGroup.Arn(),
 			},

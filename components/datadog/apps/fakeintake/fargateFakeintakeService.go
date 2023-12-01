@@ -59,8 +59,8 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	}
 	opts = append(opts, pulumi.Parent(instance))
 
-	apiKeyParam, err := ssm.NewParameter(e.Ctx, e.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
-		Name:  e.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
+	apiKeyParam, err := ssm.NewParameter(e.Ctx, e.Namer.ResourceName("fakeintake-agent-apikey"), &ssm.ParameterArgs{
+		Name:  e.CommonNamer.DisplayName(1011, pulumi.String("fakeintake-agent-apikey")),
 		Type:  ssm.ParameterTypeSecureString,
 		Value: e.AgentAPIKey(),
 	}, opts...)

@@ -59,8 +59,8 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 	}
 	opts = append(opts, pulumi.Parent(instance))
 
-	apiKeyParam, err := ssm.NewParameter(e.Ctx, e.Namer.ResourceName("fakeintake-agent-apikey"), &ssm.ParameterArgs{
-		Name:  e.CommonNamer.DisplayName(1011, pulumi.String("fakeintake-agent-apikey")),
+	apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
+		Name:  e.CommonNamer.DisplayName(1011, pulumi.String(params.Name), pulumi.String("apikey")),
 		Type:  ssm.ParameterTypeSecureString,
 		Value: e.AgentAPIKey(),
 	}, opts...)
@@ -68,7 +68,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		return nil, err
 	}
 
-	taskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, namer.ResourceName(params.Name, "taskdef"), pulumi.String("fakeintake-ecs"), map[string]ecs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)}, apiKeyParam.Name, nil)
+	taskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, namer.ResourceName("taskdef"), pulumi.String("fakeintake-ecs"), map[string]ecs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)}, apiKeyParam.Name, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +77,7 @@ func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option)
 		instance.Host, err = fargateServiceFakeIntakeWithLoadBalancer(e, params.Name, namer, taskDef, opts...)
 
 	} else {
-		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer.ResourceName(params.Name, "srv"), taskDef)
+		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer.ResourceName("srv"), taskDef)
 	}
 
 	if err != nil {

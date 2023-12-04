@@ -1,6 +1,8 @@
 package ecs
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -33,14 +35,14 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
+func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
 	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
-		Cpu:        pulumi.StringPtr("1024"),
-		Memory:     pulumi.StringPtr("2048"),
+		Cpu:        pulumi.StringPtr(fmt.Sprintf("%d", cpu)),
+		Memory:     pulumi.StringPtr(fmt.Sprintf("%d", memory)),
 		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
 		},

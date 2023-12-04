@@ -5,7 +5,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
@@ -24,7 +24,7 @@ type HelmInstallationArgs struct {
 	KubeProvider  *kubernetes.Provider
 	Namespace     string
 	ValuesYAML    pulumi.AssetOrArchiveArrayInput
-	Fakeintake    *ddfakeintake.ConnectionExporter
+	Fakeintake    *fakeintake.Fakeintake
 	DeployWindows bool
 }
 
@@ -294,7 +294,7 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(fakeintake *ddfakeintake.ConnectionExporter) {
+func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) {
 	if fakeintake == nil {
 		return
 	}
@@ -306,11 +306,11 @@ func (values HelmValues) configureFakeintake(fakeintake *ddfakeintake.Connection
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Address),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Address),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),

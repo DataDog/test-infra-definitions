@@ -1,10 +1,9 @@
-package fakeintakeparams
+package fakeintake
 
 import "github.com/DataDog/test-infra-definitions/common"
 
 type Params struct {
 	LoadBalancerEnabled bool
-	Name                string
 	ImageURL            string
 }
 
@@ -14,7 +13,6 @@ type Option = func(*Params) error
 func NewParams(options ...Option) (*Params, error) {
 	params := &Params{
 		LoadBalancerEnabled: true,
-		Name:                "fakeintake",
 		ImageURL:            "public.ecr.aws/datadog/fakeintake:latest",
 	}
 	return common.ApplyOption(params, options)
@@ -24,15 +22,6 @@ func NewParams(options ...Option) (*Params, error) {
 func WithoutLoadBalancer() Option {
 	return func(p *Params) error {
 		p.LoadBalancerEnabled = false
-		return nil
-	}
-}
-
-// WithName sets the name of the fakeintake.
-// Only useful when using several fakeintakes in the same test.
-func WithName(name string) Option {
-	return func(p *Params) error {
-		p.Name = name
 		return nil
 	}
 }

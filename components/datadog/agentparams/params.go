@@ -229,8 +229,8 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 // WithFakeintake installs the fake intake and configures the Agent to use it.
 //
 // This option is overwritten by `WithIntakeHostname`.
-func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
-	return withIntakeHostname(fakeintake.Host)
+func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
+	return withIntakeHostname(fakeintake.Address)
 }
 
 // WithLogs enables the log agent

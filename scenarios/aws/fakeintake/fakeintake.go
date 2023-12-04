@@ -11,16 +11,17 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/cenkalti/backoff/v4"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acm"
 	calb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
 	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/lb"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
 	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
@@ -35,62 +36,48 @@ const (
 	sslPort       = 443
 )
 
-type Instance struct {
-	pulumi.ResourceState
-
-	Host pulumi.StringOutput
-	Name string
-}
-
-func NewECSFargateInstance(e aws.Environment, option ...fakeintakeparams.Option) (*Instance, error) {
-	params, paramsErr := fakeintakeparams.NewParams(option...)
+func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*fakeintake.Fakeintake, error) {
+	params, paramsErr := NewParams(option...)
 	if paramsErr != nil {
 		return nil, paramsErr
 	}
 
-	namer := e.Namer.WithPrefix(params.Name)
-	opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX, config.ProviderTLS)}
+	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(c *fakeintake.Fakeintake) error {
+		namer := e.Namer.WithPrefix(name)
+		opts := []pulumi.ResourceOption{e.WithProviders(config.ProviderAWS, config.ProviderAWSX, config.ProviderTLS), pulumi.Parent(c)}
 
-	instance := &Instance{
-		Name: params.Name,
-	}
-	if err := e.Ctx.RegisterComponentResource("dd:fakeintake", namer.ResourceName("grp"), instance, opts...); err != nil {
-		return nil, err
-	}
-	opts = append(opts, pulumi.Parent(instance))
+		apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
+			Name:  e.CommonNamer.DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
+			Type:  ssm.ParameterTypeSecureString,
+			Value: e.AgentAPIKey(),
+		}, opts...)
+		if err != nil {
+			return err
+		}
 
-	apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
-		Name:  e.CommonNamer.DisplayName(1011, pulumi.String(params.Name), pulumi.String("apikey")),
-		Type:  ssm.ParameterTypeSecureString,
-		Value: e.AgentAPIKey(),
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
+		taskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e,
+			namer.ResourceName("taskdef"),
+			pulumi.String("fakeintake-ecs"),
+			1024, 4096,
+			map[string]ecs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)},
+			apiKeyParam.Name,
+			nil,
+		)
+		if err != nil {
+			return err
+		}
 
-	taskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, namer.ResourceName("taskdef"), pulumi.String("fakeintake-ecs"), 1024, 4096, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)}, apiKeyParam.Name, nil)
-	if err != nil {
-		return nil, err
-	}
+		if params.LoadBalancerEnabled {
+			c.Address, err = fargateServiceFakeIntakeWithLoadBalancer(e, name, namer, taskDef, opts...)
+		} else {
+			c.Address, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer.ResourceName("srv"), taskDef)
+		}
+		if err != nil {
+			return err
+		}
 
-	if params.LoadBalancerEnabled {
-		instance.Host, err = fargateServiceFakeIntakeWithLoadBalancer(e, params.Name, namer, taskDef, opts...)
-
-	} else {
-		instance.Host, err = fargateServiceFakeintakeWithoutLoadBalancer(e, namer.ResourceName("srv"), taskDef)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	if err := e.Ctx.RegisterResourceOutputs(instance, pulumi.Map{
-		"host": instance.Host,
-	}); err != nil {
-		return nil, err
-	}
-
-	return instance, nil
+		return nil
+	})
 }
 
 func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
@@ -162,7 +149,6 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 // fargateServiceFakeintakeWithoutLoadBalancer deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
 func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string, taskDef *ecs.FargateTaskDefinition) (ipAddress pulumi.StringOutput, err error) {
-
 	fargateService, err := ecsClient.FargateService(e, name, pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn())
 	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
 	// when taskDef has an ARN, thus it is defined on AWS side
@@ -182,7 +168,6 @@ func fargateServiceFakeintakeWithoutLoadBalancer(e aws.Environment, name string,
 			e.Ctx.Log.Info(fmt.Sprintf("fakeintake task private ip found: %s\n", ipAddress), nil)
 			return err
 		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
-
 		if err != nil {
 			return "", err
 		}
@@ -309,6 +294,7 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, na
 
 	return ipAdress, nil
 }
+
 func getFakeintakeHealthURL(host string) string {
 	url := &url.URL{
 		Scheme: "http",

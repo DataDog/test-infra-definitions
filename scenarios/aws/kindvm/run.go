@@ -11,11 +11,11 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -54,9 +54,9 @@ func Run(ctx *pulumi.Context) error {
 
 	var dependsOnCrd pulumi.ResourceOption
 
-	var fakeIntake *ddfakeintake.ConnectionExporter
+	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name()); err != nil {
 			return err
 		}
 	}

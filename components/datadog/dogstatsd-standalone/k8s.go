@@ -6,7 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
@@ -27,7 +27,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *ddfakeintake.ConnectionExporter, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -109,7 +109,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			envVars,
 			&corev1.EnvVarArgs{
 				Name:  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-				Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeIntake.Host),
+				Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeIntake.Address),
 			},
 		)
 	}

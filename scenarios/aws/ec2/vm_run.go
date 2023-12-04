@@ -6,8 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/docker"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
-	awsScn "github.com/DataDog/test-infra-definitions/scenarios/aws"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -30,13 +29,13 @@ func VMRun(ctx *pulumi.Context) error {
 	if env.AgentDeploy() {
 		agentOptions := []agentparams.Option{}
 		if env.AgentUseFakeintake() {
-			fakeIntakeOptions := []fakeintakeparams.Option{}
+			fakeIntakeOptions := []fakeintake.Option{}
 
 			if !env.InfraShouldDeployFakeintakeWithLB() {
-				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithoutLoadBalancer())
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutLoadBalancer())
 			}
 
-			fakeintake, err := awsScn.NewEcsFakeintake(env, fakeIntakeOptions...)
+			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)
 			if err != nil {
 				return err
 			}

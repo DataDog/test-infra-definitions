@@ -74,6 +74,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("redis"),
 							Image: pulumi.String("redis:latest"),
+							Args: pulumi.StringArray{
+								pulumi.String("--loglevel"),
+								pulumi.String("verbose"),
+							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),

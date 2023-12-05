@@ -2,7 +2,10 @@ package dockervm
 
 import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
@@ -27,7 +30,20 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if env.AgentDeploy() {
-		_, err = agent.NewDaemon(vm)
+		agentOptions := []dockeragentparams.Option{}
+		if env.AgentUseFakeintake() {
+			fakeIntakeOptions := []fakeintakeparams.Option{}
+
+			if !vm.Infra.GetAwsEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithoutLoadBalancer())
+			}
+			fakeintake, err := aws.NewEcsFakeintake(vm.Infra.GetAwsEnvironment(), fakeIntakeOptions...)
+			if err != nil {
+				return err
+			}
+			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
+		}
+		_, err = agent.NewDaemon(vm, agentOptions...)
 	}
 
 	return err

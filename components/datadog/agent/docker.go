@@ -17,8 +17,8 @@ import (
 const (
 	DefaultAgentImageRepo        = "gcr.io/datadoghq/agent"
 	DefaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
-	DefaultAgentContainerName    = "datadog-agent"
 	defaultAgentImageTag         = "latest"
+	AgentContainerName           = "datadog-agent"
 )
 
 type Daemon struct {
@@ -37,13 +37,14 @@ func NewDaemon(vm *ec2vm.EC2UnixVM, options ...dockeragentparams.Option) (*Daemo
 		return nil, err
 	}
 
-	agentFullImagePath := DockerAgentFullImagePath(env, params.Repository)
+	agentFullImagePath := DockerAgentFullImagePath(env, params.Repository, params.ImageTag)
 
 	var composeContents []command.DockerComposeInlineManifest
 	composeContents = append(composeContents, command.DockerComposeInlineManifest{
 		Name:    "agent",
-		Content: dockerAgentComposeContent(agentFullImagePath, env.AgentAPIKey()),
+		Content: dockerAgentComposeContent(agentFullImagePath, env.AgentAPIKey(), params.AgentServiceEnvironment),
 	})
+	composeContents = append(composeContents, params.ExtraComposeManifests...)
 
 	var dependOnResource pulumi.Resource
 	dockerManager := vm.GetLazyDocker()
@@ -58,7 +59,7 @@ func NewDaemon(vm *ec2vm.EC2UnixVM, options ...dockeragentparams.Option) (*Daemo
 	return &Daemon{
 		vm:                 vm,
 		dependsOn:          utils.PulumiDependsOn(dependOnResource),
-		agentContainerName: DefaultAgentContainerName,
+		agentContainerName: AgentContainerName,
 	}, nil
 }
 
@@ -83,15 +84,16 @@ func (d *Daemon) VM() vm.VM {
 	return d.vm.VM
 }
 
-func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput) pulumi.StringOutput {
-	agentManifestContent := pulumi.All(apiKey).ApplyT(func(args []interface{}) (string, error) {
+func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput, envVars pulumi.Map) pulumi.StringOutput {
+	agentManifestContent := pulumi.All(apiKey, envVars).ApplyT(func(args []interface{}) (string, error) {
 		apiKeyResolved := args[0].(string)
+		envVarsResolved := args[1].(map[string]any)
 		agentManifest := command.DockerComposeManifest{
 			Version: "3.9",
 			Services: map[string]command.DockerComposeManifestService{
 				"agent": {
 					Image:         agentImagePath,
-					ContainerName: DefaultAgentContainerName,
+					ContainerName: AgentContainerName,
 					Volumes: []string{
 						"/var/run/docker.sock:/var/run/docker.sock",
 						"/proc/:/host/proc",
@@ -105,6 +107,9 @@ func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput)
 				},
 			},
 		}
+		for key, value := range envVarsResolved {
+			agentManifest.Services["agent"].Environment[key] = value
+		}
 		data, err := yaml.Marshal(agentManifest)
 		return string(data), err
 	}).(pulumi.StringOutput)
@@ -112,7 +117,7 @@ func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput)
 	return agentManifestContent
 }
 
-func DockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
+func DockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath, imageTag string) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
@@ -122,7 +127,11 @@ func DockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string
 		repositoryPath = DefaultAgentImageRepo
 	}
 
-	return utils.BuildDockerImagePath(repositoryPath, dockerAgentImageTag(e, config.AgentSemverVersion))
+	if imageTag == "" {
+		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
+	}
+
+	return utils.BuildDockerImagePath(repositoryPath, imageTag)
 }
 
 func DockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {

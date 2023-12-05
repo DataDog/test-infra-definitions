@@ -15,7 +15,6 @@ type Importable interface {
 	SetKey(string)
 	Key() string
 	Import(in []byte, obj any) error
-	Init() error
 }
 
 var _ Importable = &JSONImporter{}
@@ -36,10 +35,6 @@ func (imp *JSONImporter) Import(in []byte, obj any) error {
 	// it *might* happen that val.Value is a map[interface{}]interface{} or something, which
 	// would mean that we need to implement our own reflection as well to import.
 	return json.Unmarshal(in, obj)
-}
-
-func (imp *JSONImporter) Init() error {
-	return nil
 }
 
 type component interface {

@@ -1,7 +1,7 @@
 package dockervm
 
 import (
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent/docker"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/utils"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
@@ -27,7 +27,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	if env.AgentDeploy() {
-		_, err = docker.NewDaemon(vm)
+		_, err = agent.NewDaemon(vm)
 	}
 
 	return err

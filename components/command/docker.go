@@ -17,6 +17,18 @@ const (
 	defaultTimeout = 300
 )
 
+type DockerComposeManifest struct {
+	Version  string                                  `yaml:"version"`
+	Services map[string]DockerComposeManifestService `yaml:"services"`
+}
+
+type DockerComposeManifestService struct {
+	Image         string         `yaml:"image"`
+	ContainerName string         `yaml:"container_name"`
+	Volumes       []string       `yaml:"volumes"`
+	Environment   map[string]any `yaml:"environment"`
+}
+
 type DockerComposeInlineManifest struct {
 	Name    string
 	Content pulumi.StringInput

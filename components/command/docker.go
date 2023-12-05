@@ -23,11 +23,12 @@ type DockerComposeInlineManifest struct {
 }
 
 type DockerManager struct {
-	namer       namer.Namer
-	runner      *Runner
-	fileManager *FileManager
-	pm          PackageManager
-	installCmd  *remote.Command
+	namer            namer.Namer
+	runner           *Runner
+	fileManager      *FileManager
+	pm               PackageManager
+	installCmd       *remote.Command
+	ensureComposeCmd *remote.Command
 }
 
 func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerManager {
@@ -41,7 +42,7 @@ func NewDockerManager(runner *Runner, packageManager PackageManager) *DockerMana
 
 func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	installComposeCommand, err := d.InstallCompose(opts...)
+	installComposeCommand, err := d.EnsureCompose(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +76,7 @@ func (d *DockerManager) ComposeFileUp(composeFilePath string, opts ...pulumi.Res
 
 func (d *DockerManager) ComposeStrUp(name string, composeManifests []DockerComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 
-	installComposeCommand, err := d.InstallCompose(opts...)
+	installComposeCommand, err := d.EnsureCompose(opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -148,14 +149,18 @@ func (d *DockerManager) Install(opts ...pulumi.ResourceOption) (*remote.Command,
 	return d.installCmd, err
 }
 
-func (d *DockerManager) InstallCompose(opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (d *DockerManager) EnsureCompose(opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	if d.ensureComposeCmd != nil {
+		return d.ensureComposeCmd, nil
+	}
 	composeInstallIfNotCmd := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
-	cmd, err := d.runner.Command(
-		d.namer.ResourceName("install-compose"),
+	var err error
+	d.ensureComposeCmd, err = d.runner.Command(
+		d.namer.ResourceName("ensure-compose"),
 		&Args{
 			Create: composeInstallIfNotCmd,
 			Sudo:   true,
 		},
 		opts...)
-	return cmd, err
+	return d.ensureComposeCmd, err
 }

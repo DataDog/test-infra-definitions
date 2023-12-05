@@ -66,7 +66,7 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 		runCommandDeps := params.PulumiResources
 		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, pulumiEnv, runCommandDeps...)
 	} else {
-		dependOnResource, err = dockerManager.InstallCompose()
+		dependOnResource, err = dockerManager.EnsureCompose()
 	}
 
 	if err != nil {

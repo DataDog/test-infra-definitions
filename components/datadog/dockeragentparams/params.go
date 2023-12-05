@@ -1,4 +1,4 @@
-package dockerparams
+package dockeragentparams
 
 import (
 	"github.com/DataDog/test-infra-definitions/common"

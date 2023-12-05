@@ -4,7 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent/dockerparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
@@ -21,9 +21,9 @@ type Daemon struct {
 	agentContainerName string
 }
 
-func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Option) (*Daemon, error) {
+func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockeragentparams.Option) (*Daemon, error) {
 	commonEnv := env.GetCommonEnvironment()
-	params, err := dockerparams.NewParams(commonEnv, options...)
+	params, err := dockeragentparams.NewParams(commonEnv, options...)
 	if err != nil {
 		return nil, err
 	}
@@ -78,7 +78,7 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 		agentContainerName: agentContainerName}, nil
 }
 
-func NewDaemon(ctx *pulumi.Context, options ...func(*dockerparams.Params) error) (*Daemon, error) {
+func NewDaemon(ctx *pulumi.Context, options ...func(*dockeragentparams.Params) error) (*Daemon, error) {
 	env, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
 		return nil, err

@@ -16,5 +16,9 @@ type Fakeintake struct {
 	pulumi.ResourceState
 	components.Component
 
-	Address pulumi.StringOutput
+	Address pulumi.StringOutput `pulumi:"address"`
+}
+
+func (fi *Fakeintake) Export(ctx *pulumi.Context, out *FakeintakeOutput) error {
+	return components.Export(ctx, fi, out)
 }

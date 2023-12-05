@@ -1,7 +1,10 @@
 package hyperv
 
 import (
-	"github.com/DataDog/test-infra-definitions/components/vm"
+	"github.com/DataDog/test-infra-definitions/components"
+	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/remote"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -12,7 +15,7 @@ type VMArgs struct {
 	// Attributes you need when you will actually create the VM
 }
 
-func NewVM(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (vm.VM, error) {
+func NewVM(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*remote.Host, error) {
 	cmd, err := local.NewCommand(e.Ctx, e.CommonNamer.ResourceName("hyperv", args.Name), &local.CommandArgs{
 		Interpreter: pulumi.ToStringArray([]string{"powershell", "-Command"}),
 		Environment: pulumi.StringMap{},                        // if you need to inject environment variables
@@ -27,12 +30,13 @@ func NewVM(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (vm.VM, er
 		return nil, err
 	}
 
-	// Let's say you get IP address from the command output (only output in the command).
-	os := newWindows(e)
-	vm, err := vm.NewGenericVM(args.Name, cmd, &e, cmd.Stdout, os)
-	if err != nil {
-		return nil, err
-	}
+	return components.NewComponent(*e.CommonEnvironment, args.Name, func(comp *remote.Host) error {
+		// Let's say you get IP address from the command output (only output in the command).
+		conn, err := remote.MakeConnection(cmd.Stdout, "<SSH_USER_NAME>", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		if err != nil {
+			return err
+		}
 
-	return vm, nil
+		return remote.MakeHost(*e.CommonEnvironment, conn.ToConnectionOutput(), os.WindowsServer2022, "<SSH_USER_NAME>", command.WaitUntilSuccess, comp)
+	})
 }

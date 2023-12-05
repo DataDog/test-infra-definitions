@@ -26,10 +26,18 @@ services:
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
 )
 
+type DockerAgentOutput struct {
+	components.JSONImporter
+}
+
 // DockerAgent is a Docker installer on a remote Host
 type DockerAgent struct {
 	pulumi.ResourceState
 	components.Component
+}
+
+func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error {
+	return components.Export(ctx, h, out)
 }
 
 func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...DockerOption) (*DockerAgent, error) {

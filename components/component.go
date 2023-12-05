@@ -109,9 +109,7 @@ func Export(ctx *pulumi.Context, c component, imp Importable) error {
 		imp.SetKey(c.getExportName())
 	}
 
-	if len(c.getOutputs()) > 0 {
-		ctx.Export(c.getExportName(), c.getOutputs().ToMapOutput())
-	}
+	ctx.Export(c.getExportName(), c.getOutputs().ToMapOutput())
 	return nil
 }
 

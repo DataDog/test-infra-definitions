@@ -17,6 +17,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type HostAgentOutput struct {
+	components.JSONImporter
+}
+
 // HostAgent is an installer for the Agent on a remote host
 type HostAgent struct {
 	pulumi.ResourceState
@@ -27,6 +31,10 @@ type HostAgent struct {
 	targetOS os.OS
 
 	// Currently we don't have anything to export or expose to other components?
+}
+
+func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
+	return components.Export(ctx, h, out)
 }
 
 // NewHostAgent creates a new instance of a on-host Agent

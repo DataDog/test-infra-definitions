@@ -8,21 +8,9 @@ import (
 )
 
 const (
-	AgentComposeDefinition = `version: "3.9"
-services:
-  agent:
-    image: %s
-    container_name: %s
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock"
-      - "/proc/:/host/proc"
-      - "/sys/fs/cgroup/:/host/sys/fs/cgroup"
-    environment:
-      DD_API_KEY: %s
-      DD_PROCESS_AGENT_ENABLED: true
-      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
 	DefaultAgentImageRepo        = "gcr.io/datadoghq/agent"
 	DefaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
+	DefaultAgentContainerName    = "datadog-agent"
 	defaultAgentImageTag         = "latest"
 )
 

@@ -12,6 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"gopkg.in/yaml.v3"
 )
 
 type Daemon struct {
@@ -47,13 +48,11 @@ func NewDaemonWithEnv(env resourcesAws.Environment, options ...dockerparams.Opti
 	}
 	agentContainerName := ""
 	if params.OptionalDockerAgentParams != nil {
-		agentContainerName = "datadog-agent"
-
 		dockerAgentParams := params.OptionalDockerAgentParams
 		imagePath := dockerAgentParams.FullImagePath
 		composeContents = append(composeContents, command.DockerComposeInlineManifest{
 			Name:    "agent",
-			Content: pulumi.Sprintf(agent.AgentComposeDefinition, imagePath, agentContainerName, commonEnv.AgentAPIKey()),
+			Content: dockerAgentComposeContent(imagePath, commonEnv.AgentAPIKey()),
 		})
 		for key, value := range dockerAgentParams.Env {
 			pulumiEnv[key] = pulumi.String(value)
@@ -110,4 +109,33 @@ func (d *Daemon) Deserialize(result auto.UpResult) (*ClientData, error) {
 
 func (d *Daemon) GetOS() os.OS {
 	return d.vm.GetOS()
+}
+
+func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput) pulumi.StringOutput {
+	agentManifestContent := pulumi.All(apiKey).ApplyT(func(args []interface{}) (string, error) {
+		apiKeyResolved := args[0].(string)
+		agentManifest := command.DockerComposeManifest{
+			Version: "3.9",
+			Services: map[string]command.DockerComposeManifestService{
+				"agent": {
+					Image:         agentImagePath,
+					ContainerName: agent.DefaultAgentContainerName,
+					Volumes: []string{
+						"/var/run/docker.sock:/var/run/docker.sock",
+						"/proc/:/host/proc",
+						"/sys/fs/cgroup/:/host/sys/fs/cgroup",
+					},
+					Environment: map[string]any{
+						"DD_API_KEY":                     apiKeyResolved,
+						"DD_PROCESS_AGENT_ENABLED":       true,
+						"DD_DOGSTATSD_NON_LOCAL_TRAFFIC": true,
+					},
+				},
+			},
+		}
+		data, err := yaml.Marshal(agentManifest)
+		return string(data), err
+	}).(pulumi.StringOutput)
+
+	return agentManifestContent
 }

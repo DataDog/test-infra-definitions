@@ -2,52 +2,64 @@ package dockeragentparams
 
 import (
 	"github.com/DataDog/test-infra-definitions/common"
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// Params defines the parameters for the Docker Agent installation.
+// The Params configuration uses the [Functional options pattern].
+//
+// The available options are:
+//   - [WithImageTag]
+//   - [WithDockerRepository]
+//   - [WithPulumiDependsOn]
+//   - [WithEnvironmentVariables]
+//
+// [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
+
 type Params struct {
-	OptionalDockerAgentParams *AgentParams
-	ComposeEnvVars            map[string]string
-	ComposeContent            string
-	PulumiResources           []pulumi.ResourceOption
-	CommonEnv                 *config.CommonEnvironment
-	Architecture              os.Architecture
+	// ImageTag is the docker agent image tag to use.
+	ImageTag string
+	// Repository is the docker repository to use.
+	Repository string
+	// EnvironmentVariables is a map of environment variables to set with the docker-compose context
+	EnvironmentVariables pulumi.StringMap
+	// PulumiDependsOn is a list of resources to depend on.
+	PulumiDependsOn []pulumi.ResourceOption
 }
 
 type Option = func(*Params) error
 
-func NewParams(commonEnv *config.CommonEnvironment, options ...Option) (*Params, error) {
-	return common.ApplyOption(&Params{CommonEnv: commonEnv, Architecture: os.AMD64Arch}, options)
+func NewParams(options ...Option) (*Params, error) {
+	version := &Params{
+		EnvironmentVariables: pulumi.StringMap{},
+	}
+	return common.ApplyOption(version, options)
 }
 
-func WithComposeContent(content string, env map[string]string) func(*Params) error {
+func WithImageTag(agentImageTag string) func(*Params) error {
 	return func(p *Params) error {
-		p.ComposeContent = content
-		p.ComposeEnvVars = env
+		p.ImageTag = agentImageTag
 		return nil
 	}
 }
 
-func WithPulumiResources(pulumiResources ...pulumi.ResourceOption) func(*Params) error {
+func WithRepository(repository string) func(*Params) error {
 	return func(p *Params) error {
-		p.PulumiResources = pulumiResources
+		p.Repository = repository
 		return nil
 	}
 }
 
-func WithAgent(options ...AgentOption) func(*Params) error {
+func WithPulumiDependsOn(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
-		var err error
-		p.OptionalDockerAgentParams, err = newAgentParams(p.CommonEnv, options...)
-		return err
+		p.PulumiDependsOn = resources
+		return nil
 	}
 }
 
-func WithArchitecture(arch os.Architecture) func(*Params) error {
+func WithEnvironmentVariables(environmentVariables pulumi.StringMap) func(*Params) error {
 	return func(p *Params) error {
-		p.Architecture = arch
+		p.EnvironmentVariables = environmentVariables
 		return nil
 	}
 }

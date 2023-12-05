@@ -21,6 +21,7 @@ build-runner-image:
     - when: on_success
   script:
     - docker buildx build --no-cache --pull --push --label target=build --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} .
+    - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHA:0:12}
   retry: 2
 
 

@@ -306,7 +306,7 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Address),
+			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),

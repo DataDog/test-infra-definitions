@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -19,7 +20,7 @@ type Instance struct {
 	Host pulumi.StringOutput
 }
 
-func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput) (*ecs.FargateService, error) {
+func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput, lb classicECS.ServiceLoadBalancerArrayInput, opts ...pulumi.ResourceOption) (*ecs.FargateService, error) {
 	return ecs.NewFargateService(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
 		Name:         e.CommonNamer.DisplayName(255, pulumi.String(name)),
@@ -29,13 +30,14 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			Subnets:        e.RandomSubnets(),
 		},
+		LoadBalancers:             lb,
 		TaskDefinition:            taskDefArn,
 		EnableExecuteCommand:      pulumi.BoolPtr(true),
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
-	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
+	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) (*ecs.FargateTaskDefinition, error) {
+func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) (*ecs.FargateTaskDefinition, error) {
 	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
@@ -55,7 +57,7 @@ func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulum
 				Name: pulumi.String("dd-sockets"),
 			},
 		},
-	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
+	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 
 func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {

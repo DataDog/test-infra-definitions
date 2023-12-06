@@ -109,7 +109,7 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		_, err = ecs.FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+		_, err = ecs.FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn(), nil)
 		if err != nil {
 			return err
 		}

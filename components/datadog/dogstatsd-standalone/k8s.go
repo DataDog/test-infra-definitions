@@ -109,7 +109,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			envVars,
 			&corev1.EnvVarArgs{
 				Name:  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-				Value: pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeIntake.Address),
+				Value: pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeIntake.URL),
 			},
 		)
 	}

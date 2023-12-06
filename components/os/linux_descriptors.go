@@ -6,7 +6,7 @@ var (
 	Ubuntu2204    = NewDescriptor(Ubuntu, "22.04")
 
 	DebianDefault = Debian12
-	Debian12      = NewDescriptor(Debian, "12.0")
+	Debian12      = NewDescriptor(Debian, "12")
 
 	AmazonLinuxDefault = AmazonLinux2023
 	AmazonLinux2023    = NewDescriptor(AmazonLinux, "2023")

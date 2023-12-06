@@ -369,17 +369,17 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 			if err != nil {
 				return nil, err
 			}
-			_, err = reloadSSHD(microRunner, allowEnvDone)
-			if err != nil {
-				return nil, err
-			}
-
 			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 			if err != nil {
 				return nil, err
 			}
 
-			_, err = setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+			setDockerDataRootDone, err = setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
 			if err != nil {
 				return nil, err
 			}

@@ -374,7 +374,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 				return nil, err
 			}
 
-			setDockerDataRootDone, err = setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+			setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
 			if err != nil {
 				return nil, err
 			}

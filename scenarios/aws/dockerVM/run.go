@@ -41,8 +41,13 @@ func Run(ctx *pulumi.Context) error {
 			if err != nil {
 				return err
 			}
-			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
+			if !vm.Infra.GetAwsEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
+			} else {
+				agentOptions = append(agentOptions, dockeragentparams.WithAdditionalFakeintake(fakeintake))
+			}
 		}
+		agentOptions = append(agentOptions, dockeragentparams.WithAgentServiceEnvVariable("DD_LOG_LEVEL", pulumi.String("debug")))
 		_, err = agent.NewDaemon(vm, agentOptions...)
 	}
 

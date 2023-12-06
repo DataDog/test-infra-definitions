@@ -1,6 +1,10 @@
 package dockeragentparams
 
 import (
+	"encoding/json"
+	"fmt"
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -84,31 +88,79 @@ func WithAgentServiceEnvVariable(key string, value pulumi.Input) func(*Params) e
 	}
 }
 
-// WithIntakeName configures the agent to use the given hostname as intake.
+// WithIntake configures the agent to use the given hostname as intake.
 //
 // To use a fakeintake, see WithFakeintake.
 //
 // This option is overwritten by `WithFakeintake`.
-func WithHostName(hostname string) func(*Params) error {
-	return withIntakeHostname(pulumi.String(hostname))
+func WithIntake(hostname string, skipSSL bool) func(*Params) error {
+	return withIntakeHostname(pulumi.String(hostname), skipSSL)
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
 //
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
-	return withIntakeHostname(fakeintake.Host)
+	return withIntakeHostname(fakeintake.Host, true)
 }
 
-func withIntakeHostname(hostname pulumi.StringInput) func(*Params) error {
+func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSL bool) func(*Params) error {
+	shouldEnforceHTTPInput := hostname.ToStringOutput().ApplyT(func(host string) (bool, error) {
+		return strings.HasPrefix(host, "https"), nil
+	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
 		logsEnvVars := pulumi.Map{
 			"DD_DD_URL":                        pulumi.Sprintf("http://%s:80", hostname),
-			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(true),
 			"DD_LOGS_CONFIG_DD_URL":            pulumi.Sprintf("%s:80", hostname),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(true),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":    pulumi.Bool(true),
 			"DD_PROCESS_CONFIG_PROCESS_DD_URL": pulumi.Sprintf("http://%s:80", hostname),
+			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(shouldSkipSSL),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(shouldSkipSSL),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":    shouldEnforceHTTPInput,
+		}
+		for key, value := range logsEnvVars {
+			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+type additionalLogEndpointInput struct {
+	Hostname   string `json:"host"`
+	APIKey     string `json:"api_key,omitempty"`
+	Port       string `json:"port,omitempty"`
+	IsReliable bool   `json:"is_reliable,omitempty"`
+}
+
+func WithAdditionalFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
+	additionalEndpointsContentInput := fakeintake.Host.ToStringOutput().ApplyT(func(host string) (string, error) {
+		endpoints := map[string][]string{
+			fmt.Sprintf("https://%s", host): {"00000000000000000000000000000000"},
+		}
+
+		jsonContent, err := json.Marshal(endpoints)
+		return string(jsonContent), err
+	}).(pulumi.StringOutput)
+	additionalLogsEndpointsContentInput := fakeintake.Host.ToStringOutput().ApplyT(func(host string) (string, error) {
+		endpoints := []additionalLogEndpointInput{
+			{
+				Hostname: host,
+			},
+		}
+		jsonContent, err := json.Marshal(endpoints)
+		return string(jsonContent), err
+	}).(pulumi.StringOutput)
+	shouldEnforceHTTPInput := fakeintake.Host.ToStringOutput().ApplyT(func(host string) (bool, error) {
+		return strings.HasPrefix(host, "https"), nil
+	}).(pulumi.BoolOutput)
+	return func(p *Params) error {
+		logsEnvVars := pulumi.Map{
+			"DD_ADDITIONAL_ENDPOINTS":             additionalEndpointsContentInput,
+			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS": additionalLogsEndpointsContentInput,
+			"DD_SKIP_SSL_VALIDATION":              pulumi.Bool(true),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":          pulumi.Bool(true),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":       shouldEnforceHTTPInput,
 		}
 		for key, value := range logsEnvVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {

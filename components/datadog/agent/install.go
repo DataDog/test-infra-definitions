@@ -49,6 +49,14 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 		return nil, err
 	}
 
+	newArgs := command.Args{
+		Create: "mkdir /etc/datadog-agent/system_core.d && echo \"init_config:\ninstances:\n\t- kmt: core-check\n\" > /etc/datadog-agent/system_core.d/conf.yaml",
+	}
+	lastCommand, err = runner.Command(commonNamer.ResourceName("enable-core-check"), &newArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	fileChangeTriggers := make(map[string]pulumi.StringInput)
 	var trigger pulumi.StringInput
 	for _, input := range []struct{ path, content string }{

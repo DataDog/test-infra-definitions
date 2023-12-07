@@ -60,6 +60,7 @@ def destroy(
             cmd += " --refresh"
             ctx.run(cmd, pty=True)
 
+
 def _get_existing_stacks() -> Tuple[List[str], List[str]]:
     output = subprocess.check_output(["pulumi", "stack", "ls", "--all"])
     output = output.decode("utf-8")

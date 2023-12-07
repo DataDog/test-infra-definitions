@@ -58,6 +58,13 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		vmArgs.osInfo = &os.UbuntuDefault
 	}
 
+	if vmArgs.instanceType == "" {
+		vmArgs.instanceType = e.DefaultInstanceType()
+		if vmArgs.osInfo.Architecture == os.ARM64Arch {
+			vmArgs.instanceType = e.DefaultARMInstanceType()
+		}
+	}
+
 	// Handle custom user data
 	if vmArgs.osInfo.Family() == os.WindowsFamily {
 		sshUserData, err := getWindowsOpenSSHUserData(e.DefaultPublicKeyPath())

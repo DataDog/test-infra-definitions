@@ -26,14 +26,22 @@ services:
       DD_DOGSTATSD_NON_LOCAL_TRAFFIC: true`
 )
 
+const (
+	agentContainerName = "datadog-agent"
+)
+
 type DockerAgentOutput struct {
 	components.JSONImporter
+
+	ContainerName string `json:"containerName"`
 }
 
 // DockerAgent is a Docker installer on a remote Host
 type DockerAgent struct {
 	pulumi.ResourceState
 	components.Component
+
+	ContainerName pulumi.StringOutput `pulumi:"containerName"`
 }
 
 func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error {
@@ -58,7 +66,7 @@ func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *do
 		composeContents := []docker.ComposeInlineManifest{
 			{
 				Name:    "agent",
-				Content: pulumi.Sprintf(agentComposeDefinition, params.fullImagePath, "datadog-agent", e.AgentAPIKey()),
+				Content: pulumi.Sprintf(agentComposeDefinition, params.fullImagePath, agentContainerName, e.AgentAPIKey()),
 			},
 		}
 		if params.composeContent != "" {
@@ -69,7 +77,13 @@ func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *do
 		}
 
 		_, err = manager.ComposeStrUp("agent", composeContents, envVars, pulumi.Parent(comp))
-		return err
+		if err != nil {
+			return err
+		}
+
+		// Fill component
+		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
+		return nil
 	})
 }
 

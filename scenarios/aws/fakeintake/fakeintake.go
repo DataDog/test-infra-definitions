@@ -44,7 +44,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 	}
 
 	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(fi *fakeintake.Fakeintake) error {
-		namer := e.Namer.WithPrefix("fakeintake")
+		namer := e.Namer.WithPrefix("fakeintake").WithPrefix(name)
 		opts := []pulumi.ResourceOption{pulumi.Parent(fi)}
 
 		apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
@@ -92,7 +92,8 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 
 	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
 	// when taskDef has an ARN, thus it is defined on AWS side
-	output := pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(_, serviceName string) ([]string, error) {
+	output := pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(args []any) ([]string, error) {
+		serviceName := args[1].(string)
 		var ipAddress string
 		err := backoff.Retry(func() error {
 			e.Ctx.Log.Debug("waiting for fakeintake task private ip", nil)

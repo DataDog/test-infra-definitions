@@ -27,13 +27,14 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 	defaultInstanceArgs(e, &args)
 
 	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
-		Ami:                 pulumi.StringPtr(args.AMI),
-		SubnetId:            e.RandomSubnets().Index(pulumi.Int(0)),
-		InstanceType:        pulumi.StringPtr(args.InstanceType),
-		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-		KeyName:             pulumi.StringPtr(args.KeyPairName),
-		UserData:            pulumi.StringPtr(args.UserData),
-		Tenancy:             pulumi.StringPtr(args.Tenancy),
+		Ami:                     pulumi.StringPtr(args.AMI),
+		SubnetId:                e.RandomSubnets().Index(pulumi.Int(0)),
+		InstanceType:            pulumi.StringPtr(args.InstanceType),
+		VpcSecurityGroupIds:     pulumi.ToStringArray(e.DefaultSecurityGroups()),
+		KeyName:                 pulumi.StringPtr(args.KeyPairName),
+		UserData:                pulumi.StringPtr(args.UserData),
+		UserDataReplaceOnChange: pulumi.BoolPtr(true),
+		Tenancy:                 pulumi.StringPtr(args.Tenancy),
 		RootBlockDevice: ec2.InstanceRootBlockDeviceArgs{
 			VolumeSize: pulumi.Int(args.StorageSize),
 		},

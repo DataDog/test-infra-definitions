@@ -26,65 +26,77 @@ type ComposeInlineManifest struct {
 }
 
 type Manager struct {
-	namer      namer.Namer
-	host       *remoteComp.Host
-	installCmd *remote.Command
+	namer namer.Namer
+	host  *remoteComp.Host
+
+	opts            []pulumi.ResourceOption
+	dockerInstalled bool
 }
 
-func NewManager(e config.CommonEnvironment, host *remoteComp.Host) *Manager {
-	return &Manager{
+func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker bool, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
+	manager := &Manager{
 		namer: e.CommonNamer.WithPrefix("docker"),
 		host:  host,
+		opts:  opts,
 	}
+
+	var err error
+	var installCmd pulumi.Resource
+	if installDocker {
+		installCmd, err = manager.install()
+		if err != nil {
+			return nil, nil, err
+		}
+
+		manager.opts = utils.MergeOptions(manager.opts, utils.PulumiDependsOn(installCmd))
+		manager.dockerInstalled = true
+	} else {
+		manager.dockerInstalled = true
+	}
+
+	return manager, nil, nil
 }
 
 func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installComposeCommand, err := d.InstallCompose(opts...)
-	if err != nil {
-		return nil, err
-	}
+	opts = utils.MergeOptions(d.opts, opts...)
 
 	composeHash, err := utils.FileHash(composeFilePath)
 	if err != nil {
 		return nil, err
 	}
 
-	tempCmd, tempDirPath, err := d.host.OS.FileManager().TempDirectory(composeHash)
+	tempCmd, tempDirPath, err := d.host.OS.FileManager().TempDirectory(composeHash, opts...)
 	if err != nil {
 		return nil, err
 	}
 	remoteComposePath := path.Join(tempDirPath, path.Base(composeFilePath))
 
-	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(tempCmd))
-	copyCmd, err := d.host.OS.FileManager().CopyFile(composeFilePath, remoteComposePath, opts...)
+	copyCmd, err := d.host.OS.FileManager().CopyFile(composeFilePath, remoteComposePath, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCmd))...)
 	if err != nil {
 		return nil, err
 	}
 
-	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(installComposeCommand, copyCmd))
 	return d.host.OS.Runner().Command(
 		d.namer.ResourceName("run", composeFilePath),
 		&command.Args{
 			Create: pulumi.Sprintf("docker-compose -f %s up --detach --wait --timeout %d", remoteComposePath, defaultTimeout),
 			Delete: pulumi.Sprintf("docker-compose -f %s down -t %d", remoteComposePath, defaultTimeout),
 		},
-		opts...)
+		utils.MergeOptions(opts, utils.PulumiDependsOn(copyCmd))...,
+	)
 }
 
 func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	installComposeCommand, err := d.InstallCompose(opts...)
-	if err != nil {
-		return nil, err
-	}
+	opts = utils.MergeOptions(d.opts, opts...)
 
-	homeCmd, composePath, err := d.host.OS.FileManager().HomeDirectory(name + "-compose-tmp")
+	homeCmd, composePath, err := d.host.OS.FileManager().HomeDirectory(name+"-compose-tmp", opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	var remoteComposePaths []string
 	runCommandTriggers := pulumi.Array{envVars}
-	runCommandDeps := []pulumi.Resource{installComposeCommand}
+	runCommandDeps := make([]pulumi.Resource, 0)
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
 		remoteComposePaths = append(remoteComposePaths, remoteComposePath)
@@ -93,7 +105,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 			manifest.Content,
 			remoteComposePath,
 			false,
-			pulumi.DependsOn([]pulumi.Resource{homeCmd}),
+			utils.MergeOptions(d.opts, utils.PulumiDependsOn(homeCmd))...,
 		)
 		if err != nil {
 			return nil, err
@@ -112,14 +124,12 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 			Environment: envVars,
 			Triggers:    runCommandTriggers,
 		},
-		pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))
+		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))...,
+	)
 }
 
-func (d *Manager) Install(opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	if d.installCmd != nil {
-		return d.installCmd, nil
-	}
-	dockerInstall, err := d.host.OS.PackageManager().Ensure("docker.io", opts...)
+func (d *Manager) install() (*remote.Command, error) {
+	dockerInstall, err := d.host.OS.PackageManager().Ensure("docker.io", d.opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -130,29 +140,34 @@ func (d *Manager) Install(opts ...pulumi.ResourceOption) (*remote.Command, error
 			Create: pulumi.String("whoami"),
 			Sudo:   false,
 		},
-		pulumi.DependsOn([]pulumi.Resource{dockerInstall}))
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(dockerInstall))...,
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	d.installCmd, err = d.host.OS.Runner().Command(
+	groupCmd, err := d.host.OS.Runner().Command(
 		d.namer.ResourceName("group"),
 		&command.Args{
 			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami.Stdout),
 			Sudo:   true,
 		},
-		pulumi.DependsOn([]pulumi.Resource{whoami}))
-	return d.installCmd, err
-}
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(whoami))...,
+	)
+	if err != nil {
+		return nil, err
+	}
 
-func (d *Manager) InstallCompose(opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	composeInstallIfNotCmd := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
-	cmd, err := d.host.OS.Runner().Command(
+	// Check if compose is installed or not
+	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
+	installComposeCmd, err := d.host.OS.Runner().Command(
 		d.namer.ResourceName("install-compose"),
 		&command.Args{
-			Create: composeInstallIfNotCmd,
+			Create: installCompose,
 			Sudo:   true,
 		},
-		opts...)
-	return cmd, err
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(groupCmd))...,
+	)
+
+	return installComposeCmd, err
 }

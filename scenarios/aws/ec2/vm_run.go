@@ -64,8 +64,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	manager := docker.NewManager(*env.CommonEnvironment, vm)
-	_, err = manager.Install()
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, true)
 	if err != nil {
 		return err
 	}

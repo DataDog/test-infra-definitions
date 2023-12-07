@@ -27,21 +27,23 @@ var kindClusterConfig string
 // Install Kind on a Linux virtual machine.
 func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, clusterName, func(clusterComp *Cluster) error {
+		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
+
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
-		curlCommand, err := packageManager.Ensure("curl", pulumi.Parent(clusterComp))
+		curlCommand, err := packageManager.Ensure("curl", opts...)
 		if err != nil {
 			return err
 		}
+
+		_, dockerInstallCmd, err := docker.NewManager(env, vm, true, opts...)
+		if err != nil {
+			return err
+		}
+		opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerInstallCmd, curlCommand))
 
 		kindVersionConfig, err := getKindVersionConfig(kubeVersion)
-		if err != nil {
-			return err
-		}
-
-		dockerManager := docker.NewManager(env, vm)
-		cmd, err := dockerManager.Install(pulumi.Parent(clusterComp))
 		if err != nil {
 			return err
 		}
@@ -51,8 +53,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, 
 			&command.Args{
 				Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, vm.OS.Descriptor().Architecture),
 			},
-			pulumi.Parent(clusterComp),
-			utils.PulumiDependsOn(cmd, curlCommand),
+			opts...,
 		)
 		if err != nil {
 			return err
@@ -61,7 +62,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, 
 		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", clusterName)
 		clusterConfig, err := vm.OS.FileManager().CopyInlineFile(
 			pulumi.String(kindClusterConfig),
-			clusterConfigFilePath, false, pulumi.Parent(clusterComp))
+			clusterConfigFilePath, false, opts...)
 		if err != nil {
 			return err
 		}
@@ -74,7 +75,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, 
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", clusterName),
 				Triggers: pulumi.Array{pulumi.String(kindClusterConfig)},
 			},
-			pulumi.Parent(clusterComp), utils.PulumiDependsOn(clusterConfig, kindInstall), pulumi.DeleteBeforeReplace(true),
+			utils.MergeOptions(opts, utils.PulumiDependsOn(clusterConfig, kindInstall), pulumi.DeleteBeforeReplace(true))...,
 		)
 		if err != nil {
 			return err
@@ -85,7 +86,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, 
 			&command.Args{
 				Create: pulumi.Sprintf("kind get kubeconfig --name %s", clusterName),
 			},
-			pulumi.Parent(clusterComp), utils.PulumiDependsOn(createCluster),
+			utils.MergeOptions(opts, utils.PulumiDependsOn(createCluster))...,
 		)
 		if err != nil {
 			return err

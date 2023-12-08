@@ -27,10 +27,8 @@ func (*Unix) CheckIsAbsPath(path string) bool {
 }
 
 func (*Unix) GetAgentInstallCmd(version AgentVersion) (string, error) {
-	if version.PipelineID != "" {
-		return getUnixInstallFormatString("install_script_agent7.sh", version), nil
-	}
-	return getUnixInstallFormatString("install_script.sh", version), nil
+	return getUnixInstallFormatString("install_script_agent7.sh", version), nil
+
 }
 
 func (*Unix) GetType() Type {

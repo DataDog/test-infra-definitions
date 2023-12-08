@@ -51,6 +51,7 @@ func NewInstaller(vm vm.VM, options ...agentparams.Option) (*Installer, error) {
 
 	newArgs := command.Args{
 		Create: pulumi.String("mkdir -p /etc/datadog-agent/system_core.d && echo \"init_config:\ninstances:\n\t- kmt: core-check\n\" > /etc/datadog-agent/system_core.d/conf.yaml"),
+		Sudo:   true,
 	}
 	lastCommand, err = runner.Command(commonNamer.ResourceName("enable-core-check"), &newArgs)
 	if err != nil {

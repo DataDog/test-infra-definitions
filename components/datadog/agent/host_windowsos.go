@@ -10,16 +10,20 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
-	"github.com/DataDog/test-infra-definitions/components/os"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
+
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type agentWindowsManager struct {
-	targetOS os.OS
+	host *remoteComp.Host
 }
 
-func newWindowsManager(targetOS os.OS) agentOSManager {
-	return &agentWindowsManager{targetOS: targetOS}
+func newWindowsManager(host *remoteComp.Host) agentOSManager {
+	return &agentWindowsManager{host: host}
 }
 
 func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion) (string, error) {
@@ -40,6 +44,14 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 
 func (am *agentWindowsManager) getAgentConfigFolder() string {
 	return `C:\ProgramData\Datadog`
+}
+
+func (am *agentWindowsManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	// TODO: When we introduce Namer in components, we should use it here.
+	return am.host.OS.Runner().Command(am.host.Name()+"-"+"restart-agent", &command.Args{
+		Create:   pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
+		Triggers: triggers,
+	}, opts...)
 }
 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {

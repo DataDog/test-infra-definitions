@@ -6,14 +6,18 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
+
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type agentLinuxManager struct {
 	targetOS os.OS
 }
 
-func newLinuxManager(targetOS os.OS) agentOSManager {
-	return &agentLinuxManager{targetOS: targetOS}
+func newLinuxManager(host *remoteComp.Host) agentOSManager {
+	return &agentLinuxManager{targetOS: host.OS}
 }
 
 func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion) (string, error) {
@@ -53,4 +57,8 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 
 func (am *agentLinuxManager) getAgentConfigFolder() string {
 	return "/etc/datadog-agent"
+}
+
+func (am *agentLinuxManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return am.targetOS.ServiceManger().EnsureRunning("datadog-agent", triggers, opts...)
 }

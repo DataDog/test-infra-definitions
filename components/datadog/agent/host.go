@@ -10,7 +10,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
-	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -26,9 +25,9 @@ type HostAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	namer    namer.Namer
-	manager  agentOSManager
-	targetOS os.OS
+	namer   namer.Namer
+	manager agentOSManager
+	host    *remoteComp.Host
 
 	// Currently we don't have anything to export or expose to other components?
 }
@@ -38,11 +37,11 @@ func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
 }
 
 // NewHostAgent creates a new instance of a on-host Agent
-func NewHostAgent(e *config.CommonEnvironment, vm *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
-	hostInstallComp, err := components.NewComponent(*e, vm.Name(), func(comp *HostAgent) error {
+func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
+	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostAgent) error {
 		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
-		comp.manager = getOSManager(vm.OS)
-		comp.targetOS = vm.OS
+		comp.host = host
+		comp.manager = getOSManager(host)
 
 		params, err := agentparams.NewParams(e, options...)
 		if err != nil {
@@ -55,7 +54,7 @@ func NewHostAgent(e *config.CommonEnvironment, vm *remoteComp.Host, options ...a
 		}
 
 		return nil
-	}, pulumi.Parent(vm), pulumi.DeletedWith(vm))
+	}, pulumi.Parent(host), pulumi.DeletedWith(host))
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +68,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		return err
 	}
 
-	installCmd, err := h.targetOS.Runner().Command(
+	installCmd, err := h.host.OS.Runner().Command(
 		h.namer.ResourceName("install-agent"),
 		&command.Args{
 			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
@@ -99,7 +98,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 
 	// Restart the agent when the HostInstall itself is done, which is normally when all childs are done
 	// So we cannot use baseOpts
-	_, err = h.restartAgent(
+	_, err = h.manager.restartAgentServices(
 		pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)},
 		utils.PulumiDependsOn(h),
 	)
@@ -125,16 +124,12 @@ func (h *HostAgent) updateConfig(
 		pulumiAgentString = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
 	}
 
-	copyCmd, err := h.targetOS.FileManager().CopyInlineFile(pulumiAgentString, configFullPath, true, opts...)
+	copyCmd, err := h.host.OS.FileManager().CopyInlineFile(pulumiAgentString, configFullPath, true, opts...)
 	if err != nil {
 		return nil, pulumiAgentString, err
 	}
 
 	return copyCmd, pulumiAgentString, nil
-}
-
-func (h *HostAgent) restartAgent(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return h.targetOS.ServiceManger().EnsureRunning("datadog-agent", triggers, opts...)
 }
 
 func (h *HostAgent) installIntegrationsAndFiles(
@@ -159,7 +154,7 @@ func (h *HostAgent) installIntegrationsAndFiles(
 	}
 
 	for fullPath, fileDef := range files {
-		if !h.targetOS.FileManager().IsPathAbsolute(fullPath) {
+		if !h.host.OS.FileManager().IsPathAbsolute(fullPath) {
 			return nil, "", fmt.Errorf("failed to write file: \"%s\" is not an absolute filepath", fullPath)
 		}
 
@@ -181,12 +176,12 @@ func (h *HostAgent) writeFileDefinition(
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, error) {
 	// create directory, if it does not exist
-	dirCommand, err := h.targetOS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
+	dirCommand, err := h.host.OS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	copyCmd, err := h.targetOS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, useSudo, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
+	copyCmd, err := h.host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, useSudo, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
 	if err != nil {
 		return nil, err
 	}

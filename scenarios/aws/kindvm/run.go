@@ -62,6 +62,8 @@ datadog:
   kubelet:
     tlsVerify: false
   clusterName: "%s"
+agents:
+  useHostNetwork: true
 `, clusterName)
 
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{

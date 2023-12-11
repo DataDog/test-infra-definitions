@@ -23,6 +23,10 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, apiKeySSMPar
 				Name:  pulumi.StringPtr("ECS_FARGATE"),
 				Value: pulumi.StringPtr("true"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
+			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{

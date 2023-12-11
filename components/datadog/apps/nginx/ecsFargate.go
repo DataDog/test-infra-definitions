@@ -17,8 +17,7 @@ type EcsFargateComponent struct {
 }
 
 func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, opts ...pulumi.ResourceOption) (*EcsFargateComponent, error) {
-	appName := "nginx-fg"
-	namer := e.Namer.WithPrefix(appName)
+	namer := e.Namer.WithPrefix("nginx").WithPrefix("fg")
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	EcsFargateComponent := &EcsFargateComponent{}
@@ -29,12 +28,12 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	opts = append(opts, pulumi.Parent(EcsFargateComponent))
 
 	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           e.CommonNamer.DisplayName(32, pulumi.String(appName)),
+		Name:           e.CommonNamer.DisplayName(32, pulumi.String("nginx"), pulumi.String("fg")),
 		SubnetIds:      e.RandomSubnets(),
 		Internal:       pulumi.BoolPtr(true),
 		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String(appName)),
+			Name:       e.CommonNamer.DisplayName(32, pulumi.String("nginx"), pulumi.String("fg")),
 			Port:       pulumi.IntPtr(80),
 			Protocol:   pulumi.StringPtr("HTTP"),
 			TargetType: pulumi.StringPtr("ip"),
@@ -49,7 +48,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	}
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
-		Name:  e.CommonNamer.DisplayName(255, pulumi.String("server")),
+		Name:  pulumi.String("nginx"),
 		Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
 		DockerLabels: pulumi.StringMap{
 			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
@@ -64,7 +63,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 					},
 				},
 			)),
-			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_task_type:fargate\"]"),
+			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
 		},
 		Cpu:       pulumi.IntPtr(100),
 		Memory:    pulumi.IntPtr(96),
@@ -91,14 +90,14 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		LogConfiguration: ecsClient.GetFirelensLogConfiguration(pulumi.String("nginx"), pulumi.String("nginx"), apiKeySSMParamName),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, e.CommonNamer.ResourceName("nginx-server"), e.CommonNamer.DisplayName(255, pulumi.String("server")), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"server": *serverContainer}, apiKeySSMParamName, fakeintake, opts...)
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx", pulumi.String("nginx-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"nginx": *serverContainer}, apiKeySSMParamName, fakeintake, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("server"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         namer.DisplayName(255, pulumi.String("server")),
+		Name:         e.CommonNamer.DisplayName(255, pulumi.String("nginx"), pulumi.String("fg")),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
@@ -110,7 +109,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
 		LoadBalancers: classicECS.ServiceLoadBalancerArray{
 			&classicECS.ServiceLoadBalancerArgs{
-				ContainerName:  pulumi.String("server"),
+				ContainerName:  pulumi.String("nginx"),
 				ContainerPort:  pulumi.Int(80),
 				TargetGroupArn: alb.DefaultTargetGroup.Arn(),
 			},
@@ -120,7 +119,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	}
 
 	queryContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
-		Name:  e.CommonNamer.DisplayName(255, pulumi.String("query")),
+		Name:  pulumi.String("query"),
 		Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
 		Command: pulumi.StringArray{
 			pulumi.String("-url"),
@@ -129,19 +128,16 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Cpu:       pulumi.IntPtr(50),
 		Memory:    pulumi.IntPtr(32),
 		Essential: pulumi.BoolPtr(true),
-		DockerLabels: pulumi.StringMap{
-			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_task_type:fargate\"]"),
-		},
 	}
 
-	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, e.CommonNamer.ResourceName("nginx-query"), e.CommonNamer.DisplayName(255, pulumi.String("query")), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeintake, opts...)
+	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-query", pulumi.String("nginx-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeintake, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("query"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         namer.DisplayName(255, pulumi.String("query")),
+		Name:         e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"nginx", "fg", "query"})...),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),

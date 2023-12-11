@@ -16,8 +16,7 @@ type EcsFargateComponent struct {
 }
 
 func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, opts ...pulumi.ResourceOption) (*EcsFargateComponent, error) {
-	appName := "redis-fg"
-	namer := e.Namer.WithPrefix(appName)
+	namer := e.Namer.WithPrefix("redis").WithPrefix("fg")
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	EcsFargateComponent := &EcsFargateComponent{}
@@ -28,11 +27,11 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	opts = append(opts, pulumi.Parent(EcsFargateComponent))
 
 	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
-		Name:      e.CommonNamer.DisplayName(32, pulumi.String(appName)),
+		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("fg")),
 		SubnetIds: e.RandomSubnets(),
 		Internal:  pulumi.BoolPtr(true),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String(appName)),
+			Name:       e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("fg")),
 			Port:       pulumi.IntPtr(6379),
 			Protocol:   pulumi.StringPtr("TCP"),
 			TargetType: pulumi.StringPtr("ip"),
@@ -48,8 +47,11 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	}
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
-		Name:      e.CommonNamer.DisplayName(255, pulumi.String("server")),
-		Image:     pulumi.String("redis:latest"),
+		Name:  pulumi.String("redis"),
+		Image: pulumi.String("redis:latest"),
+		DockerLabels: pulumi.StringMap{
+			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
+		},
 		Cpu:       pulumi.IntPtr(0),
 		Essential: pulumi.BoolPtr(true),
 		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
@@ -65,20 +67,17 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 				Protocol:      pulumi.StringPtr("tcp"),
 			},
 		},
-		DockerLabels: pulumi.StringMap{
-			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_task_type:fargate\"]"),
-		},
 		LogConfiguration: ecsClient.GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, e.CommonNamer.ResourceName("server"), e.CommonNamer.DisplayName(255, pulumi.String("server")), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"server": *serverContainer}, apiKeySSMParamName, fakeintake, opts...)
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "server", pulumi.String("redis-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"redis": *serverContainer}, apiKeySSMParamName, fakeintake, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("server"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         namer.DisplayName(255, pulumi.String("server")),
+		Name:         e.CommonNamer.DisplayName(255, pulumi.String("redis"), pulumi.String("fg")),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
@@ -90,7 +89,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
 		LoadBalancers: classicECS.ServiceLoadBalancerArray{
 			&classicECS.ServiceLoadBalancerArgs{
-				ContainerName:  pulumi.String("server"),
+				ContainerName:  pulumi.String("redis"),
 				ContainerPort:  pulumi.Int(6379),
 				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
 			},
@@ -109,19 +108,16 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Cpu:       pulumi.IntPtr(50),
 		Memory:    pulumi.IntPtr(32),
 		Essential: pulumi.BoolPtr(true),
-		DockerLabels: pulumi.StringMap{
-			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_task_type:fargate\"]"),
-		},
 	}
 
-	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, e.CommonNamer.ResourceName("query"), e.CommonNamer.DisplayName(255, pulumi.String("query")), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeintake, opts...)
+	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-query", pulumi.String("redis-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeintake, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("query"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         namer.DisplayName(255, pulumi.String("query")),
+		Name:         e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "fg", "query"})...),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),

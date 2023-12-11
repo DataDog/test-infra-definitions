@@ -62,9 +62,9 @@ func NewFlavorFromString(flavorStr string) Flavor {
 	switch flavorStr {
 	case "", "ubuntu": // Default flavor is Ubuntu
 		return Ubuntu
-	case "amazon-linux":
+	case "amazon-linux", "amazonlinux":
 		return AmazonLinux
-	case "amazon-linux-ecs":
+	case "amazon-linux-ecs", "amazonlinuxecs":
 		return AmazonLinuxECS
 	case "debian":
 		return Debian
@@ -76,7 +76,7 @@ func NewFlavorFromString(flavorStr string) Flavor {
 		return Fedora
 	case "centos":
 		return CentOS
-	case "rocky-linux":
+	case "rocky-linux", "rockylinux":
 		return RockyLinux
 	case "windows", "windows-server":
 		return WindowsServer
@@ -95,6 +95,35 @@ func (f Flavor) Type() Family {
 		return WindowsFamily
 	case f == MacosOS:
 		return MacOSFamily
+	default:
+		panic("unknown OS flavor")
+	}
+}
+
+func (f Flavor) String() string {
+	switch f {
+	case Ubuntu:
+		return "ubuntu"
+	case AmazonLinux:
+		return "amazon-linux"
+	case AmazonLinuxECS:
+		return "amazon-linux-ecs"
+	case Debian:
+		return "debian"
+	case RedHat:
+		return "redhat"
+	case Suse:
+		return "suse"
+	case Fedora:
+		return "fedora"
+	case CentOS:
+		return "centos"
+	case RockyLinux:
+		return "rocky-linux"
+	case WindowsServer:
+		return "windows-server"
+	case MacosOS:
+		return "macos"
 	default:
 		panic("unknown OS flavor")
 	}

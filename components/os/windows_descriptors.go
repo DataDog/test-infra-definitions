@@ -1,4 +1,3 @@
-//nolint:revive
 package os
 
 // Implements commonly used descriptors for easier usage

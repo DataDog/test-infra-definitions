@@ -77,13 +77,22 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		return err
 	}
 
+	afterInstallOpts := utils.MergeOptions(baseOpts, utils.PulumiDependsOn(installCmd))
 	configFiles := make(map[string]pulumi.StringInput)
+
+	// Update core Agent
+	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, afterInstallOpts...)
+	if err != nil {
+		return err
+	}
+	configFiles["datadog.yaml"] = content
+
+	// Update other Agents
 	for _, input := range []struct{ path, content string }{
-		{"datadog.yaml", params.AgentConfig},
 		{"system-probe.yaml", params.SystemProbeConfig},
 		{"security-agent.yaml", params.SecurityAgentConfig},
 	} {
-		_, content, err := h.updateConfig(env, input.path, input.content, params.ExtraAgentConfig, utils.MergeOptions(baseOpts, utils.PulumiDependsOn(installCmd))...)
+		_, err := h.updateConfig(env, input.path, pulumi.String(input.content), params.ExtraAgentConfig, afterInstallOpts...)
 		if err != nil {
 			return err
 		}
@@ -91,13 +100,12 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		configFiles[input.path] = content
 	}
 
-	_, intgHash, err := h.installIntegrationsAndFiles(params.Integrations, params.Files, utils.MergeOptions(baseOpts, utils.PulumiDependsOn(installCmd))...)
+	_, intgHash, err := h.installIntegrationsAndFiles(params.Integrations, params.Files, afterInstallOpts...)
 	if err != nil {
 		return err
 	}
 
-	// Restart the agent when the HostInstall itself is done, which is normally when all childs are done
-	// So we cannot use baseOpts
+	// Restart the agent when the HostInstall itself is done, which is normally when all children are done  	// So we cannot use baseOpts
 	_, err = h.manager.restartAgentServices(
 		pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)},
 		utils.PulumiDependsOn(h),
@@ -105,31 +113,39 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	return err
 }
 
-func (h *HostAgent) updateConfig(
+func (h *HostAgent) updateCoreAgentConfig(
 	env *config.CommonEnvironment,
 	configPath string,
-	configContent string,
+	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, pulumi.StringInput, error) {
+	for _, extraConfig := range extraAgentConfig {
+		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
+	}
+	configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+
+	cmd, err := h.updateConfig(env, configPath, configContent, nil, opts...)
+	return cmd, configContent, err
+}
+
+func (h *HostAgent) updateConfig(
+	env *config.CommonEnvironment,
+	configPath string,
+	configContent pulumi.StringInput,
+	extraAgentConfig []pulumi.StringInput,
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
 	var err error
 
 	configFullPath := path.Join(h.manager.getAgentConfigFolder(), configPath)
-	pulumiAgentString := pulumi.String(configContent).ToStringOutput()
-	// If core agent, set api key and extra configs
-	if configPath == "datadog.yaml" {
-		for _, extraConfig := range extraAgentConfig {
-			pulumiAgentString = pulumi.Sprintf("%v\n%v", pulumiAgentString, extraConfig)
-		}
-		pulumiAgentString = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), pulumiAgentString)
-	}
 
-	copyCmd, err := h.host.OS.FileManager().CopyInlineFile(pulumiAgentString, configFullPath, true, opts...)
+	copyCmd, err := h.host.OS.FileManager().CopyInlineFile(configContent, configFullPath, true, opts...)
 	if err != nil {
-		return nil, pulumiAgentString, err
+		return nil, err
 	}
 
-	return copyCmd, pulumiAgentString, nil
+	return copyCmd, nil
 }
 
 func (h *HostAgent) installIntegrationsAndFiles(

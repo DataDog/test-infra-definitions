@@ -6,7 +6,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type FakeintakeOutput struct {
+type FakeintakeOutput struct { //nolint:revive We want to keep the name as <Component>Output
 	components.JSONImporter
 
 	URL string `json:"url"`

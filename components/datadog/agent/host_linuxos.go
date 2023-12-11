@@ -60,5 +60,5 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 }
 
 func (am *agentLinuxManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return am.targetOS.ServiceManger().EnsureRunning("datadog-agent", triggers, opts...)
+	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", triggers, opts...)
 }

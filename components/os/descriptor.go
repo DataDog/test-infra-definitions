@@ -48,3 +48,7 @@ func (d Descriptor) WithArch(a Architecture) Descriptor {
 	d.Architecture = a
 	return d
 }
+
+func (d Descriptor) String() string {
+	return strings.Join([]string{d.Flavor.String(), d.Version, string(d.Architecture)}, osDescriptorSep)
+}

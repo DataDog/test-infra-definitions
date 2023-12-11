@@ -16,7 +16,7 @@ func newSystemdServiceManager(e config.CommonEnvironment, runner *command.Runner
 	return &systemdServiceManager{e: e, runner: runner}
 }
 
-func (s *systemdServiceManager) EnsureRunning(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (s *systemdServiceManager) EnsureRestarted(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return s.runner.Command(s.e.CommonNamer.ResourceName("running", serviceName), &command.Args{
 		Sudo:     true,
 		Create:   pulumi.String("systemctl restart " + serviceName),

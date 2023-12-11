@@ -18,7 +18,7 @@ func newMacOSServiceManager(e config.CommonEnvironment, runner *command.Runner) 
 	return &macOSServiceManager{e: e, runner: runner}
 }
 
-func (s *macOSServiceManager) EnsureRunning(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (s *macOSServiceManager) EnsureRestarted(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return s.runner.Command(s.e.CommonNamer.ResourceName("running", serviceName), &command.Args{
 		Sudo:     true,
 		Create:   pulumi.String(fmt.Sprintf("launchctl stop %s && launchctl start %s", serviceName, serviceName)),

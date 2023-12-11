@@ -29,8 +29,7 @@ type Manager struct {
 	namer namer.Namer
 	host  *remoteComp.Host
 
-	opts            []pulumi.ResourceOption
-	dockerInstalled bool
+	opts []pulumi.ResourceOption
 }
 
 func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker bool, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
@@ -49,10 +48,13 @@ func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker
 		}
 
 		manager.opts = utils.MergeOptions(manager.opts, utils.PulumiDependsOn(installCmd))
-		manager.dockerInstalled = true
-	} else {
-		manager.dockerInstalled = true
 	}
+
+	composeCmd, err := manager.installCompose()
+	if err != nil {
+		return nil, nil, err
+	}
+	manager.opts = utils.MergeOptions(manager.opts, utils.PulumiDependsOn(composeCmd))
 
 	return manager, nil, nil
 }
@@ -158,16 +160,16 @@ func (d *Manager) install() (*remote.Command, error) {
 		return nil, err
 	}
 
-	// Check if compose is installed or not
+	return groupCmd, err
+}
+
+func (d *Manager) installCompose() (*remote.Command, error) {
 	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
-	installComposeCmd, err := d.host.OS.Runner().Command(
+	return d.host.OS.Runner().Command(
 		d.namer.ResourceName("install-compose"),
 		&command.Args{
 			Create: installCompose,
 			Sudo:   true,
 		},
-		utils.MergeOptions(d.opts, utils.PulumiDependsOn(groupCmd))...,
-	)
-
-	return installComposeCmd, err
+		d.opts...)
 }

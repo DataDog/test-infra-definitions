@@ -14,7 +14,7 @@ func newLinuxOS(e config.CommonEnvironment, desc Descriptor, runner *command.Run
 		fileManager: command.NewFileManager(runner),
 	}
 
-	switch desc.Flavor { // nolint:exhaustive
+	switch desc.Flavor {
 	case AmazonLinux, AmazonLinuxECS, CentOS:
 		// AL2 is YUM, AL2023 is DNF (but with yum compatibility)
 		os.packageManager = newYumManager(runner)
@@ -32,8 +32,10 @@ func newLinuxOS(e config.CommonEnvironment, desc Descriptor, runner *command.Run
 		os.packageManager = newZypperManager(runner)
 		os.serviceManager = newSystemdServiceManager(e, runner)
 
+	case Unknown, WindowsServer, MacosOS:
+		fallthrough
 	default:
-		panic(fmt.Sprintf("unsupported flavor from desc: %+v", desc))
+		panic(fmt.Sprintf("unsupported linux flavor from desc: %+v", desc))
 	}
 
 	return os

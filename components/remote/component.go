@@ -11,7 +11,7 @@ import (
 type HostOutput struct {
 	components.JSONImporter
 
-	Host      string    `json:"address"`
+	Address   string    `json:"address"`
 	Username  string    `json:"username"`
 	Password  string    `json:"password,omitempty"`
 	OSFamily  os.Family `json:"osFamily"`

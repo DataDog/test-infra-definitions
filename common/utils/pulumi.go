@@ -13,12 +13,17 @@ func MergeOptions[T any](current []T, opts ...T) []T {
 		return current
 	}
 
-	addedOptions := make([]T, len(current)+len(opts))
-	for _, array := range [][]T{current, opts} {
-		for _, opt := range array {
-			addedOptions = append(addedOptions, opt)
-		}
-	}
+	addedOptions := make([]T, 0, len(current)+len(opts))
+	addedOptions = append(addedOptions, current...)
+	addedOptions = append(addedOptions, opts...)
 
 	return addedOptions
+}
+
+func StringPtr(s string) pulumi.StringPtrInput {
+	if len(s) > 0 {
+		return pulumi.StringPtr(s)
+	}
+
+	return nil
 }

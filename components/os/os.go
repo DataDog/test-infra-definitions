@@ -15,7 +15,8 @@ type PackageManager interface {
 }
 
 type ServiceManager interface {
-	EnsureRunning(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	// EnsureStarted starts or restarts (may be stop+start depending on implementation) the service if already running
+	EnsureRestarted(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 // FileManager needs to be added here as well instead of the command package
@@ -64,13 +65,15 @@ func NewOS(
 	descriptor Descriptor,
 	runner *command.Runner,
 ) OS {
-	switch descriptor.Family() { // nolint:exhaustive
+	switch descriptor.Family() {
 	case LinuxFamily:
 		return newLinuxOS(e, descriptor, runner)
 	case WindowsFamily:
 		return newWindowsOS(e, descriptor, runner)
 	case MacOSFamily:
 		return newMacOS(e, descriptor, runner)
+	case UnknownFamily:
+		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported OS family: %v", descriptor.Family()))
 	}

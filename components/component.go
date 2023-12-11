@@ -10,7 +10,6 @@ import (
 )
 
 // Importable needs to be implemented by the fully resolved type used outside of Pulumi
-// Init() is called after Import() and can be used to initialize the object based on imported information.
 type Importable interface {
 	SetKey(string)
 	Key() string
@@ -32,8 +31,6 @@ func (imp *JSONImporter) Key() string {
 }
 
 func (imp *JSONImporter) Import(in []byte, obj any) error {
-	// it *might* happen that val.Value is a map[interface{}]interface{} or something, which
-	// would mean that we need to implement our own reflection as well to import.
 	return json.Unmarshal(in, obj)
 }
 
@@ -71,6 +68,7 @@ func (c *Component) Name() string {
 	return c.name
 }
 
+// RegisterOutputs exports values from a `pulumi.ComponentResource`. Use `pulumi` tag to export a field.
 func (c *Component) RegisterOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error {
 	fields := reflect.VisibleFields(reflect.TypeOf(self).Elem())
 	compValue := reflect.ValueOf(self).Elem()

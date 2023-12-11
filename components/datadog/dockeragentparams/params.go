@@ -89,12 +89,13 @@ func WithAgentServiceEnvVariable(key string, value pulumi.Input) func(*Params) e
 }
 
 // WithIntake configures the agent to use the given hostname as intake.
+// The hostname must be a valid Datadog intake, with a SSL valid certificate
 //
 // To use a fakeintake, see WithFakeintake.
 //
 // This option is overwritten by `WithFakeintake`.
-func WithIntake(hostname string, skipSSL bool) func(*Params) error {
-	return withIntakeHostname(pulumi.String(hostname), skipSSL)
+func WithIntake(hostname string) func(*Params) error {
+	return withIntakeHostname(pulumi.String(hostname), false)
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
@@ -104,7 +105,7 @@ func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) err
 	return withIntakeHostname(fakeintake.Host, true)
 }
 
-func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSL bool) func(*Params) error {
+func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSLCertificateValidation bool) func(*Params) error {
 	shouldEnforceHTTPInput := hostname.ToStringOutput().ApplyT(func(host string) (bool, error) {
 		return strings.HasPrefix(host, "https"), nil
 	}).(pulumi.BoolOutput)
@@ -113,8 +114,8 @@ func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSL bool) func(*P
 			"DD_DD_URL":                        pulumi.Sprintf("http://%s:80", hostname),
 			"DD_LOGS_CONFIG_DD_URL":            pulumi.Sprintf("%s:80", hostname),
 			"DD_PROCESS_CONFIG_PROCESS_DD_URL": pulumi.Sprintf("http://%s:80", hostname),
-			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(shouldSkipSSL),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(shouldSkipSSL),
+			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(shouldSkipSSLCertificateValidation),
 			"DD_LOGS_CONFIG_FORCE_USE_HTTP":    shouldEnforceHTTPInput,
 		}
 		for key, value := range logsEnvVars {

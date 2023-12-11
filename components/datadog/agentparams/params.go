@@ -230,7 +230,7 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 //
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
-	return withIntakeHostname(fakeintake.Address)
+	return withIntakeHostname(fakeintake.Host)
 }
 
 // WithLogs enables the log agent

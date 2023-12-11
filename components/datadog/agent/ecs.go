@@ -186,7 +186,7 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			Value: pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Address),
+			Value: pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_LOGS_CONFIG_USE_HTTP"),

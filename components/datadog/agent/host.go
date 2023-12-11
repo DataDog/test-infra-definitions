@@ -100,7 +100,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		configFiles[input.path] = content
 	}
 
-	_, intgHash, err := h.installIntegrationsAndFiles(params.Integrations, params.Files, afterInstallOpts...)
+	_, intgHash, err := h.installIntegrationConfigsAndFiles(params.Integrations, params.Files, afterInstallOpts...)
 	if err != nil {
 		return err
 	}
@@ -148,7 +148,7 @@ func (h *HostAgent) updateConfig(
 	return copyCmd, nil
 }
 
-func (h *HostAgent) installIntegrationsAndFiles(
+func (h *HostAgent) installIntegrationConfigsAndFiles(
 	integrations map[string]*agentparams.FileDefinition,
 	files map[string]*agentparams.FileDefinition,
 	opts ...pulumi.ResourceOption,

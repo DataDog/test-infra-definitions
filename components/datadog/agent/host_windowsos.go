@@ -34,7 +34,7 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 
 	localFilename := `C:\datadog-agent.msi`
 
-	// Disable the progress as it slow downs the download.
+	// Disable the progress as it slows down the download.
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
 	cmd += fmt.Sprintf("; Invoke-WebRequest %v -OutFile %v", url, localFilename)
 	// Use `if ($?) { .. }` to get an error if the download fail.
@@ -78,12 +78,12 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		return "", err
 	}
 
-	fullVersion += "-1"
 	if version.Minor == "" { // Use latest
 		if fullVersion, err = finder.getLatestVersion(); err != nil {
 			return "", err
 		}
 	}
+	fullVersion += "-1"
 
 	return finder.findVersion(fullVersion)
 }

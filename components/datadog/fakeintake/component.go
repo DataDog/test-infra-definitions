@@ -18,8 +18,8 @@ type Fakeintake struct {
 
 	// It's cleaner to export the full URL, but the Agent requires only host in some cases.
 	// Keeping those internal to Pulumi program.
-	Address pulumi.StringOutput
-	Scheme  pulumi.StringOutput
+	Host   pulumi.StringOutput
+	Scheme pulumi.StringOutput
 
 	URL pulumi.StringOutput `pulumi:"url"`
 }

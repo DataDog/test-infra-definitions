@@ -135,7 +135,7 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 		return []string{ipAddress, buildFakeIntakeURL("http", ipAddress, "", port)}, nil
 	}).(pulumi.StringArrayOutput)
 
-	fi.Address = output.Index(pulumi.Int(0))
+	fi.Host = output.Index(pulumi.Int(0))
 	fi.URL = output.Index(pulumi.Int(1))
 	fi.Scheme = pulumi.String("http").ToStringOutput()
 
@@ -229,7 +229,7 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 	}
 
 	// Currently we need to pass types + cast to `StringOutput` to use the new Apply function, but it will improve with Go 1.21
-	fi.Address = ipAdress
+	fi.Host = ipAdress
 	fi.Scheme = pulumi.String("https").ToStringOutput()
 	fi.URL = ipAdress.ApplyT(func(ip string) string {
 		return buildFakeIntakeURL("https", ip, "", sslPort)

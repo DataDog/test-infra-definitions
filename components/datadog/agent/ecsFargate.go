@@ -8,11 +8,18 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
+func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
+	var agentImage string
+	if image == "" {
+		agentImage = DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent")
+	} else {
+		agentImage = image
+	}
+
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.Sprintf(DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent")),
+		Image:     pulumi.Sprintf(agentImage),
 		Essential: pulumi.BoolPtr(true),
 		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{

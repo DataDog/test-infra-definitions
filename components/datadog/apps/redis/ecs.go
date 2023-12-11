@@ -54,8 +54,12 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"redis": {
-					Name:   pulumi.String("redis"),
-					Image:  pulumi.String("redis:latest"),
+					Name:  pulumi.String("redis"),
+					Image: pulumi.String("redis:latest"),
+					Command: pulumi.StringArray{
+						pulumi.String("--loglevel"),
+						pulumi.String("verbose"),
+					},
 					Cpu:    pulumi.IntPtr(100),
 					Memory: pulumi.IntPtr(32),
 					PortMappings: ecs.TaskDefinitionPortMappingArray{

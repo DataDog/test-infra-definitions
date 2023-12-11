@@ -69,11 +69,11 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("200m"),
-									"memory": pulumi.String("4Mi"),
+									"memory": pulumi.String("64Mi"),
 								},
 								Requests: pulumi.StringMap{
 									"cpu":    pulumi.String("200m"),
-									"memory": pulumi.String("4Mi"),
+									"memory": pulumi.String("64Mi"),
 								},
 							},
 						},

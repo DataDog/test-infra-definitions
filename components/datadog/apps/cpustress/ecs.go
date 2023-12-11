@@ -39,7 +39,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 						pulumi.String("--cpu-load=15"),
 					},
 					Cpu:    pulumi.IntPtr(200),
-					Memory: pulumi.IntPtr(6),
+					Memory: pulumi.IntPtr(64),
 				},
 			},
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{

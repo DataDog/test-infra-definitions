@@ -20,3 +20,10 @@ services:
       STATSD_URL:  "unix:///var/run/datadog/dsd.socket"
     depends_on:
       - agent
+  agent:
+    environment:
+      DD_DOGSTATSD_ORIGIN_DETECTION: "true"
+      DD_DOGSTATSD_TAG_CARDINALITY: "high"
+      DD_DOGSTATSD_SOCKET: "/var/run/datadog/dsd.socket"
+      DD_DOGSTATSD_ORIGIN_DETECTION_CLIENT: "true"
+      DD_DOGSTATSD_NON_LOCAL_TRAFFIC: "true"

@@ -92,6 +92,12 @@ func (i *Instance) GetIP() pulumi.StringOutput {
 	return i.instance.GetIP()
 }
 
+// User data shell scripts must start with the #! characters and the path to the interpreter you want to read the
+// script (commonly /bin/bash).
+const metalUserData = `#!/bin/bash
+apt-get -y remove unattended-upgrades
+`
+
 func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
 	var ami string
@@ -112,7 +118,12 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv, ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS), ec2params.WithInstanceType(instanceType), ec2params.WithName(name))
+	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv,
+		ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS),
+		ec2params.WithInstanceType(instanceType),
+		ec2params.WithName(name),
+		ec2params.WithUserData(metalUserData),
+	)
 	if err != nil {
 		return nil, err
 	}

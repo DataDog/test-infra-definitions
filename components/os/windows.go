@@ -2,6 +2,7 @@ package os
 
 import (
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -16,6 +17,16 @@ import (
 
 type Windows struct {
 	env config.Environment
+}
+
+type s3ListBucketResult struct {
+	XMLName  xml.Name   `xml:"ListBucketResult"`
+	Contents []s3Object `xml:"Contents"`
+}
+
+type s3Object struct {
+	XMLName xml.Name `xml:"Contents"`
+	Key     string   `xml:"Key"`
 }
 
 func NewWindows(env config.Environment) *Windows {
@@ -81,6 +92,11 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 func getAgentURL(version AgentVersion) (string, error) {
 	minor := strings.ReplaceAll(version.Minor, "~", "-")
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
+
+	if version.PipelineID != "" {
+		return getAgentURLFromPipelineID(version.PipelineID)
+	}
+
 	if version.BetaChannel {
 		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
 		if err != nil {
@@ -168,6 +184,44 @@ func (f *agentURLFinder) findVersion(fullVersion string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func getAgentURLFromPipelineID(pipeline string) (string, error) {
+	// FIXME: remove pipeline- from the pipelineID we do not want it for Windows
+	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
+
+	resp, err := http.Get("https://s3.amazonaws.com/dd-agent-mstesting?prefix=pipelines/A7/" + pipelineID)
+	if err != nil {
+		return "", err
+	}
+	fmt.Println("FETCHED FROM: https://s3.amazonaws.com/dd-agent-mstesting?prefix=pipelines/A7/" + pipelineID)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	t := s3ListBucketResult{}
+	if err = xml.Unmarshal(body, &t); err != nil {
+		return "", err
+	}
+	fmt.Println("FOUND: ", t)
+	if len(t.Contents) == 0 {
+		return "", fmt.Errorf("no agent found for pipeline %v", pipelineID)
+	}
+
+	var ngMSI string
+	for _, agentMSI := range t.Contents {
+		if strings.Contains(agentMSI.Key, "datadog-agent-ng") {
+			ngMSI = agentMSI.Key
+		}
+	}
+	if ngMSI == "" {
+		return "", fmt.Errorf("no ng agent msi found for pipeline %v", pipelineID)
+	}
+
+	fmt.Println("WILL DOWNLOAD AGENT FROM: https://s3.amazonaws.com/dd-agent-mstesting/" + ngMSI)
+	return "https://s3.amazonaws.com/dd-agent-mstesting/" + ngMSI, nil
 }
 
 func getKey[T any](m map[string]interface{}, keyName string) (T, error) {

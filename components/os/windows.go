@@ -200,6 +200,10 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 		return "", err
 	}
 
+	if len(result.Contents) <= 0 {
+		return "", fmt.Errorf("no agent MSI found for pipeline %v", pipeline)
+	}
+
 	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil
 }
 

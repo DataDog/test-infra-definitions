@@ -194,7 +194,7 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	fmt.Println("FETCHED FROM: https://s3.amazonaws.com/dd-agent-mstesting?prefix=pipelines/A7/" + pipelineID)
+
 	defer resp.Body.Close()
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -220,7 +220,6 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 		return "", fmt.Errorf("no ng agent msi found for pipeline %v", pipelineID)
 	}
 
-	fmt.Println("WILL DOWNLOAD AGENT FROM: https://s3.amazonaws.com/dd-agent-mstesting/" + ngMSI)
 	return "https://s3.amazonaws.com/dd-agent-mstesting/" + ngMSI, nil
 }
 

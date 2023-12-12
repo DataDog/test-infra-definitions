@@ -183,6 +183,7 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 	// FIXME: remove pipeline- from the pipelineID we do not want it for Windows
 	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
 
+	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
 	awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
 
 	s3Client := s3.NewFromConfig(aws.Config{})

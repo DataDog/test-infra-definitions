@@ -184,9 +184,12 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
 
 	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
-	awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
+	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
+	if err != nil {
+		return "", err
+	}
 
-	s3Client := s3.NewFromConfig(aws.Config{})
+	s3Client := s3.NewFromConfig(config)
 
 	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: aws.String("dd-agent-mstesting"),

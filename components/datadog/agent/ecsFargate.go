@@ -19,7 +19,7 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.Sprintf(agentImage),
+		Image:     pulumi.String(agentImage),
 		Essential: pulumi.BoolPtr(true),
 		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{

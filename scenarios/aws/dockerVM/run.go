@@ -2,6 +2,7 @@ package dockervm
 
 import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
@@ -47,7 +48,12 @@ func Run(ctx *pulumi.Context) error {
 				agentOptions = append(agentOptions, dockeragentparams.WithAdditionalFakeintake(fakeintake))
 			}
 		}
-		agentOptions = append(agentOptions, dockeragentparams.WithAgentServiceEnvVariable("DD_LOG_LEVEL", pulumi.String("debug")))
+
+		if env.TestingWorkloadDeploy() {
+			agentOptions = append(agentOptions, dockeragentparams.WithExtraComposeManifest("dogstatsd-apps", dogstatsd.DockerComposeDefinition))
+			agentOptions = append(agentOptions, dockeragentparams.WithEnvironmentVariables(pulumi.StringMap{"HOST_IP": vm.GetIP()}))
+		}
+
 		_, err = agent.NewDaemon(vm, agentOptions...)
 	}
 

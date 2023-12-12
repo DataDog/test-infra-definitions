@@ -48,7 +48,6 @@ func Run(ctx *pulumi.Context) error {
 				agentOptions = append(agentOptions, dockeragentparams.WithAdditionalFakeintake(fakeintake))
 			}
 		}
-		agentOptions = append(agentOptions, dockeragentparams.WithAgentServiceEnvVariable("DD_LOG_LEVEL", pulumi.String("debug")))
 
 		if env.TestingWorkloadDeploy() {
 			agentOptions = append(agentOptions, dockeragentparams.WithExtraComposeManifest("dogstatsd-apps", dogstatsd.DockerComposeDefinition))

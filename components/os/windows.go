@@ -1,8 +1,8 @@
 package os
 
 import (
+	"context"
 	"encoding/json"
-	"encoding/xml"
 	"errors"
 	"fmt"
 	"io"
@@ -13,20 +13,13 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type Windows struct {
 	env config.Environment
-}
-
-type s3ListBucketResult struct {
-	XMLName  xml.Name   `xml:"ListBucketResult"`
-	Contents []s3Object `xml:"Contents"`
-}
-
-type s3Object struct {
-	XMLName xml.Name `xml:"Contents"`
-	Key     string   `xml:"Key"`
 }
 
 func NewWindows(env config.Environment) *Windows {
@@ -190,37 +183,20 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 	// FIXME: remove pipeline- from the pipelineID we do not want it for Windows
 	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
 
-	resp, err := http.Get("https://s3.amazonaws.com/dd-agent-mstesting?prefix=pipelines/A7/" + pipelineID)
+	awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
+
+	s3Client := s3.NewFromConfig(aws.Config{})
+
+	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+		Bucket: aws.String("dd-agent-mstesting"),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
+	})
+
 	if err != nil {
 		return "", err
 	}
 
-	defer resp.Body.Close()
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", err
-	}
-
-	t := s3ListBucketResult{}
-	if err = xml.Unmarshal(body, &t); err != nil {
-		return "", err
-	}
-	fmt.Println("FOUND: ", t)
-	if len(t.Contents) == 0 {
-		return "", fmt.Errorf("no agent found for pipeline %v", pipelineID)
-	}
-
-	var ngMSI string
-	for _, agentMSI := range t.Contents {
-		if strings.Contains(agentMSI.Key, "datadog-agent-ng") {
-			ngMSI = agentMSI.Key
-		}
-	}
-	if ngMSI == "" {
-		return "", fmt.Errorf("no ng agent msi found for pipeline %v", pipelineID)
-	}
-
-	return "https://s3.amazonaws.com/dd-agent-mstesting/" + ngMSI, nil
+	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil
 }
 
 func getKey[T any](m map[string]interface{}, keyName string) (T, error) {

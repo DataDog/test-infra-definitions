@@ -148,7 +148,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 		if !ok {
 			return nil, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, cpusAssigned, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs, cpusAssigned)
+		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs, &cpusAssigned)
 		if err != nil {
 			return nil, err
 		}

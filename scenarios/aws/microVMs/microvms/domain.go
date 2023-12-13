@@ -187,7 +187,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
 				cpuTuneXML, cpuSet = getCPUTuneXML(vcpu, cpuSet, set.VMHost.AvailableCPUs)
-				fmt.Println(cpuTuneXML)
 				domain, err := newDomainConfiguration(
 					e,
 					domainConfiguration{

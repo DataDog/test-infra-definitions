@@ -97,7 +97,7 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 
 	for i := 0; i < vmcpus; i++ {
 		vcpuMap = append(vcpuMap, fmt.Sprintf(xml, i, hostCPUSet))
-		hostCPUSet += 1
+		hostCPUSet++
 		if hostCPUSet >= cpuCount {
 			hostCPUSet = 0
 		}

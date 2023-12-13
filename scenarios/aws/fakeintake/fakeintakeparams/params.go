@@ -13,17 +13,17 @@ type Option = func(*Params) error
 // NewParams returns a new instance of Fakeintake Params
 func NewParams(options ...Option) (*Params, error) {
 	params := &Params{
-		LoadBalancerEnabled: true,
+		LoadBalancerEnabled: false,
 		Name:                "fakeintake",
 		ImageURL:            "public.ecr.aws/datadog/fakeintake:latest",
 	}
 	return common.ApplyOption(params, options)
 }
 
-// WithoutLoadBalancer disable load balancer in front of the fakeintake
-func WithoutLoadBalancer() Option {
+// WithLoadBalancer enable load balancer in front of the fakeintake
+func WithLoadBalancer() Option {
 	return func(p *Params) error {
-		p.LoadBalancerEnabled = false
+		p.LoadBalancerEnabled = true
 		return nil
 	}
 }

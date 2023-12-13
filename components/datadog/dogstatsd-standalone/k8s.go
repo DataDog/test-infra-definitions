@@ -71,6 +71,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			Value: e.AgentAPIKey(),
 		},
 		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_ENABLE_METADATA_COLLECTION"),
+			Value: pulumi.String("false"),
+		},
+		&corev1.EnvVarArgs{
 			Name: pulumi.String("DD_KUBERNETES_KUBELET_HOST"),
 			ValueFrom: corev1.EnvVarSourceArgs{
 				FieldRef: corev1.ObjectFieldSelectorArgs{

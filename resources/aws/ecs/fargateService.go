@@ -29,9 +29,8 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			Subnets:        e.RandomSubnets(),
 		},
-		TaskDefinition:            taskDefArn,
-		EnableExecuteCommand:      pulumi.BoolPtr(true),
-		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
+		TaskDefinition:       taskDefArn,
+		EnableExecuteCommand: pulumi.BoolPtr(true),
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 

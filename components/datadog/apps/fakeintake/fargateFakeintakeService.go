@@ -300,9 +300,8 @@ func fargateServiceFakeIntakeWithLoadBalancer(e aws.Environment, name string, na
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			Subnets:        e.RandomSubnets(),
 		},
-		LoadBalancers:             balancerArray,
-		TaskDefinition:            taskDef.TaskDefinition.Arn(),
-		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
+		LoadBalancers:  balancerArray,
+		TaskDefinition: taskDef.TaskDefinition.Arn(),
 	}, opts...); err != nil {
 		return pulumi.StringOutput{}, err
 	}

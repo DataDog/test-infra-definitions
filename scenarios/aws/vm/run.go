@@ -49,8 +49,8 @@ func Run(ctx *pulumi.Context) error {
 
 			fakeIntakeOptions := []fakeintakeparams.Option{}
 
-			if !vm.Infra.GetAwsEnvironment().InfraShouldDeployFakeintakeWithLB() {
-				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithoutLoadBalancer())
+			if vm.Infra.GetAwsEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithLoadBalancer())
 			}
 
 			fakeintake, err := aws.NewEcsFakeintake(vm.Infra.GetAwsEnvironment(), fakeIntakeOptions...)

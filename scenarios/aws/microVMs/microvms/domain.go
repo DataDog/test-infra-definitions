@@ -178,15 +178,14 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
+func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
 	var domains []*Domain
 	var cpuTuneXML string
 
-	cpuSet := 0
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
-				cpuTuneXML, cpuSet = getCPUTuneXML(vcpu, cpuSet, set.VMHost.AvailableCPUs)
+				cpuTuneXML, cpuSetStart = getCPUTuneXML(vcpu, cpuSetStart, set.VMHost.AvailableCPUs)
 				domain, err := newDomainConfiguration(
 					e,
 					domainConfiguration{
@@ -202,7 +201,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					},
 				)
 				if err != nil {
-					return []*Domain{}, err
+					return []*Domain{}, 0, err
 				}
 
 				// setup volume to be used by this domain
@@ -230,7 +229,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						vol.FullResourceName("final-overlay", kernel.Tag),
 					)
 					if err != nil {
-						return []*Domain{}, err
+						return []*Domain{}, 0, err
 					}
 					domain.Disks = append(domain.Disks, resources.DomainDisk{
 						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
@@ -244,7 +243,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					&domain.RecipeLibvirtDomainArgs,
 				)
 				if err != nil {
-					return []*Domain{}, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
+					return []*Domain{}, 0, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
 				}
 
 				domains = append(domains, domain)
@@ -252,6 +251,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 		}
 	}
 
-	return domains, nil
+	return domains, cpuSetStart, nil
 
 }

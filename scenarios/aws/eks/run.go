@@ -14,6 +14,7 @@ import (
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
@@ -190,7 +191,13 @@ func Run(ctx *pulumi.Context) error {
 
 	var fakeIntake *ddfakeintake.ConnectionExporter
 	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+		fakeIntakeOptions := []fakeintakeparams.Option{}
+
+		if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithLoadBalancer())
+		}
+
+		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv, fakeIntakeOptions...); err != nil {
 			return err
 		}
 	}

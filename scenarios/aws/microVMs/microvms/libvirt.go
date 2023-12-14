@@ -141,14 +141,16 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 
 func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
+	var cpusAssigned int
+	var domains []*Domain
+	var err error
 
-	cpusAssigned := 0
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {
 			return nil, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, err := GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs, &cpusAssigned)
+		domains, cpusAssigned, err = GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs, cpusAssigned)
 		if err != nil {
 			return nil, err
 		}

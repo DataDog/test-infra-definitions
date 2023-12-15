@@ -12,6 +12,7 @@ import (
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	ecsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -89,7 +90,13 @@ func Run(ctx *pulumi.Context) error {
 	if awsEnv.AgentDeploy() {
 		var fakeintake *ddfakeintake.ConnectionExporter
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+			fakeIntakeOptions := []fakeintakeparams.Option{}
+
+			if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithLoadBalancer())
+			}
+
+			if fakeintake, err = aws.NewEcsFakeintake(awsEnv, fakeIntakeOptions...); err != nil {
 				return err
 			}
 		}

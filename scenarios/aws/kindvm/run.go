@@ -2,6 +2,7 @@ package kindvm
 
 import (
 	"fmt"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
@@ -48,7 +49,13 @@ func Run(ctx *pulumi.Context) error {
 
 	var fakeIntake *ddfakeintake.ConnectionExporter
 	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
+		fakeIntakeOptions := []fakeintakeparams.Option{}
+
+		if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithLoadBalancer())
+		}
+
+		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv, fakeIntakeOptions...); err != nil {
 			return err
 		}
 	}

@@ -60,20 +60,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
 							Name:  pulumi.String("mutated"),
-							Image: pulumi.String("busybox"),
-							Command: pulumi.ToStringArray([]string{
-								"/bin/sh",
-								"-c",
-							}),
-							Args: pulumi.ToStringArray([]string{
-								`printf 'DD_DOGSTATSD_URL:\t%s\n' "${DD_DOGSTATSD_URL:-❌ not set}";` +
-									`printf 'DD_TRACE_AGENT_URL:\t%s\n' "${DD_TRACE_AGENT_URL:-❌ not set}";` +
-									`printf 'DD_ENTITY_ID:\t%s\n' "${DD_ENTITY_ID:-❌ not set}";` +
-									`printf 'DD_ENV:\t%s\n'       "${DD_ENV:-❌ not set}";` +
-									`printf 'DD_SERVICE:\t%s\n'   "${DD_SERVICE:-❌ not set}";` +
-									`printf 'DD_VERSION:\t%s\n'   "${DD_VERSION:-❌ not set}";` +
-									`sleep infinity`,
-							}),
+							Image: pulumi.String("ghcr.io/datadog/apps-mutated:main"),
 						},
 					},
 				},

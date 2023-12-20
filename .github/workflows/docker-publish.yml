@@ -44,6 +44,8 @@ jobs:
         include:
           - app: dogstatsd
             image: dogstatsd
+          - app: mutatedbyadmissioncontroller
+            image: mutated
           - app: nginx
             image: http-client
           - app: nginx

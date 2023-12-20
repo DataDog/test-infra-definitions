@@ -91,7 +91,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		LogConfiguration: ecsClient.GetFirelensLogConfiguration(pulumi.String("nginx"), pulumi.String("nginx"), apiKeySSMParamName),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx", pulumi.String("nginx-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"nginx": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-fg-server", pulumi.String("nginx-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"nginx": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +131,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Essential: pulumi.BoolPtr(true),
 	}
 
-	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-query", pulumi.String("nginx-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeIntake, opts...)
+	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-fg-query", pulumi.String("nginx-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeIntake, opts...)
 	if err != nil {
 		return nil, err
 	}

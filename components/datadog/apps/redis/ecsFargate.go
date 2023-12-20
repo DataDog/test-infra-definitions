@@ -71,8 +71,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		LogConfiguration: ecsClient.GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "server", pulumi.String("redis-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"redis": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
-
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg-server", pulumi.String("redis-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"redis": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +111,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Essential: pulumi.BoolPtr(true),
 	}
 
-	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-query", pulumi.String("redis-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeIntake, opts...)
-
+	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg-query", pulumi.String("redis-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeIntake, opts...)
 	if err != nil {
 		return nil, err
 	}

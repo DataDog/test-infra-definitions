@@ -200,6 +200,11 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy the agent
 		if awsEnv.AgentDeploy() {
+			fakeIntakeOptions := []fakeintake.Option{}
+			if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
 			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 				KubeProvider:  eksKubeProvider,
 				Namespace:     "datadog",

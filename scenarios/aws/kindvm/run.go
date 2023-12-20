@@ -56,6 +56,11 @@ func Run(ctx *pulumi.Context) error {
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+		fakeIntakeOptions := []fakeintake.Option{}
+		if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+		}
+
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name()); err != nil {
 			return err
 		}
@@ -70,6 +75,8 @@ datadog:
   kubelet:
     tlsVerify: false
   clusterName: "%s"
+agents:
+  useHostNetwork: true
 `, clusterName)
 
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{

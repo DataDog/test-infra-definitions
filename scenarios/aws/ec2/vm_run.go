@@ -3,6 +3,8 @@ package ec2
 import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
 	"github.com/DataDog/test-infra-definitions/components/docker"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -31,8 +33,8 @@ func VMRun(ctx *pulumi.Context) error {
 		if env.AgentUseFakeintake() {
 			fakeIntakeOptions := []fakeintake.Option{}
 
-			if !env.InfraShouldDeployFakeintakeWithLB() {
-				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutLoadBalancer())
+			if env.InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 			}
 
 			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)
@@ -70,14 +72,35 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 	}
 
 	if env.AgentDeploy() {
-		params := make([]agent.DockerOption, 0)
+		agentOptions := make([]dockeragentparams.Option, 0)
 		if env.AgentFullImagePath() != "" {
-			params = append(params, agent.WithAgentFullImagePath(env.AgentFullImagePath()))
+			agentOptions = append(agentOptions, dockeragentparams.WithFullImagePath(env.AgentFullImagePath()))
 		} else if env.AgentVersion() != "" {
-			params = append(params, agent.WithAgentImageTag(env.AgentVersion()))
+			agentOptions = append(agentOptions, dockeragentparams.WithImageTag(env.AgentVersion()))
 		}
 
-		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, params...)
+		if env.AgentUseFakeintake() {
+			fakeIntakeOptions := []fakeintake.Option{}
+
+			if env.InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
+			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)
+			if err != nil {
+				return err
+			}
+			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
+		}
+
+		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
+		if err != nil {
+			return err
+		}
+	}
+
+	if env.TestingWorkloadDeploy() {
+		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address})
 		if err != nil {
 			return err
 		}

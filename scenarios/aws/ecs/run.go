@@ -89,6 +89,11 @@ func Run(ctx *pulumi.Context) error {
 	if awsEnv.AgentDeploy() {
 		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+			fakeIntakeOptions := []fakeintake.Option{}
+			if awsEnv.InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
 			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs"); err != nil {
 				return err
 			}

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -57,6 +61,11 @@ func (am *agentWindowsManager) restartAgentServices(triggers pulumi.ArrayInput, 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	minor := strings.ReplaceAll(version.Minor, "~", "-")
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
+
+	if version.PipelineID != "" {
+		return getAgentURLFromPipelineID(version.PipelineID)
+	}
+
 	if version.BetaChannel {
 		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
 		if err != nil {
@@ -86,6 +95,34 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	fullVersion += "-1"
 
 	return finder.findVersion(fullVersion)
+}
+
+func getAgentURLFromPipelineID(pipeline string) (string, error) {
+	// FIXME: remove pipeline- from the pipelineID we do not want it for Windows
+	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
+
+	// TODO: Replace context.Background() with a Pulumi context.Context.
+	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
+	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
+	if err != nil {
+		return "", err
+	}
+
+	s3Client := s3.NewFromConfig(config)
+
+	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+		Bucket: aws.String("dd-agent-mstesting"),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Contents) <= 0 {
+		return "", fmt.Errorf("no agent MSI found for pipeline %v", pipeline)
+	}
+
+	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil
 }
 
 type agentURLFinder struct {

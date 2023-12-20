@@ -20,11 +20,6 @@ const (
 	defaultTimeout = 300
 )
 
-type ComposeInlineManifest struct {
-	Name    string
-	Content pulumi.StringInput
-}
-
 type Manager struct {
 	namer namer.Namer
 	host  *remoteComp.Host

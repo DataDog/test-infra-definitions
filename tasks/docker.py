@@ -19,6 +19,8 @@ scenario_name = "aws/dockervm"
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "architecture": doc.architecture,
+        "use_fakeintake": doc.fakeintake,
+        "use_loadBalancer": doc.use_loadBalancer,
     }
 )
 def create_docker(
@@ -28,6 +30,8 @@ def create_docker(
     install_agent: Optional[bool] = True,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
+    use_fakeintake: Optional[bool] = False,
+    use_loadBalancer: Optional[bool] = False,
 ):
     """
     Create a docker environment.
@@ -35,6 +39,7 @@ def create_docker(
 
     extra_flags = {}
     extra_flags["ddinfra:osDescriptor"] = f"::{_get_architecture(architecture)}"
+    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
     full_stack_name = deploy(
         ctx,
@@ -44,6 +49,7 @@ def create_docker(
         stack_name=stack_name,
         install_agent=install_agent,
         agent_version=agent_version,
+        use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
     )
 

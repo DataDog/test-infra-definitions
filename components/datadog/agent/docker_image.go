@@ -13,7 +13,7 @@ const (
 	defaultAgentImageTag         = "latest"
 )
 
-func dockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
+func dockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath, imageTag string) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
@@ -22,8 +22,11 @@ func dockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string
 	if repositoryPath == "" {
 		repositoryPath = defaultAgentImageRepo
 	}
+	if imageTag == "" {
+		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
+	}
 
-	return utils.BuildDockerImagePath(repositoryPath, dockerAgentImageTag(e, config.AgentSemverVersion))
+	return utils.BuildDockerImagePath(repositoryPath, imageTag)
 }
 
 func dockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {

@@ -30,15 +30,23 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			Subnets:        e.RandomSubnets(),
 		},
-		LoadBalancers:             lb,
-		TaskDefinition:            taskDefArn,
-		EnableExecuteCommand:      pulumi.BoolPtr(true),
-		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
+		LoadBalancers:        lb,
+		TaskDefinition:       taskDefArn,
+		EnableExecuteCommand: pulumi.BoolPtr(true),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+func FargateTaskDefinitionWithAgent(
+	e aws.Environment,
+	name string,
+	family pulumi.StringInput,
+	cpu, memory int,
+	containers map[string]ecs.TaskDefinitionContainerDefinitionArgs,
+	apiKeySSMParamName pulumi.StringInput,
+	fakeintake *fakeintake.Fakeintake,
+	opts ...pulumi.ResourceOption,
+) (*ecs.FargateTaskDefinition, error) {
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{

@@ -85,6 +85,12 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	return pair
 }
 
+// User data shell scripts must start with the #! characters and the path to the interpreter you want to read the
+// script (commonly /bin/bash).
+const metalUserData = `#!/bin/bash
+apt-get -y remove unattended-upgrades
+`
+
 func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
 	var ami string
@@ -105,7 +111,12 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := ec2Scn.NewVM(*awsEnv, name, ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)), ec2Scn.WithInstanceType(instanceType))
+	awsInstance, err := ec2Scn.NewVM(*awsEnv, name,
+		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
+		ec2Scn.WithInstanceType(instanceType),
+		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
+		ec2Scn.WithUserData(metalUserData),
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -359,17 +370,17 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 			if err != nil {
 				return nil, err
 			}
-			_, err = reloadSSHD(microRunner, allowEnvDone)
-			if err != nil {
-				return nil, err
-			}
-
 			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 			if err != nil {
 				return nil, err
 			}
 
-			_, err = setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+			setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+			if err != nil {
+				return nil, err
+			}
+
+			_, err = reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
 			if err != nil {
 				return nil, err
 			}

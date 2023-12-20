@@ -100,7 +100,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(&e, "")
+	agentImagePath := dockerAgentFullImagePath(&e, "", "")
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
 	clusterAgentImagePath := dockerClusterAgentFullImagePath(&e, "")

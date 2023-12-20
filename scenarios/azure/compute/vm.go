@@ -52,13 +52,13 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 
 		// Create connection
 		privateIP := nwIface.IpConfigurations.Index(pulumi.Int(0)).PrivateIPAddress()
-		conn, err := remote.MakeConnection(privateIP.Elem(), compute.AdminUsername, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(privateIP.Elem(), compute.AdminUsername, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
 		if err != nil {
 			return err
 		}
 
 		// TODO: Check support of cloud-init on Azure
-		return remote.MakeHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, command.WaitUntilSuccess, c)
+		return remote.InitHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, command.WaitForSuccessfulConnection, c)
 	})
 }
 

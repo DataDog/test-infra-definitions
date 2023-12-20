@@ -346,7 +346,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 			}
 
 			// create new ssh connection to build proxy
-			conn, err := remoteComp.MakeConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
+			conn, err := remoteComp.NewConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
 			if err != nil {
 				return nil, err
 			}

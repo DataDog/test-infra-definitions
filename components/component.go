@@ -40,8 +40,7 @@ type component interface {
 	init(name string, exportName string)
 	getOutputs() pulumi.Map
 	getExportName() string
-
-	RegisterOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error
+	registerOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error
 }
 
 type Component struct {
@@ -56,11 +55,11 @@ func (c *Component) init(name, exportName string) {
 	c.exportName = exportName
 }
 
-func (c *Component) getOutputs() pulumi.Map { //nolint:unused
+func (c *Component) getOutputs() pulumi.Map { //nolint:unused, used through the `component` interface
 	return c.outputs
 }
 
-func (c *Component) getExportName() string { //nolint:unused
+func (c *Component) getExportName() string { //nolint:unused, used through the `component` interface
 	return c.exportName
 }
 
@@ -69,7 +68,7 @@ func (c *Component) Name() string {
 }
 
 // RegisterOutputs exports values from a `pulumi.ComponentResource`. Use `pulumi` tag to export a field.
-func (c *Component) RegisterOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error {
+func (c *Component) registerOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error {
 	fields := reflect.VisibleFields(reflect.TypeOf(self).Elem())
 	compValue := reflect.ValueOf(self).Elem()
 	for _, field := range fields {
@@ -132,5 +131,5 @@ func NewComponent[C component](e config.CommonEnvironment, name string, builder 
 		}
 	}
 
-	return comp, comp.RegisterOutputs(e.Ctx, comp)
+	return comp, comp.registerOutputs(e.Ctx, comp)
 }

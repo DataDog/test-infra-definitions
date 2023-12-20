@@ -12,7 +12,7 @@ const (
 	ARM64Arch = Architecture("arm64")
 )
 
-func NewArchitectureFromString(archStr string) Architecture {
+func ArchitectureFromString(archStr string) Architecture {
 	archStr = strings.ToLower(archStr)
 	switch archStr {
 	case "x86_64", "amd64", "": // Default architecture is AMD64
@@ -57,7 +57,7 @@ const (
 	MacosOS Flavor = 1000
 )
 
-func NewFlavorFromString(flavorStr string) Flavor {
+func FlavorFromString(flavorStr string) Flavor {
 	flavorStr = strings.ToLower(flavorStr)
 	switch flavorStr {
 	case "", "ubuntu": // Default flavor is Ubuntu

@@ -44,12 +44,12 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		}
 
 		// Create connection
-		conn, err := remote.MakeConnection(instance.PrivateIp, amiInfo.defaultUser, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(instance.PrivateIp, amiInfo.defaultUser, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
 		if err != nil {
 			return err
 		}
 
-		return remote.MakeHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, amiInfo.defaultUser, amiInfo.readyFunc, c)
+		return remote.InitHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, amiInfo.defaultUser, amiInfo.readyFunc, c)
 	})
 }
 

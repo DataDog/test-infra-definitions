@@ -17,9 +17,9 @@ func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
 		})
 }
 
-func WaitUntilSuccess(runner *Runner) (*remote.Command, error) {
+func WaitForSuccessfulConnection(runner *Runner) (*remote.Command, error) {
 	return runner.Command(
-		"wait-until-success",
+		"wait-successful-connection",
 		&Args{
 			// echo works in shell and powershell
 			Create: pulumi.String("echo \"OK\""),

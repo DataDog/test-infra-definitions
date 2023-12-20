@@ -66,7 +66,7 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 	case os.LinuxFamily:
 		amiInfo.readyFunc = command.WaitForCloudInit
 	case os.WindowsFamily, os.MacOSFamily:
-		amiInfo.readyFunc = command.WaitUntilSuccess
+		amiInfo.readyFunc = command.WaitForSuccessfulConnection
 	default:
 		return nil, fmt.Errorf("unsupported OS family %v", vmArgs.osInfo.Family())
 	}

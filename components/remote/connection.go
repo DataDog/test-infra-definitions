@@ -13,9 +13,9 @@ const (
 	dialErrorLimit     int = 100
 )
 
-// MakeConnection creates a remote connection to a host.
+// NewConnection creates a remote connection to a host.
 // Host and user are mandatory.
-func MakeConnection(host pulumi.StringInput, user, sshKeyPath, sshKeyPassword, sshAgentPath string) (*remote.ConnectionArgs, error) {
+func NewConnection(host pulumi.StringInput, user, sshKeyPath, sshKeyPassword, sshAgentPath string) (*remote.ConnectionArgs, error) {
 	conn := &remote.ConnectionArgs{
 		Host:           host,
 		User:           pulumi.String(user),

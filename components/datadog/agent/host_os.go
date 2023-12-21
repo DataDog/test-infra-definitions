@@ -19,11 +19,13 @@ type agentOSManager interface {
 }
 
 func getOSManager(host *remoteComp.Host) agentOSManager {
-	switch host.OS.Descriptor().Family() { // nolint:exhaustive
+	switch host.OS.Descriptor().Family() {
 	case os.LinuxFamily:
 		return newLinuxManager(host)
 	case os.WindowsFamily:
 		return newWindowsManager(host)
+	case os.MacOSFamily, os.UnknownFamily:
+		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported OS: %v", host.OS.Descriptor().Family()))
 	}

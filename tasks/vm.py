@@ -29,6 +29,7 @@ scenario_name = "aws/vm"
         "architecture": doc.architecture,
         "interactive": doc.interactive,
         "use_aws_vault": doc.use_aws_vault,
+        "instance_type": doc.instance_type,
     }
 )
 def create_vm(
@@ -46,6 +47,7 @@ def create_vm(
     architecture: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,
     interactive: Optional[bool] = True,
+    instance_type: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -66,6 +68,11 @@ def create_vm(
         print(
             "[WARNING] It is currently not possible to deploy a VM with fakeintake and without agent. Your VM will start without fakeintake."
         )
+    if instance_type is not None:
+        if architecture is None or architecture.lower() == tool.get_default_architecture():
+            extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
+        else:
+            extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
 
     full_stack_name = deploy(
         ctx,

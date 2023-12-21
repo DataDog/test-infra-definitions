@@ -52,7 +52,7 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 	return fmt.Sprintf(
 		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
 		commandLine,
-		fmt.Sprintf("install_script%s.sh", version.Major)), nil
+		fmt.Sprintf("install_script_agent%s.sh", version.Major)), nil
 }
 
 func (am *agentLinuxManager) getAgentConfigFolder() string {

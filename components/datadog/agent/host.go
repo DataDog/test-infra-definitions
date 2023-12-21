@@ -92,7 +92,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		{"system-probe.yaml", params.SystemProbeConfig},
 		{"security-agent.yaml", params.SecurityAgentConfig},
 	} {
-		_, err := h.updateConfig(env, input.path, pulumi.String(input.content), params.ExtraAgentConfig, afterInstallOpts...)
+		_, err := h.updateConfig(input.path, pulumi.String(input.content), afterInstallOpts...)
 		if err != nil {
 			return err
 		}
@@ -125,15 +125,13 @@ func (h *HostAgent) updateCoreAgentConfig(
 	}
 	configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
 
-	cmd, err := h.updateConfig(env, configPath, configContent, nil, opts...)
+	cmd, err := h.updateConfig(configPath, configContent, opts...)
 	return cmd, configContent, err
 }
 
 func (h *HostAgent) updateConfig(
-	env *config.CommonEnvironment,
 	configPath string,
 	configContent pulumi.StringInput,
-	extraAgentConfig []pulumi.StringInput,
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, error) {
 	var err error

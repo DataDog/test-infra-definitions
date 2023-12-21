@@ -62,7 +62,7 @@ func Run(ctx *pulumi.Context) error {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 		}
 
-		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name()); err != nil {
+		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
 	}

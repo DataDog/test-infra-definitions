@@ -194,18 +194,18 @@ func Run(ctx *pulumi.Context) error {
 
 		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs"); err != nil {
+			fakeIntakeOptions := []fakeintake.Option{}
+			if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
+			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
 				return err
 			}
 		}
 
 		// Deploy the agent
 		if awsEnv.AgentDeploy() {
-			fakeIntakeOptions := []fakeintake.Option{}
-			if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
-				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
-			}
-
 			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 				KubeProvider:  eksKubeProvider,
 				Namespace:     "datadog",

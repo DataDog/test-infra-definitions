@@ -124,6 +124,8 @@ func (f Flavor) String() string {
 		return "windows-server"
 	case MacosOS:
 		return "macos"
+	case Unknown:
+		fallthrough
 	default:
 		panic("unknown OS flavor")
 	}

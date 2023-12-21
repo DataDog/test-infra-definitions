@@ -68,7 +68,7 @@ func (c *Component) Name() string {
 }
 
 // RegisterOutputs exports values from a `pulumi.ComponentResource`. Use `pulumi` tag to export a field.
-func (c *Component) registerOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error {
+func (c *Component) registerOutputs(ctx *pulumi.Context, self pulumi.ComponentResource) error { //nolint:unused, used through the `component` interface
 	fields := reflect.VisibleFields(reflect.TypeOf(self).Elem())
 	compValue := reflect.ValueOf(self).Elem()
 	for _, field := range fields {

@@ -70,9 +70,9 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		}
 
 		if params.LoadBalancerEnabled {
-			fargateSvcLB(e, namer, taskDef, fi, opts...)
+			err = fargateSvcLB(e, namer, taskDef, fi, opts...)
 		} else {
-			fargateSvcNoLB(e, namer, taskDef, fi, opts...)
+			err = fargateSvcNoLB(e, namer, taskDef, fi, opts...)
 		}
 		if err != nil {
 			return err

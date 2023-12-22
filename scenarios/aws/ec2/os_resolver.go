@@ -114,7 +114,7 @@ func resolveAmazonLinuxECSAMI(e aws.Environment, osInfo *os.Descriptor) (string,
 		paramName += "/arm64"
 	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-amazon-linux-latest/%s/recommended/image_id", paramName))
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ecs/optimized-ami/%s/recommended/image_id", paramName))
 }
 
 func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

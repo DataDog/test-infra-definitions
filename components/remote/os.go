@@ -24,7 +24,6 @@ func InitHost(e config.CommonEnvironment, conn remote.ConnectionOutput, osDesc o
 		ParentResource: host,
 		ConnectionName: host.Name(),
 		Connection:     conn,
-		User:           osUser,
 		ReadyFunc:      readyFunc,
 		OSCommand:      osCommand,
 	})

@@ -31,6 +31,8 @@ type OS interface {
 	ServiceManger() ServiceManager
 }
 
+var _ OS = &os{}
+
 // os is a generic implementation of OS interface
 type os struct {
 	descriptor     Descriptor

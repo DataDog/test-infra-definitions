@@ -19,7 +19,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor())
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.Ubuntu)
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err
@@ -51,13 +51,18 @@ func VMRun(ctx *pulumi.Context) error {
 	return nil
 }
 
+var osWithDockerProvided = map[os.Flavor]struct{}{
+	os.AmazonLinuxECS: {},
+}
+
 func VMRunWithDocker(ctx *pulumi.Context) error {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor())
+	// If no OS is provided, we default to AmazonLinuxECS as it ships with Docker pre-installed
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECS)
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err
@@ -66,7 +71,8 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, true)
+	_, installDocker := osWithDockerProvided[vm.OS.Descriptor().Flavor]
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, installDocker)
 	if err != nil {
 		return err
 	}

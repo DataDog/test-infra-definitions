@@ -51,7 +51,7 @@ func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker
 	}
 	manager.opts = utils.MergeOptions(manager.opts, utils.PulumiDependsOn(composeCmd))
 
-	return manager, nil, nil
+	return manager, composeCmd, nil
 }
 
 func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {

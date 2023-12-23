@@ -29,15 +29,24 @@ func NewDescriptorWithArch(f Flavor, version string, arch Architecture) Descript
 }
 
 // String format is <flavor>:<version>(:<arch>)
-func DescriptorFromString(descStr string) Descriptor {
+func DescriptorFromString(descStr string, defaultFlavor Flavor) Descriptor {
 	parts := strings.Split(descStr, osDescriptorSep)
-	if len(parts) == 2 {
-		return NewDescriptor(FlavorFromString(parts[0]), parts[1])
-	} else if len(parts) == 3 {
-		return NewDescriptorWithArch(FlavorFromString(parts[0]), parts[1], ArchitectureFromString(parts[2]))
+	if len(parts) < 2 || len(parts) > 3 {
+		panic(fmt.Sprintf("invalid OS descriptor string, was: %s", descStr))
 	}
 
-	panic(fmt.Sprintf("invalid OS descriptor string, was: %s", descStr))
+	var flavor Flavor
+	if parts[0] == "" {
+		flavor = defaultFlavor
+	} else {
+		flavor = FlavorFromString(parts[0])
+	}
+
+	if len(parts) == 3 {
+		return NewDescriptorWithArch(flavor, parts[1], ArchitectureFromString(parts[2]))
+	}
+
+	return NewDescriptor(flavor, parts[1])
 }
 
 func (d Descriptor) Family() Family {

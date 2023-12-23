@@ -14,7 +14,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor())
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.Ubuntu)
 	vm, err := NewVM(env, "vm", WithImageURN(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err

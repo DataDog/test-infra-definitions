@@ -67,11 +67,6 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
     with open(f, "w") as f:
         f.write(kubeconfig_content)
 
-    try:
-        local_config = config.get_local_config(config_path)
-    except ValidationError as e:
-        raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
-
     command = f"KUBECONFIG={kubeconfig} kubectl get nodes"
 
     print(f"\nYou can run the following command to connect to the AKS cluster\n\n{command}\n")

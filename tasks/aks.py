@@ -78,7 +78,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
-    command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} kubectl get nodes"
+    command = f"KUBECONFIG={kubeconfig} kubectl get nodes"
 
     print(f"\nYou can run the following command to connect to the AKS cluster\n\n{command}\n")
 
@@ -91,4 +91,4 @@ def destroy_aks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bo
     """
     Destroy a AKS environment created with invoke create-aks.
     """
-    destroy(ctx, scenario_name, stack_name, force_yes=yes)
+    destroy(ctx, scenario_name, stack_name, force_yes=yes, use_aws_vault=False)

@@ -4,11 +4,9 @@ from typing import Optional
 import pyperclip
 import yaml
 from invoke.context import Context
-from invoke.exceptions import Exit
 from invoke.tasks import task
-from pydantic import ValidationError
 
-from . import config, doc, tool
+from . import doc, tool
 from .deploy import deploy
 from .destroy import destroy
 
@@ -17,7 +15,6 @@ scenario_name = "az/aks"
 
 @task(
     help={
-        "config_path": doc.config_path,
         "install_agent": doc.install_agent,
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
@@ -26,7 +23,6 @@ scenario_name = "az/aks"
 )
 def create_aks(
     ctx: Context,
-    config_path: Optional[str] = None,
     debug: Optional[bool] = False,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
@@ -55,10 +51,10 @@ def create_aks(
 
     tool.notify(ctx, "Your AKS cluster is now created")
 
-    _show_connection_message(ctx, full_stack_name, config_path)
+    _show_connection_message(ctx, full_stack_name)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Optional[str]):
+def _show_connection_message(ctx: Context, full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     kubeconfig_output = yaml.safe_load(outputs["kubeconfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)

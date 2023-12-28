@@ -310,11 +310,11 @@ func (values HelmValues) configureFakeintake(fakeintake *ddfakeintake.Connection
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),

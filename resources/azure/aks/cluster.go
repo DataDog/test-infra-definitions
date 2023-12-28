@@ -8,7 +8,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 
-	"github.com/pulumi/pulumi-azure-native-sdk/containerservice"
+	"github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

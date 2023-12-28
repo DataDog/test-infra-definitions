@@ -22,7 +22,6 @@ scenario_name = "az/aks"
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "default_resource_group": "The default resource group to use when creating resources.",
     }
 )
 def create_aks(
@@ -33,7 +32,6 @@ def create_aks(
     install_agent: Optional[bool] = True,
     install_workload: Optional[bool] = True,
     agent_version: Optional[str] = None,
-    default_resource_group: Optional[str] = None,
 ):
     """
     Create a new AKS environment. It lasts around 20 minutes.
@@ -41,10 +39,6 @@ def create_aks(
 
     extra_flags = {}
     extra_flags["ddinfra:env"] = "az/sandbox"
-    extra_flags["ddinfra:kubernetesVersion"] = "1.27.7"  # TODO: remove this line when pulumi use alias minor version.
-    # TODO: the default_resource_group when we finally can create resource groups (quota is not enough for now)
-    if default_resource_group:
-        extra_flags["ddinfra:az/defaultResourceGroup"] = default_resource_group
 
     full_stack_name = deploy(
         ctx,
@@ -66,7 +60,7 @@ def create_aks(
 
 def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Optional[str]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    kubeconfig_output = outputs["kubeconfig"]
+    kubeconfig_output = yaml.safe_load(outputs["kubeconfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)
     kubeconfig = f"{full_stack_name}-config.yaml"
     f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)

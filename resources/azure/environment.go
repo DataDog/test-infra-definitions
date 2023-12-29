@@ -22,6 +22,9 @@ const (
 	DDInfraDefaultPublicKeyPath            = "az/defaultPublicKeyPath"
 	DDInfraDefaultPrivateKeyPath           = "az/defaultPrivateKeyPath"
 	DDInfraDefaultPrivateKeyPassword       = "az/defaultPrivateKeyPassword"
+	DDInfraDefaultDeployKata               = "az/defaultDeployKata"
+	DDInfraDefaultKataRuntime              = "az/defaultKataRuntime"
+	DDInfraDefaultKataOsSku                = "az/defaultKataOsSku"
 )
 
 type Environment struct {
@@ -96,4 +99,19 @@ func (e *Environment) DefaultPrivateKeyPassword() string {
 
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
+}
+
+// DeployKata Whether to deploy a kata node pool
+func (e *Environment) DeployKata() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraDefaultDeployKata, e.envDefault.ddInfra.defaultDeployKata)
+}
+
+// KataRuntime returns the kata runtime that should be used
+func (e *Environment) KataRuntime() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultKataRuntime, e.envDefault.ddInfra.defaultKataRuntime)
+}
+
+// KataOsSku The os-sku of the kata node pool.
+func (e *Environment) KataOsSku() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultKataOsSku, e.envDefault.ddInfra.defaultKataOsSku)
 }

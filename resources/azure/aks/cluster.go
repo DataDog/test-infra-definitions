@@ -14,6 +14,8 @@ import (
 
 const (
 	adminUsername = "azureuser"
+
+	kataNodePoolName = "kata"
 )
 
 func NewCluster(e azure.Environment, name string, nodePool containerservice.ManagedClusterAgentPoolProfileArray, opts ...pulumi.ResourceOption) (*containerservice.ManagedCluster, pulumi.StringOutput, error) {
@@ -24,6 +26,10 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 
 	// Warning: we're modifying passed array as it should normally never be used anywhere else
 	nodePool = append(nodePool, systemNodePool(e, "system"))
+
+	if e.DeployKata() {
+		nodePool = append(nodePool, kataNodePool(e))
+	}
 
 	opts = append(opts, e.WithProviders(config.ProviderAzure))
 	cluster, err := containerservice.NewManagedCluster(e.Ctx, e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
@@ -81,20 +87,54 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 }
 
 func systemNodePool(e azure.Environment, name string) containerservice.ManagedClusterAgentPoolProfileInput {
-	return BuildNodePool(e, name, string(containerservice.AgentPoolModeSystem), e.DefaultInstanceType(), string(containerservice.OSTypeLinux), 1)
+	return BuildNodePool(NodePoolParams{
+		Environment:  e,
+		Name:         name,
+		Mode:         string(containerservice.AgentPoolModeSystem),
+		InstanceType: e.DefaultInstanceType(),
+		OSType:       string(containerservice.OSTypeLinux),
+		NodeCount:    1,
+	})
 }
 
-func BuildNodePool(e azure.Environment, name, mode, instanceType, os string, nodeCount int) containerservice.ManagedClusterAgentPoolProfileInput {
+func kataNodePool(e azure.Environment) containerservice.ManagedClusterAgentPoolProfileInput {
+	return BuildNodePool(NodePoolParams{
+		Environment:     e,
+		Name:            kataNodePoolName,
+		Mode:            string(containerservice.AgentPoolModeSystem),
+		InstanceType:    e.DefaultInstanceType(),
+		OSType:          string(containerservice.OSTypeLinux),
+		NodeCount:       2,
+		WorkloadRuntime: e.KataRuntime(),
+		OsSku:           e.KataOsSku(),
+	})
+}
+
+type NodePoolParams struct {
+	Environment     azure.Environment
+	Name            string
+	Mode            string
+	InstanceType    string
+	OSType          string
+	OsSku           string
+	NodeCount       int
+	WorkloadRuntime string
+}
+
+func BuildNodePool(params NodePoolParams) containerservice.ManagedClusterAgentPoolProfileInput {
+	e := params.Environment
 	return containerservice.ManagedClusterAgentPoolProfileArgs{
-		Name:               pulumi.String(name),
+		Name:               pulumi.String(params.Name),
 		OsDiskSizeGB:       pulumi.IntPtr(200),
-		Count:              pulumi.IntPtr(nodeCount),
+		Count:              pulumi.IntPtr(params.NodeCount),
 		EnableAutoScaling:  pulumi.BoolPtr(false),
-		Mode:               pulumi.String(mode),
+		Mode:               pulumi.String(params.Mode),
 		EnableNodePublicIP: pulumi.BoolPtr(false),
 		Tags:               e.ResourcesTags(),
-		OsType:             pulumi.String(os),
+		OsType:             pulumi.String(params.OSType),
 		Type:               pulumi.String(containerservice.AgentPoolTypeVirtualMachineScaleSets),
-		VmSize:             pulumi.String(instanceType),
+		VmSize:             pulumi.String(params.InstanceType),
+		WorkloadRuntime:    pulumi.String(params.WorkloadRuntime),
+		OsSKU:              pulumi.String(params.OsSku),
 	}
 }

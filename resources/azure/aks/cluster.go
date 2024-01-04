@@ -16,6 +16,10 @@ const (
 	adminUsername = "azureuser"
 
 	kataNodePoolName = "kata"
+
+	// Kata runtime constants
+	kataSku     = "AzureLinux"
+	kataRuntime = "KataMshvVmIsolation"
 )
 
 func NewCluster(e azure.Environment, name string, nodePool containerservice.ManagedClusterAgentPoolProfileArray, opts ...pulumi.ResourceOption) (*containerservice.ManagedCluster, pulumi.StringOutput, error) {
@@ -102,11 +106,11 @@ func kataNodePool(e azure.Environment) containerservice.ManagedClusterAgentPoolP
 		Environment:     e,
 		Name:            kataNodePoolName,
 		Mode:            string(containerservice.AgentPoolModeSystem),
-		InstanceType:    e.DefaultInstanceType(),
+		InstanceType:    e.KataInstanceType(),
 		OSType:          string(containerservice.OSTypeLinux),
 		NodeCount:       2,
-		WorkloadRuntime: e.KataRuntime(),
-		OsSku:           e.KataOsSku(),
+		WorkloadRuntime: kataRuntime,
+		OsSku:           kataSku,
 	})
 }
 

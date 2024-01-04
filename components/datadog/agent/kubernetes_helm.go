@@ -197,6 +197,34 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			"prometheusScrape": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
+			"sbom": pulumi.Map{
+				"containerImage": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+				},
+			},
+			// The fake intake keeps payloads only for a hardcoded period of 15 minutes.
+			// https://github.com/DataDog/datadog-agent/blob/34922393ce47261da9835d7bf62fb5e090e5fa55/test/fakeintake/server/server.go#L81
+			// So, we need `container_image` and `sbom` checks to resubmit their payloads more frequently than that.
+			"confd": pulumi.Map{
+				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+					"ad_identifiers": []string{"_container_image"},
+					"init_config":    map[string]interface{}{},
+					"instances": []map[string]interface{}{
+						{
+							"periodic_refresh_seconds": 600,
+						},
+					},
+				})),
+				"sbom.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+					"ad_identifiers": []string{"_sbom"},
+					"init_config":    map[string]interface{}{},
+					"instances": []map[string]interface{}{
+						{
+							"periodic_refresh_seconds": 600,
+						},
+					},
+				})),
+			},
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{
@@ -310,11 +338,11 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
@@ -323,6 +351,18 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
 			"value": pulumi.String("true"),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
 	}
 

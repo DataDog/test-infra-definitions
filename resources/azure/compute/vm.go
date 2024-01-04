@@ -8,8 +8,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 
-	"github.com/pulumi/pulumi-azure-native-sdk/compute"
-	"github.com/pulumi/pulumi-azure-native-sdk/network"
+	compute "github.com/pulumi/pulumi-azure-native-sdk/compute/v2"
+	network "github.com/pulumi/pulumi-azure-native-sdk/network/v2"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )

@@ -97,6 +97,7 @@ func GetFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringI
 			"dd_service":     service,
 			"dd_source":      source,
 			"dd_message_key": pulumi.String("log"),
+			"dd_tags":        pulumi.String("ecs_launch_type:fargate"),
 			"TLS":            pulumi.String("on"),
 			"provider":       pulumi.String("ecs"),
 		},

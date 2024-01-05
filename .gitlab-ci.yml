@@ -20,7 +20,7 @@ build-runner-image:
   rules:
     - when: on_success
   script:
-    - docker buildx build --no-cache --pull --push --label target=build --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} .
+    - docker buildx build --no-cache --pull --push --label target=build --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHA:0:12} .
   retry: 2
 
 

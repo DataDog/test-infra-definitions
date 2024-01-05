@@ -21,11 +21,12 @@ const (
 )
 
 type HelmInstallationArgs struct {
-	KubeProvider  *kubernetes.Provider
-	Namespace     string
-	ValuesYAML    pulumi.AssetOrArchiveArrayInput
-	Fakeintake    *ddfakeintake.ConnectionExporter
-	DeployWindows bool
+	KubeProvider       *kubernetes.Provider
+	Namespace          string
+	ValuesYAML         pulumi.AssetOrArchiveArrayInput
+	Fakeintake         *ddfakeintake.ConnectionExporter
+	DeployWindows      bool
+	EnableOrchestrator bool
 }
 
 type HelmComponent struct {
@@ -114,6 +115,9 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(args.Fakeintake)
+	if args.EnableOrchestrator {
+		values.enableOrchestrator()
+	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -373,4 +377,41 @@ func (values HelmValues) configureFakeintake(fakeintake *ddfakeintake.Connection
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)
 		}
 	}
+}
+
+func (values HelmValues) enableOrchestrator() {
+	values["datadog"].(pulumi.Map)["orchestratorExplorer"] = pulumi.Map{
+		"enabled": pulumi.Bool(true),
+		"manifest_collection": pulumi.Map{
+			"enabled": pulumi.Bool(true),
+		},
+		"extraTags": pulumi.StringArray{
+			pulumi.String("source:agent-e2e"),
+		},
+		"customResources": pulumi.StringArray{
+			pulumi.String("datadoghq.com/v1alpha1/datadogmetrics"),
+		},
+	}
+	ca := values["clusterAgent"].(pulumi.Map)
+	var confd pulumi.Map
+	if existing, found := ca["confd"]; found {
+		confd = existing.(pulumi.Map)
+	} else {
+		confd = pulumi.Map{}
+		ca["confd"] = confd
+	}
+	confd["orchestrator.yaml"] = pulumi.String(`init_config:
+instances:
+- collectors:
+  - cronjobs
+  - jobs
+  - deployments
+  - nodes
+  - pods
+  - replicasets
+  - services
+  - clusters
+  - daemonsets
+  - statefulsets
+  - namespaces`)
 }

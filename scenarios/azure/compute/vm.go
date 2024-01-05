@@ -10,7 +10,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 	"github.com/DataDog/test-infra-definitions/resources/azure/compute"
 
-	azNetwork "github.com/pulumi/pulumi-azure-native-sdk/network"
+	network "github.com/pulumi/pulumi-azure-native-sdk/network/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -37,7 +37,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		// Create the Azure instance
 		var err error
-		var nwIface *azNetwork.NetworkInterface
+		var nwIface *network.NetworkInterface
 
 		if vmArgs.osInfo.Family() == os.LinuxFamily {
 			_, _, nwIface, err = compute.NewLinuxInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData))

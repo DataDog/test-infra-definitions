@@ -388,9 +388,6 @@ func (values HelmValues) enableOrchestrator() {
 		"extraTags": pulumi.StringArray{
 			pulumi.String("source:agent-e2e"),
 		},
-		"customResources": pulumi.StringArray{
-			pulumi.String("datadoghq.com/v1alpha1/datadogmetrics"),
-		},
 	}
 	ca := values["clusterAgent"].(pulumi.Map)
 	var confd pulumi.Map
@@ -413,5 +410,8 @@ instances:
   - clusters
   - daemonsets
   - statefulsets
-  - namespaces`)
+  - namespaces
+  - customresourcedefinitions
+  crd_collectors:
+  - datadoghq.com/v1alpha1/datadogmetrics`)
 }

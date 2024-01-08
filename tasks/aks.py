@@ -30,7 +30,7 @@ def create_aks(
     agent_version: Optional[str] = None,
 ):
     """
-    Create a new AKS environment. It lasts around 20 minutes.
+    Create a new AKS environment. It lasts around 5 minutes.
     """
 
     extra_flags = {}

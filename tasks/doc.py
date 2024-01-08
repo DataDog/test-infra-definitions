@@ -29,3 +29,4 @@ interactive: str = "Enable interactive mode, if set to False notifications and c
 config_path: str = "Specify a custom config path to use"
 use_loadBalancer: str = "Use a loadBalancer to instantiate the fakeintake (default False)"
 clean_known_hosts: str = "Clean the host from ssh known_hosts file after destroying the VM (default True)"
+instance_type: str = "The instance type to use (default is t3.medium for aws or Standard_B4ms for azure)"

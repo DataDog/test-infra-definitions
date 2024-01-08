@@ -3,8 +3,8 @@
 
 FROM python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.20.3
-ENV GO_SHA=979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca
+ENV GO_VERSION=1.21.5
+ENV GO_SHA=e2bc0b3e4b64111ec117295c088bde5f00eeed1567999ff77bc859d7df70078e
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/

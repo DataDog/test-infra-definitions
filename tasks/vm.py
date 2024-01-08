@@ -62,6 +62,11 @@ def create_vm(
     if ami_id is not None:
         extra_flags["ddinfra:osAmiId"] = ami_id
 
+    if use_fakeintake and not install_agent:
+        print(
+            "[WARNING] It is currently not possible to deploy a VM with fakeintake and without agent. Your VM will start without fakeintake."
+        )
+
     full_stack_name = deploy(
         ctx,
         scenario_name,

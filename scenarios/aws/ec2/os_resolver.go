@@ -121,24 +121,28 @@ func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 	if osInfo.Version == "" {
 		osInfo.Version = os.UbuntuDefault.Version
 	}
-	if osInfo.Architecture == os.AMD64Arch {
-		// Cheating a bit as the architecture is x86_64 but the SSM parameter is amd64
-		osInfo.Architecture = "amd64"
+
+	paramArch := osInfo.Architecture
+	if paramArch == os.AMD64Arch {
+		// Override required as the architecture is x86_64 but the SSM parameter is amd64
+		paramArch = "amd64"
 	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/ebs-gp2/ami-id", osInfo.Version, osInfo.Architecture))
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/ebs-gp2/ami-id", osInfo.Version, paramArch))
 }
 
 func resolveDebianAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 	if osInfo.Version == "" {
 		osInfo.Version = os.DebianDefault.Version
 	}
-	if osInfo.Architecture == os.AMD64Arch {
-		// Cheating a bit as the architecture is x86_64 but the SSM parameter is amd64
-		osInfo.Architecture = "amd64"
+
+	paramArch := osInfo.Architecture
+	if paramArch == os.AMD64Arch {
+		// Override required as the architecture is x86_64 but the SSM parameter is amd64
+		paramArch = "amd64"
 	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/debian/release/%s/latest/%s", osInfo.Version, osInfo.Architecture))
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/debian/release/%s/latest/%s", osInfo.Version, paramArch))
 }
 
 func resolveRedHatAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

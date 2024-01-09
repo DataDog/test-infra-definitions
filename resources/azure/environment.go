@@ -22,8 +22,7 @@ const (
 	DDInfraDefaultPublicKeyPath            = "az/defaultPublicKeyPath"
 	DDInfraDefaultPrivateKeyPath           = "az/defaultPrivateKeyPath"
 	DDInfraDefaultPrivateKeyPassword       = "az/defaultPrivateKeyPassword"
-	DDInfraAksDeployKata                   = "az/aks/deployKata"
-	DDInfraAksLinuxKataInstanceType        = "az/aks/linuxKataInstanceType"
+	DDInfraAksLinuxKataNodeGroup           = "az/aks/linuxKataNodeGroup"
 )
 
 type Environment struct {
@@ -100,12 +99,7 @@ func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
 }
 
-// DeployKata Whether to deploy a kata node pool
-func (e *Environment) DeployKata() bool {
-	return e.GetBoolWithDefault(e.InfraConfig, DDInfraAksDeployKata, e.envDefault.ddInfra.aks.defaultDeployKata)
-}
-
-// KataInstanceType returns the instance type that should be used for kata nodes
-func (e *Environment) KataInstanceType() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraAksLinuxKataInstanceType, e.envDefault.ddInfra.aks.defaultKataInstanceType)
+// LinuxKataNodeGroup Whether to deploy a kata node pool
+func (e *Environment) LinuxKataNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraAksLinuxKataNodeGroup, e.envDefault.ddInfra.aks.linuxKataNodeGroup)
 }

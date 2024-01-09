@@ -31,7 +31,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 	// Warning: we're modifying passed array as it should normally never be used anywhere else
 	nodePool = append(nodePool, systemNodePool(e, "system"))
 
-	if e.DeployKata() {
+	if e.LinuxKataNodeGroup() {
 		nodePool = append(nodePool, kataNodePool(e))
 	}
 
@@ -106,7 +106,7 @@ func kataNodePool(e azure.Environment) containerservice.ManagedClusterAgentPoolP
 		Environment:     e,
 		Name:            kataNodePoolName,
 		Mode:            string(containerservice.AgentPoolModeSystem),
-		InstanceType:    e.KataInstanceType(),
+		InstanceType:    e.DefaultInstanceType(),
 		OSType:          string(containerservice.OSTypeLinux),
 		NodeCount:       2,
 		WorkloadRuntime: kataRuntime,

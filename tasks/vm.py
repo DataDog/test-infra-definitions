@@ -139,8 +139,8 @@ def _get_host(ctx: Context, stack_name: Optional[str] = None) -> str:
     """
     full_stack_name = tool.get_stack_name(stack_name, scenario_name)
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    connection = tool.Connection(outputs)
-    return connection.host
+    remoteHost = tool.RemoteHost("aws-vm", outputs)
+    return remoteHost.host
 
 
 def _clean_known_hosts(host: str) -> None:

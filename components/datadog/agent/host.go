@@ -92,12 +92,13 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		{"system-probe.yaml", params.SystemProbeConfig},
 		{"security-agent.yaml", params.SecurityAgentConfig},
 	} {
-		_, err := h.updateConfig(input.path, pulumi.String(input.content), afterInstallOpts...)
+		contentPulumiStr := pulumi.String(input.content)
+		_, err := h.updateConfig(input.path, contentPulumiStr, afterInstallOpts...)
 		if err != nil {
 			return err
 		}
 
-		configFiles[input.path] = content
+		configFiles[input.path] = contentPulumiStr
 	}
 
 	_, intgHash, err := h.installIntegrationConfigsAndFiles(params.Integrations, params.Files, afterInstallOpts...)
@@ -105,7 +106,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		return err
 	}
 
-	// Restart the agent when the HostInstall itself is done, which is normally when all children are done  	// So we cannot use baseOpts
+	// Restart the agent when the HostInstall itself is done, which is normally when all children are done
 	_, err = h.manager.restartAgentServices(
 		pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)},
 		utils.PulumiDependsOn(h),

@@ -16,7 +16,7 @@ type kindConfig struct {
 var kubeToKindVersion = map[string]kindConfig{
 	"1.29": {
 		kindVersion:      "v0.20.0",
-		nodeImageVersion: "v1.29.0",
+		nodeImageVersion: "v1.29.0@sha256:eaa1450915475849a73a9227b8f201df25e55e268e5d619312131292e324d570",
 	},
 	"1.28": {
 		kindVersion:      "v0.20.0",

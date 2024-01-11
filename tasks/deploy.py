@@ -22,6 +22,7 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
+    install_workload: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
@@ -35,6 +36,10 @@ def deploy(
     if install_agent is None:
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent
+
+    if install_workload is None:
+        install_workload = tool.get_default_workload_install()
+    flags["ddtestworkload:deploy"] = install_workload
 
     try:
         cfg = config.get_local_config(config_path)
@@ -50,7 +55,7 @@ def deploy(
     awsKeyPairName = cfg.get_aws().keyPairName
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
     aws_account = cfg.get_aws().get_account()
-    flags["ddinfra:env"] = "aws/" + aws_account
+    flags.setdefault("ddinfra:env", "aws/" + aws_account)
 
     if cfg.get_aws().teamTag is None or cfg.get_aws().teamTag == "":
         raise Exit(

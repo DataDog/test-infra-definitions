@@ -10,10 +10,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//go:embed distro/domain-amd64.xls
+//go:embed distro/domain-amd64.xsl
 var distroDomainXLS string
 
-//go:embed distro/domain-arm64.xls
+//go:embed distro/domain-arm64.xsl
 var distroARM64DomainXLS string
 
 type DistroAMD64ResourceCollection struct {

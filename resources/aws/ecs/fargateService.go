@@ -1,6 +1,8 @@
 package ecs
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -27,20 +29,19 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 			Subnets:        e.RandomSubnets(),
 		},
-		TaskDefinition:            taskDefArn,
-		EnableExecuteCommand:      pulumi.BoolPtr(true),
-		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
+		TaskDefinition:       taskDefArn,
+		EnableExecuteCommand: pulumi.BoolPtr(true),
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, getFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+func FargateTaskDefinitionWithAgent(e aws.Environment, name string, family pulumi.StringInput, cpu, memory int, containers map[string]ecs.TaskDefinitionContainerDefinitionArgs, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) (*ecs.FargateTaskDefinition, error) {
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
-		Cpu:        pulumi.StringPtr("1024"),
-		Memory:     pulumi.StringPtr("2048"),
+		Cpu:        pulumi.StringPtr(fmt.Sprintf("%d", cpu)),
+		Memory:     pulumi.StringPtr(fmt.Sprintf("%d", memory)),
 		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
 		},
@@ -68,7 +69,7 @@ func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs
 				Condition:     pulumi.String("HEALTHY"),
 			},
 		},
-		LogConfiguration: getFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
+		LogConfiguration: GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 		MountPoints:      ecs.TaskDefinitionMountPointArray{},
 		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
@@ -81,7 +82,7 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 		Cpu:       pulumi.IntPtr(0),
 		User:      pulumi.StringPtr("0"),
 		Name:      pulumi.String("log_router"),
-		Image:     pulumi.String("amazon/aws-for-fluent-bit:latest"),
+		Image:     pulumi.String("amazon/aws-for-fluent-bit:stable"),
 		Essential: pulumi.BoolPtr(true),
 		FirelensConfiguration: ecs.TaskDefinitionFirelensConfigurationArgs{
 			Type: pulumi.String("fluentbit"),
@@ -96,7 +97,7 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 	}
 }
 
-func getFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringInput) ecs.TaskDefinitionLogConfigurationPtrInput {
+func GetFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringInput) ecs.TaskDefinitionLogConfigurationPtrInput {
 	return ecs.TaskDefinitionLogConfigurationArgs{
 		LogDriver: pulumi.String("awsfirelens"),
 		Options: pulumi.StringMap{

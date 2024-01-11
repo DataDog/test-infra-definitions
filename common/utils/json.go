@@ -1,10 +1,10 @@
-package nginx
+package utils
 
 import (
 	"encoding/json"
 )
 
-func jsonMustMarshal(v any) string {
+func JSONMustMarshal(v any) string {
 	b, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {
 		panic(err)

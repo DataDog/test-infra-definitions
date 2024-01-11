@@ -2,13 +2,17 @@ package kindvm
 
 import (
 	"fmt"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws"
@@ -25,7 +29,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 	awsEnv := vm.Infra.GetAwsEnvironment()
 
-	kubeConfigCommand, kubeConfig, err := localKubernetes.NewKindCluster(vm.UnixVM, awsEnv.CommonNamer.ResourceName("kind"), "amd64")
+	kubeConfigCommand, kubeConfig, err := localKubernetes.NewKindCluster(vm.UnixVM, awsEnv.CommonNamer.ResourceName("kind"), "amd64", awsEnv.KubernetesVersion())
 	if err != nil {
 		return err
 	}
@@ -44,20 +48,31 @@ func Run(ctx *pulumi.Context) error {
 
 	var dependsOnCrd pulumi.ResourceOption
 
+	var fakeIntake *ddfakeintake.ConnectionExporter
+	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+		fakeIntakeOptions := []fakeintakeparams.Option{}
+
+		if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithLoadBalancer())
+		}
+
+		if fakeIntake, err = aws.NewEcsFakeintake(awsEnv, fakeIntakeOptions...); err != nil {
+			return err
+		}
+	}
+
+	clusterName := ctx.Stack()
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {
-		var fakeintake *ddfakeintake.ConnectionExporter
-		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			if fakeintake, err = aws.NewEcsFakeintake(awsEnv); err != nil {
-				return err
-			}
-		}
 		customValues := fmt.Sprintf(`
 datadog:
   kubelet:
     tlsVerify: false
   clusterName: "%s"
-`, ctx.Stack())
+agents:
+  useHostNetwork: true
+`, clusterName)
 
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 			KubeProvider: kindKubeProvider,
@@ -65,17 +80,24 @@ datadog:
 			ValuesYAML: pulumi.AssetOrArchiveArray{
 				pulumi.NewStringAsset(customValues),
 			},
-			Fakeintake: fakeintake,
+			Fakeintake: fakeIntake,
 		}, nil)
 		if err != nil {
 			return err
 		}
 
-		ctx.Export("kube-cluster-name", pulumi.String(ctx.Stack()))
+		ctx.Export("kube-cluster-name", pulumi.String(clusterName))
 		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
 		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
 
 		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
+	}
+
+	// Deploy standalone dogstatsd
+	if awsEnv.DogstatsdDeploy() {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, clusterName); err != nil {
+			return err
+		}
 	}
 
 	// Deploy testing workload
@@ -88,11 +110,25 @@ datadog:
 			return err
 		}
 
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd"); err != nil {
+		if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-cpustress"); err != nil {
+			return err
+		}
+
+		// dogstatsd clients that report to the Agent
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			return err
+		}
+
+		// dogstatsd clients that report to the dogstatsd standalone deployment
+		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 			return err
 		}
 
 		if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-prometheus"); err != nil {
+			return err
+		}
+
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-mutated"); err != nil {
 			return err
 		}
 	}

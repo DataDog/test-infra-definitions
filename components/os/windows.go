@@ -1,6 +1,7 @@
 package os
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,9 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type Windows struct {
@@ -81,6 +85,11 @@ func (*Windows) GetRunAgentCmd(parameters string) string {
 func getAgentURL(version AgentVersion) (string, error) {
 	minor := strings.ReplaceAll(version.Minor, "~", "-")
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
+
+	if version.PipelineID != "" {
+		return getAgentURLFromPipelineID(version.PipelineID)
+	}
+
 	if version.BetaChannel {
 		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
 		if err != nil {
@@ -168,6 +177,34 @@ func (f *agentURLFinder) findVersion(fullVersion string) (string, error) {
 	}
 
 	return url, nil
+}
+
+func getAgentURLFromPipelineID(pipeline string) (string, error) {
+	// FIXME: remove pipeline- from the pipelineID we do not want it for Windows
+	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
+
+	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
+	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
+	if err != nil {
+		return "", err
+	}
+
+	s3Client := s3.NewFromConfig(config)
+
+	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
+		Bucket: aws.String("dd-agent-mstesting"),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
+	})
+
+	if err != nil {
+		return "", err
+	}
+
+	if len(result.Contents) <= 0 {
+		return "", fmt.Errorf("no agent MSI found for pipeline %v", pipeline)
+	}
+
+	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil
 }
 
 func getKey[T any](m map[string]interface{}, keyName string) (T, error) {

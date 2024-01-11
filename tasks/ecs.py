@@ -17,6 +17,7 @@ scenario_name = "aws/ecs"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
+        "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "use_fargate": doc.use_fargate,
@@ -31,11 +32,12 @@ def create_ecs(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
+    install_workload: Optional[bool] = True,
     agent_version: Optional[str] = None,
     use_fargate: bool = True,
     linux_node_group: bool = True,
     linux_arm_node_group: bool = False,
-    bottlerocket_node_group: bool = False,
+    bottlerocket_node_group: bool = True,
     windows_node_group: bool = False,
 ):
     """
@@ -54,6 +56,7 @@ def create_ecs(
         config_path,
         stack_name=stack_name,
         install_agent=install_agent,
+        install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
     )

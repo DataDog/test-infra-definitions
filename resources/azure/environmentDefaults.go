@@ -21,6 +21,11 @@ type ddInfra struct {
 	defaultSecurityGroup   string
 	defaultInstanceType    string
 	defaultARMInstanceType string
+	aks                    ddInfraAks
+}
+
+type ddInfraAks struct {
+	linuxKataNodeGroup bool
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
@@ -43,8 +48,11 @@ func sandboxDefault() environmentDefault {
 			defaultVNet:            "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/datadog-agent-testing/providers/Microsoft.Network/virtualNetworks/default-vnet",
 			defaultSubnet:          "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/datadog-agent-testing/providers/Microsoft.Network/virtualNetworks/default-vnet/subnets/default-subnet",
 			defaultSecurityGroup:   "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/datadog-agent-testing/providers/Microsoft.Network/networkSecurityGroups/default",
-			defaultInstanceType:    "Standard_B4ms",
-			defaultARMInstanceType: "Standard_D4ps_v5",
+			defaultInstanceType:    "Standard_D4s_v5",  // Allows nested virtualization for kata runtimes
+			defaultARMInstanceType: "Standard_D4ps_v5", // No azure arm instance supports nested virtualization
+			aks: ddInfraAks{
+				linuxKataNodeGroup: true,
+			},
 		},
 	}
 }

@@ -79,6 +79,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								&corev1.ContainerPortArgs{
 									Name:          pulumi.String("metrics"),
 									ContainerPort: pulumi.Int(8080),
+									Protocol:      pulumi.String("TCP"),
 								},
 							},
 							LivenessProbe: &corev1.ProbeArgs{

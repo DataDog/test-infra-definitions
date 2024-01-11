@@ -1,12 +1,14 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM python:3.10-slim-bullseye AS base
+FROM python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.20.3
-ENV GO_SHA=979694c2c25c735755bf26f4f45e19e64e4811d661dd07b8c010f7a8e18adfca
+ENV GO_VERSION=1.21.5
+ENV GO_SHA=e2bc0b3e4b64111ec117295c088bde5f00eeed1567999ff77bc859d7df70078e
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
+# Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
+ENV PULUMI_SKIP_UPDATE_CHECK=true
 
 # Install deps all in one step
 RUN apt-get update -y && \
@@ -50,7 +52,8 @@ RUN apt-get update -y && \
   google-cloud-sdk-gke-gcloud-auth-plugin \
   kubectl \
   # xsltproc is required by libvirt-sdk used in the micro-vms scenario
-  xsltproc && \
+  xsltproc \
+  jq && \
   # Clean up the lists work
   rm -rf /var/lib/apt/lists/*
 
@@ -105,6 +108,9 @@ RUN pip3 install "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
   pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
   go install gotest.tools/gotestsum@latest
+
+# Configure aws retries
+COPY .awsconfig $HOME/.aws/config
 
 # I think it's safe to say if we're using this mega image, we want pulumi
 ENTRYPOINT ["pulumi"]

@@ -50,7 +50,6 @@ def create_eks(
     extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
     extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
     extra_flags["ddinfra:aws/eks/windowsNodeGroup"] = windows_node_group
-    extra_flags["ddtestworkload:deploy"] = install_workload
 
     full_stack_name = deploy(
         ctx,
@@ -59,6 +58,7 @@ def create_eks(
         app_key_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
+        install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
     )

@@ -32,6 +32,11 @@ updates:
       interval: daily
 
   - package-ecosystem: docker
+    directory: /components/datadog/apps/mutatedbyadmissioncontroller/images/mutated
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
     directory: /components/datadog/apps/nginx/images/http-client
     schedule:
       interval: daily

@@ -1,9 +1,6 @@
 package agent
 
 import (
-	"encoding/base64"
-	"encoding/json"
-
 	"golang.org/x/exp/maps"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -95,29 +92,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	// Create image pull secret if necessary
 	var imgPullSecret *corev1.Secret
 	if e.ImagePullRegistry() != "" {
-		dockerConfigJSON := e.ImagePullPassword().ApplyT(func(password string) (string, error) {
-			dockerConfigJSON, err := json.Marshal(map[string]map[string]map[string]string{
-				"auths": {
-					e.ImagePullRegistry(): {
-						"username": e.ImagePullUsername(),
-						"password": password,
-						"auth":     base64.StdEncoding.EncodeToString([]byte(e.ImagePullUsername() + ":" + password)),
-					},
-				},
-			})
-			return string(dockerConfigJSON), err
-		}).(pulumi.StringOutput)
-
-		imgPullSecret, err = corev1.NewSecret(e.Ctx, "registry-credentials", &corev1.SecretArgs{
-			Metadata: metav1.ObjectMetaArgs{
-				Namespace: ns.Metadata.Name(),
-				Name:      pulumi.Sprintf("%s-registry-credentials", installName),
-			},
-			StringData: pulumi.StringMap{
-				".dockerconfigjson": dockerConfigJSON,
-			},
-			Type: pulumi.StringPtr("kubernetes.io/dockerconfigjson"),
-		}, opts...)
+		imgPullSecret, err = NewImagePullSecret(e, args.Namespace, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -125,7 +100,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	// Compute some values
-	agentImagePath := DockerAgentFullImagePath(&e, "")
+	agentImagePath := DockerAgentFullImagePath(&e, "", "")
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
 	clusterAgentImagePath := DockerClusterAgentFullImagePath(&e, "")
@@ -221,6 +196,34 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			},
 			"prometheusScrape": pulumi.Map{
 				"enabled": pulumi.Bool(true),
+			},
+			"sbom": pulumi.Map{
+				"containerImage": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+				},
+			},
+			// The fake intake keeps payloads only for a hardcoded period of 15 minutes.
+			// https://github.com/DataDog/datadog-agent/blob/34922393ce47261da9835d7bf62fb5e090e5fa55/test/fakeintake/server/server.go#L81
+			// So, we need `container_image` and `sbom` checks to resubmit their payloads more frequently than that.
+			"confd": pulumi.Map{
+				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+					"ad_identifiers": []string{"_container_image"},
+					"init_config":    map[string]interface{}{},
+					"instances": []map[string]interface{}{
+						{
+							"periodic_refresh_seconds": 600,
+						},
+					},
+				})),
+				"sbom.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+					"ad_identifiers": []string{"_sbom"},
+					"init_config":    map[string]interface{}{},
+					"instances": []map[string]interface{}{
+						{
+							"periodic_refresh_seconds": 600,
+						},
+					},
+				})),
 			},
 		},
 		"agents": pulumi.Map{
@@ -326,12 +329,40 @@ func (values HelmValues) configureFakeintake(fakeintake *ddfakeintake.Connection
 
 	additionalEndpointsEnvVar := pulumi.MapArray{
 		pulumi.Map{
+			"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+			"value": pulumi.String("true"),
+		},
+		pulumi.Map{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s", "port": 80, "is_reliable": true, "usessl": false}]`, fakeintake.Host),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
+			"value": pulumi.String("true"),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
+			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
 	}
 

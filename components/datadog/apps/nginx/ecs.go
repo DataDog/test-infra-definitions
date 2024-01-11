@@ -2,6 +2,7 @@ package nginx
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
@@ -58,7 +59,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 					Name:  pulumi.String("nginx"),
 					Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
 					DockerLabels: pulumi.StringMap{
-						"com.datadoghq.ad.checks": pulumi.String(jsonMustMarshal(
+						"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 							map[string]interface{}{
 								"nginx": map[string]interface{}{
 									"init_config": map[string]interface{}{},

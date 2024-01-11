@@ -15,10 +15,10 @@ from .tool import ask, info, is_linux, is_windows, warn
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa", "playground"]
 
 
-@task(help={"config_path": doc.config_path, "copy_to_clipboard": doc.copy_to_clipboard})
-def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Optional[bool] = True) -> None:
+@task(help={"config_path": doc.config_path, "interactive": doc.interactive})
+def setup(_: Context, config_path: Optional[str] = None, interactive: Optional[bool] = True) -> None:
     """
-    Setup a local environment interactively
+    Setup a local environment, interactively by default
     """
     info("🤖 Install Pulumi")
     if is_windows():
@@ -28,26 +28,31 @@ def setup(_: Context, config_path: Optional[str] = None, copy_to_clipboard: Opti
     else:
         os.system("brew install pulumi/tap/pulumi")
 
+    # install plugins
+    os.system("pulumi --non-interactive plugin install")
+    # login to local stack storage
     os.system("pulumi login --local")
 
     info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     try:
         config = get_local_config(config_path)
     except Exception:
-        config = Config.parse_obj({})
+        config = Config.model_validate({})
 
-    # AWS config
-    setupAWSConfig(config)
-    # Agent config
-    setupAgentConfig(config)
+    if interactive:
+        # AWS config
+        setupAWSConfig(config)
+        # Agent config
+        setupAgentConfig(config)
 
     config.save_to_local_config(config_path)
-    cat_profile_command = f"cat {get_full_profile_path(config_path)}"
-    if copy_to_clipboard:
+
+    if interactive:
+        cat_profile_command = f"cat {get_full_profile_path(config_path)}"
         pyperclip.copy(cat_profile_command)
-    print(
-        f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
-    )
+        print(
+            f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
+        )
 
 
 def setupAWSConfig(config: Config):

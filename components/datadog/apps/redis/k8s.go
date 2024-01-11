@@ -6,13 +6,16 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	ddv1alpha1 "github.com/DataDog/test-infra-definitions/components/kubernetes/crds/kubernetes/datadoghq/v1alpha1"
+	"github.com/Masterminds/semver"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
 	autoscalingv2 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/autoscaling/v2"
+	autoscalingv2beta2 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/autoscaling/v2beta2"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
 	policyv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/policy/v1"
+	policyv1beta1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/policy/v1beta1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -25,6 +28,11 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	k8sComponent := &K8sComponent{}
 	if err := e.Ctx.RegisterComponentResource("dd:apps", "redis", k8sComponent, opts...); err != nil {
+		return nil, err
+	}
+
+	kubeVersion, err := semver.NewVersion(e.KubernetesVersion())
+	if err != nil {
 		return nil, err
 	}
 
@@ -66,6 +74,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("redis"),
 							Image: pulumi.String("redis:latest"),
+							Args: pulumi.StringArray{
+								pulumi.String("--loglevel"),
+								pulumi.String("verbose"),
+							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),
@@ -80,6 +92,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								&corev1.ContainerPortArgs{
 									Name:          pulumi.String("redis"),
 									ContainerPort: pulumi.Int(6379),
+									Protocol:      pulumi.String("TCP"),
 								},
 							},
 							LivenessProbe: &corev1.ProbeArgs{
@@ -101,24 +114,49 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1.PodDisruptionBudgetArgs{
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("redis"),
-			Namespace: pulumi.String(namespace),
-			Labels: pulumi.StringMap{
-				"app": pulumi.String("redis"),
-			},
-		},
-		Spec: &policyv1.PodDisruptionBudgetSpecArgs{
-			MaxUnavailable: pulumi.Int(1),
-			Selector: &metav1.LabelSelectorArgs{
-				MatchLabels: pulumi.StringMap{
+	// In versions older than 1.21.0, we should use policyv1beta1
+	kubeThresholdVersion, _ := semver.NewVersion("1.21.0")
+
+	if kubeVersion.Compare(kubeThresholdVersion) < 0 {
+		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1beta1.PodDisruptionBudgetArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("redis"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
 					"app": pulumi.String("redis"),
 				},
 			},
-		},
-	}, opts...); err != nil {
-		return nil, err
+			Spec: &policyv1beta1.PodDisruptionBudgetSpecArgs{
+				MaxUnavailable: pulumi.Int(1),
+				Selector: &metav1.LabelSelectorArgs{
+					MatchLabels: pulumi.StringMap{
+						"app": pulumi.String("redis"),
+					},
+				},
+			},
+		}, opts...); err != nil {
+			return nil, err
+		}
+	} else {
+		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1.PodDisruptionBudgetArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("redis"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("redis"),
+				},
+			},
+			Spec: &policyv1.PodDisruptionBudgetSpecArgs{
+				MaxUnavailable: pulumi.Int(1),
+				Selector: &metav1.LabelSelectorArgs{
+					MatchLabels: pulumi.StringMap{
+						"app": pulumi.String("redis"),
+					},
+				},
+			},
+		}, opts...); err != nil {
+			return nil, err
+		}
 	}
 
 	if dependsOnCrd != nil {
@@ -138,40 +176,81 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			return nil, err
 		}
 
-		if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
-			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("redis"),
-				Namespace: pulumi.String(namespace),
-				Labels: pulumi.StringMap{
-					"app": pulumi.String("redis"),
+		// In versions older than 1.23.0, we should use autoscalingv2beta2
+		kubeThresholdVersion, _ = semver.NewVersion("1.23.0")
+
+		if kubeVersion.Compare(kubeThresholdVersion) < 0 {
+			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Name:      pulumi.String("redis"),
+					Namespace: pulumi.String(namespace),
+					Labels: pulumi.StringMap{
+						"app": pulumi.String("redis"),
+					},
 				},
-			},
-			Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
-				MinReplicas: pulumi.Int(1),
-				MaxReplicas: pulumi.Int(5),
-				ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
-					ApiVersion: pulumi.String("apps/v1"),
-					Kind:       pulumi.String("Deployment"),
-					Name:       pulumi.String("redis"),
-				},
-				Metrics: &autoscalingv2.MetricSpecArray{
-					&autoscalingv2.MetricSpecArgs{
-						Type: pulumi.String("External"),
-						External: &autoscalingv2.ExternalMetricSourceArgs{
-							Metric: &autoscalingv2.MetricIdentifierArgs{
-								Name: pulumi.String("datadogmetric@" + namespace + ":redis"),
-							},
-							Target: &autoscalingv2.MetricTargetArgs{
-								Type:         pulumi.String("AverageValue"),
-								AverageValue: pulumi.String("10"),
+				Spec: &autoscalingv2beta2.HorizontalPodAutoscalerSpecArgs{
+					MinReplicas: pulumi.Int(1),
+					MaxReplicas: pulumi.Int(5),
+					ScaleTargetRef: &autoscalingv2beta2.CrossVersionObjectReferenceArgs{
+						ApiVersion: pulumi.String("apps/v1"),
+						Kind:       pulumi.String("Deployment"),
+						Name:       pulumi.String("redis"),
+					},
+					Metrics: &autoscalingv2beta2.MetricSpecArray{
+						&autoscalingv2beta2.MetricSpecArgs{
+							Type: pulumi.String("External"),
+							External: &autoscalingv2beta2.ExternalMetricSourceArgs{
+								Metric: &autoscalingv2beta2.MetricIdentifierArgs{
+									Name: pulumi.String("datadogmetric@" + namespace + ":redis"),
+								},
+								Target: &autoscalingv2beta2.MetricTargetArgs{
+									Type:         pulumi.String("AverageValue"),
+									AverageValue: pulumi.String("10"),
+								},
 							},
 						},
 					},
 				},
-			},
-		}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
-			return nil, err
+			}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
+				return nil, err
+			}
+		} else {
+			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Name:      pulumi.String("redis"),
+					Namespace: pulumi.String(namespace),
+					Labels: pulumi.StringMap{
+						"app": pulumi.String("redis"),
+					},
+				},
+				Spec: &autoscalingv2.HorizontalPodAutoscalerSpecArgs{
+					MinReplicas: pulumi.Int(1),
+					MaxReplicas: pulumi.Int(5),
+					ScaleTargetRef: &autoscalingv2.CrossVersionObjectReferenceArgs{
+						ApiVersion: pulumi.String("apps/v1"),
+						Kind:       pulumi.String("Deployment"),
+						Name:       pulumi.String("redis"),
+					},
+					Metrics: &autoscalingv2.MetricSpecArray{
+						&autoscalingv2.MetricSpecArgs{
+							Type: pulumi.String("External"),
+							External: &autoscalingv2.ExternalMetricSourceArgs{
+								Metric: &autoscalingv2.MetricIdentifierArgs{
+									Name: pulumi.String("datadogmetric@" + namespace + ":redis"),
+								},
+								Target: &autoscalingv2.MetricTargetArgs{
+									Type:         pulumi.String("AverageValue"),
+									AverageValue: pulumi.String("10"),
+								},
+							},
+						},
+					},
+				},
+			}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
+				return nil, err
+			}
 		}
+
 	}
 
 	if _, err := corev1.NewService(e.Ctx, "redis", &corev1.ServiceArgs{
@@ -191,6 +270,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Name:       pulumi.String("redis"),
 					Port:       pulumi.Int(6379),
 					TargetPort: pulumi.String("redis"),
+					Protocol:   pulumi.String("TCP"),
 				},
 			},
 		},

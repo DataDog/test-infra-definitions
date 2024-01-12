@@ -2,36 +2,61 @@ package ec2
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewEC2Instance(e aws.Environment, name, ami, arch, instanceType, keyPair, userData, tenancy string) (*ec2.Instance, error) {
-	var err error
-	if ami == "" {
-		ami, err = LatestUbuntuAMI(e, arch)
-		if err != nil {
-			return nil, err
-		}
-	}
+type InstanceArgs struct {
+	// Mandatory
+	AMI string
+
+	// Defaulted
+	InstanceType string // Note that caller must ensure it matches with AMI Architecture
+	KeyPairName  string
+	Tenancy      string
+	StorageSize  int
+
+	// Optional
+	UserData string
+}
+
+func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulumi.ResourceOption) (*ec2.Instance, error) {
+	defaultInstanceArgs(e, &args)
 
 	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
-		Ami:                 pulumi.StringPtr(ami),
-		SubnetId:            e.RandomSubnets().Index(pulumi.Int(0)),
-		InstanceType:        pulumi.StringPtr(instanceType),
-		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-		KeyName:             pulumi.StringPtr(keyPair),
-		UserData:            pulumi.StringPtr(userData),
-		Tenancy:             pulumi.StringPtr(tenancy),
+		Ami:                     pulumi.StringPtr(args.AMI),
+		SubnetId:                e.RandomSubnets().Index(pulumi.Int(0)),
+		InstanceType:            pulumi.StringPtr(args.InstanceType),
+		VpcSecurityGroupIds:     pulumi.ToStringArray(e.DefaultSecurityGroups()),
+		KeyName:                 pulumi.StringPtr(args.KeyPairName),
+		UserData:                pulumi.StringPtr(args.UserData),
+		UserDataReplaceOnChange: pulumi.BoolPtr(true),
+		Tenancy:                 pulumi.StringPtr(args.Tenancy),
 		RootBlockDevice: ec2.InstanceRootBlockDeviceArgs{
-			VolumeSize: pulumi.Int(e.DefaultInstanceStorageSize()),
+			VolumeSize: pulumi.Int(args.StorageSize),
 		},
 		Tags: pulumi.StringMap{
 			"Name": e.Namer.DisplayName(255, pulumi.String(name)),
 		},
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
-	}, e.WithProviders(config.ProviderAWS))
+	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
 	return instance, err
+}
+
+func defaultInstanceArgs(e aws.Environment, args *InstanceArgs) {
+	if args.InstanceType == "" {
+		args.InstanceType = e.DefaultInstanceType()
+	}
+	if args.KeyPairName == "" {
+		args.KeyPairName = e.DefaultKeyPairName()
+	}
+	if args.Tenancy == "" {
+		args.Tenancy = string(ec2.TenancyDefault)
+	}
+	if args.StorageSize == 0 {
+		args.StorageSize = e.DefaultInstanceStorageSize()
+	}
 }

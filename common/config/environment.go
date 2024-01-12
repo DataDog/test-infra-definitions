@@ -24,10 +24,9 @@ const (
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
 	DDInfraKubernetesVersion                = "kubernetesVersion"
-	DDInfraOSFamily                         = "osFamily"
-	DDInfraOSArchitecture                   = "osArchitecture"
+	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
+	DDInfraOSImageID                        = "osImageID"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
-	DDInfraOSAmiID                          = "osAmiId"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 
 	// Agent Namespace
@@ -101,16 +100,12 @@ func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 	return strings.Split(envsStr, multiValueSeparator)
 }
 
-func (e *CommonEnvironment) InfraOSFamily() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSFamily, "")
+func (e *CommonEnvironment) InfraOSDescriptor() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSDescriptor, "")
 }
 
-func (e *CommonEnvironment) InfraOSArchitecture() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSArchitecture, "x86_64")
-}
-
-func (e *CommonEnvironment) InfraOSAmiID() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSAmiID, "")
+func (e *CommonEnvironment) InfraOSImageID() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSImageID, "")
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
@@ -202,6 +197,21 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
 }
 
+// Testing workload namespace
+func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
+}
+
+// Dogstatsd namespace
+func (e *CommonEnvironment) DogstatsdDeploy() bool {
+	return e.GetBoolWithDefault(e.DogstatsdConfig, DDDogstatsdDeployParamName, true)
+}
+
+func (e *CommonEnvironment) DogstatsdFullImagePath() string {
+	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
+}
+
+// Generic methods
 func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {
 	val, err := config.TryBool(paramName)
 	if err == nil {
@@ -265,27 +275,4 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
-}
-
-type Environment interface {
-	DefaultInstanceType() string
-	DefaultARMInstanceType() string
-	GetCommonEnvironment() *CommonEnvironment
-	DefaultPrivateKeyPath() string
-	DefaultPrivateKeyPassword() string
-}
-
-// Testing workload namespace
-func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
-	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
-}
-
-// Dogstatsd namespace
-
-func (e *CommonEnvironment) DogstatsdDeploy() bool {
-	return e.GetBoolWithDefault(e.DogstatsdConfig, DDDogstatsdDeployParamName, true)
-}
-
-func (e *CommonEnvironment) DogstatsdFullImagePath() string {
-	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
 }

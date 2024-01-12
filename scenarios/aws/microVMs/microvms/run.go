@@ -5,23 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	commonConfig "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
+	ec2Scn "github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 )
 
 type InstanceEnvironment struct {
@@ -31,7 +28,7 @@ type InstanceEnvironment struct {
 
 type Instance struct {
 	e             *InstanceEnvironment
-	instance      *ec2vm.EC2VM
+	instance      *remoteComp.Host
 	Arch          string
 	instanceNamer namer.Namer
 	runner        *Runner
@@ -88,10 +85,6 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	return pair
 }
 
-func (i *Instance) GetIP() pulumi.StringOutput {
-	return i.instance.GetIP()
-}
-
 // User data shell scripts must start with the #! characters and the path to the interpreter you want to read the
 // script (commonly /bin/bash).
 const metalUserData = `#!/bin/bash
@@ -118,11 +111,10 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv,
-		ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS),
-		ec2params.WithInstanceType(instanceType),
-		ec2params.WithName(name),
-		ec2params.WithUserData(metalUserData),
+	awsInstance, err := ec2Scn.NewVM(*awsEnv, name,
+		ec2Scn.WithInstanceType(instanceType),
+		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
+		ec2Scn.WithUserData(metalUserData),
 	)
 	if err != nil {
 		return nil, err
@@ -132,7 +124,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
+		_, err := agent.NewHostAgent(awsEnv.CommonEnvironment, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
 			awsEnv.Ctx.Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}
@@ -197,7 +189,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		OSCommand: osCommand,
 	})
 	if instance.Arch != LocalVMSet {
-		instance.runner = NewRunner(WithRemoteRunner(instance.instance.GetRunner()))
+		instance.runner = NewRunner(WithRemoteRunner(instance.instance.OS.Runner()))
 	} else {
 		instance.runner = NewRunner(WithLocalRunner(localRunner))
 	}
@@ -233,7 +225,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		)
 		url = pulumi.Sprintf(
 			"qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore",
-			instance.GetIP(),
+			instance.instance.Address,
 			privkey,
 		)
 
@@ -309,7 +301,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
 		if instance.Arch != LocalVMSet {
-			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.GetIP())
+			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.Address)
 		}
 
 		waitFor = append(waitFor, configureDone...)
@@ -353,11 +345,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 			}
 
 			// create new ssh connection to build proxy
-			conn := remote.ConnectionArgs{
-				Host: collection.instance.GetIP(),
-			}
-			awsEnv := collection.instance.e
-			if err := utils.ConfigureRemoteSSH("ubuntu", awsEnv.DefaultPrivateKeyPath(), awsEnv.DefaultPrivateKeyPassword(), "", &conn); err != nil {
+			conn, err := remoteComp.NewConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
+			if err != nil {
 				return nil, err
 			}
 

@@ -9,11 +9,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type PackageManager interface {
-	Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error)
-}
-
-type genericPackageManager struct {
+type GenericPackageManager struct {
 	namer           namer.Namer
 	updateDBCommand *remote.Command
 	runner          *Runner
@@ -28,8 +24,9 @@ func NewGenericPackageManager(
 	name string,
 	installCmd string,
 	updateCmd string,
-	env pulumi.StringMap) PackageManager {
-	packageManager := &genericPackageManager{
+	env pulumi.StringMap,
+) *GenericPackageManager {
+	packageManager := &GenericPackageManager{
 		namer:      namer.NewNamer(runner.e.Ctx, name),
 		runner:     runner,
 		installCmd: installCmd,
@@ -40,7 +37,7 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *genericPackageManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	opts = append(opts, m.opts...)
 	if m.updateCmd != "" {
 		updateDB, err := m.updateDB(opts)
@@ -67,7 +64,7 @@ func (m *genericPackageManager) Ensure(packageRef string, opts ...pulumi.Resourc
 	return cmd, nil
 }
 
-func (m *genericPackageManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {
 	if m.updateDBCommand != nil {
 		return m.updateDBCommand, nil
 	}

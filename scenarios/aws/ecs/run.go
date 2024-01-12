@@ -8,11 +8,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake/fakeintakeparams"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	ecsx "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -88,15 +87,14 @@ func Run(ctx *pulumi.Context) error {
 
 	// Create task and service
 	if awsEnv.AgentDeploy() {
-		var fakeintake *ddfakeintake.ConnectionExporter
+		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-			fakeIntakeOptions := []fakeintakeparams.Option{}
-
-			if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
-				fakeIntakeOptions = append(fakeIntakeOptions, fakeintakeparams.WithLoadBalancer())
+			fakeIntakeOptions := []fakeintake.Option{}
+			if awsEnv.InfraShouldDeployFakeintakeWithLB() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 			}
 
-			if fakeintake, err = aws.NewEcsFakeintake(awsEnv, fakeIntakeOptions...); err != nil {
+			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
 				return err
 			}
 		}
@@ -111,12 +109,12 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy Fargate Agent
 		testContainer := ecs.FargateRedisContainerDefinition(apiKeyParam.Arn)
-		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), 1024, 2048, map[string]ecsx.TaskDefinitionContainerDefinitionArgs{"redis": *testContainer}, apiKeyParam.Name, fakeintake)
+		taskDef, err := ecs.FargateTaskDefinitionWithAgent(awsEnv, "fg-datadog-agent", pulumi.String("fg-datadog-agent"), 1024, 2048, map[string]ecsx.TaskDefinitionContainerDefinitionArgs{"redis": *testContainer}, apiKeyParam.Name, fakeIntake)
 		if err != nil {
 			return err
 		}
 
-		_, err = ecs.FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn())
+		_, err = ecs.FargateService(awsEnv, "fg-datadog-agent", ecsCluster.Arn, taskDef.TaskDefinition.Arn(), nil)
 		if err != nil {
 			return err
 		}
@@ -127,7 +125,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy EC2 Agent
 		if linuxNodeGroupPresent {
-			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, fakeintake, ecsCluster.Arn)
+			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, fakeIntake, ecsCluster.Arn)
 			if err != nil {
 				return err
 			}

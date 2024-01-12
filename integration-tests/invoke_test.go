@@ -18,7 +18,6 @@ import (
 var testInfraTestConfig string
 
 func TestInvokeVM(t *testing.T) {
-
 	var setupStdout, setupStderr bytes.Buffer
 
 	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")

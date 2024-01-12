@@ -2,6 +2,7 @@ package command
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/alessio/shellescape"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -27,8 +28,8 @@ func (unixOSCommand) CreateDirectory(
 	name string,
 	remotePath pulumi.StringInput,
 	useSudo bool,
-	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
 	createCmd := fmt.Sprintf("mkdir -p %v", remotePath)
 	deleteCmd := fmt.Sprintf(`bash -c 'if [ -z "$(ls -A %v)" ]; then rm -d %v; fi'`, remotePath, remotePath)
 	// check if directory already exist
@@ -46,8 +47,8 @@ func (unixOSCommand) CopyInlineFile(
 	fileContent pulumi.StringInput,
 	remotePath string,
 	useSudo bool,
-	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
 	backupPath := remotePath + "." + backupExtension
 	backupCmd := fmt.Sprintf("if [ -f '%v' ]; then mv -f '%v' '%v'; fi", remotePath, remotePath, backupPath)
 	createCmd := fmt.Sprintf("bash -c '(%v) && cat - | tee %v > /dev/null'", backupCmd, remotePath)
@@ -77,6 +78,10 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 	return buildCommandString(formattedCommand, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {
 		return pulumi.Sprintf("%s %s", envVarsStr, formattedCommand)
 	})
+}
+
+func (fs unixOSCommand) IsPathAbsolute(path string) bool {
+	return strings.HasPrefix(path, "/")
 }
 
 func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {

@@ -112,7 +112,6 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	}
 
 	awsInstance, err := ec2Scn.NewVM(*awsEnv, name,
-		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
 		ec2Scn.WithInstanceType(instanceType),
 		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
 		ec2Scn.WithUserData(metalUserData),

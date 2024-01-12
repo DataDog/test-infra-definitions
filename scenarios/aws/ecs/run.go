@@ -97,6 +97,9 @@ func Run(ctx *pulumi.Context) error {
 			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
 				return err
 			}
+			if err := fakeIntake.Export(awsEnv.Ctx, nil); err != nil {
+				return err
+			}
 		}
 		apiKeyParam, err := ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
 			Name:  awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),

@@ -129,7 +129,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Filling Kubernetes component from EKS cluster
 		comp.ClusterName = cluster.EksCluster.Name()
-		comp.KubeConfig = cluster.Kubeconfig.AsStringOutput()
+		comp.KubeConfig = cluster.KubeconfigJson
 
 		nodeGroups := make([]pulumi.Resource, 0)
 		// Create managed node groups
@@ -200,6 +200,9 @@ func Run(ctx *pulumi.Context) error {
 			}
 
 			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
+				return err
+			}
+			if err := fakeIntake.Export(awsEnv.Ctx, nil); err != nil {
 				return err
 			}
 		}

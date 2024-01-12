@@ -11,6 +11,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/docker"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -48,10 +49,14 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, 
 			return err
 		}
 
+		kindArch := vm.OS.Descriptor().Architecture
+		if kindArch == os.AMD64Arch {
+			kindArch = "amd64"
+		}
 		kindInstall, err := runner.Command(
 			commonEnvironment.CommonNamer.ResourceName("kind-install"),
 			&command.Args{
-				Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, vm.OS.Descriptor().Architecture),
+				Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
 			},
 			opts...,
 		)
@@ -94,10 +99,11 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, clusterName, 
 
 		// Patch Kubeconfig based on private IP output
 		// Also add skip tls
-		clusterComp.KubeConfig = pulumi.All(kubeConfigCmd.Stdout, vm).ApplyT(func(args []interface{}) string {
+		clusterComp.KubeConfig = pulumi.All(kubeConfigCmd.Stdout, vm.Address).ApplyT(func(args []interface{}) string {
 			allowInsecure := regexp.MustCompile("certificate-authority-data:.+").ReplaceAllString(args[0].(string), "insecure-skip-tls-verify: true")
 			return strings.ReplaceAll(allowInsecure, "0.0.0.0", args[1].(string))
 		}).(pulumi.StringOutput)
+		clusterComp.ClusterName = pulumi.String(clusterName).ToStringOutput()
 
 		return nil
 	}, opts...)

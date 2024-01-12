@@ -9,8 +9,8 @@ import (
 type ClusterOutput struct {
 	components.JSONImporter
 
-	ClusterName pulumi.StringOutput `json:"clusterName"`
-	KubeConfig  string              `json:"kubeConfig"`
+	ClusterName string `json:"clusterName"`
+	KubeConfig  string `json:"kubeConfig"`
 }
 
 // Cluster represents a Kubernetes cluster

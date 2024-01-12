@@ -196,9 +196,9 @@ func tsePlaygroundDefault() environmentDefault {
 			region: string(aws.RegionUSEast1),
 		},
 		ddInfra: ddInfra{
-			defaultVPCID:               "vpc-0ffaa1eb532fad302",
-			defaultSubnets:             []string{"subnet-0b8d13fef69bfeb37", "subnet-05a0f3cf0a4db42eb", "subnet-0b4081008b0ca79ca"},
-			defaultSecurityGroups:      []string{"sg-02c292ff14d38dd76"},
+			defaultVPCID:               "vpc-0570ac09560a97693",
+			defaultSubnets:             []string{"subnet-0ec4b9823cf352b95", "subnet-0e9c45e996754e357", "subnet-070e1a6c79f6bc499"},
+			defaultSecurityGroups:      []string{"sg-091a00b0944f04fd2", "sg-073f15b823d4bb39a"},
 			defaultInstanceType:        "t3.medium",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
@@ -218,8 +218,7 @@ func tsePlaygroundDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
-				allowedInboundSecurityGroups: []string{"sg-02c292ff14d38dd76"},
-				allowedInboundPrefixList:     []string{"pl-073555187c4e6ccf2", "pl-07cbd8b5e26960eac"},
+				allowedInboundSecurityGroups: []string{"sg-091a00b0944f04fd2", "sg-0a3ec6b0ee295e826"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

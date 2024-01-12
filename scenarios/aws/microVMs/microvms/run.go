@@ -88,6 +88,7 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 // User data shell scripts must start with the #! characters and the path to the interpreter you want to read the
 // script (commonly /bin/bash).
 const metalUserData = `#!/bin/bash
+apt install -y sysstat
 apt-get -y remove unattended-upgrades
 `
 

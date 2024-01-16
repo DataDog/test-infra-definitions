@@ -281,7 +281,7 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 		})
 	}
 
-	ctx.Export("", pulumi.JSONMarshal(pulumi.ToMapOutput(output)))
+	ctx.Export("kmt-stack", pulumi.JSONMarshal(pulumi.ToMapOutput(output)))
 }
 
 func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {

@@ -265,7 +265,6 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 					"ip":         pulumi.ToOutput(domain.ip),
 					"tag":        pulumi.ToOutput(domain.tag),
 					"vmset-tags": pulumi.ToArrayOutput(tags),
-					"arch":       pulumi.ToOutput(domain.vmset.Arch),
 				}))
 			}
 		}

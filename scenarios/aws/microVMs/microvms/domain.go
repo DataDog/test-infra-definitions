@@ -38,7 +38,7 @@ type Domain struct {
 	mac         pulumi.StringOutput
 	lvDomain    *libvirt.Domain
 	tag         string
-	vmset       *vmconfig.VMSet
+	vmset       vmconfig.VMSet
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
@@ -88,7 +88,9 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 	domain.tag = kernel.Tag
-	domain.vmset = set
+	// copy the vmset tag. The pointer refers to
+	// a local variable and can change causing an incorrect mapping
+	domain.vmset = *set
 
 	domain.mac, err = generateMACAddress(e, domain.domainID)
 	if err != nil {

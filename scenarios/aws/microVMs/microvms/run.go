@@ -3,6 +3,7 @@ package microvms
 import (
 	_ "embed"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -261,10 +262,11 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 					tags = append(tags, pulumi.ToOutput(tag))
 				}
 				vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
-					"id":         pulumi.ToOutput(domain.domainID),
-					"ip":         pulumi.ToOutput(domain.ip),
-					"tag":        pulumi.ToOutput(domain.tag),
-					"vmset-tags": pulumi.ToArrayOutput(tags),
+					"id":           pulumi.ToOutput(domain.domainID),
+					"ip":           pulumi.ToOutput(domain.ip),
+					"tag":          pulumi.ToOutput(domain.tag),
+					"vmset-tags":   pulumi.ToArrayOutput(tags),
+					"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
 				}))
 			}
 		}
@@ -279,7 +281,7 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 		})
 	}
 
-	ctx.Export("kmt-stack", pulumi.JSONMarshal(pulumi.ToMapOutput(output)))
+	ctx.Export("", pulumi.JSONMarshal(pulumi.ToMapOutput(output)))
 }
 
 func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
@@ -340,10 +342,6 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		}
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
-		if instance.Arch != LocalVMSet {
-			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.Address)
-		}
-
 		waitFor = append(waitFor, configureDone...)
 	}
 
@@ -354,13 +352,6 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	scenarioReady.Dependencies, err = LaunchVMCollections(vmCollections, waitFor)
 	if err != nil {
 		return nil, err
-	}
-
-	// populate microVM IP mapping
-	for _, collection := range vmCollections {
-		for _, domain := range collection.domains {
-			instanceEnv.Ctx.Export(domain.domainID, pulumi.String(domain.ip))
-		}
 	}
 
 	// provision microVMs

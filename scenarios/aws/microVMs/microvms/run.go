@@ -261,11 +261,11 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 					tags = append(tags, pulumi.ToOutput(tag))
 				}
 				vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
-					"id":       pulumi.Sprintf(domain.domainID),
-					"ip":       pulumi.Sprintf(domain.ip),
-					"tag":      pulumi.Sprintf(domain.tag),
+					"id":       pulumi.ToOutput(domain.domainID),
+					"ip":       pulumi.ToOutput(domain.ip),
+					"tag":      pulumi.ToOutput(domain.tag),
 					"set-tags": pulumi.ToArrayOutput(tags),
-					"arch":     pulumi.Sprintf(domain.vmset.Arch),
+					"arch":     pulumi.ToOutput(domain.vmset.Arch),
 				}))
 			}
 		}

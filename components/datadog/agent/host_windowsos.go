@@ -37,10 +37,9 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 	}
 
 	localFilename := `C:\datadog-agent.msi`
-
 	// Disable the progress as it slows down the download.
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
-	cmd += fmt.Sprintf("; Invoke-WebRequest %v -OutFile %v", url, localFilename)
+	cmd += fmt.Sprintf("; for ($i=0; $i -lt 3; $i++) { try { Invoke-WebRequest %v -OutFile %v; break } catch { if ($i -eq 2) { throw } } }", url, localFilename)
 	// Use `if ($?) { .. }` to get an error if the download fail.
 	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%%v" SITE="datadoghq.com"'}`, localFilename)
 	return cmd, nil
@@ -91,8 +90,9 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		if fullVersion, err = finder.getLatestVersion(); err != nil {
 			return "", err
 		}
+	} else {
+		fullVersion += "-1"
 	}
-	fullVersion += "-1"
 
 	return finder.findVersion(fullVersion)
 }

@@ -3,6 +3,7 @@ package microvms
 import (
 	_ "embed"
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -245,9 +246,48 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	return waitFor, err
 }
 
+// exportVMInformation exports a JSON formatted stack output mapping microvms to host instances
+func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vmCollections *[]*VMCollection) {
+	output := make(map[string]pulumi.Output)
+
+	for arch, instance := range instances {
+		var vms []pulumi.Output
+		for _, collection := range *vmCollections {
+			if collection.instance.Arch != arch {
+				continue
+			}
+			for _, domain := range collection.domains {
+				var tags []pulumi.Output
+				for _, tag := range domain.vmset.Tags {
+					tags = append(tags, pulumi.ToOutput(tag))
+				}
+				vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
+					"id":           pulumi.ToOutput(domain.domainID),
+					"ip":           pulumi.ToOutput(domain.ip),
+					"tag":          pulumi.ToOutput(domain.tag),
+					"vmset-tags":   pulumi.ToArrayOutput(tags),
+					"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+				}))
+			}
+		}
+
+		address := pulumi.Sprintf(LocalVMSet)
+		if arch != LocalVMSet {
+			address = instance.instance.Address
+		}
+		output[arch] = pulumi.ToMapOutput(map[string]pulumi.Output{
+			"ip":       address,
+			"microvms": pulumi.ToArrayOutput(vms),
+		})
+	}
+
+	ctx.Export("kmt-stack", pulumi.JSONMarshal(pulumi.ToMapOutput(output)))
+}
+
 func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
+	var vmCollections []*VMCollection
 
 	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(
@@ -293,6 +333,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		instances[arch] = instance
 	}
 
+	defer exportVMInformation(instanceEnv.Ctx, instances, &vmCollections)
+
 	for _, instance := range instances {
 		configureDone, err := configureInstance(instance, &m)
 		if err != nil {
@@ -300,27 +342,16 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		}
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
-		if instance.Arch != LocalVMSet {
-			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.instance.Address)
-		}
-
 		waitFor = append(waitFor, configureDone...)
 	}
 
-	vmCollections, waitFor, err := BuildVMCollections(instances, cfg.VMSets, waitFor)
+	vmCollections, waitFor, err = BuildVMCollections(instances, cfg.VMSets, waitFor)
 	if err != nil {
 		return nil, err
 	}
 	scenarioReady.Dependencies, err = LaunchVMCollections(vmCollections, waitFor)
 	if err != nil {
 		return nil, err
-	}
-
-	// populate microVM IP mapping
-	for _, collection := range vmCollections {
-		for _, domain := range collection.domains {
-			instanceEnv.Ctx.Export(domain.domainID, pulumi.String(domain.ip))
-		}
 	}
 
 	if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {

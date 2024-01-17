@@ -20,11 +20,17 @@ const (
 	DatadogHelmRepo = "https://helm.datadoghq.com"
 )
 
+// HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
 type HelmInstallationArgs struct {
-	KubeProvider  *kubernetes.Provider
-	Namespace     string
-	ValuesYAML    pulumi.AssetOrArchiveArrayInput
-	Fakeintake    *fakeintake.Fakeintake
+	// KubeProvider is the Kubernetes provider to use
+	KubeProvider *kubernetes.Provider
+	// Namespace is the namespace in which to install the agent
+	Namespace string
+	// ValuesYAML is used to provide installation-specific values
+	ValuesYAML pulumi.AssetOrArchiveArrayInput
+	// Fakeintake is used to configure the agent to send data to a fake intake
+	Fakeintake *fakeintake.Fakeintake
+	// DeployWindows is used to deploy the Windows agent
 	DeployWindows bool
 }
 

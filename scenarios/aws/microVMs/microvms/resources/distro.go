@@ -44,17 +44,9 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		return args.Disks[i].Target < args.Disks[j].Target
 	})
 	for _, disk := range args.Disks {
-		switch disk.Attach {
-		case AttachAsFile:
-			disks = append(disks, libvirt.DomainDiskArgs{
-				File: disk.VolumeID,
-			})
-		case AttachAsVolume:
-			disks = append(disks, libvirt.DomainDiskArgs{
-				VolumeId: disk.VolumeID,
-			})
-		default:
-		}
+		disks = append(disks, libvirt.DomainDiskArgs{
+			VolumeId: disk.VolumeID,
+		})
 	}
 
 	console, err := setupConsole(args.ConsoleType, args.DomainName)
@@ -111,17 +103,9 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		return args.Disks[i].Target < args.Disks[j].Target
 	})
 	for _, disk := range args.Disks {
-		switch disk.Attach {
-		case AttachAsFile:
-			disks = append(disks, libvirt.DomainDiskArgs{
-				File: disk.VolumeID,
-			})
-		case AttachAsVolume:
-			disks = append(disks, libvirt.DomainDiskArgs{
-				VolumeId: disk.VolumeID,
-			})
-		default:
-		}
+		disks = append(disks, libvirt.DomainDiskArgs{
+			VolumeId: disk.VolumeID,
+		})
 	}
 
 	console, err := setupConsole(args.ConsoleType, args.DomainName)

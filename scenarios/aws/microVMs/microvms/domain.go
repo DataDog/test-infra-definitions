@@ -172,17 +172,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				lastDisk := getVolumeDiskTarget(true, "")
 				for _, vol := range libvirtVolumes {
 					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
-					if vol.Pool().Type() != resources.DefaultPool {
-						domain.Disks = append(domain.Disks, resources.DomainDisk{
-							VolumeID:   pulumi.String(vol.Key()),
-							Attach:     resources.AttachAsFile,
-							Target:     lastDisk,
-							Mountpoint: vol.Mountpoint(),
-						})
-
-						// For disks to be attached as Files, we do not create an overlay
-						continue
-					}
 					rootVolume, err := setupDomainVolume(
 						e.Ctx,
 						providerFn,
@@ -196,7 +185,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					}
 					domain.Disks = append(domain.Disks, resources.DomainDisk{
 						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
-						Attach:     resources.AttachAsVolume,
 						Target:     lastDisk,
 						Mountpoint: vol.Mountpoint(),
 					})

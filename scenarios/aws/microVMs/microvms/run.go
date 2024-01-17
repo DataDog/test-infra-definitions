@@ -354,68 +354,14 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		return nil, err
 	}
 
-	// provision microVMs
-	for _, collection := range vmCollections {
-		if collection.instance.Arch == LocalVMSet {
-			continue
-		}
-
-		sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, microVMGroupSubnet, waitFor)
-		if err != nil {
-			return nil, err
-		}
-
-		microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, domain := range collection.domains {
-			if domain.lvDomain == nil {
-				continue
-			}
-
-			// create new ssh connection to build proxy
-			conn, err := remoteComp.NewConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
-			if err != nil {
-				return nil, err
-			}
-
-			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
-			remoteRunner, err := command.NewRunner(
-				*collection.instance.e.CommonEnvironment,
-				command.RunnerArgs{
-					ParentResource: domain.lvDomain,
-					Connection:     pc,
-					ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
-					OSCommand:      command.NewUnixOSCommand(),
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-			microRunner := NewRunner(WithRemoteRunner(remoteRunner))
-
-			allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
-			if err != nil {
-				return nil, err
-			}
-			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
-			if err != nil {
-				return nil, err
-			}
-
-			setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
-			if err != nil {
-				return nil, err
-			}
-
-			_, err = reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
-			if err != nil {
-				return nil, err
-			}
-		}
+	if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {
+		return nil, err
 	}
+
+	if _, err := provisionLocalMicroVMs(vmCollections); err != nil {
+		return nil, err
+	}
+
 	return &scenarioReady, nil
 }
 

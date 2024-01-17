@@ -28,8 +28,11 @@ class Config(BaseModel, extra=Extra.forbid):
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
+            verifyCodeSignature: Optional[bool]
 
         agent: Optional[Agent]
+
+        outputDir: Optional[str]
 
     configParams: Optional[Params] = None
 

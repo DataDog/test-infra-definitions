@@ -68,26 +68,6 @@ func FargateTaskDefinitionWithAgent(
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 
-func FargateRedisContainerDefinition(apiKeySSMParamName pulumi.StringInput) *ecs.TaskDefinitionContainerDefinitionArgs {
-	return &ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:       pulumi.IntPtr(0),
-		Name:      pulumi.String("redis"),
-		Image:     pulumi.String("redis:latest"),
-		Essential: pulumi.BoolPtr(true),
-		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
-			ecs.TaskDefinitionContainerDependencyArgs{
-				ContainerName: pulumi.String("datadog-agent"),
-				Condition:     pulumi.String("HEALTHY"),
-			},
-		},
-		LogConfiguration: GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
-		MountPoints:      ecs.TaskDefinitionMountPointArray{},
-		Environment:      ecs.TaskDefinitionKeyValuePairArray{},
-		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
-		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
-	}
-}
-
 func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinitionArgs {
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
@@ -117,6 +97,7 @@ func GetFirelensLogConfiguration(source, service, apiKeyParamName pulumi.StringI
 			"dd_service":     service,
 			"dd_source":      source,
 			"dd_message_key": pulumi.String("log"),
+			"dd_tags":        pulumi.String("ecs_launch_type:fargate"),
 			"TLS":            pulumi.String("on"),
 			"provider":       pulumi.String("ecs"),
 		},

@@ -334,6 +334,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	}
 
 	defer exportVMInformation(instanceEnv.Ctx, instances, &vmCollections)
+	return nil, fmt.Errorf("FORCE FAIL")
 
 	for _, instance := range instances {
 		configureDone, err := configureInstance(instance, &m)

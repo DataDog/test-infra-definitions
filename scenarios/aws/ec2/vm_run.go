@@ -1,10 +1,13 @@
 package ec2
 
 import (
+	"errors"
+
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/updater"
 	"github.com/DataDog/test-infra-definitions/components/docker"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -44,7 +47,16 @@ func VMRun(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
 
-		_, err = agent.NewHostAgent(env.CommonEnvironment, vm, agentOptions...)
+		_, err = agent.NewHostAgent(env.CommonEnvironment, vm)
+		return err
+	}
+
+	if env.UpdaterDeploy() {
+		if env.AgentDeploy() {
+			return errors.New("cannot deploy both agent and updater installers, updater installs the agent")
+		}
+
+		_, err := updater.NewHostUpdater(env.CommonEnvironment, vm)
 		return err
 	}
 

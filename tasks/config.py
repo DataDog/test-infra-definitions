@@ -32,6 +32,12 @@ class Config(BaseModel, extra=Extra.forbid):
 
         agent: Optional[Agent]
 
+        class Pulumi(BaseModel, extra=Extra.forbid):
+            logLevel: Optional[int]
+            logToStdErr: Optional[bool]
+
+        pulumi: Optional[Pulumi]
+
         outputDir: Optional[str]
 
     configParams: Optional[Params] = None

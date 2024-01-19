@@ -15,7 +15,7 @@ const (
 	DDMicroVMX86AmiID             = "x86AmiID"
 	DDMicroVMArm64AmiID           = "arm64AmiID"
 	DDMicroVMConfigFile           = "microVMConfigFile"
-	DDMicroVMWorkingDirectory     = "workingDir"
+	DDMicroVMWorkingDirectory     = "kmtWorkingDir"
 	DDMicroVMShutdownPeriod       = "shutdownPeriod"
 )
 

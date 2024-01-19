@@ -109,7 +109,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
-			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
+			resources.SharedFSMount: pulumi.String(filepath.Join(GetWorkingDirectory(), "shared")),
 			resources.DomainID:      pulumi.String(domain.domainID),
 			resources.MACAddress:    domain.mac,
 			resources.Nvram:         pulumi.String(varstore),

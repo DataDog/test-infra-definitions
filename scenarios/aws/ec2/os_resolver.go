@@ -122,6 +122,11 @@ func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.UbuntuDefault.Version
 	}
 
+	// TODO: Temporary hack as `current` is gone for 22.04
+	if osInfo.Version == "22.04" {
+		return ec2.LatestUbuntuAMI(e, string(osInfo.Architecture))
+	}
+
 	paramArch := osInfo.Architecture
 	if paramArch == os.AMD64Arch {
 		// Override required as the architecture is x86_64 but the SSM parameter is amd64

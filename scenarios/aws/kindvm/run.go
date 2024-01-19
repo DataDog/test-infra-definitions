@@ -36,7 +36,9 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), awsEnv.KubernetesVersion())
+	clusterName := ctx.Stack()
+
+	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, clusterName, awsEnv.KubernetesVersion())
 	if err != nil {
 		return err
 	}
@@ -69,8 +71,6 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 	}
-
-	clusterName := ctx.Stack()
 
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {

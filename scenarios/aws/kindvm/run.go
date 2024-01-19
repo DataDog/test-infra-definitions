@@ -36,9 +36,9 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	clusterName := ctx.Stack()
+	kindClusterName := ctx.Stack()
 
-	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, clusterName, awsEnv.KubernetesVersion())
+	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion())
 	if err != nil {
 		return err
 	}
@@ -81,7 +81,7 @@ datadog:
   clusterName: "%s"
 agents:
   useHostNetwork: true
-`, clusterName)
+`, kindClusterName)
 
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 			KubeProvider: kindKubeProvider,
@@ -103,7 +103,7 @@ agents:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, clusterName); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName); err != nil {
 			return err
 		}
 	}

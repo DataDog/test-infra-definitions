@@ -212,7 +212,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300,
 						},
 					},
 				})),
@@ -221,11 +221,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300,
 						},
 					},
 				})),
 			},
+			"logLevel": pulumi.String("DEBUG"),
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{
@@ -283,6 +284,7 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 			"prometheusScrape": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
+			"logLevel": pulumi.String("DEBUG"),
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{

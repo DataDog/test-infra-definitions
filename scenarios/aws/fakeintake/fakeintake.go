@@ -59,7 +59,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		taskDef, err := ecs.FargateTaskDefinitionWithAgent(e,
 			namer.ResourceName("taskdef"),
 			pulumi.String("fakeintake-ecs"),
-			1024, 4096,
+			1024, 2048,
 			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)},
 			apiKeyParam.Name,
 			nil,
@@ -243,12 +243,12 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 		Image:       pulumi.String(imageURL),
 		Essential:   pulumi.BoolPtr(true),
 		MountPoints: awsxEcs.TaskDefinitionMountPointArray{},
-		Environment: awsxEcs.TaskDefinitionKeyValuePairArray{
-			awsxEcs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("GOMEMLIMIT"),
-				Value: pulumi.StringPtr("3072MiB"),
-			},
-		},
+		// Environment: awsxEcs.TaskDefinitionKeyValuePairArray{
+		// 	awsxEcs.TaskDefinitionKeyValuePairArgs{
+		// 		Name:  pulumi.StringPtr("GOMEMLIMIT"),
+		// 		Value: pulumi.StringPtr("3072MiB"),
+		// 	},
+		// },
 		PortMappings: awsxEcs.TaskDefinitionPortMappingArray{
 			awsxEcs.TaskDefinitionPortMappingArgs{
 				ContainerPort: pulumi.Int(port),

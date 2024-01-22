@@ -1,3 +1,4 @@
+import json
 import os
 from typing import Optional
 
@@ -26,6 +27,7 @@ scenario_name = "aws/eks"
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
+        "instance_type": doc.instance_type,
     }
 )
 def create_eks(
@@ -40,6 +42,7 @@ def create_eks(
     linux_arm_node_group: bool = False,
     bottlerocket_node_group: bool = False,
     windows_node_group: bool = False,
+    instance_type: Optional[str] = None,
 ):
     """
     Create a new EKS environment. It lasts around 20 minutes.
@@ -50,6 +53,14 @@ def create_eks(
     extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
     extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
     extra_flags["ddinfra:aws/eks/windowsNodeGroup"] = windows_node_group
+
+    # Override the instance type if specified
+    # ARM node groups use defaultARMInstanceType, all others (Linux, Bottlerocket, Windows) use defaultInstanceType
+    if instance_type is not None:
+        if linux_arm_node_group:
+            extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
+        else:
+            extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
 
     full_stack_name = deploy(
         ctx,
@@ -70,9 +81,9 @@ def create_eks(
 
 def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Optional[str]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    kubeconfig_output = outputs["kubeconfig"]
+    kubeconfig_output = json.loads(outputs["dd-Cluster-aws-eks"]["kubeConfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)
-    kubeconfig = f"{full_stack_name}-config.yaml"
+    kubeconfig = f"{full_stack_name}-kubeconfig.yaml"
     f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)
     with open(f, "w") as f:
         f.write(kubeconfig_content)

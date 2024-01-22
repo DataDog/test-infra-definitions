@@ -180,6 +180,9 @@ func Run(ctx *pulumi.Context) error {
 				Metadata: metav1.ObjectMetaPatchArgs{
 					Namespace: pulumi.String("kube-system"),
 					Name:      pulumi.String("amazon-vpc-cni"),
+					Annotations: pulumi.StringMap{
+						"pulumi.com/patchForce": pulumi.String("true"),
+					},
 				},
 				Data: pulumi.StringMap{
 					"enable-windows-ipam": pulumi.String("true"),

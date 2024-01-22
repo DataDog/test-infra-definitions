@@ -16,7 +16,7 @@ type EcsComponent struct {
 }
 
 func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
-	namer := e.Namer.WithPrefix("redis")
+	namer := e.Namer.WithPrefix("redis").WithPrefix("ec2")
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	ecsComponent := &EcsComponent{}
@@ -27,11 +27,11 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
 	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
-		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis")),
+		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("ec2")),
 		SubnetIds: e.RandomSubnets(),
 		Internal:  pulumi.BoolPtr(true),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String("redis")),
+			Name:       e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("ec2")),
 			Port:       pulumi.IntPtr(6379),
 			Protocol:   pulumi.StringPtr("TCP"),
 			TargetType: pulumi.StringPtr("instance"),
@@ -47,7 +47,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	}
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("server"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("redis")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("redis"), pulumi.String("ec2")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(2),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -56,6 +56,9 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				"redis": {
 					Name:  pulumi.String("redis"),
 					Image: pulumi.String("redis:latest"),
+					DockerLabels: pulumi.StringMap{
+						"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:ec2\"]"),
+					},
 					Command: pulumi.StringArray{
 						pulumi.String("--loglevel"),
 						pulumi.String("verbose"),
@@ -78,7 +81,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.String("redis-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2"})...),
 		},
 		LoadBalancers: classicECS.ServiceLoadBalancerArray{
 			&classicECS.ServiceLoadBalancerArgs{
@@ -92,7 +95,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	}
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("query"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("redis-query")),
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2", "query"})...),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -116,7 +119,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.String("redis-query-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2", "query"})...),
 		},
 	}, opts...); err != nil {
 		return nil, err

@@ -20,6 +20,7 @@ const (
 	DDAgentConfigNamespace     = "ddagent"
 	DDTestingWorkloadNamespace = "ddtestworkload"
 	DDDogstatsdNamespace       = "dddogstatsd"
+	DDUpdaterConfigNamespace   = "ddupdater"
 
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
@@ -43,6 +44,9 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 
+	// Updater Namespace
+	DDUpdaterParamName = "deploy"
+
 	// Testing workload namerNamespace
 	DDTestingWorkloadDeployParamName = "deploy"
 
@@ -61,6 +65,7 @@ type CommonEnvironment struct {
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
 	DogstatsdConfig       *sdkconfig.Config
+	UpdaterConfig         *sdkconfig.Config
 
 	username string
 }
@@ -72,6 +77,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
 		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
 		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
 		CommonNamer:           namer.NewNamer(ctx, ""),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
@@ -209,6 +215,11 @@ func (e *CommonEnvironment) DogstatsdDeploy() bool {
 
 func (e *CommonEnvironment) DogstatsdFullImagePath() string {
 	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
+}
+
+// Updater namespace
+func (e *CommonEnvironment) UpdaterDeploy() bool {
+	return e.GetBoolWithDefault(e.UpdaterConfig, DDUpdaterParamName, false)
 }
 
 // Generic methods

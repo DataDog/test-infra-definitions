@@ -56,3 +56,38 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
 	}
 }
+
+// ECSFargateWindowsContainerDefinition returns the container definition for the Windows agent running on ECS Fargate.
+// Firelens is not supported. Logs could be collected if sent to cloudwatch using the `awslogs` driver. See:
+// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/tutorial-deploy-fluentbit-on-windows.html
+func ECSFargateWindowsContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) *ecs.TaskDefinitionContainerDefinitionArgs {
+	if image == "" {
+		image = dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "latest")
+	}
+
+	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:       pulumi.IntPtr(0),
+		Name:      pulumi.String("datadog-agent"),
+		Image:     pulumi.String(image),
+		Essential: pulumi.BoolPtr(true),
+		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("ECS_FARGATE"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
+			},
+		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
+		Secrets: ecs.TaskDefinitionSecretArray{
+			ecs.TaskDefinitionSecretArgs{
+				Name:      pulumi.String("DD_API_KEY"),
+				ValueFrom: apiKeySSMParamName,
+			},
+		},
+		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
+		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
+		WorkingDirectory: pulumi.String(`C:\`),
+	}
+}

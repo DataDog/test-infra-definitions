@@ -199,7 +199,8 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			},
 			"sbom": pulumi.Map{
 				"containerImage": pulumi.Map{
-					"enabled": pulumi.Bool(true),
+					"enabled":                   pulumi.Bool(true),
+					"uncompressedLayersSupport": pulumi.Bool(true),
 				},
 			},
 			// The fake intake keeps payloads only for a hardcoded period of 15 minutes.

@@ -2,7 +2,10 @@ module tracegen
 
 go 1.21.3
 
-require gopkg.in/DataDog/dd-trace-go.v1 v1.59.0
+require (
+	golang.org/x/time v0.3.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.59.0
+)
 
 require (
 	github.com/DataDog/appsec-internal-go v1.4.0 // indirect
@@ -30,7 +33,6 @@ require (
 	go4.org/unsafe/assume-no-moving-gc v0.0.0-20231121144256-b99613f794b6 // indirect
 	golang.org/x/mod v0.12.0 // indirect
 	golang.org/x/sys v0.14.0 // indirect
-	golang.org/x/time v0.3.0 // indirect
 	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	google.golang.org/protobuf v1.30.0 // indirect

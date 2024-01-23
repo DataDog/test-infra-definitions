@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"math"
+	"os"
+	"strconv"
 	"sync/atomic"
 	"time"
 
@@ -26,9 +28,29 @@ func reportStats() {
 
 func main() {
 	tps := flag.Float64("tps", 1, "Target number of traces to generate per second.")
-	spt := flag.Uint("spt", 2, "Number of spans to put in each trace. (>=1)")
+	spt := flag.Uint64("spt", 2, "Number of spans to put in each trace. (>=1)")
 	testDuration := flag.Duration("testtime", 0, "Amount of time to run the test. A value of '0' means the test will continue indefinitely.")
 	flag.Parse()
+
+	var err error
+	if v, ok := os.LookupEnv("TRACEGEN_TPS"); ok {
+		*tps, err = strconv.ParseFloat(v, 64)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid TRACEGEN_TPS=%v: %v", v, err))
+		}
+	}
+	if v, ok := os.LookupEnv("TRACEGEN_SPT"); ok {
+		*spt, err = strconv.ParseUint(v, 10, 64)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid TRACEGEN_SPT=%v: %v", v, err))
+		}
+	}
+	if v, ok := os.LookupEnv("TRACEGEN_TESTTIME"); ok {
+		*testDuration, err = time.ParseDuration(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid TRACEGEN_TESTTIME=%v: %v", v, err))
+		}
+	}
 
 	tracer.Start()
 	defer tracer.Stop()
@@ -67,9 +89,9 @@ func main() {
 
 // genChain generates a trace with spans count of spans in it.
 // The trace is structured with each span N being the child of span N-1.
-func genChain(spans uint) {
+func genChain(spans uint64) {
 	sp := tracer.StartSpan("tracegen_chain")
-	for i := uint(1); i < spans; i++ {
+	for i := uint64(1); i < spans; i++ {
 		defer sp.Finish()
 		spancount.Add(1)
 		sp = tracer.StartSpan(fmt.Sprintf("tracegen_chain(%d)", i),
@@ -83,7 +105,7 @@ func genChain(spans uint) {
 // genFlat generates a trace with spans count of spans in it.
 // The trace is structured with one root span, with all other spans being
 // children of that root.
-func genFlat(spans uint) {
+func genFlat(spans uint64) {
 	const traceDuration = 1 * time.Second
 	tdelta := traceDuration / time.Duration(spans) // Duration of each child span
 	start := time.Now()
@@ -93,7 +115,7 @@ func genFlat(spans uint) {
 		spancount.Add(1)
 		tracecount.Add(1)
 	}()
-	for i := uint(1); i < spans; i++ {
+	for i := uint64(1); i < spans; i++ {
 		sp := tracer.StartSpan(fmt.Sprintf("tracegen_flat(%d)", i),
 			tracer.StartTime(start.Add(tdelta*time.Duration(i))),
 			tracer.ChildOf(root.Context()))

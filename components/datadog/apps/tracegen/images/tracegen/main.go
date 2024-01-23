@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"golang.org/x/time/rate"
@@ -17,12 +19,17 @@ import (
 var tracecount atomic.Uint32
 var spancount atomic.Uint32
 
-func reportStats() {
+func reportStats(done chan struct{}) {
 	for {
-		time.Sleep(5 * time.Second)
-		tc := tracecount.Swap(0)
-		sc := spancount.Swap(0)
-		fmt.Printf("Finished %d traces/s, %d spans/second.\n", tc/5, sc/5)
+		select {
+		case <-done:
+			return
+		default:
+			time.Sleep(5 * time.Second)
+			tc := tracecount.Swap(0)
+			sc := spancount.Swap(0)
+			fmt.Printf("Finished %d traces/s, %d spans/second.\n", tc/5, sc/5)
+		}
 	}
 }
 
@@ -55,6 +62,16 @@ func main() {
 	tracer.Start()
 	defer tracer.Stop()
 
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
+	done := make(chan struct{})
+	go func() {
+		<-sigs
+		close(done)
+		fmt.Println("Exiting tracegen.")
+		os.Exit(0)
+	}()
+
 	// Sleeping is expensive and inaccurate, so for high trace/s rates, we need to send bursts.
 	// Instead of send, sleep, send, sleep, etc. we will calculate the number of traces to send
 	// per 100ms, and send that many traces every 100ms using the rate.Limiter.
@@ -68,20 +85,25 @@ func main() {
 	lim := rate.NewLimiter(rate.Limit(*tps), tperloop)
 
 	testStart := time.Now()
-	go reportStats()
+	go reportStats(done)
 	fmt.Printf("Sending %v Traces/s, each with %d spans.\n", *tps, *spt)
-	for i := 0; ; i++ {
-		istart := time.Now()
-		if *testDuration > 0 && istart.After(testStart.Add(*testDuration)) {
+	for {
+		select {
+		case <-done:
 			return
-		}
-		lim.WaitN(context.Background(), tperloop)
-		for sel := 0; sel < tperloop; sel++ {
-			switch sel % 2 {
-			case 0:
-				genChain(*spt)
-			case 1:
-				genFlat(*spt)
+		default:
+			istart := time.Now()
+			if *testDuration > 0 && istart.After(testStart.Add(*testDuration)) {
+				return
+			}
+			lim.WaitN(context.Background(), tperloop)
+			for sel := 0; sel < tperloop; sel++ {
+				switch sel % 2 {
+				case 0:
+					genChain(*spt)
+				case 1:
+					genFlat(*spt)
+				}
 			}
 		}
 	}

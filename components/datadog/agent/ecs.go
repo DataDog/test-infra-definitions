@@ -2,7 +2,7 @@ package agent
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
@@ -11,7 +11,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, clusterArn pulumi.StringInput) (*ecs.EC2Service, error) {
+func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, clusterArn pulumi.StringInput) (*ecs.EC2Service, error) {
 	return ecs.NewEC2Service(e.Ctx, e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
 		Name:               e.CommonNamer.DisplayName(255, pulumi.String(name)),
 		Cluster:            clusterArn,
@@ -66,36 +66,12 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *ddfakeintake.ConnectionExporter) []ecs.TaskDefinitionKeyValuePairInput {
-	if fakeintake == nil {
-		return []ecs.TaskDefinitionKeyValuePairInput{}
-	}
-	return []ecs.TaskDefinitionKeyValuePairInput{
-		ecs.TaskDefinitionKeyValuePairArgs{
-			Name:  pulumi.StringPtr("DD_SKIP_SSL_VALIDATION"),
-			Value: pulumi.StringPtr("true"),
-		},
-		ecs.TaskDefinitionKeyValuePairArgs{
-			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),
-			Value: pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
-		},
-		ecs.TaskDefinitionKeyValuePairArgs{
-			Name:  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			Value: pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
-		ecs.TaskDefinitionKeyValuePairArgs{
-			Name:  pulumi.StringPtr("DD_LOGS_CONFIG_USE_HTTP"),
-			Value: pulumi.StringPtr("true"),
-		},
-	}
-}
-
-func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter) ecs.TaskDefinitionContainerDefinitionArgs {
+func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) ecs.TaskDefinitionContainerDefinitionArgs {
 	return ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(200),
 		Memory:    pulumi.IntPtr(512),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "")),
+		Image:     pulumi.String(dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "")),
 		Essential: pulumi.BoolPtr(true),
 		LinuxParameters: ecs.TaskDefinitionLinuxParametersArgs{
 			Capabilities: ecs.TaskDefinitionKernelCapabilitiesArgs{
@@ -191,6 +167,30 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				HostPort:      pulumi.IntPtr(8125),
 				Protocol:      pulumi.StringPtr("udp"),
 			},
+		},
+	}
+}
+
+func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ecs.TaskDefinitionKeyValuePairInput {
+	if fakeintake == nil {
+		return []ecs.TaskDefinitionKeyValuePairInput{}
+	}
+	return []ecs.TaskDefinitionKeyValuePairInput{
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_SKIP_SSL_VALIDATION"),
+			Value: pulumi.StringPtr("true"),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),
+			Value: pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+			Value: pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_LOGS_CONFIG_USE_HTTP"),
+			Value: pulumi.StringPtr("true"),
 		},
 	}
 }

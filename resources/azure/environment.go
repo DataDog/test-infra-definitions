@@ -4,7 +4,7 @@ import (
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
-	sdkazure "github.com/pulumi/pulumi-azure-native-sdk"
+	sdkazure "github.com/pulumi/pulumi-azure-native-sdk/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -22,6 +22,7 @@ const (
 	DDInfraDefaultPublicKeyPath            = "az/defaultPublicKeyPath"
 	DDInfraDefaultPrivateKeyPath           = "az/defaultPrivateKeyPath"
 	DDInfraDefaultPrivateKeyPassword       = "az/defaultPrivateKeyPassword"
+	DDInfraAksLinuxKataNodeGroup           = "az/aks/linuxKataNodeGroup"
 )
 
 type Environment struct {
@@ -96,4 +97,9 @@ func (e *Environment) DefaultPrivateKeyPassword() string {
 
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
+}
+
+// LinuxKataNodeGroup Whether to deploy a kata node pool
+func (e *Environment) LinuxKataNodeGroup() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraAksLinuxKataNodeGroup, e.envDefault.ddInfra.aks.linuxKataNodeGroup)
 }

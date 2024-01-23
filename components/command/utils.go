@@ -5,6 +5,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type ReadyFunc func(*Runner) (*remote.Command, error)
+
 func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
 	return runner.Command(
 		"wait-cloud-init",
@@ -12,5 +14,14 @@ func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
 			// `sudo` is required for amazon linux
 			Create: pulumi.String("cloud-init status --wait"),
 			Sudo:   true,
+		})
+}
+
+func WaitForSuccessfulConnection(runner *Runner) (*remote.Command, error) {
+	return runner.Command(
+		"wait-successful-connection",
+		&Args{
+			// echo works in shell and powershell
+			Create: pulumi.String("echo \"OK\""),
 		})
 }

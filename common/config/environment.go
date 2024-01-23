@@ -20,14 +20,14 @@ const (
 	DDAgentConfigNamespace     = "ddagent"
 	DDTestingWorkloadNamespace = "ddtestworkload"
 	DDDogstatsdNamespace       = "dddogstatsd"
+	DDUpdaterConfigNamespace   = "ddupdater"
 
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
 	DDInfraKubernetesVersion                = "kubernetesVersion"
-	DDInfraOSFamily                         = "osFamily"
-	DDInfraOSArchitecture                   = "osArchitecture"
+	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
+	DDInfraOSImageID                        = "osImageID"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
-	DDInfraOSAmiID                          = "osAmiId"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 
 	// Agent Namespace
@@ -43,6 +43,9 @@ const (
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
+
+	// Updater Namespace
+	DDUpdaterParamName = "deploy"
 
 	// Testing workload namerNamespace
 	DDTestingWorkloadDeployParamName = "deploy"
@@ -62,6 +65,7 @@ type CommonEnvironment struct {
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
 	DogstatsdConfig       *sdkconfig.Config
+	UpdaterConfig         *sdkconfig.Config
 
 	username string
 }
@@ -73,6 +77,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
 		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
 		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
 		CommonNamer:           namer.NewNamer(ctx, ""),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
@@ -101,16 +106,12 @@ func (e *CommonEnvironment) InfraEnvironmentNames() []string {
 	return strings.Split(envsStr, multiValueSeparator)
 }
 
-func (e *CommonEnvironment) InfraOSFamily() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSFamily, "")
+func (e *CommonEnvironment) InfraOSDescriptor() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSDescriptor, "")
 }
 
-func (e *CommonEnvironment) InfraOSArchitecture() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSArchitecture, "x86_64")
-}
-
-func (e *CommonEnvironment) InfraOSAmiID() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSAmiID, "")
+func (e *CommonEnvironment) InfraOSImageID() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSImageID, "")
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
@@ -202,6 +203,26 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
 }
 
+// Testing workload namespace
+func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
+}
+
+// Dogstatsd namespace
+func (e *CommonEnvironment) DogstatsdDeploy() bool {
+	return e.GetBoolWithDefault(e.DogstatsdConfig, DDDogstatsdDeployParamName, true)
+}
+
+func (e *CommonEnvironment) DogstatsdFullImagePath() string {
+	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
+}
+
+// Updater namespace
+func (e *CommonEnvironment) UpdaterDeploy() bool {
+	return e.GetBoolWithDefault(e.UpdaterConfig, DDUpdaterParamName, false)
+}
+
+// Generic methods
 func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool {
 	val, err := config.TryBool(paramName)
 	if err == nil {
@@ -265,27 +286,4 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
-}
-
-type Environment interface {
-	DefaultInstanceType() string
-	DefaultARMInstanceType() string
-	GetCommonEnvironment() *CommonEnvironment
-	DefaultPrivateKeyPath() string
-	DefaultPrivateKeyPassword() string
-}
-
-// Testing workload namespace
-func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
-	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
-}
-
-// Dogstatsd namespace
-
-func (e *CommonEnvironment) DogstatsdDeploy() bool {
-	return e.GetBoolWithDefault(e.DogstatsdConfig, DDDogstatsdDeployParamName, true)
-}
-
-func (e *CommonEnvironment) DogstatsdFullImagePath() string {
-	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
 }

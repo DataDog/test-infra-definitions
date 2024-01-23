@@ -6,8 +6,9 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/docker"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -17,6 +18,7 @@ import (
 // The available options are:
 //   - [WithImageTag]
 //   - [WithRepository]
+//   - [WithFullImagePath]
 //   - [WithPulumiDependsOn]
 //   - [WithEnvironmentVariables]
 //   - [WithAgentServiceEnvVariable]
@@ -28,6 +30,9 @@ import (
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type Params struct {
+	// FullImagePath is the full path of the docker agent image to use.
+	// It has priority over ImageTag and Repository.
+	FullImagePath string
 	// ImageTag is the docker agent image tag to use.
 	ImageTag string
 	// Repository is the docker repository to use.
@@ -35,7 +40,7 @@ type Params struct {
 	// AgentServiceEnvironment is a map of environment variables to set in the docker compose agent service's environment.
 	AgentServiceEnvironment pulumi.Map
 	// ExtraComposeManifests is a list of extra docker compose manifests to add beside the agent service.
-	ExtraComposeManifests []command.DockerComposeInlineManifest
+	ExtraComposeManifests []docker.ComposeInlineManifest
 	// EnvironmentVariables is a map of environment variables to set with the docker-compose context
 	EnvironmentVariables pulumi.StringMap
 	// PulumiDependsOn is a list of resources to depend on.
@@ -62,6 +67,13 @@ func WithImageTag(agentImageTag string) func(*Params) error {
 func WithRepository(repository string) func(*Params) error {
 	return func(p *Params) error {
 		p.Repository = repository
+		return nil
+	}
+}
+
+func WithFullImagePath(fullImagePath string) func(*Params) error {
+	return func(p *Params) error {
+		p.FullImagePath = fullImagePath
 		return nil
 	}
 }
@@ -101,7 +113,7 @@ func WithIntake(hostname string) func(*Params) error {
 // WithFakeintake installs the fake intake and configures the Agent to use it.
 //
 // This option is overwritten by `WithIntakeHostname`.
-func WithFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
+func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return withIntakeHostname(fakeintake.Host, true)
 }
 
@@ -134,7 +146,7 @@ type additionalLogEndpointInput struct {
 	IsReliable bool   `json:"is_reliable,omitempty"`
 }
 
-func WithAdditionalFakeintake(fakeintake *fakeintake.ConnectionExporter) func(*Params) error {
+func WithAdditionalFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	additionalEndpointsContentInput := fakeintake.Host.ToStringOutput().ApplyT(func(host string) (string, error) {
 		endpoints := map[string][]string{
 			fmt.Sprintf("https://%s", host): {"00000000000000000000000000000000"},
@@ -178,11 +190,11 @@ func WithLogs() func(*Params) error {
 }
 
 // WithExtraComposeContent adds a cpm
-func WithExtraComposeManifest(name, content string) func(*Params) error {
+func WithExtraComposeManifest(name string, content pulumi.StringInput) func(*Params) error {
 	return func(p *Params) error {
-		p.ExtraComposeManifests = append(p.ExtraComposeManifests, command.DockerComposeInlineManifest{
+		p.ExtraComposeManifests = append(p.ExtraComposeManifests, docker.ComposeInlineManifest{
 			Name:    name,
-			Content: pulumi.String(content),
+			Content: content,
 		})
 		return nil
 	}

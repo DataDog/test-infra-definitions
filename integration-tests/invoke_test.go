@@ -18,7 +18,6 @@ import (
 var testInfraTestConfig string
 
 func TestInvokeVM(t *testing.T) {
-
 	var setupStdout, setupStderr bytes.Buffer
 
 	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
@@ -41,7 +40,7 @@ func TestInvokeVM(t *testing.T) {
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found: %s", string(createOutput))
 
-	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
 }

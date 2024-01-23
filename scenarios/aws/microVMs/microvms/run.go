@@ -3,25 +3,23 @@ package microvms
 import (
 	_ "embed"
 	"fmt"
+	"path/filepath"
 	"time"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	commonConfig "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
+	ec2Scn "github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2os"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2params"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
 )
 
 type InstanceEnvironment struct {
@@ -31,7 +29,7 @@ type InstanceEnvironment struct {
 
 type Instance struct {
 	e             *InstanceEnvironment
-	instance      *ec2vm.EC2VM
+	instance      *remoteComp.Host
 	Arch          string
 	instanceNamer namer.Namer
 	runner        *Runner
@@ -88,10 +86,6 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	return pair
 }
 
-func (i *Instance) GetIP() pulumi.StringOutput {
-	return i.instance.GetIP()
-}
-
 // User data shell scripts must start with the #! characters and the path to the interpreter you want to read the
 // script (commonly /bin/bash).
 const metalUserData = `#!/bin/bash
@@ -118,11 +112,10 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
-	awsInstance, err := ec2vm.NewEC2VMWithEnv(*awsEnv,
-		ec2params.WithImageName(ami, os.Architecture(arch), ec2os.UbuntuOS),
-		ec2params.WithInstanceType(instanceType),
-		ec2params.WithName(name),
-		ec2params.WithUserData(metalUserData),
+	awsInstance, err := ec2Scn.NewVM(*awsEnv, name,
+		ec2Scn.WithInstanceType(instanceType),
+		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
+		ec2Scn.WithUserData(metalUserData),
 	)
 	if err != nil {
 		return nil, err
@@ -132,7 +125,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewInstaller(awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
+		_, err := agent.NewHostAgent(awsEnv.CommonEnvironment, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
 			awsEnv.Ctx.Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}
@@ -197,7 +190,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		OSCommand: osCommand,
 	})
 	if instance.Arch != LocalVMSet {
-		instance.runner = NewRunner(WithRemoteRunner(instance.instance.GetRunner()))
+		instance.runner = NewRunner(WithRemoteRunner(instance.instance.OS.Runner()))
 	} else {
 		instance.runner = NewRunner(WithLocalRunner(localRunner))
 	}
@@ -233,7 +226,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		)
 		url = pulumi.Sprintf(
 			"qemu+ssh://ubuntu@%s/system?sshauth=privkey&keyfile=%s&known_hosts_verify=ignore",
-			instance.GetIP(),
+			instance.instance.Address,
 			privkey,
 		)
 
@@ -253,9 +246,48 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	return waitFor, err
 }
 
+// exportVMInformation exports a JSON formatted stack output mapping microvms to host instances
+func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vmCollections *[]*VMCollection) {
+	output := make(map[string]pulumi.Output)
+
+	for arch, instance := range instances {
+		var vms []pulumi.Output
+		for _, collection := range *vmCollections {
+			if collection.instance.Arch != arch {
+				continue
+			}
+			for _, domain := range collection.domains {
+				var tags []pulumi.Output
+				for _, tag := range domain.vmset.Tags {
+					tags = append(tags, pulumi.ToOutput(tag))
+				}
+				vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
+					"id":           pulumi.ToOutput(domain.domainID),
+					"ip":           pulumi.ToOutput(domain.ip),
+					"tag":          pulumi.ToOutput(domain.tag),
+					"vmset-tags":   pulumi.ToArrayOutput(tags),
+					"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+				}))
+			}
+		}
+
+		address := pulumi.Sprintf(LocalVMSet)
+		if arch != LocalVMSet {
+			address = instance.instance.Address
+		}
+		output[arch] = pulumi.ToMapOutput(map[string]pulumi.Output{
+			"ip":       address,
+			"microvms": pulumi.ToArrayOutput(vms),
+		})
+	}
+
+	ctx.Export("kmt-stack", pulumi.JSONMarshal(pulumi.ToMapOutput(output)))
+}
+
 func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	var waitFor []pulumi.Resource
 	var scenarioReady ScenarioDone
+	var vmCollections []*VMCollection
 
 	m := config.NewMicroVMConfig(e)
 	cfg, err := vmconfig.LoadConfigFile(
@@ -301,6 +333,8 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		instances[arch] = instance
 	}
 
+	defer exportVMInformation(instanceEnv.Ctx, instances, &vmCollections)
+
 	for _, instance := range instances {
 		configureDone, err := configureInstance(instance, &m)
 		if err != nil {
@@ -308,14 +342,10 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		}
 		scenarioReady.Instances = append(scenarioReady.Instances, instance)
 
-		if instance.Arch != LocalVMSet {
-			instanceEnv.Ctx.Export(fmt.Sprintf("%s-instance-ip", instance.Arch), instance.GetIP())
-		}
-
 		waitFor = append(waitFor, configureDone...)
 	}
 
-	vmCollections, waitFor, err := BuildVMCollections(instances, cfg.VMSets, waitFor)
+	vmCollections, waitFor, err = BuildVMCollections(instances, cfg.VMSets, waitFor)
 	if err != nil {
 		return nil, err
 	}
@@ -324,78 +354,14 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		return nil, err
 	}
 
-	// populate microVM IP mapping
-	for _, collection := range vmCollections {
-		for _, domain := range collection.domains {
-			instanceEnv.Ctx.Export(domain.domainID, pulumi.String(domain.ip))
-		}
+	if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {
+		return nil, err
 	}
 
-	// provision microVMs
-	for _, collection := range vmCollections {
-		if collection.instance.Arch == LocalVMSet {
-			continue
-		}
-
-		sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, microVMGroupSubnet, waitFor)
-		if err != nil {
-			return nil, err
-		}
-
-		microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, domain := range collection.domains {
-			if domain.lvDomain == nil {
-				continue
-			}
-
-			// create new ssh connection to build proxy
-			conn := remote.ConnectionArgs{
-				Host: collection.instance.GetIP(),
-			}
-			awsEnv := collection.instance.e
-			if err := utils.ConfigureRemoteSSH("ubuntu", awsEnv.DefaultPrivateKeyPath(), awsEnv.DefaultPrivateKeyPassword(), "", &conn); err != nil {
-				return nil, err
-			}
-
-			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
-			remoteRunner, err := command.NewRunner(
-				*collection.instance.e.CommonEnvironment,
-				command.RunnerArgs{
-					ParentResource: domain.lvDomain,
-					Connection:     pc,
-					ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
-					OSCommand:      command.NewUnixOSCommand(),
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-			microRunner := NewRunner(WithRemoteRunner(remoteRunner))
-
-			allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
-			if err != nil {
-				return nil, err
-			}
-			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
-			if err != nil {
-				return nil, err
-			}
-
-			setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
-			if err != nil {
-				return nil, err
-			}
-
-			_, err = reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
-			if err != nil {
-				return nil, err
-			}
-		}
+	if _, err := provisionLocalMicroVMs(vmCollections); err != nil {
+		return nil, err
 	}
+
 	return &scenarioReady, nil
 }
 

@@ -26,6 +26,10 @@ func NewFileManager(runner *Runner) *FileManager {
 	}
 }
 
+func (fm *FileManager) IsPathAbsolute(path string) bool {
+	return fm.command.IsPathAbsolute(path)
+}
+
 // CreateDirectoryFromPulumiString if it does not exist from directory name as a Pulumi String
 func (fm *FileManager) CreateDirectoryFromPulumiString(name string, remotePath pulumi.String, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
@@ -66,7 +70,6 @@ func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.Res
 }
 
 func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-
 	return fm.command.CopyInlineFile(fm.runner, fileContent, remotePath, useSudo, opts...)
 }
 
@@ -114,7 +117,8 @@ func (fm *FileManager) CopyFSFolder(
 	folderFS fs.FS,
 	folderPath string,
 	remoteFolder string,
-	opts ...pulumi.ResourceOption) ([]pulumi.Resource, error) {
+	opts ...pulumi.ResourceOption,
+) ([]pulumi.Resource, error) {
 	useSudo := true
 	folderCommand, err := fm.CreateDirectory(remoteFolder, useSudo, opts...)
 	if err != nil {
@@ -143,7 +147,6 @@ func (fm *FileManager) CopyFSFolder(
 	fileResources := []pulumi.Resource{}
 	for _, file := range files {
 		destFile, err := getDestinationPath(file, folderPath)
-
 		if err != nil {
 			return nil, err
 		}
@@ -157,7 +160,6 @@ func (fm *FileManager) CopyFSFolder(
 			path.Join(remoteFolder, destFile),
 			useSudo,
 			pulumi.DependsOn(folderResources))
-
 		if err != nil {
 			return nil, err
 		}

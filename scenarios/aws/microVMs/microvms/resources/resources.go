@@ -66,18 +66,10 @@ type ResourceCollection interface {
 	GetLibvirtDomainArgs(*RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error)
 }
 
-type AttachMethod int
-
-const (
-	AttachAsFile AttachMethod = iota
-	AttachAsVolume
-)
-
 type DiskTarget string
 
 type DomainDisk struct {
 	VolumeID   pulumi.StringPtrInput
-	Attach     AttachMethod
 	Target     string
 	Mountpoint string
 }

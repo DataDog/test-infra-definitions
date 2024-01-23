@@ -2,24 +2,21 @@ package agent
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
-	ddfakeintake "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *ddfakeintake.ConnectionExporter, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
-	var agentImage string
+func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		agentImage = DockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "latest")
-	} else {
-		agentImage = image
+		image = dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "latest")
 	}
 
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(agentImage),
+		Image:     pulumi.String(image),
 		Essential: pulumi.BoolPtr(true),
 		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
@@ -29,6 +26,10 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("ECS_FARGATE"),
 				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
 			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{

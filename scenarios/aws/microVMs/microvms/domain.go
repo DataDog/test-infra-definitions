@@ -37,6 +37,8 @@ type Domain struct {
 	ip          string
 	mac         pulumi.StringOutput
 	lvDomain    *libvirt.Domain
+	tag         string
+	vmset       vmconfig.VMSet
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
@@ -78,18 +80,6 @@ func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.Stri
 	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
 }
 
-type domainConfiguration struct {
-	vcpu        int
-	memory      int
-	setTags     string
-	machine     string
-	arch        string
-	recipe      string
-	consoleType string
-	cputune     string
-	kernel      vmconfig.Kernel
-}
-
 func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 	var vcpuMap []string
 
@@ -106,24 +96,29 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration) (*Domain, error) {
+func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
-	domain.domainID = generateDomainIdentifier(cfg.vcpu, cfg.memory, cfg.setTags, cfg.kernel.Tag, cfg.arch)
+	setTags := strings.Join(set.Tags, "-")
+	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
+	domain.tag = kernel.Tag
+	// copy the vmset tag. The pointer refers to
+	// a local variable and can change causing an incorrect mapping
+	domain.vmset = *set
 
 	domain.mac, err = generateMACAddress(e, domain.domainID)
 	if err != nil {
 		return nil, err
 	}
 
-	rc := resources.NewResourceCollection(cfg.recipe)
+	rc := resources.NewResourceCollection(set.Recipe)
 	domain.RecipeLibvirtDomainArgs.Resources = rc
-	domain.RecipeLibvirtDomainArgs.Vcpu = cfg.vcpu
-	domain.RecipeLibvirtDomainArgs.Memory = cfg.memory
-	domain.RecipeLibvirtDomainArgs.ConsoleType = cfg.consoleType
-	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", cfg.kernel.Dir, "bzImage")
+	domain.RecipeLibvirtDomainArgs.Vcpu = vcpu
+	domain.RecipeLibvirtDomainArgs.Memory = memory
+	domain.RecipeLibvirtDomainArgs.ConsoleType = set.ConsoleType
+	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
 
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
 	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
@@ -136,11 +131,11 @@ func newDomainConfiguration(e *config.CommonEnvironment, cfg domainConfiguration
 			resources.Nvram:         pulumi.String(varstore),
 			resources.Efi:           pulumi.String(efi),
 			resources.VCPU:          pulumi.Sprintf("%d", cfg.vcpu),
-			resources.CPUTune:       pulumi.String(cfg.cputune),
+			resources.CPUTune:       pulumi.String(cputune),
 		},
 	)
-	domain.RecipeLibvirtDomainArgs.Machine = cfg.machine
-	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = cfg.kernel.ExtraParams
+	domain.RecipeLibvirtDomainArgs.Machine = set.Machine
+	domain.RecipeLibvirtDomainArgs.ExtraKernelParams = kernel.ExtraParams
 	domain.RecipeLibvirtDomainArgs.DomainName = domainName
 
 	return domain, nil
@@ -186,20 +181,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
 				cpuTuneXML, cpuSetStart = getCPUTuneXML(vcpu, cpuSetStart, set.VMHost.AvailableCPUs)
-				domain, err := newDomainConfiguration(
-					e,
-					domainConfiguration{
-						vcpu:        vcpu,
-						memory:      memory,
-						setTags:     strings.Join(set.Tags, "-"),
-						machine:     set.Machine,
-						arch:        set.Arch,
-						recipe:      set.Recipe,
-						kernel:      kernel,
-						consoleType: set.ConsoleType,
-						cputune:     cpuTuneXML,
-					},
-				)
+				domain, err := newDomainConfiguration(e, set, vcpu, memory, kernel, cpuTuneXML)
 				if err != nil {
 					return []*Domain{}, 0, err
 				}
@@ -209,17 +191,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				lastDisk := getVolumeDiskTarget(true, "")
 				for _, vol := range libvirtVolumes {
 					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
-					if vol.Pool().Type() != resources.DefaultPool {
-						domain.Disks = append(domain.Disks, resources.DomainDisk{
-							VolumeID:   pulumi.String(vol.Key()),
-							Attach:     resources.AttachAsFile,
-							Target:     lastDisk,
-							Mountpoint: vol.Mountpoint(),
-						})
-
-						// For disks to be attached as Files, we do not create an overlay
-						continue
-					}
 					rootVolume, err := setupDomainVolume(
 						e.Ctx,
 						providerFn,
@@ -233,7 +204,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					}
 					domain.Disks = append(domain.Disks, resources.DomainDisk{
 						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
-						Attach:     resources.AttachAsVolume,
 						Target:     lastDisk,
 						Mountpoint: vol.Mountpoint(),
 					})

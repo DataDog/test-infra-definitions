@@ -3,14 +3,13 @@ package registry
 import (
 	"strings"
 
-	dockervm "github.com/DataDog/test-infra-definitions/scenarios/aws/dockerVM"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/eks"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/kindvm"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms"
-	awsvm "github.com/DataDog/test-infra-definitions/scenarios/aws/vm"
 	"github.com/DataDog/test-infra-definitions/scenarios/azure/aks"
-	azvm "github.com/DataDog/test-infra-definitions/scenarios/azure/vm"
+	"github.com/DataDog/test-infra-definitions/scenarios/azure/compute"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -19,13 +18,13 @@ type ScenarioRegistry map[string]pulumi.RunFunc
 
 func Scenarios() ScenarioRegistry {
 	return ScenarioRegistry{
-		"aws/vm":       awsvm.Run,
-		"aws/dockervm": dockervm.Run,
+		"aws/vm":       ec2.VMRun,
+		"aws/dockervm": ec2.VMRunWithDocker,
 		"aws/ecs":      ecs.Run,
 		"aws/eks":      eks.Run,
 		"aws/microvms": microvms.Run,
 		"aws/kind":     kindvm.Run,
-		"az/vm":        azvm.Run,
+		"az/vm":        compute.VMRun,
 		"az/aks":       aks.Run,
 	}
 }

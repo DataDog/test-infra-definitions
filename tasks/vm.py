@@ -1,3 +1,5 @@
+import getpass
+import os
 from typing import Optional, Tuple
 
 import pyperclip
@@ -16,6 +18,7 @@ scenario_name = "aws/vm"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
+        "install_updater": doc.install_updater,
         "pipeline_id": doc.pipeline_id,
         "agent_version": doc.agent_version,
         "stack_name": doc.stack_name,
@@ -27,6 +30,7 @@ scenario_name = "aws/vm"
         "architecture": doc.architecture,
         "interactive": doc.interactive,
         "use_aws_vault": doc.use_aws_vault,
+        "instance_type": doc.instance_type,
     }
 )
 def create_vm(
@@ -35,6 +39,7 @@ def create_vm(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = True,
+    install_updater: Optional[bool] = False,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
@@ -44,6 +49,7 @@ def create_vm(
     architecture: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,
     interactive: Optional[bool] = True,
+    instance_type: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -51,14 +57,21 @@ def create_vm(
 
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
-    extra_flags["ddinfra:osFamily"] = os_family
+    extra_flags["ddinfra:osDescriptor"] = f"{os_family}::{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
-    if os_arch is not None:
-        extra_flags["ddinfra:osArchitecture"] = os_arch
-
     if ami_id is not None:
-        extra_flags["ddinfra:osAmiId"] = ami_id
+        extra_flags["ddinfra:osImageID"] = ami_id
+
+    if use_fakeintake and not install_agent:
+        print(
+            "[WARNING] It is currently not possible to deploy a VM with fakeintake and without agent. Your VM will start without fakeintake."
+        )
+    if instance_type is not None:
+        if architecture is None or architecture.lower() == tool.get_default_architecture():
+            extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
+        else:
+            extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
 
     full_stack_name = deploy(
         ctx,
@@ -69,6 +82,7 @@ def create_vm(
         stack_name=stack_name,
         pipeline_id=pipeline_id,
         install_agent=install_agent,
+        install_updater=install_updater,
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
@@ -84,9 +98,9 @@ def create_vm(
 
 def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool] = True):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    connection = tool.Connection(outputs)
-    host = connection.host
-    user = connection.user
+    remoteHost = tool.RemoteHost("aws-vm", outputs)
+    host = remoteHost.host
+    user = remoteHost.user
 
     command = f"ssh {user}@{host}"
 
@@ -102,6 +116,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
         "stack_name": doc.stack_name,
         "yes": doc.yes,
         "use_aws_vault": doc.use_aws_vault,
+        "clean_known_hosts": doc.clean_known_hosts,
     }
 )
 def destroy_vm(
@@ -110,11 +125,37 @@ def destroy_vm(
     stack_name: Optional[str] = None,
     yes: Optional[bool] = False,
     use_aws_vault: Optional[bool] = True,
+    clean_known_hosts: Optional[bool] = True,
 ):
     """
     Destroy a new virtual machine on the cloud.
     """
+    host = _get_host(ctx, stack_name)
     destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
+    if clean_known_hosts:
+        _clean_known_hosts(host)
+
+
+def _get_host(ctx: Context, stack_name: Optional[str] = None) -> str:
+    """
+    Get the host of the VM.
+    """
+    full_stack_name = tool.get_stack_name(stack_name, scenario_name)
+    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
+    remoteHost = tool.RemoteHost("aws-vm", outputs)
+    return remoteHost.host
+
+
+def _clean_known_hosts(host: str) -> None:
+    """
+    Remove the host from the known_hosts file.
+    """
+    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
+    with open(f"{home}/.ssh/known_hosts", "r") as f:
+        lines = f.readlines()
+    filtered_lines = [line for line in lines if not line.startswith(host)]
+    with open(f"{home}/.ssh/known_hosts", "w") as f:
+        f.writelines(filtered_lines)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

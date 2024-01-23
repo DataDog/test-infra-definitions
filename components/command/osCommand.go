@@ -32,6 +32,8 @@ type OSCommand interface {
 		sudo bool,
 		passwordFromStdin bool,
 		user string) pulumi.StringInput
+
+	IsPathAbsolute(path string) bool
 }
 
 // ------------------------------
@@ -46,7 +48,8 @@ func createDirectory(
 	createCmd string,
 	deleteCmd string,
 	useSudo bool,
-	opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
 	// If the folder was previously created, make sure to delete it before creating it.
 	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 	return runner.Command(name,
@@ -65,8 +68,9 @@ func copyInlineFile(
 	useSudo bool,
 	createCmd string,
 	deleteCmd string,
-	opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return runner.Command(runner.namer.ResourceName("copy-file-support-only-single-call-per-path", name),
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
+	return runner.Command(runner.namer.ResourceName("copy-file", name),
 		&Args{
 			Create:   pulumi.String(createCmd),
 			Delete:   pulumi.String(deleteCmd),
@@ -79,7 +83,8 @@ func copyInlineFile(
 func buildCommandString(
 	command pulumi.StringInput,
 	envVars pulumi.StringArray,
-	fct func(envVarsStr pulumi.StringOutput) pulumi.StringInput) pulumi.StringInput {
+	fct func(envVarsStr pulumi.StringOutput) pulumi.StringInput,
+) pulumi.StringInput {
 	if command == nil {
 		return nil
 	}

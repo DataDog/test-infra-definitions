@@ -1,99 +1,72 @@
 package agent
 
 import (
-	"github.com/Masterminds/semver"
-	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
-	"github.com/DataDog/test-infra-definitions/components/vm"
-	"github.com/DataDog/test-infra-definitions/scenarios/aws/vm/ec2vm"
+	"github.com/DataDog/test-infra-definitions/components/docker"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 )
 
 const (
-	DefaultAgentImageRepo        = "gcr.io/datadoghq/agent"
-	DefaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
-	defaultAgentImageTag         = "latest"
-	AgentContainerName           = "datadog-agent"
+	agentContainerName = "datadog-agent"
 )
 
-type Daemon struct {
-	vm                 *ec2vm.EC2UnixVM
-	dependsOn          pulumi.ResourceOption
-	agentContainerName string
+type DockerAgentOutput struct {
+	components.JSONImporter
+
+	ContainerName string `json:"containerName"`
 }
 
-// NewDaemon installs the Datadog Agent through docker-compose on a VM with docker already istalled.
-// It allows running multiple docker applications on the same VM. It does not check if docker is installed,
-// use it with ec2os.AmazonLinuxDockerOS or install docker with `dockerManager.Install` before calling this function.
-func NewDaemon(vm *ec2vm.EC2UnixVM, options ...dockeragentparams.Option) (*Daemon, error) {
-	env := vm.GetCommonEnvironment()
-	params, err := dockeragentparams.NewParams(options...)
-	if err != nil {
-		return nil, err
-	}
+// DockerAgent is a Docker installer on a remote Host
+type DockerAgent struct {
+	pulumi.ResourceState
+	components.Component
 
-	agentFullImagePath := DockerAgentFullImagePath(env, params.Repository, params.ImageTag)
+	ContainerName pulumi.StringOutput `pulumi:"containerName"`
+}
 
-	var composeContents []command.DockerComposeInlineManifest
-	composeContents = append(composeContents, command.DockerComposeInlineManifest{
-		Name:    "agent",
-		Content: dockerAgentComposeContent(agentFullImagePath, env.AgentAPIKey(), params.AgentServiceEnvironment),
-	})
-	composeContents = append(composeContents, params.ExtraComposeManifests...)
+func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error {
+	return components.Export(ctx, h, out)
+}
 
-	var dependOnResource pulumi.Resource
-	dockerManager := vm.GetLazyDocker()
-
-	if len(composeContents) > 0 {
-		dependOnResource, err = dockerManager.ComposeStrUp("docker-on-vm", composeContents, params.EnvironmentVariables)
+func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...dockeragentparams.Option) (*DockerAgent, error) {
+	return components.NewComponent(e, vm.Name(), func(comp *DockerAgent) error {
+		params, err := dockeragentparams.NewParams(options...)
 		if err != nil {
-			return nil, err
+			return err
 		}
-	}
+		defaultAgentParams(params)
 
-	return &Daemon{
-		vm:                 vm,
-		dependsOn:          utils.PulumiDependsOn(dependOnResource),
-		agentContainerName: AgentContainerName,
-	}, nil
+		// We can have multiple compose files in compose.
+		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(params.FullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
+		composeContents = append(composeContents, params.ExtraComposeManifests...)
+
+		_, err = manager.ComposeStrUp("agent", composeContents, params.EnvironmentVariables, pulumi.Parent(comp))
+		if err != nil {
+			return err
+		}
+
+		// Fill component
+		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
+		return nil
+	})
 }
 
-func (d *Daemon) GetDependsOn() pulumi.ResourceOption {
-	return d.dependsOn
-}
-
-func (d *Daemon) GetAgentContainerName() string {
-	return d.agentContainerName
-}
-
-func (d *Daemon) Deserialize(result auto.UpResult) (*ClientData, error) {
-	vmData, err := d.vm.Deserialize(result)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ClientData{Connection: vmData.Connection}, nil
-}
-
-func (d *Daemon) VM() vm.VM {
-	return d.vm.VM
-}
-
-func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput, envVars pulumi.Map) pulumi.StringOutput {
+func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput, envVars pulumi.Map) docker.ComposeInlineManifest {
 	agentManifestContent := pulumi.All(apiKey, envVars).ApplyT(func(args []interface{}) (string, error) {
 		apiKeyResolved := args[0].(string)
 		envVarsResolved := args[1].(map[string]any)
-		agentManifest := command.DockerComposeManifest{
+		agentManifest := docker.ComposeManifest{
 			Version: "3.9",
-			Services: map[string]command.DockerComposeManifestService{
+			Services: map[string]docker.ComposeManifestService{
 				"agent": {
 					Image:         agentImagePath,
-					ContainerName: AgentContainerName,
+					ContainerName: agentContainerName,
 					Volumes: []string{
 						"/var/run/docker.sock:/var/run/docker.sock",
 						"/proc/:/host/proc",
@@ -116,50 +89,22 @@ func dockerAgentComposeContent(agentImagePath string, apiKey pulumi.StringInput,
 		return string(data), err
 	}).(pulumi.StringOutput)
 
-	return agentManifestContent
+	return docker.ComposeInlineManifest{
+		Name:    "agent",
+		Content: agentManifestContent,
+	}
 }
 
-func DockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath, imageTag string) string {
-	// return agent image path if defined
-	if e.AgentFullImagePath() != "" {
-		return e.AgentFullImagePath()
+func defaultAgentParams(params *dockeragentparams.Params) {
+	if params.FullImagePath != "" {
+		return
 	}
 
-	if repositoryPath == "" {
-		repositoryPath = DefaultAgentImageRepo
+	if params.Repository == "" {
+		params.Repository = defaultAgentImageRepo
 	}
-
-	if imageTag == "" {
-		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
+	if params.ImageTag == "" {
+		params.ImageTag = defaultAgentImageTag
 	}
-
-	return utils.BuildDockerImagePath(repositoryPath, imageTag)
-}
-
-func DockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
-	// return cluster agent image path if defined
-	if e.ClusterAgentFullImagePath() != "" {
-		return e.ClusterAgentFullImagePath()
-	}
-
-	if repositoryPath == "" {
-		repositoryPath = DefaultClusterAgentImageRepo
-	}
-
-	return utils.BuildDockerImagePath(repositoryPath, dockerAgentImageTag(e, config.ClusterAgentSemverVersion))
-}
-
-func dockerAgentImageTag(e *config.CommonEnvironment, semverVersion func(*config.CommonEnvironment) (*semver.Version, error)) string {
-	// default tag
-	agentImageTag := defaultAgentImageTag
-
-	// try parse agent version
-	agentVersion, err := semverVersion(e)
-	if agentVersion != nil && err == nil {
-		agentImageTag = agentVersion.String()
-	} else {
-		e.Ctx.Log.Debug("Unable to parse agent version, using latest", nil)
-	}
-
-	return agentImageTag
+	params.FullImagePath = utils.BuildDockerImagePath(params.Repository, params.ImageTag)
 }

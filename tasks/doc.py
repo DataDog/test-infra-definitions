@@ -1,6 +1,7 @@
 from . import tool
 
 install_agent: str = f"Install the Agent (default {tool.get_default_agent_install()})."
+install_updater: str = "Install the Updater (default False)."
 install_workload: str = f"Install test workload (default {tool.get_default_workload_install()})."
 pipeline_id: str = (
     "The pipeline id of the custom Agent build for example '16497585' (may be taken form the gitlab url)'"
@@ -28,3 +29,5 @@ use_aws_vault: str = "Wrap aws command with aws-vault, default to True"
 interactive: str = "Enable interactive mode, if set to False notifications and copy to clipboard are disabled"
 config_path: str = "Specify a custom config path to use"
 use_loadBalancer: str = "Use a loadBalancer to instantiate the fakeintake (default False)"
+clean_known_hosts: str = "Clean the host from ssh known_hosts file after destroying the VM (default True)"
+instance_type: str = "The instance type to use (default is t3.medium for aws or Standard_B4ms for azure)"

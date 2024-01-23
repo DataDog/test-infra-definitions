@@ -54,6 +54,8 @@ jobs:
             image: prometheus
           - app: redis
             image: redis-client
+          - app: tracegen
+            image: tracegen
 
     steps:
       - name: Checkout repository

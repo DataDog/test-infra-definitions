@@ -167,6 +167,11 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				HostPort:      pulumi.IntPtr(8125),
 				Protocol:      pulumi.StringPtr("udp"),
 			},
+			ecs.TaskDefinitionPortMappingArgs{
+				ContainerPort: pulumi.Int(8126),
+				HostPort:      pulumi.IntPtr(8126),
+				Protocol:      pulumi.StringPtr("tcp"),
+			},
 		},
 	}
 }

@@ -78,7 +78,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 						"DD_PROCESS_AGENT_ENABLED": true,
 					},
 					Pid:   "host",
-					Ports: []string{"8125:8125/udp"},
+					Ports: []string{"8125:8125/udp", "8126:8126/tcp"},
 				},
 			},
 		}

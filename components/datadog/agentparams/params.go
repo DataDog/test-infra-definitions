@@ -194,6 +194,7 @@ logs_config.logs_dd_url: %[1]s:80
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true
 process_config.process_dd_url: http://%[1]s:80
+apm_config.apm_dd_url: http://%[1]s:80
 database_monitoring.metrics.logs_dd_url: %[1]s:80
 database_monitoring.metrics.logs_no_ssl: true
 database_monitoring.activity.logs_dd_url: %[1]s:80

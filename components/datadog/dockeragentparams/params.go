@@ -122,15 +122,16 @@ func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSLCertificateVal
 		return strings.HasPrefix(host, "https"), nil
 	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
-		logsEnvVars := pulumi.Map{
+		envVars := pulumi.Map{
 			"DD_DD_URL":                        pulumi.Sprintf("http://%s:80", hostname),
 			"DD_LOGS_CONFIG_DD_URL":            pulumi.Sprintf("%s:80", hostname),
 			"DD_PROCESS_CONFIG_PROCESS_DD_URL": pulumi.Sprintf("http://%s:80", hostname),
+			"DD_APM_DD_URL":                    pulumi.Sprintf("http://%s:80", hostname),
 			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(shouldSkipSSLCertificateValidation),
 			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(shouldSkipSSLCertificateValidation),
 			"DD_LOGS_CONFIG_FORCE_USE_HTTP":    shouldEnforceHTTPInput,
 		}
-		for key, value := range logsEnvVars {
+		for key, value := range envVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {
 				return err
 			}

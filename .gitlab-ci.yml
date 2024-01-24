@@ -11,6 +11,15 @@ stages:
   - release
 
 
+gitlab-test:
+  stage: build
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
+  tags: ["arch:amd64"]
+  script:
+    - 'cat "${BASH_SOURCE[0]}"'
+    - 'false && false'
+    - 'true'
+
 build-runner-image:
   stage: build
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13

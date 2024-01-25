@@ -77,6 +77,30 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		return err
 	}
 
+	varddcmd, err := h.host.OS.Runner().Command(
+		h.namer.ResourceName("var/run/datadog"),
+		&command.Args{
+			Create: pulumi.String("mkdir -p /var/run/datadog"),
+			Sudo:   true,
+		},
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = h.host.OS.Runner().Command(
+		"var/run/datadog perm",
+		&command.Args{
+			Create: pulumi.String("chown dd-agent:dd-agent /var/run/datadog"),
+			Sudo:   true,
+		},
+		utils.PulumiDependsOn(varddcmd),
+		utils.PulumiDependsOn(installCmd),
+	)
+	if err != nil {
+		return err
+	}
+
 	afterInstallOpts := utils.MergeOptions(baseOpts, utils.PulumiDependsOn(installCmd))
 	configFiles := make(map[string]pulumi.StringInput)
 

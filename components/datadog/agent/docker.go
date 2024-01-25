@@ -65,6 +65,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 			Version: "3.9",
 			Services: map[string]docker.ComposeManifestService{
 				"agent": {
+					Privileged:    true,
 					Image:         agentImagePath,
 					ContainerName: agentContainerName,
 					Volumes: []string{
@@ -72,6 +73,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 						"/proc/:/host/proc",
 						"/sys/fs/cgroup/:/host/sys/fs/cgroup",
 						"/var/run/datadog:/var/run/datadog",
+						"/sys/kernel/tracing:/sys/kernel/tracing",
 					},
 					Environment: map[string]any{
 						"DD_API_KEY":               apiKeyResolved,

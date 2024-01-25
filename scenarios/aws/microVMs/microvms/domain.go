@@ -130,7 +130,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 			resources.MACAddress:    domain.mac,
 			resources.Nvram:         pulumi.String(varstore),
 			resources.Efi:           pulumi.String(efi),
-			resources.VCPU:          pulumi.Sprintf("%d", cfg.vcpu),
+			resources.VCPU:          pulumi.Sprintf("%d", vcpu),
 			resources.CPUTune:       pulumi.String(cputune),
 		},
 	)

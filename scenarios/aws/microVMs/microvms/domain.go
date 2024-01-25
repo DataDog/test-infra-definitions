@@ -83,6 +83,10 @@ func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.Stri
 func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 	var vcpuMap []string
 
+	if cpuCount == 0 {
+		return "", 0
+	}
+
 	xml := "<vcpupin vcpu='%d' cpuset='%d'/>"
 
 	for i := 0; i < vmcpus; i++ {

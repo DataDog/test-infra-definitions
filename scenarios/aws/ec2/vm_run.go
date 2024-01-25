@@ -75,7 +75,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 
 	// If no OS is provided, we default to AmazonLinuxECS as it ships with Docker pre-installed
 	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECS)
-	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
+	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture), WithInstanceProfile(env.DefaultDockerInstanceProfile()))
 	if err != nil {
 		return err
 	}

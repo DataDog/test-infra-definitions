@@ -155,7 +155,24 @@ func (d *Manager) install() (*remote.Command, error) {
 		return nil, err
 	}
 
-	return groupCmd, err
+	ecrCredsHelperInstall, err := d.host.OS.PackageManager().Ensure("amazon-ecr-credential-helper", utils.MergeOptions(d.opts, utils.PulumiDependsOn(groupCmd))...)
+	if err != nil {
+		return nil, err
+	}
+
+	ecrCredsHelperConfig, err := d.host.OS.Runner().Command(
+		d.namer.ResourceName("ecr-config"),
+		&command.Args{
+			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
+			Sudo:   false,
+		},
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(ecrCredsHelperInstall))...,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return ecrCredsHelperConfig, err
 }
 
 func (d *Manager) installCompose() (*remote.Command, error) {

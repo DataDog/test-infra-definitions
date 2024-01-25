@@ -89,12 +89,24 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	}
 
 	_, err = h.host.OS.Runner().Command(
-		"var/run/datadog perm",
+		h.namer.ResourceName("var/run/datadog perm"),
 		&command.Args{
 			Create: pulumi.String("chown dd-agent:dd-agent /var/run/datadog"),
 			Sudo:   true,
 		},
 		utils.PulumiDependsOn(varddcmd),
+		utils.PulumiDependsOn(installCmd),
+	)
+	if err != nil {
+		return err
+	}
+
+	_, err = h.host.OS.Runner().Command(
+		h.namer.ResourceName("dd-agent:docker group"),
+		&command.Args{
+			Create: pulumi.String("usermod -a -G docker dd-agent"),
+			Sudo:   true,
+		},
 		utils.PulumiDependsOn(installCmd),
 	)
 	if err != nil {

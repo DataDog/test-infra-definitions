@@ -25,6 +25,7 @@ const (
 	Efi           = "efi"
 	Format        = "format"
 	VCPU          = "vcpu"
+	CPUTune       = "cputune"
 )
 
 const (

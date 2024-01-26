@@ -11,6 +11,13 @@
       <cpu mode='host-passthrough' check='full'/>
   </xsl:template>
 
+  <xsl:template match="/domain/os">
+      {cputune}
+      <xsl:copy>
+          <xsl:apply-templates select="@*|node()"/>
+      </xsl:copy>
+  </xsl:template>
+
   <xsl:template match="/domain/devices/disk">
       <filesystem type='mount' accessmode='passthrough'>
           <source dir='{sharedFSMount}'/>

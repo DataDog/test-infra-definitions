@@ -17,6 +17,13 @@
        <cpu mode='host-passthrough' check='full'/>
   </xsl:template>
 
+  <xsl:template match="/domain/devices">
+      {cputune}
+      <xsl:copy>
+          <xsl:apply-templates select="@*|node()"/>
+      </xsl:copy>
+  </xsl:template>
+
   <xsl:template match="/domain/os">
         <xsl:copy>
             <xsl:copy-of select="@*"/>

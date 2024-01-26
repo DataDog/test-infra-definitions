@@ -83,8 +83,8 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, installDocker := osWithDockerProvided[vm.OS.Descriptor().Flavor]
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, installDocker)
+	_, isDockerInstalled := osWithDockerProvided[vm.OS.Descriptor().Flavor]
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled)
 	if err != nil {
 		return err
 	}

@@ -111,14 +111,12 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
 		}
 
-		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
-		if err != nil {
-			return err
+		if env.TestingWorkloadDeploy() {
+			agentOptions = append(agentOptions, dockeragentparams.WithExtraComposeManifest(dogstatsd.DockerComposeManifest.Name, dogstatsd.DockerComposeManifest.Content))
+			agentOptions = append(agentOptions, dockeragentparams.WithEnvironmentVariables(pulumi.StringMap{"HOST_IP": vm.Address}))
 		}
-	}
 
-	if env.TestingWorkloadDeploy() {
-		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address})
+		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
 		if err != nil {
 			return err
 		}

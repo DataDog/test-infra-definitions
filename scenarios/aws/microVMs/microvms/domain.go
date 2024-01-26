@@ -87,10 +87,8 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 		return "", 0
 	}
 
-	xml := "<vcpupin vcpu='%d' cpuset='%d'/>"
-
 	for i := 0; i < vmcpus; i++ {
-		vcpuMap = append(vcpuMap, fmt.Sprintf(xml, i, hostCPUSet))
+		vcpuMap = append(vcpuMap, fmt.Sprintf("<vcpupin vcpu='%d' cpuset='%d'/>", i, hostCPUSet))
 		hostCPUSet++
 		if hostCPUSet >= cpuCount {
 			hostCPUSet = 0

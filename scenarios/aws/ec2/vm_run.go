@@ -47,7 +47,7 @@ func VMRun(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
 
-		_, err = agent.NewHostAgent(env.CommonEnvironment, vm, agentOptions...)
+		_, err = agent.NewHostAgent(env.CommonEnvironment, vm, nil, agentOptions...)
 		return err
 	}
 

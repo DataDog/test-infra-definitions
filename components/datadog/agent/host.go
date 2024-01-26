@@ -37,7 +37,7 @@ func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
 }
 
 // NewHostAgent creates a new instance of a on-host Agent
-func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
+func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, dep pulumi.Resource, options ...agentparams.Option) (*HostAgent, error) {
 	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostAgent) error {
 		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
 		comp.host = host
@@ -48,7 +48,12 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 			return err
 		}
 
-		err = comp.installAgent(e, params, pulumi.Parent(comp))
+		opts := []pulumi.ResourceOption{pulumi.Parent(comp)}
+		if dep != nil {
+			opts = append(opts, utils.PulumiDependsOn(dep))
+		}
+
+		err = comp.installAgent(e, params, opts...)
 		if err != nil {
 			return err
 		}
@@ -101,6 +106,18 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		return err
 	}
 
+	dockerGroup, err := h.host.OS.Runner().Command(
+		h.namer.ResourceName("docker group"),
+		&command.Args{
+			Create: pulumi.String("groupadd -f -r docker"),
+			Sudo:   true,
+		},
+		utils.PulumiDependsOn(installCmd),
+	)
+	if err != nil {
+		return err
+	}
+
 	_, err = h.host.OS.Runner().Command(
 		h.namer.ResourceName("dd-agent:docker group"),
 		&command.Args{
@@ -108,6 +125,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 			Sudo:   true,
 		},
 		utils.PulumiDependsOn(installCmd),
+		utils.PulumiDependsOn(dockerGroup),
 	)
 	if err != nil {
 		return err

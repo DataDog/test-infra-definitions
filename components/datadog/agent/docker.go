@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"strings"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"gopkg.in/yaml.v3"
 
@@ -58,6 +60,14 @@ func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *do
 }
 
 func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput, envVars pulumi.Map) docker.ComposeInlineManifest {
+	runInPrivileged := false
+	for k := range envVars {
+		if strings.HasPrefix(k, "DD_SYSTEM_PROBE_") {
+			runInPrivileged = true
+			break
+		}
+	}
+
 	agentManifestContent := pulumi.All(apiKey, envVars).ApplyT(func(args []interface{}) (string, error) {
 		apiKeyResolved := args[0].(string)
 		envVarsResolved := args[1].(map[string]any)
@@ -65,6 +75,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 			Version: "3.9",
 			Services: map[string]docker.ComposeManifestService{
 				"agent": {
+					Privileged:    runInPrivileged,
 					Image:         agentImagePath,
 					ContainerName: agentContainerName,
 					Volumes: []string{
@@ -72,6 +83,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 						"/proc/:/host/proc",
 						"/sys/fs/cgroup/:/host/sys/fs/cgroup",
 						"/var/run/datadog:/var/run/datadog",
+						"/sys/kernel/tracing:/sys/kernel/tracing",
 					},
 					Environment: map[string]any{
 						"DD_API_KEY":               apiKeyResolved,

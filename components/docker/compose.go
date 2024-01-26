@@ -14,6 +14,7 @@ type ComposeManifest struct {
 
 type ComposeManifestService struct {
 	Pid           string         `yaml:"pid,omitempty"`
+	Privileged    bool           `yaml:"privileged,omitempty"`
 	Ports         []string       `yaml:"ports,omitempty"`
 	Image         string         `yaml:"image"`
 	ContainerName string         `yaml:"container_name"`

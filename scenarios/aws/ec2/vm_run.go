@@ -91,7 +91,6 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	vm.OS.PackageManager()
 	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", utils.PulumiDependsOn(setupDockerCmd))
 	if err != nil {
 		return err

@@ -59,8 +59,8 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		taskDef, err := ecs.FargateTaskDefinitionWithAgent(e,
 			namer.ResourceName("taskdef"),
 			pulumi.String("fakeintake-ecs"),
-			1024, 6144,
-			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name)},
+			params.CPU, params.Memory,
+			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600)},
 			apiKeyParam.Name,
 			nil,
 			opts...,
@@ -237,7 +237,7 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 	return nil
 }
 
-func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
+func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput, GoMemLimitMiB int) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
 	return &awsxEcs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
 		Image:       pulumi.String(imageURL),
@@ -246,7 +246,7 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 		Environment: awsxEcs.TaskDefinitionKeyValuePairArray{
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("GOMEMLIMIT"),
-				Value: pulumi.StringPtr("5120MiB"),
+				Value: pulumi.StringPtr(fmt.Sprintf("%dMiB", GoMemLimitMiB)),
 			},
 		},
 		PortMappings: awsxEcs.TaskDefinitionPortMappingArray{

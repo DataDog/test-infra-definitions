@@ -5,9 +5,10 @@ import (
 )
 
 const (
-	sandboxEnv      = "aws/sandbox"
-	agentSandboxEnv = "aws/agent-sandbox"
-	agentQAEnv      = "aws/agent-qa"
+	sandboxEnv       = "aws/sandbox"
+	agentSandboxEnv  = "aws/agent-sandbox"
+	agentQAEnv       = "aws/agent-qa"
+	tsePlaygroundEnv = "aws/tse-playground"
 )
 
 type environmentDefault struct {
@@ -64,6 +65,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 		return agentSandboxDefault()
 	case agentQAEnv:
 		return agentQADefault()
+	case tsePlaygroundEnv:
+		return tsePlaygroundDefault()
 	default:
 		panic("Unknown environment: " + envName)
 	}
@@ -177,6 +180,45 @@ func agentQADefault() environmentDefault {
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
+				fargateNamespace:             "fargate",
+				linuxNodeGroup:               true,
+				linuxARMNodeGroup:            true,
+				linuxBottlerocketNodeGroup:   true,
+				windowsLTSCNodeGroup:         true,
+			},
+		},
+	}
+}
+
+func tsePlaygroundDefault() environmentDefault {
+	return environmentDefault{
+		aws: awsProvider{
+			region: string(aws.RegionUSEast1),
+		},
+		ddInfra: ddInfra{
+			defaultVPCID:               "vpc-0570ac09560a97693",
+			defaultSubnets:             []string{"subnet-0ec4b9823cf352b95", "subnet-0e9c45e996754e357", "subnet-070e1a6c79f6bc499"},
+			defaultSecurityGroups:      []string{"sg-091a00b0944f04fd2", "sg-073f15b823d4bb39a", "sg-0a3ec6b0ee295e826"},
+			defaultInstanceType:        "t3.medium",
+			defaultARMInstanceType:     "t4g.medium",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
+
+			ecs: ddInfraECS{
+				execKMSKeyID:                "arn:aws:kms:us-east-1:570690476889:key/f1694e5a-bb52-42a7-b414-dfd34fbd6759",
+				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs",
+				taskExecutionRole:           "arn:aws:iam::570690476889:role/ecsExecTaskExecutionRole",
+				taskRole:                    "arn:aws:iam::570690476889:role/ecsExecTaskRole",
+				instanceProfile:             "arn:aws:iam::570690476889:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:     false,
+				fargateCapacityProvider:     true,
+				linuxECSOptimizedNodeGroup:  true,
+				linuxBottlerocketNodeGroup:  true,
+				windowsLTSCNodeGroup:        true,
+			},
+
+			eks: ddInfraEKS{
+				allowedInboundSecurityGroups: []string{"sg-091a00b0944f04fd2", "sg-0a3ec6b0ee295e826"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

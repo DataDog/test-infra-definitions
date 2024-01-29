@@ -198,7 +198,7 @@ func tsePlaygroundDefault() environmentDefault {
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-0570ac09560a97693",
 			defaultSubnets:             []string{"subnet-0ec4b9823cf352b95", "subnet-0e9c45e996754e357", "subnet-070e1a6c79f6bc499"},
-			defaultSecurityGroups:      []string{"sg-091a00b0944f04fd2", "sg-073f15b823d4bb39a"},
+			defaultSecurityGroups:      []string{"sg-091a00b0944f04fd2", "sg-073f15b823d4bb39a", "sg-0a3ec6b0ee295e826"},
 			defaultInstanceType:        "t3.medium",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,

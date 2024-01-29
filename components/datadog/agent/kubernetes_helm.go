@@ -233,6 +233,24 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"podAnnotations": pulumi.StringMap{
+				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
+					map[string]interface{}{
+						"openmetrics": map[string]interface{}{
+							"init_configs": []map[string]interface{}{},
+							"instances": []map[string]interface{}{
+								{
+									"openmetrics_endpoint": "http://localhost:6000/telemetry",
+									"namespace":            "datadog.agent",
+									"metrics": []string{
+										".*",
+									},
+								},
+							},
+						},
+					}),
+				),
+			},
 		},
 		"clusterAgent": pulumi.Map{
 			"enabled": pulumi.Bool(true),

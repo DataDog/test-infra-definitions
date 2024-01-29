@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
@@ -172,6 +173,24 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				HostPort:      pulumi.IntPtr(8126),
 				Protocol:      pulumi.StringPtr("tcp"),
 			},
+		},
+		DockerLabels: pulumi.StringMap{
+			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
+				map[string]interface{}{
+					"openmetrics": map[string]interface{}{
+						"init_configs": []map[string]interface{}{},
+						"instances": []map[string]interface{}{
+							{
+								"openmetrics_endpoint": "http://localhost:5000/telemetry",
+								"namespace":            "datadog.agent",
+								"metrics": []string{
+									".*",
+								},
+							},
+						},
+					},
+				},
+			)),
 		},
 	}
 }

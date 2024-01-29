@@ -3,6 +3,8 @@ package ec2
 import (
 	"errors"
 
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -75,7 +77,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 
 	// If no OS is provided, we default to AmazonLinuxECS as it ships with Docker pre-installed
 	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECS)
-	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture), WithInstanceProfile(env.DefaultDockerInstanceProfile()))
+	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err
 	}
@@ -84,7 +86,23 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 	}
 
 	_, isDockerInstalled := osWithDockerProvided[vm.OS.Descriptor().Flavor]
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled)
+	manager, setupDockerCmd, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled)
+	if err != nil {
+		return err
+	}
+
+	vm.OS.PackageManager()
+	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", utils.PulumiDependsOn(setupDockerCmd))
+	if err != nil {
+		return err
+	}
+
+	ecrConfigCommand, err := vm.OS.Runner().Command(
+		env.CommonNamer.ResourceName("ecr-config"),
+		&command.Args{
+			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
+			Sudo:   false,
+		}, utils.PulumiDependsOn(ecrCredsHelperInstall))
 	if err != nil {
 		return err
 	}
@@ -118,7 +136,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 	}
 
 	if env.TestingWorkloadDeploy() {
-		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address})
+		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address}, utils.PulumiDependsOn(ecrConfigCommand))
 		if err != nil {
 			return err
 		}

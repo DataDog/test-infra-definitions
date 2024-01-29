@@ -20,11 +20,11 @@ import (
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type vmArgs struct {
-	osInfo             *os.Descriptor
-	ami                string
-	userData           string
-	instanceType       string
-	iamInstanceProfile string
+	osInfo          *os.Descriptor
+	ami             string
+	userData        string
+	instanceType    string
+	instanceProfile string
 }
 
 type VMOption = func(*vmArgs) error
@@ -77,7 +77,7 @@ func WithUserData(userData string) VMOption {
 
 func WithInstanceProfile(instanceProfile string) VMOption {
 	return func(p *vmArgs) error {
-		p.iamInstanceProfile = instanceProfile
+		p.instanceProfile = instanceProfile
 		return nil
 	}
 }

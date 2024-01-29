@@ -35,7 +35,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			AMI:             amiInfo.id,
 			InstanceType:    vmArgs.instanceType,
 			UserData:        vmArgs.userData,
-			InstanceProfile: vmArgs.iamInstanceProfile,
+			InstanceProfile: vmArgs.instanceProfile,
 		}
 
 		// Create the EC2 instance
@@ -57,6 +57,10 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 	if vmArgs.osInfo == nil {
 		vmArgs.osInfo = &os.UbuntuDefault
+	}
+
+	if vmArgs.instanceProfile == "" {
+		vmArgs.instanceProfile = e.DefaultInstanceProfileName()
 	}
 
 	if vmArgs.instanceType == "" {

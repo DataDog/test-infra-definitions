@@ -20,14 +20,14 @@ type awsProvider struct {
 }
 
 type ddInfra struct {
-	defaultVPCID                 string
-	defaultSubnets               []string
-	defaultSecurityGroups        []string
-	defaultInstanceType          string
-	defaultARMInstanceType       string
-	defaultInstanceStorageSize   int
-	defaultShutdownBehavior      string
-	defaultDockerInstanceProfile string
+	defaultVPCID               string
+	defaultSubnets             []string
+	defaultSecurityGroups      []string
+	defaultInstanceType        string
+	defaultInstanceProfileName string
+	defaultARMInstanceType     string
+	defaultInstanceStorageSize int
+	defaultShutdownBehavior    string
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -76,14 +76,14 @@ func sandboxDefault() environmentDefault {
 			region: string(aws.RegionUSEast1),
 		},
 		ddInfra: ddInfra{
-			defaultVPCID:                 "vpc-d1aac1a8",
-			defaultSubnets:               []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
-			defaultSecurityGroups:        []string{"sg-46506837", "sg-7fedd80a", "sg-0e952e295ab41e748"},
-			defaultInstanceType:          "t3.medium",
-			defaultDockerInstanceProfile: "agent-ecr-read",
-			defaultARMInstanceType:       "t4g.medium",
-			defaultInstanceStorageSize:   200,
-			defaultShutdownBehavior:      "stop",
+			defaultVPCID:               "vpc-d1aac1a8",
+			defaultSubnets:             []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
+			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a", "sg-0e952e295ab41e748"},
+			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
+			defaultARMInstanceType:     "t4g.medium",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
@@ -116,14 +116,14 @@ func agentSandboxDefault() environmentDefault {
 			region: string(aws.RegionUSEast1),
 		},
 		ddInfra: ddInfra{
-			defaultVPCID:                 "vpc-029c0faf8f49dee8d",
-			defaultSubnets:               []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
-			defaultSecurityGroups:        []string{"sg-038231b976eb13d44", "sg-05466e7ce253d21b1"},
-			defaultInstanceType:          "t3.medium",
-			defaultDockerInstanceProfile: "agent-ecr-read",
-			defaultARMInstanceType:       "t4g.medium",
-			defaultInstanceStorageSize:   200,
-			defaultShutdownBehavior:      "stop",
+			defaultVPCID:               "vpc-029c0faf8f49dee8d",
+			defaultSubnets:             []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
+			defaultSecurityGroups:      []string{"sg-038231b976eb13d44", "sg-05466e7ce253d21b1"},
+			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
+			defaultARMInstanceType:     "t4g.medium",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
@@ -156,14 +156,14 @@ func agentQADefault() environmentDefault {
 			region: string(aws.RegionUSEast1),
 		},
 		ddInfra: ddInfra{
-			defaultVPCID:                 "vpc-0097b9307ec2c8139",
-			defaultSubnets:               []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
-			defaultSecurityGroups:        []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
-			defaultInstanceType:          "t3.medium",
-			defaultDockerInstanceProfile: "agent-ecr-read",
-			defaultARMInstanceType:       "t4g.medium",
-			defaultInstanceStorageSize:   200,
-			defaultShutdownBehavior:      "stop",
+			defaultVPCID:               "vpc-0097b9307ec2c8139",
+			defaultSubnets:             []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
+			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
+			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
+			defaultARMInstanceType:     "t4g.medium",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",

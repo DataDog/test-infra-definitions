@@ -57,7 +57,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	})
 }
 
-func InstallEcrCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.Command, error) {
+func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.Command, error) {
 	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper")
 	if err != nil {
 		return nil, err

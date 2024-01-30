@@ -86,8 +86,10 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	if err != nil {
 		return env, err
 	}
-	env.username = user.Username
+	env.username = strings.ReplaceAll(user.Username, "\\", "/")
 
+	ctx.Log.Debug(fmt.Sprintf("user name: %s", env.username), nil)
+	ctx.Log.Debug(fmt.Sprintf("resource tags: %v", env.DefaultResourceTags()), nil)
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)

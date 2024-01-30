@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -85,23 +84,13 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
+	installEcrCredsHelperCmd, err := InstallEcrCredentialHelper(env, vm)
+	if err != nil {
+		return err
+	}
+
 	_, isDockerInstalled := osWithDockerProvided[vm.OS.Descriptor().Flavor]
-	manager, setupDockerCmd, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled)
-	if err != nil {
-		return err
-	}
-
-	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", utils.PulumiDependsOn(setupDockerCmd))
-	if err != nil {
-		return err
-	}
-
-	ecrConfigCommand, err := vm.OS.Runner().Command(
-		env.CommonNamer.ResourceName("ecr-config"),
-		&command.Args{
-			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
-			Sudo:   false,
-		}, utils.PulumiDependsOn(ecrCredsHelperInstall))
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -135,7 +124,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 	}
 
 	if env.TestingWorkloadDeploy() {
-		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address}, utils.PulumiDependsOn(ecrConfigCommand))
+		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address})
 		if err != nil {
 			return err
 		}

@@ -57,7 +57,7 @@ def setup(
         config.save_to_local_config(config_path)
 
     if debug:
-        debug_env(ctx)
+        debug_env(ctx, config_path=config_path)
 
     if interactive:
         cat_profile_command = f"cat {get_full_profile_path(config_path)}"
@@ -295,8 +295,8 @@ def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairN
         warn("WARNING: Key type is not RSA. This key cannot be used to decrypt Windows RDP credentials.")
 
 
-@task
-def debug_keys(ctx):
+@task(help={"config_path": doc.config_path})
+def debug_keys(ctx: Context, config_path: Optional[str] = None):
     """
     Debug E2E and test-infra-definitions SSH keys
     """
@@ -315,7 +315,7 @@ def debug_keys(ctx):
 
     # Get keypair name
     try:
-        config = get_local_config(None)
+        config = get_local_config(config_path)
     except Exception as e:
         error(f"{e}")
         error("Failed to load config")
@@ -382,8 +382,8 @@ def debug_keys(ctx):
         raise Exit(code=1)
 
 
-@task(name="debug")
-def debug_env(ctx):
+@task(name="debug", help={"config_path": doc.config_path})
+def debug_env(ctx, config_path: Optional[str] = None):
     """
     Debug E2E and test-infra-definitions required tools and configuration
     """
@@ -442,4 +442,4 @@ def debug_env(ctx):
         warn(f"WARNING: expected profile {expected_profile} missing from aws-vault. Some invoke tasks may fail.")
         print()
 
-    debug_keys(ctx)
+    debug_keys(ctx, config_path=config_path)

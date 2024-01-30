@@ -44,6 +44,8 @@ func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCo
 	}
 }
 
+type Customizer func(name string, args Args) (string, Args)
+
 type runnerConfiguration struct {
 	user       string
 	connection remote.ConnectionInput

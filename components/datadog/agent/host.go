@@ -28,8 +28,6 @@ type HostAgent struct {
 	namer   namer.Namer
 	manager agentOSManager
 	host    *remoteComp.Host
-
-	// Currently we don't have anything to export or expose to other components?
 }
 
 func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
@@ -107,8 +105,17 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	}
 
 	// Restart the agent when the HostInstall itself is done, which is normally when all children are done
+	// Behind the scene `DependOn(h)` is transformed into `DependOn(<children>)`, the ComponentResource is skipped in the process.
+	// With resources, Pulumi works in the following order:
+	// Create -> Replace -> Delete.
+	// The `DependOn` order is evaluated separately for each of these phases.
+	// Thus, when an integration is deleted, the `Create` of `restartAgentServices` is done as there's no other `Create` from other resources to wait for.
+	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependecy on `Delete` is in reverse order.
 	_, err = h.manager.restartAgentServices(
-		pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)},
+		func(name string, args command.Args) (string, command.Args) {
+			args.Triggers = pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)}
+			return name, args
+		},
 		utils.PulumiDependsOn(h),
 	)
 	return err
@@ -155,6 +162,27 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	allCommands := make([]*remote.Command, 0)
 	var parts []string
 
+	// Build hash beforehand as we need to pass it to the restart command
+	for filePath, fileDef := range integrations {
+		parts = append(parts, filePath, fileDef.Content)
+	}
+	for fullPath, fileDef := range files {
+		parts = append(parts, fullPath, fileDef.Content)
+	}
+	hash := utils.StrHash(parts...)
+
+	restartCmd, err := h.manager.restartAgentServices(func(name string, args command.Args) (string, command.Args) {
+		args.Triggers = pulumi.Array{pulumi.String(hash)}
+		args.Delete = args.Create
+		args.Create = nil
+		return name + "-on-intg-removal", args
+	})
+	if err != nil {
+		return nil, "", err
+	}
+
+	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(restartCmd))
+
 	// filePath is absolute path from params.WithFile but relative from params.WithIntegration
 	for filePath, fileDef := range integrations {
 		configFolder := h.manager.getAgentConfigFolder()
@@ -165,7 +193,6 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 			return nil, "", err
 		}
 		allCommands = append(allCommands, cmd)
-		parts = append(parts, filePath, fileDef.Content)
 	}
 
 	for fullPath, fileDef := range files {
@@ -178,10 +205,9 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 			return nil, "", err
 		}
 		allCommands = append(allCommands, cmd)
-		parts = append(parts, fullPath, fileDef.Content)
 	}
 
-	return allCommands, utils.StrHash(parts...), nil
+	return allCommands, hash, nil
 }
 
 func (h *HostAgent) writeFileDefinition(

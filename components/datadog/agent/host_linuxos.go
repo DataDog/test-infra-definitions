@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
@@ -59,6 +60,6 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 	return "/etc/datadog-agent"
 }
 
-func (am *agentLinuxManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", triggers, opts...)
+func (am *agentLinuxManager) restartAgentServices(customizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", customizer, opts...)
 }

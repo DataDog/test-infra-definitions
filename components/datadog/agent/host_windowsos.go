@@ -49,12 +49,17 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 	return `C:\ProgramData\Datadog`
 }
 
-func (am *agentWindowsManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (am *agentWindowsManager) restartAgentServices(customizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
-	return am.host.OS.Runner().Command(am.host.Name()+"-"+"restart-agent", &command.Args{
-		Create:   pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
-		Triggers: triggers,
-	}, opts...)
+	cmdName := am.host.Name() + "-" + "restart-agent"
+	cmdArgs := command.Args{
+		Create: pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
+	}
+	if customizer != nil {
+		cmdName, cmdArgs = customizer(cmdName, cmdArgs)
+	}
+
+	return am.host.OS.Runner().Command(cmdName, &cmdArgs, opts...)
 }
 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {

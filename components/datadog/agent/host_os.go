@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
@@ -15,7 +16,7 @@ import (
 type agentOSManager interface {
 	getInstallCommand(version agentparams.PackageVersion) (string, error)
 	getAgentConfigFolder() string
-	restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	restartAgentServices(customizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 func getOSManager(host *remoteComp.Host) agentOSManager {

@@ -33,7 +33,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
-		curlCommand, err := packageManager.Ensure("curl", opts...)
+		curlCommand, err := packageManager.Ensure("curl", nil, opts...)
 		if err != nil {
 			return err
 		}

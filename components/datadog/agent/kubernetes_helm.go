@@ -352,6 +352,10 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 			"value": pulumi.String("true"),
 		},
 		pulumi.Map{
+			"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+			"value": pulumi.String("true"),
+		},
+		pulumi.Map{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},

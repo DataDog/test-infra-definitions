@@ -123,13 +123,14 @@ func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSLCertificateVal
 	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
 		envVars := pulumi.Map{
-			"DD_DD_URL":                        pulumi.Sprintf("http://%s:80", hostname),
-			"DD_LOGS_CONFIG_DD_URL":            pulumi.Sprintf("%s:80", hostname),
-			"DD_PROCESS_CONFIG_PROCESS_DD_URL": pulumi.Sprintf("http://%s:80", hostname),
-			"DD_APM_DD_URL":                    pulumi.Sprintf("http://%s:80", hostname),
-			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(shouldSkipSSLCertificateValidation),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(shouldSkipSSLCertificateValidation),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":    shouldEnforceHTTPInput,
+			"DD_DD_URL":                                 pulumi.Sprintf("http://%s:80", hostname),
+			"DD_LOGS_CONFIG_DD_URL":                     pulumi.Sprintf("%s:80", hostname),
+			"DD_PROCESS_CONFIG_PROCESS_DD_URL":          pulumi.Sprintf("http://%s:80", hostname),
+			"DD_APM_DD_URL":                             pulumi.Sprintf("http://%s:80", hostname),
+			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             shouldEnforceHTTPInput,
 		}
 		for key, value := range envVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {
@@ -170,11 +171,12 @@ func WithAdditionalFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) e
 	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
 		logsEnvVars := pulumi.Map{
-			"DD_ADDITIONAL_ENDPOINTS":             additionalEndpointsContentInput,
-			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS": additionalLogsEndpointsContentInput,
-			"DD_SKIP_SSL_VALIDATION":              pulumi.Bool(true),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":          pulumi.Bool(true),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":       shouldEnforceHTTPInput,
+			"DD_ADDITIONAL_ENDPOINTS":                   additionalEndpointsContentInput,
+			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS":       additionalLogsEndpointsContentInput,
+			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(true),
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(true),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(true),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             shouldEnforceHTTPInput,
 		}
 		for key, value := range logsEnvVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {

@@ -205,6 +205,10 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 			Value: pulumi.StringPtr("true"),
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+			Value: pulumi.StringPtr("true"),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),
 			Value: pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},

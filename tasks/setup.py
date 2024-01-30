@@ -33,19 +33,19 @@ def setup(_: Context, config_path: Optional[str] = None, interactive: Optional[b
     # login to local stack storage
     os.system("pulumi login --local")
 
-    info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
     try:
         config = get_local_config(config_path)
     except Exception:
         config = Config.model_validate({})
 
     if interactive:
+        info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
         # AWS config
         setupAWSConfig(config)
         # Agent config
         setupAgentConfig(config)
 
-    config.save_to_local_config(config_path)
+        config.save_to_local_config(config_path)
 
     if interactive:
         cat_profile_command = f"cat {get_full_profile_path(config_path)}"

@@ -75,6 +75,7 @@ func InstallEcrCredentialHelper(e aws.Environment, vm *remote.Host) (*goremote.C
 
 	return ecrConfigCommand, nil
 }
+
 func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 	if vmArgs.osInfo == nil {
 		vmArgs.osInfo = &os.UbuntuDefault

@@ -14,14 +14,14 @@ def is_windows():
     return platform.system() == "Windows"
 
 
-try:
-    # Explicitly enable terminal colors work on Windows
-    # os.system() seems to implicitly enable them, but ctx.run() does not
-    from colorama import just_fix_windows_console
+if is_windows():
+    try:
+        # Explicitly enable terminal colors work on Windows
+        # os.system() seems to implicitly enable them, but ctx.run() does not
+        from colorama import just_fix_windows_console
 
-    just_fix_windows_console()
-except ImportError:
-    if is_windows():
+        just_fix_windows_console()
+    except ImportError:
         print(
             "colorama is not up to date, terminal colors may not work properly. Please run 'pip install -r requirements.txt' to fix this."
         )

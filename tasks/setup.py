@@ -1,22 +1,27 @@
+import base64
 import getpass
+import json
 import os
 import os.path
 from pathlib import Path
-from typing import Optional
+from typing import NamedTuple, Optional, Tuple
 
 import pyperclip
 from invoke.context import Context
+from invoke.exceptions import Exit, UnexpectedExit
 from invoke.tasks import task
 
 from . import doc
 from .config import Config, get_full_profile_path, get_local_config
-from .tool import ask, info, is_linux, is_windows, warn
+from .tool import ask, debug, error, info, is_linux, is_windows, warn
 
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa", "tse-playground"]
 
 
-@task(help={"config_path": doc.config_path, "interactive": doc.interactive})
-def setup(_: Context, config_path: Optional[str] = None, interactive: Optional[bool] = True) -> None:
+@task(help={"config_path": doc.config_path, "interactive": doc.interactive, "debug": doc.debug}, default=True)
+def setup(
+    ctx: Context, config_path: Optional[str] = None, interactive: Optional[bool] = True, debug: Optional[bool] = False
+) -> None:
     """
     Setup a local environment, interactively by default
     """
@@ -50,6 +55,9 @@ def setup(_: Context, config_path: Optional[str] = None, interactive: Optional[b
         setupAgentConfig(config)
 
         config.save_to_local_config(config_path)
+
+    if debug:
+        debug_env(ctx)
 
     if interactive:
         cat_profile_command = f"cat {get_full_profile_path(config_path)}"
@@ -165,16 +173,273 @@ def _get_safe_dd_key(key: str) -> str:
     return "*" * len(key)
 
 
-def _pulumi_version(ctx: Context) -> (str, bool):
+def _pulumi_version(ctx: Context) -> Tuple[str, bool]:
     """
     Returns True if pulumi is installed and up to date, False otherwise
     Will return True if PULUMI_SKIP_UPDATE_CHECK=1
     """
     try:
         out = ctx.run("pulumi version --logtostderr", hide=True)
-    except UnexpectedExit as e:
+    except UnexpectedExit:
         # likely pulumi command not found
+        return "", False
+    if out is None:
         return "", False
     # The update message differs some between platforms so choose a common part
     up_to_date = "A new version of Pulumi is available" not in out.stderr
     return out.stdout.strip(), up_to_date
+
+
+def ssh_fingerprint_to_bytes(fingerprint: str) -> bytes:
+    # EXAMPLE: 256 SHA1:41jsg4Z9lgylj6/zmhGxtZ6/qZs testname (ED25519)
+    out = fingerprint.strip().split(' ')[1].split(':')[1]
+    # ssh leaves out padding but python will ignore extra padding so add the missing padding
+    return base64.b64decode(out + '==')
+
+
+KeyFingerprint = NamedTuple('KeyFingerprint', [('md5', str), ('sha1', str), ('sha256', str)])
+
+
+class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint)])):
+    def in_ssh_agent(self, ctx):
+        out = ctx.run("ssh-add -l", hide=True)
+        out = ssh_fingerprint_to_bytes(out.stdout.strip())
+        return self.match(out)
+
+    def match(self, fingerprint: bytes):
+        for f in self.fingerprint:
+            if f == fingerprint:
+                return True
+        return False
+
+    def match_ec2_keypair(self, keypair):
+        # EC2 uses a different fingerprint hash/format depending on the key type and the key's origin
+        # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html
+        ec2_fingerprint = keypair["KeyFingerprint"]
+        if ':' in ec2_fingerprint:
+            ec2_fingerprint = bytes.fromhex(ec2_fingerprint.replace(':', ''))
+        else:
+            ec2_fingerprint = base64.b64decode(ec2_fingerprint + '==')
+        return self.match(ec2_fingerprint)
+
+    @classmethod
+    def from_path(cls, ctx, path):
+        # Make sure the key is ascii
+        with open(path, 'rb') as f:
+            firstline = f.readline()
+            if b'\0' in firstline:
+                raise ValueError(f"Key file {path} is not ascii, it may be in utf-16, please convert it to ascii")
+            # EC2 uses a different fingerprint hash/format depending on the key type and the key's origin
+            # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html
+            if b'SSH' in firstline or firstline.startswith(b'ssh-'):
+
+                def getfingerprint(fmt, path):
+                    out = ctx.run(f"ssh-keygen -l -E {fmt} -f \"{path}\"", hide=True)
+                    return ssh_fingerprint_to_bytes(out.stdout.strip())
+
+            elif b'BEGIN' in firstline:
+
+                def getfingerprint(fmt, path):
+                    out = ctx.run(
+                        f'openssl pkcs8 -in "{path}" -inform PEM -outform DER -topk8 -nocrypt | openssl {fmt} -c',
+                        hide=True,
+                    )
+                    # EXAMPLE: (stdin)= e3:a8:bc:0a:3a:54:9f:b8:be:6e:75:8c:98:26:8e:3d:8e:e9:d0:69
+                    out = out.stdout.strip().split(' ')[1]
+                    return bytes.fromhex(out.replace(':', ''))
+
+            else:
+                raise ValueError(f"Key file {path} is not a valid ssh key")
+        # aws returns fingerprints in different formats so get a couple
+        fingerprints = dict()
+        for fmt in KeyFingerprint._fields:
+            fingerprints[fmt] = getfingerprint(fmt, path)
+        return cls(path=path, fingerprint=KeyFingerprint(**fingerprints))
+
+
+def load_ec2_keypairs(ctx: Context) -> dict:
+    out = ctx.run("aws ec2 describe-key-pairs --output json", hide=True)
+    if not out or out.exited != 0:
+        warn("No AWS keypair found, please create one")
+        return {}
+    jso = json.loads(out.stdout)
+    keypairs = jso.get("KeyPairs", None)
+    if keypairs is None:
+        warn("No AWS keypair found, please create one")
+        return {}
+    return keypairs
+
+
+def find_matching_ec2_keypair(ctx: Context, keypairs: dict, path: Path) -> Tuple[Optional[KeyInfo], Optional[dict]]:
+    if not os.path.exists(path):
+        warn(f"WARNING: Key file {path} does not exist")
+        return None, None
+    info = KeyInfo.from_path(ctx, path)
+    for keypair in keypairs:
+        if info.match_ec2_keypair(keypair):
+            return info, keypair
+    return None, None
+
+
+def get_ssh_keys():
+    root = Path.home().joinpath(".ssh")
+    return list(map(root.joinpath, os.listdir(root)))
+
+
+def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairName: str):
+    if keypair["KeyName"] != configuredKeyPairName:
+        warn("WARNING: Key name does not match configured keypair name. This key will not be used for provisioning.")
+    if not keyinfo.in_ssh_agent(ctx):
+        warn("WARNING: Key missing from ssh-agent. This key will not be used for connections.")
+    if "rsa" not in keypair["KeyType"].lower():
+        warn("WARNING: Key type is not RSA. This key cannot be used to decrypt Windows RDP credentials.")
+
+
+@task
+def debug_keys(ctx):
+    """
+    Debug E2E and test-infra-definitions SSH keys
+    """
+    # Ensure ssh-agent is running
+    try:
+        ctx.run("ssh-add -l", hide=True)
+    except UnexpectedExit as e:
+        error(f"{e}")
+        error("ssh-agent not available or no keys are loaded, please start it and load your keys")
+        raise Exit(code=1)
+
+    found = False
+    keypairs = load_ec2_keypairs(ctx)
+
+    info("Checking for valid SSH key configuration")
+
+    # Get keypair name
+    try:
+        config = get_local_config(None)
+    except Exception as e:
+        error(f"{e}")
+        error("Failed to load config")
+        raise Exit(code=1)
+    if config.configParams is None:
+        error("configParams missing from config")
+        raise Exit(code=1)
+    if config.configParams.aws is None:
+        error("configParams.aws missing from config")
+        raise Exit(code=1)
+    awsConf = config.configParams.aws
+    keypair_name = awsConf.keyPairName or ""
+
+    # lookup configured keypair
+    info("Checking configured keypair:")
+    debug(f"\taws.keyPairName: {keypair_name}")
+    debug(f"\taws.privateKeyPath: {awsConf.privateKeyPath}")
+    debug(f"\taws.publicKeyPath: {awsConf.publicKeyPath}")
+    for keypair in keypairs:
+        if keypair["KeyName"] == keypair_name:
+            info("Configured keyPairName found in aws!")
+            debug(json.dumps(keypair, indent=4))
+            break
+    else:
+        warn("WARNING: Configured keyPairName missing from aws!")
+    for keyname in ["privateKeyPath", "publicKeyPath"]:
+        keypair_path = getattr(awsConf, keyname)
+        if keypair_path is None:
+            continue
+        keyinfo, keypair = find_matching_ec2_keypair(ctx, keypairs, keypair_path)
+        if keyinfo is not None and keypair is not None:
+            info(f"Configured {keyname} found in aws!")
+            debug(json.dumps(keypair, indent=4))
+            _check_key(ctx, keyinfo, keypair, keypair_name)
+            found = True
+        else:
+            warn(f"WARNING: Configured {keyname} missing from aws!")
+
+    print()
+
+    info("Checking if any SSH key is configured in aws")
+
+    # check all keypairs
+    for keypath in get_ssh_keys():
+        try:
+            keyinfo, keypair = find_matching_ec2_keypair(ctx, keypairs, keypath)
+        except (ValueError, UnexpectedExit) as e:
+            if 'not a valid ssh key' in str(e):
+                continue
+            warn(f'WARNING: {e}')
+            continue
+        if keyinfo is not None and keypair is not None:
+            info(f"Found '{keypair['KeyName']}' matches: {keypath}")
+            debug(json.dumps(keypair, indent=4))
+            _check_key(ctx, keyinfo, keypair, keypair_name)
+            print()
+            found = True
+
+    if not found:
+        error("No matching keypair found in aws!")
+        info(
+            "If this is unexpected, confirm that your aws credential's region matches the region you uploaded your key to."
+        )
+        raise Exit(code=1)
+
+
+@task(name="debug")
+def debug_env(ctx):
+    """
+    Debug E2E and test-infra-definitions required tools and configuration
+    """
+    # check pulumi found
+    try:
+        out = ctx.run("pulumi version", hide=True)
+    except UnexpectedExit as e:
+        error(f"{e}")
+        error("Pulumi CLI not found, please install it: https://www.pulumi.com/docs/get-started/install/")
+        raise Exit(code=1)
+    info(f"Pulumi version: {out.stdout.strip()}")
+
+    # check awscli version
+    out = ctx.run("aws --version", hide=True)
+    if not out.stdout.startswith("aws-cli/2"):
+        error(f"Detected invalid awscli version: {out.stdout}")
+        info(
+            "Please remove the current version and install awscli v2: https://docs.aws.amazon.com/cli/latest/userguide/cliv2-migration-instructions.html"
+        )
+        raise Exit(code=1)
+    info(f"AWS CLI version: {out.stdout.strip()}")
+
+    # check aws-vault found
+    try:
+        out = ctx.run("aws-vault --version", hide=True)
+    except UnexpectedExit as e:
+        error(f"{e}")
+        error("aws-vault not found, please install it")
+        raise Exit(code=1)
+    info(f"aws-vault version: {out.stderr.strip()}")
+
+    print()
+
+    # Check if aws creds are valid
+    try:
+        out = ctx.run("aws sts get-caller-identity", hide=True)
+    except UnexpectedExit as e:
+        error(f"{e}")
+        error("No AWS credentials found or they are expired, please configure and/or login")
+        raise Exit(code=1)
+
+    # Show AWS account info
+    info("Logged-in aws account info:")
+    for env in ["AWS_VAULT", "AWS_REGION"]:
+        val = os.environ.get(env, None)
+        if val is None:
+            raise Exit(f"Missing env var {env}, please login with awscli/aws-vault", 1)
+        info(f"\t{env}={val}")
+
+    print()
+
+    # Check aws-vault profile name, some invoke taskes hard code this value.
+    expected_profile = 'sso-agent-sandbox-account-admin'
+    out = ctx.run("aws-vault list", hide=True)
+    if expected_profile not in out.stdout:
+        warn(f"WARNING: expected profile {expected_profile} missing from aws-vault. Some invoke tasks may fail.")
+        print()
+
+    debug_keys(ctx)

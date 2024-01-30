@@ -84,7 +84,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	installEcrCredsHelperCmd, err := InstallEcrCredentialsHelper(env, vm)
+	installEcrCredsHelperCmd, err := InstallECRCredentialsHelper(env, vm)
 	if err != nil {
 		return err
 	}

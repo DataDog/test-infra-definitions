@@ -141,10 +141,11 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 
 func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
-	var cpusAssigned int
 	var domains []*Domain
 	var err error
 
+	// start from cpu 1, since we want to leave cpu 0 for the system
+	cpusAssigned := 1
 	for _, set := range vm.vmsets {
 		fs, ok := vm.fs[set.ID]
 		if !ok {

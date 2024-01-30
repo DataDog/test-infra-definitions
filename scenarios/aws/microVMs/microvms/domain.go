@@ -91,7 +91,8 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 		vcpuMap = append(vcpuMap, fmt.Sprintf("<vcpupin vcpu='%d' cpuset='%d'/>", i, hostCPUSet))
 		hostCPUSet++
 		if hostCPUSet >= cpuCount {
-			hostCPUSet = 0
+			// start from cpu 1, since we want to leave cpu 0 for the system
+			hostCPUSet = 1
 		}
 	}
 

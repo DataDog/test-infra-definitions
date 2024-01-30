@@ -24,7 +24,7 @@ func VMRun(ctx *pulumi.Context) error {
 	}
 
 	if env.AgentDeploy() {
-		_, err = agent.NewHostAgent(env.CommonEnvironment, vm, nil)
+		_, err = agent.NewHostAgent(env.CommonEnvironment, vm)
 		return err
 	}
 

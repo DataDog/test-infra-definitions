@@ -125,7 +125,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewHostAgent(awsEnv.CommonEnvironment, awsInstance, nil, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
+		_, err := agent.NewHostAgent(awsEnv.CommonEnvironment, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
 			awsEnv.Ctx.Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}

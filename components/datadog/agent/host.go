@@ -37,7 +37,7 @@ func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
 }
 
 // NewHostAgent creates a new instance of a on-host Agent
-func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, dep pulumi.Resource, options ...agentparams.Option) (*HostAgent, error) {
+func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
 	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostAgent) error {
 		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
 		comp.host = host
@@ -48,12 +48,8 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, dep pulumi
 			return err
 		}
 
-		opts := []pulumi.ResourceOption{pulumi.Parent(comp)}
-		if dep != nil {
-			opts = append(opts, utils.PulumiDependsOn(dep))
-		}
-
-		err = comp.installAgent(e, params, opts...)
+		deps := append(params.PulumiDependsOn, pulumi.Parent(comp))
+		err = comp.installAgent(e, params, deps...)
 		if err != nil {
 			return err
 		}
@@ -78,55 +74,6 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 		&command.Args{
 			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
 		}, baseOpts...)
-	if err != nil {
-		return err
-	}
-
-	varddcmd, err := h.host.OS.Runner().Command(
-		h.namer.ResourceName("var/run/datadog"),
-		&command.Args{
-			Create: pulumi.String("mkdir -p /var/run/datadog"),
-			Sudo:   true,
-		},
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = h.host.OS.Runner().Command(
-		h.namer.ResourceName("var/run/datadog perm"),
-		&command.Args{
-			Create: pulumi.String("chown dd-agent:dd-agent /var/run/datadog"),
-			Sudo:   true,
-		},
-		utils.PulumiDependsOn(varddcmd),
-		utils.PulumiDependsOn(installCmd),
-	)
-	if err != nil {
-		return err
-	}
-
-	dockerGroup, err := h.host.OS.Runner().Command(
-		h.namer.ResourceName("docker group"),
-		&command.Args{
-			Create: pulumi.String("groupadd -f -r docker"),
-			Sudo:   true,
-		},
-		utils.PulumiDependsOn(installCmd),
-	)
-	if err != nil {
-		return err
-	}
-
-	_, err = h.host.OS.Runner().Command(
-		h.namer.ResourceName("dd-agent:docker group"),
-		&command.Args{
-			Create: pulumi.String("usermod -a -G docker dd-agent"),
-			Sudo:   true,
-		},
-		utils.PulumiDependsOn(installCmd),
-		utils.PulumiDependsOn(dockerGroup),
-	)
 	if err != nil {
 		return err
 	}

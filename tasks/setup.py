@@ -20,13 +20,17 @@ def setup(_: Context, config_path: Optional[str] = None, interactive: Optional[b
     """
     Setup a local environment, interactively by default
     """
-    info("🤖 Install Pulumi")
-    if is_windows():
-        os.system("winget install pulumi")
-    elif is_linux():
-        os.system("curl -fsSL https://get.pulumi.com | sh")
+    pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
+    if pulumi_up_to_date:
+        info(f"Pulumi is up to date: {pulumi_version}")
     else:
-        os.system("brew install pulumi/tap/pulumi")
+        info("🤖 Install Pulumi")
+        if is_windows():
+            os.system("winget install pulumi")
+        elif is_linux():
+            os.system("curl -fsSL https://get.pulumi.com | sh")
+        else:
+            os.system("brew install pulumi/tap/pulumi")
 
     # install plugins
     os.system("pulumi --non-interactive plugin install")
@@ -159,3 +163,18 @@ def _get_safe_dd_key(key: str) -> str:
     if key == "0" * len(key):
         return key
     return "*" * len(key)
+
+
+def _pulumi_version(ctx: Context) -> (str, bool):
+    """
+    Returns True if pulumi is installed and up to date, False otherwise
+    Will return True if PULUMI_SKIP_UPDATE_CHECK=1
+    """
+    try:
+        out = ctx.run("pulumi version --logtostderr", hide=True)
+    except UnexpectedExit as e:
+        # likely pulumi command not found
+        return "", False
+    # The update message differs some between platforms so choose a common part
+    up_to_date = "A new version of Pulumi is available" not in out.stderr
+    return out.stdout.strip(), up_to_date

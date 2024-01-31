@@ -3,6 +3,7 @@ package ec2
 import (
 	"errors"
 
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -83,8 +84,13 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, installDocker := osWithDockerProvided[vm.OS.Descriptor().Flavor]
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, installDocker)
+	installEcrCredsHelperCmd, err := InstallECRCredentialsHelper(env, vm)
+	if err != nil {
+		return err
+	}
+
+	_, isDockerInstalled := osWithDockerProvided[vm.OS.Descriptor().Flavor]
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}

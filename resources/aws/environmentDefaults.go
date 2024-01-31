@@ -25,6 +25,7 @@ type ddInfra struct {
 	defaultSubnets             []string
 	defaultSecurityGroups      []string
 	defaultInstanceType        string
+	defaultInstanceProfileName string
 	defaultARMInstanceType     string
 	defaultInstanceStorageSize int
 	defaultShutdownBehavior    string
@@ -82,6 +83,7 @@ func sandboxDefault() environmentDefault {
 			defaultSubnets:             []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
 			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a", "sg-0e952e295ab41e748"},
 			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
@@ -121,6 +123,7 @@ func agentSandboxDefault() environmentDefault {
 			defaultSubnets:             []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
 			defaultSecurityGroups:      []string{"sg-038231b976eb13d44", "sg-05466e7ce253d21b1"},
 			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
@@ -160,6 +163,7 @@ func agentQADefault() environmentDefault {
 			defaultSubnets:             []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
 			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
 			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",

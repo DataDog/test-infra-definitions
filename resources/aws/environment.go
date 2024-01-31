@@ -19,6 +19,7 @@ const (
 	DDInfraDefaultSubnetsParamName         = "aws/defaultSubnets"
 	DDInfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
 	DDInfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
+	DDInfraDefaultInstanceProfileParamName = "aws/defaultInstanceProfile"
 	DDInfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
 	DDInfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
 	DDinfraDefaultPublicKeyPath            = "aws/defaultPublicKeyPath"
@@ -134,6 +135,10 @@ func (e *Environment) DefaultSecurityGroups() []string {
 
 func (e *Environment) DefaultInstanceType() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
+}
+
+func (e *Environment) DefaultInstanceProfileName() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceProfileName)
 }
 
 func (e *Environment) DefaultARMInstanceType() string {

@@ -9,6 +9,9 @@
    </xsl:template>
   <xsl:template match="/domain/features">
       <cpu mode='host-passthrough' check='full'/>
+       <clock offset='utc'>                                                                                                                                                                                                                                                            
+           <timer name='rtc' tickpolicy='delay' track='guest'/>                                                                                                                                                                                                                          
+       </clock> 
   </xsl:template>
 
   <xsl:template match="/domain/os">
@@ -17,16 +20,6 @@
           <xsl:apply-templates select="@*|node()"/>
       </xsl:copy>
   </xsl:template>
- 
-  <xsl:template match="/domain/features">
-       <xsl:copy>
-           <xsl:apply-templates select="@*|node()"/>
-       </xsl:copy>
-       <clock offset='utc'>                                                                                                                                                                                                                                                            
-           <timer name='rtc' tickpolicy='delay' track='guest'/>                                                                                                                                                                                                                          
-       </clock> 
-  </xsl:template>
-
 
   <xsl:template match="/domain/devices/disk">
       <filesystem type='mount' accessmode='passthrough'>

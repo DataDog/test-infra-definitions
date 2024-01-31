@@ -188,7 +188,7 @@ func WithTelemetry() func(*Params) error {
 	}
 }
 
-func WithPulumiDependsOn(resources ...pulumi.ResourceOption) func(*Params) error {
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
 		p.PulumiDependsOn = resources
 		return nil

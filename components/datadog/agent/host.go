@@ -111,7 +111,10 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	// The `DependOn` order is evaluated separately for each of these phases.
 	// Thus, when an integration is deleted, the `Create` of `restartAgentServices` is done as there's no other `Create` from other resources to wait for.
 	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependecy on `Delete` is in reverse order.
+	//
+	// For this reason we have another `restartAgentServices` in `installIntegrationConfigsAndFiles` that is triggered when an integration is deleted.
 	_, err = h.manager.restartAgentServices(
+		// Transformer used to add triggers to the restart command
 		func(name string, args command.Args) (string, command.Args) {
 			args.Triggers = pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)}
 			return name, args
@@ -171,12 +174,17 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	}
 	hash := utils.StrHash(parts...)
 
-	restartCmd, err := h.manager.restartAgentServices(func(name string, args command.Args) (string, command.Args) {
-		args.Triggers = pulumi.Array{pulumi.String(hash)}
-		args.Delete = args.Create
-		args.Create = nil
-		return name + "-on-intg-removal", args
-	})
+	// Restart the agent when an integration is removed
+	// See longer comment in `installAgent` for more details
+	restartCmd, err := h.manager.restartAgentServices(
+		// Use a transformer to inject triggers on intg hash and move `restart` command from `Create` to `Delete`
+		// so that it's run after the `Delete` commands of the integrations.
+		func(name string, args command.Args) (string, command.Args) {
+			args.Triggers = pulumi.Array{pulumi.String(hash)}
+			args.Delete = args.Create
+			args.Create = nil
+			return name + "-on-intg-removal", args
+		})
 	if err != nil {
 		return nil, "", err
 	}

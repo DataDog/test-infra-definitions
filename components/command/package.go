@@ -37,7 +37,7 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *GenericPackageManager) Ensure(packageRef string, customizer Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	opts = append(opts, m.opts...)
 	if m.updateCmd != "" {
 		updateDB, err := m.updateDB(opts)
@@ -55,8 +55,10 @@ func (m *GenericPackageManager) Ensure(packageRef string, customizer Customizer,
 		Environment: m.env,
 		Sudo:        true,
 	}
-	if customizer != nil {
-		cmdName, cmdArgs = customizer(cmdName, cmdArgs)
+
+	// If a transform is provided, use it to modify the command name and args
+	if transform != nil {
+		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
 	cmd, err := m.runner.Command(cmdName, &cmdArgs, opts...)

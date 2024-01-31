@@ -16,14 +16,16 @@ func newSystemdServiceManager(e config.CommonEnvironment, runner *command.Runner
 	return &systemdServiceManager{e: e, runner: runner}
 }
 
-func (s *systemdServiceManager) EnsureRestarted(serviceName string, customizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (s *systemdServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	cmdName := s.e.CommonNamer.ResourceName("running", serviceName)
 	cmdArgs := command.Args{
 		Sudo:   true,
 		Create: pulumi.String("systemctl restart " + serviceName),
 	}
-	if customizer != nil {
-		cmdName, cmdArgs = customizer(cmdName, cmdArgs)
+
+	// If a transform is provided, use it to modify the command name and args
+	if transform != nil {
+		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
 	return s.runner.Command(cmdName, &cmdArgs, opts...)

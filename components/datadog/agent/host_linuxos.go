@@ -60,6 +60,6 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 	return "/etc/datadog-agent"
 }
 
-func (am *agentLinuxManager) restartAgentServices(customizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", customizer, opts...)
+func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", transform, opts...)
 }

@@ -12,12 +12,12 @@ import (
 
 // Interfaces used by OS components
 type PackageManager interface {
-	Ensure(packageRef string, argsCustomizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	Ensure(packageRef string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 type ServiceManager interface {
 	// EnsureStarted starts or restarts (may be stop+start depending on implementation) the service if already running
-	EnsureRestarted(serviceName string, argsCustomizer command.Customizer, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 // FileManager needs to be added here as well instead of the command package

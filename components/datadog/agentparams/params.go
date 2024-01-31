@@ -43,7 +43,7 @@ type Params struct {
 	Integrations        map[string]*FileDefinition
 	Files               map[string]*FileDefinition
 	ExtraAgentConfig    []pulumi.StringInput
-	PulumiDependsOn     []pulumi.ResourceOption
+	ResourceOptions     []pulumi.ResourceOption
 }
 
 type Option = func(*Params) error
@@ -190,7 +190,7 @@ func WithTelemetry() func(*Params) error {
 
 func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
-		p.PulumiDependsOn = resources
+		p.ResourceOptions = resources
 		return nil
 	}
 }

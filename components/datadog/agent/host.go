@@ -48,7 +48,7 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 			return err
 		}
 
-		deps := append(params.PulumiDependsOn, pulumi.Parent(comp))
+		deps := append(params.ResourceOptions, pulumi.Parent(comp))
 		err = comp.installAgent(e, params, deps...)
 		if err != nil {
 			return err

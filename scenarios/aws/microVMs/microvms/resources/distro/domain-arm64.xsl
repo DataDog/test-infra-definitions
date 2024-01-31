@@ -17,6 +17,15 @@
        <cpu mode='host-passthrough' check='full'/>
   </xsl:template>
 
+  <xsl:template match="/domain/features">
+       <xsl:copy>
+           <xsl:apply-templates select="@*|node()"/>
+       </xsl:copy>
+       <clock offset='utc'>                                                                                                                                                                                                                                                            
+           <timer name='rtc' tickpolicy='delay' track='guest'/>                                                                                                                                                                                                                          
+       </clock> 
+  </xsl:template>
+
   <xsl:template match="/domain/devices">
       {cputune}
       <xsl:copy>

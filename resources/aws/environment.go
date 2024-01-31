@@ -138,7 +138,7 @@ func (e *Environment) DefaultInstanceType() string {
 }
 
 func (e *Environment) DefaultInstanceProfileName() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceProfileName)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceProfileParamName, e.envDefault.ddInfra.defaultInstanceProfileName)
 }
 
 func (e *Environment) DefaultARMInstanceType() string {

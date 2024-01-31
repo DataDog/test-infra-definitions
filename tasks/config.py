@@ -15,6 +15,7 @@ class Config(BaseModel, extra=Extra.forbid):
         class Aws(BaseModel, extra=Extra.forbid):
             keyPairName: Optional[str]
             publicKeyPath: Optional[str]
+            privateKeyPath: Optional[str] = None
             account: Optional[str]
             teamTag: Optional[str]
 

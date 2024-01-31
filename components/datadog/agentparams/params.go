@@ -43,6 +43,7 @@ type Params struct {
 	Integrations        map[string]*FileDefinition
 	Files               map[string]*FileDefinition
 	ExtraAgentConfig    []pulumi.StringInput
+	ResourceOptions     []pulumi.ResourceOption
 }
 
 type Option = func(*Params) error
@@ -184,6 +185,13 @@ func WithTelemetry() func(*Params) error {
 `
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("telemetry.enabled: true"))
 		return WithIntegration("openmetrics.d", config)(p)
+	}
+}
+
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
+	return func(p *Params) error {
+		p.ResourceOptions = resources
+		return nil
 	}
 }
 

@@ -28,7 +28,7 @@ func (fs windowsOSCommand) CreateDirectory(
 	return createDirectory(
 		runner,
 		name,
-		fmt.Sprintf("New-Item -Path %v -ItemType Directory", remotePath),
+		fmt.Sprintf("New-Item -Force -Path %v -ItemType Directory", remotePath),
 		fmt.Sprintf("if (-not (Test-Path -Path %v/*)) { Remove-Item -Path %v -ErrorAction SilentlyContinue }", remotePath, remotePath),
 		useSudo,
 		opts...)

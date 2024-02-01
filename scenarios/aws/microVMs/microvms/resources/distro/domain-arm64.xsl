@@ -15,6 +15,9 @@
            <xsl:apply-templates select="@*|node()"/>
        </xsl:copy>
        <cpu mode='host-passthrough' check='full'/>
+       <clock offset='utc'>                                                                                                                                                                                                                                                            
+           <timer name='rtc' tickpolicy='delay' track='guest'/>                                                                                                                                                                                                                          
+       </clock> 
   </xsl:template>
 
   <xsl:template match="/domain/devices">

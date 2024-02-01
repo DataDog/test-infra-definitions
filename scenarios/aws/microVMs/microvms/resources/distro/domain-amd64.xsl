@@ -9,6 +9,9 @@
    </xsl:template>
   <xsl:template match="/domain/features">
       <cpu mode='host-passthrough' check='full'/>
+       <clock offset='utc'>                                                                                                                                                                                                                                                            
+           <timer name='rtc' tickpolicy='delay' track='guest'/>                                                                                                                                                                                                                          
+       </clock> 
   </xsl:template>
 
   <xsl:template match="/domain/os">

@@ -1,6 +1,7 @@
 package microvms
 
 import (
+	"fmt"
 	"path/filepath"
 	"sync"
 
@@ -184,6 +185,13 @@ func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, res
 func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *InstanceEnvironment) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
+	reportMicroVMError := func(collection *VMCollection, domain *Domain, err error) {
+		collection.instance.e.CommonEnvironment.Ctx.Log.Warn(
+			fmt.Sprintf("failed to provision domain %s: %v", domain.domainID, err), nil,
+		)
+		domain.bootStatus = false
+	}
+
 	for _, collection := range vmCollections {
 		if collection.instance.Arch == LocalVMSet {
 			continue
@@ -227,22 +235,26 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 
 			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 			if err != nil {
-				return nil, err
+				reportMicroVMError(collection, domain, err)
+				continue
 			}
 
 			setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
 			if err != nil {
-				return nil, err
+				reportMicroVMError(collection, domain, err)
+				continue
 			}
 
 			allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
 			if err != nil {
-				return nil, err
+				reportMicroVMError(collection, domain, err)
+				continue
 			}
 
 			reloadSSHDDone, err := reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
 			if err != nil {
-				return nil, err
+				reportMicroVMError(collection, domain, err)
+				continue
 			}
 
 			waitFor = append(waitFor, reloadSSHDDone...)

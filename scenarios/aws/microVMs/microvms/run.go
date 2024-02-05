@@ -267,6 +267,7 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 					"tag":          pulumi.ToOutput(domain.tag),
 					"vmset-tags":   pulumi.ToArrayOutput(tags),
 					"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+					"boot-status":  pulumi.ToOutput(domain.bootStatus),
 				}))
 			}
 		}

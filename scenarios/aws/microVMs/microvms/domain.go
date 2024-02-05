@@ -39,6 +39,7 @@ type Domain struct {
 	lvDomain    *libvirt.Domain
 	tag         string
 	vmset       vmconfig.VMSet
+	bootStatus  bool
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
@@ -104,6 +105,8 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 
 	domain := new(Domain)
 	setTags := strings.Join(set.Tags, "-")
+	// we will mark boot failures in the end
+	domain.bootStatus = true
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 	domain.tag = kernel.Tag

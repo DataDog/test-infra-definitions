@@ -229,7 +229,8 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 				},
 			)
 			if err != nil {
-				return nil, err
+				reportMicroVMError(collection, domain, err)
+				continue
 			}
 			microRunner := NewRunner(WithRemoteRunner(remoteRunner))
 

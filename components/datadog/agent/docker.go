@@ -38,7 +38,7 @@ func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error 
 
 func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...dockeragentparams.Option) (*DockerAgent, error) {
 	return components.NewComponent(e, vm.Name(), func(comp *DockerAgent) error {
-		params, err := dockeragentparams.NewParams(options...)
+		params, err := dockeragentparams.NewParams(&e, options...)
 		if err != nil {
 			return err
 		}

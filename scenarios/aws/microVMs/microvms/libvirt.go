@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -186,6 +187,13 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error {
 	var dhcpEntries []interface{}
 	var err error
+
+	if runtime.GOOS == "darwin" {
+		// libvirt doesn't have a working network driver for macOS as of Feb2024
+		// networks will be setup later using qemu/hvf usermode networking
+		// ref: https://gitlab.com/libvirt/libvirt/-/issues/75
+		return nil
+	}
 
 	for _, d := range vm.domains {
 		dhcpEntries = append(dhcpEntries, d.dhcpEntry)

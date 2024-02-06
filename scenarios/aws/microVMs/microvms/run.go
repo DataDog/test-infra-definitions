@@ -239,7 +239,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			waitFor = append(waitFor, shutdownTimerDone)
 		}
 	} else if runtime.GOOS == "darwin" {
-		url = pulumi.Sprintf("qemu:///session?socket=/opt/homebrew/var/run/libvirt/libvirt-sock")
+		url = pulumi.Sprintf("qemu:///system?socket=/opt/homebrew/var/run/libvirt/libvirt-sock")
 	} else {
 		url = pulumi.Sprintf("qemu:///system")
 	}

@@ -179,7 +179,9 @@ def setupPulumiConfig(config):
     if config.configParams.pulumi.logLevel is None:
         config.configParams.pulumi.logLevel = 1
     default_log_level = config.configParams.pulumi.logLevel
-    info("Pulumi emits logs at log levels between 1 and 11, with 11 being the most verbose. At log level 10 or below, Pulumi will avoid intentionally exposing any known credentials. At log level 11, Pulumi will intentionally expose some known credentials to aid with debugging, so these log levels should be used only when absolutely needed.")
+    info(
+        "Pulumi emits logs at log levels between 1 and 11, with 11 being the most verbose. At log level 10 or below, Pulumi will avoid intentionally exposing any known credentials. At log level 11, Pulumi will intentionally expose some known credentials to aid with debugging, so these log levels should be used only when absolutely needed."
+    )
     while True:
         log_level = ask(f"🔊 Pulumi log level (1-11) - empty defaults to [{default_log_level}]: ")
         if len(log_level) == 0:

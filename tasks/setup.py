@@ -53,6 +53,8 @@ def setup(
         setupAWSConfig(config)
         # Agent config
         setupAgentConfig(config)
+        # Pulumi config
+        setupPulumiConfig(config)
 
         config.save_to_local_config(config_path)
 
@@ -165,6 +167,41 @@ def setupAgentConfig(config):
         if len(config.configParams.agent.appKey) == 40:
             break
         warn(f"Expecting APP key of length 40, got {len(config.configParams.agent.appKey)}")
+
+
+def setupPulumiConfig(config):
+    if config.configParams.pulumi is None:
+        config.configParams.pulumi = Config.Params.Pulumi(
+            logLevel=1,
+            logToStdErr=False,
+        )
+    # log level
+    if config.configParams.pulumi.logLevel is None:
+        config.configParams.pulumi.logLevel = 1
+    default_log_level = config.configParams.pulumi.logLevel
+    info("Pulumi emits logs at log levels between 1 and 11, with 11 being the most verbose. At log level 10 or below, Pulumi will avoid intentionally exposing any known credentials. At log level 11, Pulumi will intentionally expose some known credentials to aid with debugging, so these log levels should be used only when absolutely needed.")
+    while True:
+        log_level = ask(f"🔊 Pulumi log level (1-11) - empty defaults to [{default_log_level}]: ")
+        if len(log_level) == 0:
+            config.configParams.pulumi.logLevel = default_log_level
+            break
+        if log_level.isdigit() and 1 <= int(log_level) <= 11:
+            config.configParams.pulumi.logLevel = int(log_level)
+            break
+        warn(f"Expecting log level between 1 and 11, got {log_level}")
+    # APP key
+    if config.configParams.pulumi.logToStdErr is None:
+        config.configParams.pulumi.logToStdErr = False
+    default_logs_to_std_err = config.configParams.pulumi.logToStdErr
+    while True:
+        logs_to_std_err = ask(f"Write pulumi logs to stderr - empty defaults to [{default_logs_to_std_err}]: ")
+        if len(logs_to_std_err) == 0:
+            config.configParams.pulumi.logToStdErr = default_logs_to_std_err
+            break
+        if logs_to_std_err.lower() in ["true", "false"]:
+            config.configParams.pulumi.logToStdErr = logs_to_std_err.lower() == "true"
+            break
+        warn(f"Expecting one of [true, false], got {logs_to_std_err}")
 
 
 def _get_safe_dd_key(key: str) -> str:

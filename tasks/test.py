@@ -51,6 +51,7 @@ def check_xslt(ctx, xslt, replacements=None, xml="domain"):
         "vcpu": "4",
         "cputune": "<cputune></cputune>",
         "hypervisor": "hvf",
+        "commandLine": "<arg value=\"test\"/>",
     }
 
     for repl in replacements or []:

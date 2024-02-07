@@ -188,36 +188,39 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 	var dhcpEntries []interface{}
 	var err error
 
-	if runtime.GOOS == "darwin" {
+	var network *libvirt.Network
+	if runtime.GOOS != "darwin" {
 		// libvirt doesn't have a working network driver for macOS as of Feb2024
 		// networks will be setup later using qemu/hvf usermode networking
 		// ref: https://gitlab.com/libvirt/libvirt/-/issues/75
-		return nil
-	}
+		for _, d := range vm.domains {
+			dhcpEntries = append(dhcpEntries, d.dhcpEntry)
 
-	for _, d := range vm.domains {
-		dhcpEntries = append(dhcpEntries, d.dhcpEntry)
+		}
 
-	}
-
-	network, err := generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProviderFn, depends, vm.instance.instanceNamer, dhcpEntries)
-	if err != nil {
-		return err
-	}
-
-	for _, domain := range vm.domains {
-		domain.domainArgs.NetworkInterfaces = libvirt.DomainNetworkInterfaceArray{
-			libvirt.DomainNetworkInterfaceArgs{
-				NetworkId:    network.ID(),
-				WaitForLease: pulumi.Bool(false),
-			},
+		network, err = generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProviderFn, depends, vm.instance.instanceNamer, dhcpEntries)
+		if err != nil {
+			return err
 		}
 	}
 
-	// set iptable rules for allowing ports to access NFS server
-	_, err = allowNFSPortsForBridge(vm.instance.e.Ctx, vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer)
-	if err != nil {
-		return err
+	for _, domain := range vm.domains {
+		args := libvirt.DomainNetworkInterfaceArgs{
+			WaitForLease: pulumi.Bool(false),
+		}
+		if network != nil {
+			args.NetworkId = network.ID()
+		}
+
+		domain.domainArgs.NetworkInterfaces = libvirt.DomainNetworkInterfaceArray{args}
+	}
+
+	if network != nil {
+		// set iptable rules for allowing ports to access NFS server
+		_, err = allowNFSPortsForBridge(vm.instance.e.Ctx, vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil

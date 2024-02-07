@@ -28,6 +28,7 @@ const (
 	CPUTune       = "cputune"
 	Hypervisor    = "hypervisor"
 	EnableEfi     = "enableEfi"
+	CommandLine   = "commandLine"
 )
 
 const (

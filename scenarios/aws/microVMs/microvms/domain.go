@@ -130,10 +130,20 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 
 	// OS-dependent settings
 	var hypervisor string
+	var commandLine pulumi.StringInput = pulumi.String("")
 	if runtime.GOOS == "linux" {
 		domain.RecipeLibvirtDomainArgs.Type = "kvm"
 	} else if runtime.GOOS == "darwin" {
 		hypervisor = "hvf"
+		qemuArgs := map[string]pulumi.StringInput{
+			"-netdev": pulumi.String("vmnet-shared,id=net0"),
+			"-device": pulumi.Sprintf("virtio-net-device,netdev=net0,mac=%s", domain.mac),
+		}
+
+		for k, v := range qemuArgs {
+			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
+			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
+		}
 	}
 
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
@@ -146,6 +156,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 			resources.VCPU:          pulumi.Sprintf("%d", vcpu),
 			resources.CPUTune:       pulumi.String(cputune),
 			resources.Hypervisor:    pulumi.String(hypervisor),
+			resources.CommandLine:   commandLine,
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine

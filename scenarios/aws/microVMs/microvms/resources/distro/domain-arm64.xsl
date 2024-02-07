@@ -4,12 +4,12 @@
     <xsl:output omit-xml-declaration="yes" indent="yes" />
     <xsl:template match="@firmware" />
 
-
     <xsl:template match="node()|@*">
         <xsl:copy>
             <xsl:apply-templates select="node()|@*" />
         </xsl:copy>
     </xsl:template>
+
     <xsl:template match="/domain/features">
         <xsl:copy>
             <xsl:apply-templates select="@*|node()" />
@@ -24,6 +24,9 @@
         <xsl:if test="'{hypervisor}'!='hvf'">
             {cputune}
         </xsl:if>
+        <commandline xmlns="http://libvirt.org/schemas/domain/qemu/1.0">
+            {commandLine}
+        </commandline>
         <xsl:copy>
             <xsl:apply-templates select="@*|node()" />
         </xsl:copy>
@@ -40,6 +43,7 @@
             <xsl:copy-of select="@*" />
             <xsl:copy-of select="node()" />
             <xsl:if test="'{hypervisor}'!='hvf'">
+                <!-- libvirt already provides its own EFI for hvf -->
                 <loader readonly='yes' secure='no' type='pflash'>{efi}</loader>
                 <nvram>{nvram}</nvram>
             </xsl:if>
@@ -64,7 +68,8 @@
         </xsl:copy>
     </xsl:template>
 
-    <xsl:template match="/domain/devices/interface[@type='network']/mac/@address">
+    <xsl:template
+        match="/domain/devices/interface[@type='network']/mac/@address | /domain/devices/interface[@type='user']/mac/@address">
         <xsl:attribute name="address">
             <xsl:value-of select="'{mac}'" />
         </xsl:attribute>

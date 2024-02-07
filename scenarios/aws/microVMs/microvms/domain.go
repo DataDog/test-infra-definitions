@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -126,6 +127,15 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
 	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
 	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
+
+	// OS-dependent settings
+	var hypervisor string
+	if runtime.GOOS == "linux" {
+		domain.RecipeLibvirtDomainArgs.Type = "kvm"
+	} else if runtime.GOOS == "darwin" {
+		hypervisor = "hvf"
+	}
+
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
@@ -135,6 +145,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 			resources.Efi:           pulumi.String(efi),
 			resources.VCPU:          pulumi.Sprintf("%d", vcpu),
 			resources.CPUTune:       pulumi.String(cputune),
+			resources.Hypervisor:    pulumi.String(hypervisor),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine

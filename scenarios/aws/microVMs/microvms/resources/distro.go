@@ -70,6 +70,10 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 	if args.Machine != "" {
 		domainArgs.Machine = pulumi.String(args.Machine)
 	}
+	if args.Type != "" {
+		domainArgs.Type = pulumi.String(args.Type)
+	}
+
 
 	return &domainArgs, nil
 }
@@ -129,6 +133,9 @@ func (a *DistroARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 
 	if args.Machine != "" {
 		domainArgs.Machine = pulumi.String(args.Machine)
+	}
+	if args.Type != "" {
+		domainArgs.Type = pulumi.String(args.Type)
 	}
 
 	return &domainArgs, nil

@@ -33,5 +33,11 @@
 		<rng model="virtio">
 			<backend model="random">/dev/urandom</backend>
 		</rng>
+		<interface type='user'>
+			<mac address='52:54:00:e2:90:25' />
+			<model type='virtio' />
+			<alias name='net0' />
+			<address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0' />
+		</interface>
 	</devices>
 </domain>

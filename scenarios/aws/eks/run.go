@@ -4,14 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
-	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -132,38 +125,40 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = cluster.KubeconfigJson
 
 		nodeGroups := make([]pulumi.Resource, 0)
-		// Create managed node groups
-		if awsEnv.EKSLinuxNodeGroup() {
-			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
-			if err != nil {
-				return err
+		/*
+			// Create managed node groups
+			if awsEnv.EKSLinuxNodeGroup() {
+				ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
+				if err != nil {
+					return err
+				}
+				nodeGroups = append(nodeGroups, ng)
 			}
-			nodeGroups = append(nodeGroups, ng)
-		}
 
-		if awsEnv.EKSLinuxARMNodeGroup() {
-			ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
-			if err != nil {
-				return err
+			if awsEnv.EKSLinuxARMNodeGroup() {
+				ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
+				if err != nil {
+					return err
+				}
+				nodeGroups = append(nodeGroups, ng)
 			}
-			nodeGroups = append(nodeGroups, ng)
-		}
 
-		if awsEnv.EKSBottlerocketNodeGroup() {
-			ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
-			if err != nil {
-				return err
+			if awsEnv.EKSBottlerocketNodeGroup() {
+				ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
+				if err != nil {
+					return err
+				}
+				nodeGroups = append(nodeGroups, ng)
 			}
-			nodeGroups = append(nodeGroups, ng)
-		}
 
-		// Create unmanaged node groups
-		if awsEnv.EKSWindowsNodeGroup() {
-			_, err := localEks.NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
-			if err != nil {
-				return err
+			// Create unmanaged node groups
+			if awsEnv.EKSWindowsNodeGroup() {
+				_, err := localEks.NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
+				if err != nil {
+					return err
+				}
 			}
-		}
+		*/
 
 		// Building Kubernetes provider
 		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
@@ -210,65 +205,75 @@ func Run(ctx *pulumi.Context) error {
 			}
 		}
 
-		// Deploy the agent
-		if awsEnv.AgentDeploy() {
-			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
-				KubeProvider:  eksKubeProvider,
-				Namespace:     "datadog",
-				Fakeintake:    fakeIntake,
-				DeployWindows: awsEnv.EKSWindowsNodeGroup(),
-			}, nil)
-			if err != nil {
-				return err
+		/*
+			// Deploy the agent
+			if awsEnv.AgentDeploy() {
+				helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
+					KubeProvider:  eksKubeProvider,
+					Namespace:     "datadog",
+					Fakeintake:    fakeIntake,
+					DeployWindows: awsEnv.EKSWindowsNodeGroup(),
+				}, nil)
+				if err != nil {
+					return err
+				}
+
+				ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
+				ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
+				if awsEnv.EKSWindowsNodeGroup() {
+					ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
+					ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
+				}
+
+				dependsOnCrd = utils.PulumiDependsOn(helmComponent)
 			}
 
-			ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
-			ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
-			if awsEnv.EKSWindowsNodeGroup() {
-				ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
-				ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
+			// Deploy standalone dogstatsd
+			if awsEnv.DogstatsdDeploy() {
+				if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
+					return err
+				}
 			}
 
-			dependsOnCrd = utils.PulumiDependsOn(helmComponent)
-		}
+			// Deploy testing workload
+			if awsEnv.TestingWorkloadDeploy() {
+				if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+					return err
+				}
 
-		// Deploy standalone dogstatsd
-		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
-				return err
+				if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+					return err
+				}
+
+				if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-cpustress"); err != nil {
+					return err
+				}
+
+				// dogstatsd clients that report to the Agent
+				if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+					return err
+				}
+
+				// dogstatsd clients that report to the dogstatsd standalone deployment
+				if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+					return err
+				}
+
+				if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {
+					return err
+				}
+
+				if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
+					return err
+				}
 			}
-		}
+		*/
 
-		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
-				return err
-			}
-
-			if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
-				return err
-			}
-
-			if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-cpustress"); err != nil {
-				return err
-			}
-
-			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
-				return err
-			}
-
-			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
-				return err
-			}
-
-			if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {
-				return err
-			}
-
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
-				return err
+			if fargateNamespace := awsEnv.EKSFargateNamespace(); fargateNamespace != "" {
+				if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, fargateNamespace, dependsOnCrd); err != nil {
+					return err
+				}
 			}
 		}
 

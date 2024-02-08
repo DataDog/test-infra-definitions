@@ -48,9 +48,10 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		opts := []pulumi.ResourceOption{pulumi.Parent(fi)}
 
 		apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
-			Name:  e.CommonNamer.DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
-			Type:  ssm.ParameterTypeSecureString,
-			Value: e.AgentAPIKey(),
+			Name:      e.CommonNamer.DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
+			Type:      ssm.ParameterTypeSecureString,
+			Value:     e.AgentAPIKey(),
+			Overwrite: pulumi.Bool(true),
 		}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
 		if err != nil {
 			return err

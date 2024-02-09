@@ -23,7 +23,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.Ubuntu)
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err
@@ -75,7 +75,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 	}
 
 	// If no OS is provided, we default to AmazonLinuxECS as it ships with Docker pre-installed
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECS)
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err

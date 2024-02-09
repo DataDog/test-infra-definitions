@@ -5,11 +5,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
 
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func EKSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *corev1.ContainerArgs {
+func EKSFargateContainerDefinition(e config.CommonEnvironment, image string, clusterName string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) *corev1.ContainerArgs {
 	if image == "" {
 		image = dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "latest")
 	}
@@ -27,10 +26,14 @@ func EKSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 				"memory": pulumi.String("320Mi"),
 			},
 		},
-		Env: &corev1.EnvVarArray{
+		Env: append(corev1.EnvVarArray{
 			&corev1.EnvVarArgs{
 				Name:  pulumi.String("DD_API_KEY"),
 				Value: apiKeySSMParamName,
+			},
+			&corev1.EnvVarArgs{
+				Name:  pulumi.String("DD_SITE"),
+				Value: pulumi.String("datadoghq.com"),
 			},
 			&corev1.EnvVarArgs{
 				Name:  pulumi.String("DD_DOGSTATSD_SOCKET"),
@@ -44,16 +47,54 @@ func EKSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 				Name:  pulumi.String("DD_EKS_FARGATE"),
 				Value: pulumi.String("true"),
 			},
+			&corev1.EnvVarArgs{
+				Name:  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ENABLED"),
+				Value: pulumi.String("true"),
+			},
+			&corev1.EnvVarArgs{
+				Name:  pulumi.String("DD_CLUSTER_NAME"),
+				Value: pulumi.String(clusterName),
+			},
+		}, eksFakeintakeAdditionalEndpointsEnv(fakeintake)...),
+		Ports: &corev1.ContainerPortArray{
+			&corev1.ContainerPortArgs{
+				Name:          pulumi.String("udp"),
+				ContainerPort: pulumi.Int(8125),
+				Protocol:      pulumi.String("UDP"),
+			},
+			&corev1.ContainerPortArgs{
+				Name:          pulumi.String("tcp"),
+				ContainerPort: pulumi.Int(8126),
+				Protocol:      pulumi.String("TCP"),
+			},
 		},
-		// LivenessProbe: &corev1.ProbeArgs{
-		// 	HttpGet: &corev1.HTTPGetActionArgs{
-		// 		Port: pulumi.Int(80),
-		// 	},
-		// },
-		// ReadinessProbe: &corev1.ProbeArgs{
-		// 	HttpGet: &corev1.HTTPGetActionArgs{
-		// 		Port: pulumi.Int(80),
-		// 	},
-		// },
+	}
+}
+
+func eksFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) corev1.EnvVarArray {
+	if fakeintake == nil {
+		return corev1.EnvVarArray{}
+	}
+	return corev1.EnvVarArray{
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+			Value: pulumi.String("true"),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+			Value: pulumi.String("true"),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+			Value: pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+			Value: pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
+			Value: pulumi.String("true"),
+		},
 	}
 }

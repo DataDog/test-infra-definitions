@@ -5,6 +5,8 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	ddv1alpha1 "github.com/DataDog/test-infra-definitions/components/kubernetes/crds/kubernetes/datadoghq/v1alpha1"
 
 	"github.com/Masterminds/semver"
@@ -19,14 +21,14 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type EksFargateComponent struct {
+type EKSFargateComponent struct {
 	pulumi.ResourceState
 }
 
-// namespace = fargate
-func EKSFargateAppDefintion(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*EksFargateComponent, error) {
+func EKSFargateAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, clusterName string, apiKeySSMParamName pulumi.StringInput, dependsOnCrd pulumi.ResourceOption, fakeIntakeParam *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) (*EKSFargateComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
-	eksFargateComponent := &EksFargateComponent{}
+
+	eksFargateComponent := &EKSFargateComponent{}
 	if err := e.Ctx.RegisterComponentResource("dd:apps", "nginx", eksFargateComponent, opts...); err != nil {
 		return nil, err
 	}
@@ -126,6 +128,7 @@ func EKSFargateAppDefintion(e config.CommonEnvironment, kubeProvider *kubernetes
 								},
 							},
 						},
+						*agent.EKSFargateContainerDefinition(e, "public.ecr.aws/datadog/agent:latest", clusterName, apiKeySSMParamName, fakeIntakeParam),
 					},
 					Volumes: corev1.VolumeArray{
 						&corev1.VolumeArgs{

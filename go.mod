@@ -13,7 +13,6 @@ require (
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v5 v5.42.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.20.1
 	github.com/pulumi/pulumi-awsx/sdk v1.0.6
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.23.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.23.0
@@ -30,6 +29,17 @@ require (
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
 	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
+	github.com/gofrs/flock v0.7.1 // indirect
+	github.com/mitchellh/go-homedir v1.1.0 // indirect
+	github.com/pulumi/pulumi/sdk v1.13.1 // indirect
+	github.com/src-d/gcfg v1.4.0 // indirect
+	gopkg.in/src-d/go-billy.v4 v4.3.2 // indirect
+	gopkg.in/src-d/go-git.v4 v4.13.1 // indirect
+	gopkg.in/yaml.v2 v2.4.0 // indirect
+	sourcegraph.com/sourcegraph/appdash v0.0.0-20211028080628-e2786a622600 // indirect
 )
 
 require (
@@ -102,6 +112,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
 	github.com/pulumi/esc v0.6.2 // indirect
+	github.com/pulumi/pulumi-aws/sdk v1.31.0
 	github.com/pulumi/pulumi-docker/sdk/v3 v3.6.1 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/rogpeppe/go-internal v1.11.0 // indirect

@@ -56,6 +56,10 @@ jobs:
             image: redis-client
           - app: tracegen
             image: tracegen
+          - app: npm-tools
+            image: go-httpbin
+          - app: npm-tools
+            image: npm-tools
 
     steps:
       - name: Checkout repository

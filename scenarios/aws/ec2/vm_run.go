@@ -114,6 +114,14 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			if err != nil {
 				return err
 			}
+
+			if err := fakeintake.Export(env.Ctx, nil); err != nil {
+				return err
+			}
+			if err != nil {
+				return err
+			}
+
 			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
 		}
 

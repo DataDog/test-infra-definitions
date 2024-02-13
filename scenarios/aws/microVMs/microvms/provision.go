@@ -185,9 +185,13 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 	var waitFor []pulumi.Resource
 
 	for _, collection := range vmCollections {
-		sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, collection.subnets[setID], waitFor)
-		if err != nil {
-			return nil, err
+		var sshConfigDone []pulumi.Resource
+		for _, subnet := range collection.subnets {
+			done, err := setupMicroVMSSHConfig(collection.instance, collection.subnets[setID], waitFor)
+			if err != nil {
+				return nil, err
+			}
+			sshConfigDone = append(sshConfigDone, done...)
 		}
 
 		microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)

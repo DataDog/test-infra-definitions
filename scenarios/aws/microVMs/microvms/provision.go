@@ -185,67 +185,69 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 	var waitFor []pulumi.Resource
 
 	for _, collection := range vmCollections {
-		if collection.instance.Arch == LocalVMSet {
-			continue
-		}
-
-		sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, microVMGroupSubnet, waitFor)
-		if err != nil {
-			return nil, err
-		}
-
-		microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, domain := range collection.domains {
-			if domain.lvDomain == nil {
+		for setID, domains := range collection.domains {
+			if collection.instance.Arch == LocalVMSet {
 				continue
 			}
 
-			// create new ssh connection to build proxy
-			conn, err := remoteComp.NewConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
+			sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, collection.subnets[setID], waitFor)
 			if err != nil {
 				return nil, err
 			}
 
-			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
-			remoteRunner, err := command.NewRunner(
-				*collection.instance.e.CommonEnvironment,
-				command.RunnerArgs{
-					ParentResource: domain.lvDomain,
-					Connection:     pc,
-					ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
-					OSCommand:      command.NewUnixOSCommand(),
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-			microRunner := NewRunner(WithRemoteRunner(remoteRunner))
-
-			mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+			microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)
 			if err != nil {
 				return nil, err
 			}
 
-			setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
-			if err != nil {
-				return nil, err
-			}
+			for _, domain := range domains {
+				if domain.lvDomain == nil {
+					continue
+				}
 
-			allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
-			if err != nil {
-				return nil, err
-			}
+				// create new ssh connection to build proxy
+				conn, err := remoteComp.NewConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
+				if err != nil {
+					return nil, err
+				}
 
-			reloadSSHDDone, err := reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
-			if err != nil {
-				return nil, err
-			}
+				pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
+				remoteRunner, err := command.NewRunner(
+					*collection.instance.e.CommonEnvironment,
+					command.RunnerArgs{
+						ParentResource: domain.lvDomain,
+						Connection:     pc,
+						ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
+						OSCommand:      command.NewUnixOSCommand(),
+					},
+				)
+				if err != nil {
+					return nil, err
+				}
+				microRunner := NewRunner(WithRemoteRunner(remoteRunner))
 
-			waitFor = append(waitFor, reloadSSHDDone...)
+				mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+				if err != nil {
+					return nil, err
+				}
+
+				setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+				if err != nil {
+					return nil, err
+				}
+
+				allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
+				if err != nil {
+					return nil, err
+				}
+
+				reloadSSHDDone, err := reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
+				if err != nil {
+					return nil, err
+				}
+
+				waitFor = append(waitFor, reloadSSHDDone...)
+			}
 		}
 	}
 
@@ -259,42 +261,44 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 			continue
 		}
 
-		for _, domain := range collection.domains {
-			if domain.lvDomain == nil {
-				continue
-			}
+		for _, dls := range collection.domains {
+			for _, domain := range dls {
+				if domain.lvDomain == nil {
+					continue
+				}
 
-			// create new ssh connection to build proxy
-			conn, err := remoteComp.NewConnection(pulumi.String(domain.ip), "root", filepath.Join(GetWorkingDirectory(), "ddvm_rsa"), "", "")
-			if err != nil {
-				return nil, err
-			}
+				// create new ssh connection to build proxy
+				conn, err := remoteComp.NewConnection(pulumi.String(domain.ip), "root", filepath.Join(GetWorkingDirectory(), "ddvm_rsa"), "", "")
+				if err != nil {
+					return nil, err
+				}
 
-			remoteRunner, err := command.NewRunner(
-				*collection.instance.e.CommonEnvironment,
-				command.RunnerArgs{
-					ParentResource: domain.lvDomain,
-					Connection:     conn,
-					ConnectionName: domain.domainNamer.ResourceName("provision-conn"),
-					OSCommand:      command.NewUnixOSCommand(),
-				},
-			)
-			if err != nil {
-				return nil, err
-			}
-			microVMRunner := NewRunner(WithRemoteRunner(remoteRunner))
+				remoteRunner, err := command.NewRunner(
+					*collection.instance.e.CommonEnvironment,
+					command.RunnerArgs{
+						ParentResource: domain.lvDomain,
+						Connection:     conn,
+						ConnectionName: domain.domainNamer.ResourceName("provision-conn"),
+						OSCommand:      command.NewUnixOSCommand(),
+					},
+				)
+				if err != nil {
+					return nil, err
+				}
+				microVMRunner := NewRunner(WithRemoteRunner(remoteRunner))
 
-			mountDisksDone, err := mountMicroVMDisks(microVMRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
-			if err != nil {
-				return nil, err
-			}
+				mountDisksDone, err := mountMicroVMDisks(microVMRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+				if err != nil {
+					return nil, err
+				}
 
-			setDockerDataRootDone, err := setDockerDataRoot(microVMRunner, domain.Disks, domain.domainNamer, mountDisksDone)
-			if err != nil {
-				return nil, err
-			}
+				setDockerDataRootDone, err := setDockerDataRoot(microVMRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+				if err != nil {
+					return nil, err
+				}
 
-			waitFor = append(waitFor, setDockerDataRootDone...)
+				waitFor = append(waitFor, setDockerDataRootDone...)
+			}
 		}
 	}
 

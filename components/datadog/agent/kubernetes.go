@@ -12,7 +12,7 @@ import (
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	AgentInstallName        string `json:"agentInstallName"`
+	AgentInstallNameLinux   string `json:"agentInstallNameLinux"`
 	AgentInstallNameWindows string `json:"agentInstallNameWindows"`
 }
 
@@ -21,7 +21,7 @@ type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	AgentInstallName        pulumi.StringOutput `pulumi:"agentInstallName"`
+	AgentInstallNameLinux   pulumi.StringOutput `pulumi:"agentInstallNameLinux"`
 	AgentInstallNameWindows pulumi.StringOutput `pulumi:"agentInstallNameWindows"`
 }
 
@@ -46,7 +46,7 @@ func NewKubernetesAgent(e config.CommonEnvironment, clusterName string, kubeProv
 		}
 
 		// Fill component
-		comp.AgentInstallName = helmComponent.LinuxHelmReleaseName.Elem()
+		comp.AgentInstallNameLinux = helmComponent.LinuxHelmReleaseName.Elem()
 		if params.DeployWindows {
 			comp.AgentInstallNameWindows = helmComponent.WindowsHelmReleaseName.Elem()
 		}

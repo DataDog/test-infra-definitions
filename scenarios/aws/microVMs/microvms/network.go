@@ -158,6 +158,8 @@ func generateNetworkResource(
 	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network", setID.String()), &libvirt.NetworkArgs{
 		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
 		Mode:      pulumi.String("nat"),
+		// enable jumbo frames for the underlying interface. This is an optimization for NFS.
+		Mtu: pulumi.Int(9000),
 		Xml: libvirt.NetworkXmlArgs{
 			Xslt: netXML,
 		},

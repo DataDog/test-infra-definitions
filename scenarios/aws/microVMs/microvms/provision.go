@@ -40,7 +40,7 @@ func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]stri
 	createSSHDirArgs := command.Args{
 		Create: pulumi.Sprintf("mkdir -p /home/ubuntu/.ssh && chmod 700 /home/ubuntu/.ssh"),
 	}
-	createDirDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-dir", microVMIPSubnet), &createSSHDirArgs, pulumi.DependsOn(depends))
+	createDirDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-dir"), &createSSHDirArgs, pulumi.DependsOn(depends))
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]stri
 	args := command.Args{
 		Create: pulumi.Sprintf(`echo -e "%s" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, config.String()),
 	}
-	done, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-config", microVMIPSubnet), &args, pulumi.DependsOn([]pulumi.Resource{createDirDone}))
+	done, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-config"), &args, pulumi.DependsOn([]pulumi.Resource{createDirDone}))
 	if err != nil {
 		return nil, err
 	}

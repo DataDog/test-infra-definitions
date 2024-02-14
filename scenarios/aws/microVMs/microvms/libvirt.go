@@ -178,11 +178,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 			}
 		}
 
-		if _, ok := vm.domains[set.ID]; ok {
-			vm.domains[set.ID] = append(vm.domains[set.ID], domains...)
-		} else {
-			vm.domains[set.ID] = domains
-		}
+		vm.domains[set.ID] = append(vm.domains[set.ID], domains...)
 	}
 
 	return waitFor, nil

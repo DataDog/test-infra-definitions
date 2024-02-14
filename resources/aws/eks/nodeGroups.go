@@ -48,7 +48,7 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 		NodeGroupNamePrefix: e.CommonNamer.DisplayName(37, pulumi.String(name), pulumi.String("ng")),
 		ScalingConfig: awsEks.NodeGroupScalingConfigArgs{
 			DesiredSize: pulumi.Int(1),
-			MaxSize:     pulumi.Int(1),
+			MaxSize:     pulumi.Int(2),
 			MinSize:     pulumi.Int(0),
 		},
 		NodeRole: nodeRole,

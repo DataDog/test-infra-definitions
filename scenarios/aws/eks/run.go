@@ -1,6 +1,8 @@
 package eks
 
 import (
+	"sync"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -11,6 +13,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -132,29 +135,59 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = cluster.KubeconfigJson
 
 		nodeGroups := make([]pulumi.Resource, 0)
+		ngMutex := sync.Mutex{}
+		cgroupV1Ng := pulumi.StringArray{}
+		cgroupV2Ng := pulumi.StringArray{}
+		wg := sync.WaitGroup{}
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {
+			wg.Add(1)
 			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
+			// The default AMI used for Amazon Linux 2 is using cgroupv1
+			ng.NodeGroup.NodeGroupName().ApplyT(func(s pulumi.String) interface{} {
+				ngMutex.Lock()
+				defer ngMutex.Unlock()
+				cgroupV1Ng = append(cgroupV1Ng, s)
+				wg.Done()
+				return nil
+			})
 		}
 
 		if awsEnv.EKSLinuxARMNodeGroup() {
+			wg.Add(1)
 			ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
+			ng.NodeGroup.NodeGroupName().ApplyT(func(s pulumi.String) interface{} {
+				ngMutex.Lock()
+				defer ngMutex.Unlock()
+				cgroupV1Ng = append(cgroupV1Ng, s)
+				wg.Done()
+				return nil
+			})
 		}
 
 		if awsEnv.EKSBottlerocketNodeGroup() {
+			wg.Add(1)
 			ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
+			// Bottlerocket uses cgroupv2
+			ng.NodeGroup.NodeGroupName().ApplyT(func(s pulumi.String) interface{} {
+				ngMutex.Lock()
+				defer ngMutex.Unlock()
+				cgroupV2Ng = append(cgroupV2Ng, s)
+				wg.Done()
+				return nil
+			})
 		}
 
 		// Create unmanaged node groups
@@ -264,6 +297,19 @@ func Run(ctx *pulumi.Context) error {
 			// dogstatsd clients that report to the dogstatsd standalone deployment
 			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 				return err
+			}
+
+			wg.Wait()
+			if len(cgroupV1Ng) > 0 {
+				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", "/var/run/datadog/apm.socket", cgroupV1Ng); err != nil {
+					return err
+				}
+			}
+
+			if len(cgroupV2Ng) > 0 {
+				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", "/var/run/datadog/apm.socket", cgroupV2Ng); err != nil {
+					return err
+				}
 			}
 
 			if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {

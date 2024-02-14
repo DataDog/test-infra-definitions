@@ -1,7 +1,9 @@
 package microvms
 
 import (
+	"fmt"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -11,6 +13,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
 const DockerMountpoint = "/mnt/docker"
@@ -33,7 +36,7 @@ func GetSudoPassword(ctx *pulumi.Context, isLocal bool) pulumi.StringOutput {
 	return SudoPasswordRemote
 }
 
-func setupMicroVMSSHConfig(instance *Instance, microVMIPSubnet string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]string, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	createSSHDirArgs := command.Args{
 		Create: pulumi.Sprintf("mkdir -p /home/ubuntu/.ssh && chmod 700 /home/ubuntu/.ssh"),
 	}
@@ -42,9 +45,13 @@ func setupMicroVMSSHConfig(instance *Instance, microVMIPSubnet string, depends [
 		return nil, err
 	}
 
-	pattern := getMicroVMGroupSubnetPattern(microVMIPSubnet)
+	var config strings.Builder
+	for _, subnet := range subnets {
+		pattern := getMicroVMGroupSubnetPattern(subnet)
+		fmt.Fprintf(&config, "Host %s\nIdentityFile %s\nUser root\nStrictHostKeyChecking no\n", pattern, filepath.Join(GetWorkingDirectory(), "ddvm_rsa"))
+	}
 	args := command.Args{
-		Create: pulumi.Sprintf(`echo -e "Host %s\nIdentityFile %s\nUser root\nStrictHostKeyChecking no\n" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, pattern, filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+		Create: pulumi.Sprintf(`echo -e "%s" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, config.String()),
 	}
 	done, err := instance.runner.Command(instance.instanceNamer.ResourceName("add-microvm-ssh-config", microVMIPSubnet), &args, pulumi.DependsOn([]pulumi.Resource{createDirDone}))
 	if err != nil {
@@ -185,13 +192,9 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 	var waitFor []pulumi.Resource
 
 	for _, collection := range vmCollections {
-		var sshConfigDone []pulumi.Resource
-		for _, subnet := range collection.subnets {
-			done, err := setupMicroVMSSHConfig(collection.instance, subnet, waitFor)
-			if err != nil {
-				return nil, err
-			}
-			sshConfigDone = append(sshConfigDone, done...)
+		sshConfigDone, err := setupMicroVMSSHConfig(collection.instance, collection.subnets, waitFor)
+		if err != nil {
+			return nil, err
 		}
 
 		microVMSSHKey, readKeyDone, err := readMicroVMSSHKey(collection.instance, sshConfigDone)

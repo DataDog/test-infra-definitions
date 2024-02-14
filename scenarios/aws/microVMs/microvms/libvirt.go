@@ -188,11 +188,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 	dhcpEntries := make(map[vmconfig.VMSetID][]interface{})
 	for setID, dls := range vm.domains {
 		for _, domain := range dls {
-			if _, ok := dhcpEntries[setID]; ok {
-				dhcpEntries[setID] = append(dhcpEntries[setID], domain.dhcpEntry)
-			} else {
-				dhcpEntries[setID] = []interface{}{domain.dhcpEntry}
-			}
+			dhcpEntries[setID] = append(dhcpEntries[setID], domain.dhcpEntry)
 		}
 	}
 

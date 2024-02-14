@@ -210,13 +210,13 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 				return nil, err
 			}
 
-			pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
+			pc := createProxyConnection(domain.ip, "root", microVMSSHKey, conn.ToConnectionOutput())
 			remoteRunner, err := command.NewRunner(
 				*collection.instance.e.CommonEnvironment,
 				command.RunnerArgs{
 					ParentResource: domain.lvDomain,
 					Connection:     pc,
-					ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
+					ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.tag),
 					OSCommand:      command.NewUnixOSCommand(),
 				},
 			)
@@ -265,7 +265,7 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 			}
 
 			// create new ssh connection to build proxy
-			conn, err := remoteComp.NewConnection(pulumi.String(domain.ip), "root", filepath.Join(GetWorkingDirectory(), "ddvm_rsa"), "", "")
+			conn, err := remoteComp.NewConnection(domain.ip, "root", filepath.Join(GetWorkingDirectory(), "ddvm_rsa"), "", "")
 			if err != nil {
 				return nil, err
 			}

@@ -367,7 +367,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 	ip = getNextVMIP(&ip)
 	for _, d := range domains {
 		ip = getNextVMIP(&ip)
-		d.ip = fmt.Sprintf("%s", ip)
+		d.ipValueResolver(pulumi.Sprintf("%s", ip))
 		d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
 	}
 

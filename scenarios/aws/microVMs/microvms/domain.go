@@ -31,15 +31,16 @@ func getNextVMIP(ip *net.IP) net.IP {
 
 type Domain struct {
 	resources.RecipeLibvirtDomainArgs
-	domainID    string
-	dhcpEntry   pulumi.StringOutput
-	domainArgs  *libvirt.DomainArgs
-	domainNamer namer.Namer
-	ip          string
-	mac         pulumi.StringOutput
-	lvDomain    *libvirt.Domain
-	tag         string
-	vmset       vmconfig.VMSet
+	domainID        string
+	dhcpEntry       pulumi.StringOutput
+	domainArgs      *libvirt.DomainArgs
+	domainNamer     namer.Namer
+	ip              pulumi.StringOutput
+	ipValueResolver func(interface{})
+	mac             pulumi.StringOutput
+	lvDomain        *libvirt.Domain
+	tag             string
+	vmset           vmconfig.VMSet
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
@@ -77,7 +78,7 @@ func generateMACAddress(e *config.CommonEnvironment, domainID string) (pulumi.St
 	return mac, err
 }
 
-func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.StringOutput {
+func generateDHCPEntry(mac pulumi.StringOutput, ip pulumi.StringOutput, domainID string) pulumi.StringOutput {
 	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
 }
 
@@ -104,6 +105,16 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	var err error
 
 	domain := new(Domain)
+
+	var ipOutput pulumi.Output
+	ipOutput, domain.ipValueResolver, _ = e.Ctx.NewOutput()
+	// This conversion needs to be done in this specific way.
+	// If we try ipOutput.(pulumi.StringOutput), pulumi fails as it
+	// tries to resolve the type to string right now. We have to convert to
+	// to AnyOutput (which is always valid) and then tell it to convert it to
+	// an string when it's resolved with AsStringOutput
+	domain.ip = ipOutput.(pulumi.AnyOutput).AsStringOutput()
+
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
@@ -136,7 +147,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	} else if runtime.GOOS == "darwin" {
 		hypervisor = "hvf"
 		qemuArgs := map[string]pulumi.StringInput{
-			"-netdev": pulumi.String("vmnet-shared,id=net0"),
+			"-netdev": pulumi.Sprintf("vmnet-shared,id=net0"),
 			"-device": pulumi.Sprintf("virtio-net-device,netdev=net0,mac=%s", domain.mac),
 		}
 

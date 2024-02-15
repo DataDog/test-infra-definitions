@@ -3,6 +3,7 @@ import getpass
 import json
 import os
 import os.path
+import shutil
 from pathlib import Path
 from typing import NamedTuple, Optional, Tuple
 
@@ -36,6 +37,21 @@ def setup(
             ctx.run("curl -fsSL https://get.pulumi.com | sh")
         else:
             ctx.run("brew install pulumi/tap/pulumi")
+        if shutil.which("pulumi") is None:
+            print()
+            warn("Pulumi is not in the PATH, please add pulumi to PATH before running tests")
+            # Pulumi is not in the PATH, add it to the process env so rest of setup can continue
+            if is_windows():
+                # Add common pulumi install locations to PATH
+                paths = [
+                    Path().home().joinpath(".pulumi", "bin"),
+                    Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
+                    'C:\\Program Files (x86)\\Pulumi\\bin',
+                ]
+                os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
+            else:
+                path = Path().home().joinpath(".pulumi", "bin")
+                os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
 
     # install plugins
     ctx.run("pulumi --non-interactive plugin install")

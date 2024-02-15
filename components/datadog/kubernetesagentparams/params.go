@@ -98,7 +98,7 @@ func WithNamespace(namespace string) func(*Params) error {
 }
 
 // WithPulumiDependsOn sets the resources to depend on.
-func WithPulumiDependsOn(resources ...pulumi.ResourceOption) func(*Params) error {
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
 		p.PulumiDependsOn = resources
 		return nil

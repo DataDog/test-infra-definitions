@@ -168,14 +168,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 										},
 									},
 								},
-								&corev1.EnvVarArgs{
-									Name: pulumi.String("DD_ENTITY_ID"),
-									ValueFrom: &corev1.EnvVarSourceArgs{
-										FieldRef: &corev1.ObjectFieldSelectorArgs{
-											FieldPath: pulumi.String("metadata.uid"),
-										},
-									},
-								},
+								&corev1.EnvVarArgs{},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{

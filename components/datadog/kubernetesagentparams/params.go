@@ -1,11 +1,8 @@
 package kubernetesagentparams
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -56,10 +53,6 @@ type Option = func(*Params) error
 func NewParams(e *config.CommonEnvironment, options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
-	}
-
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)

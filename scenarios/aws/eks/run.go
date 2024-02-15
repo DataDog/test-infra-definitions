@@ -1,8 +1,6 @@
 package eks
 
 import (
-	"sync"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -135,59 +133,36 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = cluster.KubeconfigJson
 
 		nodeGroups := make([]pulumi.Resource, 0)
-		ngMutex := sync.Mutex{}
-		cgroupV1Ng := pulumi.StringArray{}
-		cgroupV2Ng := pulumi.StringArray{}
-		wg := sync.WaitGroup{}
+		cgroupV1Ng := make([]pulumi.StringOutput, 0)
+		cgroupV2Ng := make([]pulumi.StringOutput, 0)
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {
-			wg.Add(1)
 			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
 			// The default AMI used for Amazon Linux 2 is using cgroupv1
-			ng.NodeGroup.NodeGroupName().ApplyT(func(s pulumi.String) interface{} {
-				ngMutex.Lock()
-				defer ngMutex.Unlock()
-				cgroupV1Ng = append(cgroupV1Ng, s)
-				wg.Done()
-				return nil
-			})
+			cgroupV1Ng = append(cgroupV1Ng, ng.NodeGroup.NodeGroupName())
 		}
 
 		if awsEnv.EKSLinuxARMNodeGroup() {
-			wg.Add(1)
 			ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
-			ng.NodeGroup.NodeGroupName().ApplyT(func(s pulumi.String) interface{} {
-				ngMutex.Lock()
-				defer ngMutex.Unlock()
-				cgroupV1Ng = append(cgroupV1Ng, s)
-				wg.Done()
-				return nil
-			})
+			cgroupV1Ng = append(cgroupV1Ng, ng.NodeGroup.NodeGroupName())
 		}
 
 		if awsEnv.EKSBottlerocketNodeGroup() {
-			wg.Add(1)
 			ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
 			// Bottlerocket uses cgroupv2
-			ng.NodeGroup.NodeGroupName().ApplyT(func(s pulumi.String) interface{} {
-				ngMutex.Lock()
-				defer ngMutex.Unlock()
-				cgroupV2Ng = append(cgroupV2Ng, s)
-				wg.Done()
-				return nil
-			})
+			cgroupV2Ng = append(cgroupV2Ng, ng.NodeGroup.NodeGroupName())
 		}
 
 		// Create unmanaged node groups
@@ -299,15 +274,14 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			wg.Wait()
 			if len(cgroupV1Ng) > 0 {
-				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", "/var/run/datadog/apm.socket", cgroupV1Ng); err != nil {
+				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", "/var/run/datadog/apm.socket", pulumi.ToStringArrayOutput(cgroupV1Ng)); err != nil {
 					return err
 				}
 			}
 
 			if len(cgroupV2Ng) > 0 {
-				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", "/var/run/datadog/apm.socket", cgroupV2Ng); err != nil {
+				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", "/var/run/datadog/apm.socket", pulumi.ToStringArrayOutput(cgroupV2Ng)); err != nil {
 					return err
 				}
 			}

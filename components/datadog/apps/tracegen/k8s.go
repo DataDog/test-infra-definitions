@@ -17,30 +17,33 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func nodeGroupAffinity(nodeGroups pulumi.StringArray) corev1.AffinityPtrInput {
-	if len(nodeGroups) == 0 {
-		return nil
-	}
-	return &corev1.AffinityArgs{
-		NodeAffinity: &corev1.NodeAffinityArgs{
-			RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelectorArgs{
-				NodeSelectorTerms: corev1.NodeSelectorTermArray{
-					&corev1.NodeSelectorTermArgs{
-						MatchExpressions: corev1.NodeSelectorRequirementArray{
-							&corev1.NodeSelectorRequirementArgs{
-								Key:      pulumi.String("eks.amazonaws.com/nodegroup"),
-								Operator: pulumi.String("In"),
-								Values:   nodeGroups,
+func nodeGroupAffinity(nodeGroups pulumi.StringArrayInput) corev1.AffinityPtrInput {
+	return nodeGroups.ToStringArrayOutput().ApplyT(
+		func(arr []string) corev1.AffinityPtrInput {
+			if len(arr) == 0 {
+				return nil
+			}
+			return &corev1.AffinityArgs{
+				NodeAffinity: &corev1.NodeAffinityArgs{
+					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelectorArgs{
+						NodeSelectorTerms: corev1.NodeSelectorTermArray{
+							&corev1.NodeSelectorTermArgs{
+								MatchExpressions: corev1.NodeSelectorRequirementArray{
+									&corev1.NodeSelectorRequirementArgs{
+										Key:      pulumi.String("eks.amazonaws.com/nodegroup"),
+										Operator: pulumi.String("In"),
+										Values:   nodeGroups,
+									},
+								},
 							},
 						},
 					},
 				},
-			},
-		},
-	}
+			}
+		}).(corev1.AffinityPtrInput)
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, traceAgentURL string, nodeGroups pulumi.StringArray, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, traceAgentURL string, nodeGroups pulumi.StringArrayInput, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}

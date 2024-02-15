@@ -224,7 +224,7 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 					command.RunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     pc,
-						ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
+						ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.domainID),
 						OSCommand:      command.NewUnixOSCommand(),
 					},
 				)

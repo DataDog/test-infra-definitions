@@ -16,7 +16,7 @@ type KubernetesAgentOutput struct {
 	AgentInstallNameWindows string `json:"agentInstallNameWindows"`
 }
 
-// DockerAgent is a Docker installer on a remote Host
+// KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
 type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component

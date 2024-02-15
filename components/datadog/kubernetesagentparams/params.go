@@ -121,9 +121,7 @@ func WithHelmValues(values string) func(*Params) error {
 	}
 }
 
-// WithFakeintake installs the fake intake and configures the Agent to use it.
-//
-// This option is overwritten by `WithIntakeHostname`.
+// WithFakeintake configures the Agent to use the given fake intake.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.FakeIntake = fakeintake

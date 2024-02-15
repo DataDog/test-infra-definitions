@@ -116,6 +116,10 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Name:  pulumi.StringPtr("DD_PROCESS_AGENT_ENABLED"),
 				Value: pulumi.StringPtr("true"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_SYSTEM_PROBE_NETWORK_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
@@ -207,6 +211,10 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
 			Value: pulumi.StringPtr("true"),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_DD_URL"),
+			Value: pulumi.Sprintf("https://%s", fakeintake.Host),
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),

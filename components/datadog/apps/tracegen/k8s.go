@@ -17,21 +17,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func nodeSelector(nodeGroups pulumi.StringArrayInput) pulumi.StringMapInput {
-	return nodeGroups.ToStringArrayOutput().ApplyT(
-		func(arr []string) pulumi.StringMapInput {
-			for _, ng := range arr {
-				if ng != "" {
-					return pulumi.StringMap{
-						"eks.amazonaws.com/nodegroup": pulumi.String(ng),
-					}
-				}
-			}
-			return nil
-		}).(pulumi.StringMapInput)
-}
-
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, traceAgentURL string, nodeGroups pulumi.StringArrayInput, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, traceAgentURL string, nodeGroup pulumi.StringInput, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -76,7 +62,9 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
-					NodeSelector: nodeSel,
+					NodeSelector: pulumi.StringMap{
+						"eks.amazonaws.com/nodegroup": nodeGroup,
+					},
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen"),

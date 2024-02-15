@@ -133,8 +133,8 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = cluster.KubeconfigJson
 
 		nodeGroups := make([]pulumi.Resource, 0)
-		cgroupV1Ng := make([]pulumi.StringOutput, 0)
-		cgroupV2Ng := make([]pulumi.StringOutput, 0)
+		var cgroupV1Ng pulumi.StringOutput
+		var cgroupV2Ng pulumi.StringOutput
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {
 			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
@@ -143,7 +143,7 @@ func Run(ctx *pulumi.Context) error {
 			}
 			nodeGroups = append(nodeGroups, ng)
 			// The default AMI used for Amazon Linux 2 is using cgroupv1
-			cgroupV1Ng = append(cgroupV1Ng, ng.NodeGroup.NodeGroupName())
+			cgroupV1Ng = ng.NodeGroup.NodeGroupName()
 		}
 
 		if awsEnv.EKSLinuxARMNodeGroup() {
@@ -152,7 +152,7 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
-			cgroupV1Ng = append(cgroupV1Ng, ng.NodeGroup.NodeGroupName())
+			cgroupV1Ng = ng.NodeGroup.NodeGroupName()
 		}
 
 		if awsEnv.EKSBottlerocketNodeGroup() {
@@ -162,7 +162,7 @@ func Run(ctx *pulumi.Context) error {
 			}
 			nodeGroups = append(nodeGroups, ng)
 			// Bottlerocket uses cgroupv2
-			cgroupV2Ng = append(cgroupV2Ng, ng.NodeGroup.NodeGroupName())
+			cgroupV2Ng = ng.NodeGroup.NodeGroupName()
 		}
 
 		// Create unmanaged node groups
@@ -274,14 +274,14 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if len(cgroupV1Ng) > 0 {
-				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", "/var/run/datadog/apm.socket", pulumi.ToStringArrayOutput(cgroupV1Ng)); err != nil {
+			if cgroupV1Ng != nil {
+				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", "/var/run/datadog/apm.socket", cgroupV1Ng); err != nil {
 					return err
 				}
 			}
 
-			if len(cgroupV2Ng) > 0 {
-				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", "/var/run/datadog/apm.socket", pulumi.ToStringArrayOutput(cgroupV2Ng)); err != nil {
+			if cgroupV2Ng != nil {
+				if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", "/var/run/datadog/apm.socket", cgroupV2Ng); err != nil {
 					return err
 				}
 			}

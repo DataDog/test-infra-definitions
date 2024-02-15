@@ -49,7 +49,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("redis"),
-		Image: pulumi.String("redis:latest"),
+		Image: pulumi.String("public.ecr.aws/docker/library/redis:latest"),
 		DockerLabels: pulumi.StringMap{
 			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
 		},

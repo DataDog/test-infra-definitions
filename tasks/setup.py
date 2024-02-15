@@ -321,8 +321,10 @@ def find_matching_ec2_keypair(ctx: Context, keypairs: dict, path: Path) -> Tuple
 
 
 def get_ssh_keys():
+    ignore = ["known_hosts", "authorized_keys", "config"]
     root = Path.home().joinpath(".ssh")
-    return list(map(root.joinpath, os.listdir(root)))
+    filenames = filter(lambda x: x.is_file() and x not in ignore, root.iterdir())
+    return list(map(root.joinpath, filenames))
 
 
 def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairName: str):

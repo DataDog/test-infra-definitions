@@ -132,32 +132,32 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("%s/tracegen-udp", namespace), &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("%s/tracegen-tcp", namespace), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("tracegen-udp"),
+			Name:      pulumi.String("tracegen-tcp"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("tracegen-udp"),
+				"app": pulumi.String("tracegen-tcp"),
 			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
 			Replicas: pulumi.Int(1),
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{
-					"app": pulumi.String("tracegen-udp"),
+					"app": pulumi.String("tracegen-tcp"),
 				},
 			},
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app": pulumi.String("tracegen-udp"),
+						"app": pulumi.String("tracegen-tcp"),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
 					Affinity: affinity,
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:  pulumi.String("tracegen-udp"),
+							Name:  pulumi.String("tracegen-tcp"),
 							Image: pulumi.String("ghcr.io/datadog/apps-tracegen:main"),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{

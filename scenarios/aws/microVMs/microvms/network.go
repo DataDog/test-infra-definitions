@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"strings"
-	"sync"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -30,8 +29,6 @@ const iptablesAddRuleFlag = "-A"
 
 const iptablesTCPRule = "iptables %s INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT"
 const iptablesUDPRule = "iptables %s INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT"
-
-var initMicroVMGroupSubnet sync.Once
 
 func freeSubnet(subnet string) (bool, error) {
 	startIP, _, err := net.ParseCIDR(subnet)

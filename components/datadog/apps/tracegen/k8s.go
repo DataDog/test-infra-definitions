@@ -36,8 +36,6 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	nodeSel := nodeSelector(nodeGroups)
-
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
 	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("%s/tracegen-uds", namespace), &appsv1.DeploymentArgs{
@@ -130,7 +128,6 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
-					NodeSelector: nodeSel,
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen-tcp"),

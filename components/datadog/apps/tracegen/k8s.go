@@ -141,7 +141,6 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 										},
 									},
 								},
-								&corev1.EnvVarArgs{},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{

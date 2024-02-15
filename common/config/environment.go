@@ -34,6 +34,7 @@ const (
 	DDAgentDeployParamName               = "deploy"
 	DDAgentVersionParamName              = "version"
 	DDAgentPipelineID                    = "pipeline_id"
+	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
@@ -169,6 +170,10 @@ func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
 }
 
+func (e *CommonEnvironment) CommitSHA() string {
+	return e.AgentConfig.Get(DDAgentCommitSHA)
+}
+
 func (e *CommonEnvironment) ClusterAgentVersion() string {
 	return e.AgentConfig.Get(DDClusterAgentVersionParamName)
 }
@@ -216,7 +221,7 @@ func (e *CommonEnvironment) DogstatsdDeploy() bool {
 }
 
 func (e *CommonEnvironment) DogstatsdFullImagePath() string {
-	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
+	return e.AgentConfig.Get(DDDogstatsdFullImagePathParamName)
 }
 
 // Updater namespace

@@ -259,18 +259,20 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 			if collection.instance.Arch != arch {
 				continue
 			}
-			for _, domain := range collection.domains {
-				var tags []pulumi.Output
-				for _, tag := range domain.vmset.Tags {
-					tags = append(tags, pulumi.ToOutput(tag))
+			for _, dls := range collection.domains {
+				for _, domain := range dls {
+					var tags []pulumi.Output
+					for _, tag := range domain.vmset.Tags {
+						tags = append(tags, pulumi.ToOutput(tag))
+					}
+					vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
+						"id":           pulumi.ToOutput(domain.domainID),
+						"ip":           pulumi.ToOutput(domain.ip),
+						"tag":          pulumi.ToOutput(domain.tag),
+						"vmset-tags":   pulumi.ToArrayOutput(tags),
+						"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+					}))
 				}
-				vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
-					"id":           pulumi.ToOutput(domain.domainID),
-					"ip":           pulumi.ToOutput(domain.ip),
-					"tag":          pulumi.ToOutput(domain.tag),
-					"vmset-tags":   pulumi.ToArrayOutput(tags),
-					"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
-				}))
 			}
 		}
 

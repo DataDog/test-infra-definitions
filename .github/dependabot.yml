@@ -70,3 +70,14 @@ updates:
     directory: /components/datadog/apps/redis/images/redis-client
     schedule:
       interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/npm-tools/images/go-httpbin
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/npm-tools/images/npm-tools
+    schedule:
+      interval: daily
+

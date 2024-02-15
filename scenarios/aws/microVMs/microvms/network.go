@@ -6,7 +6,6 @@ import (
 	"net"
 	"os"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -15,6 +14,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
 // The microvm subnet changed from /16 to /24 because the underlying libvirt sdk would identify
@@ -32,9 +32,6 @@ const iptablesAddRuleFlag = "-A"
 
 const iptablesTCPRule = "iptables %s INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT"
 const iptablesUDPRule = "iptables %s INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT"
-
-var initMicroVMGroupSubnet sync.Once
-var microVMGroupSubnet string
 
 func freeSubnet(subnet string) (bool, error) {
 	startIP, _, err := net.ParseCIDR(subnet)
@@ -72,9 +69,22 @@ func getMicroVMGroupSubnetPattern(subnet string) string {
 	return fmt.Sprintf("%d.%d.%d.*", ipv4[0], ipv4[1], ipv4[2])
 }
 
-func getMicroVMGroupSubnet() (string, error) {
+func subnetIsTaken(taken []string, subnet string) bool {
+	for _, t := range taken {
+		if t == subnet {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getMicroVMGroupSubnet(taken []string) (string, error) {
 	for i := 1; i < 254; i++ {
 		subnet := fmt.Sprintf(microVMGroupSubnetTemplate, i)
+		if subnetIsTaken(taken, subnet) {
+			continue
+		}
 		if free, err := freeSubnet(subnet); err == nil && free {
 			return subnet, nil
 		}
@@ -83,7 +93,7 @@ func getMicroVMGroupSubnet() (string, error) {
 	return "", fmt.Errorf("getMicroVMGroupSubnet: could not find subnet")
 }
 
-func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer, microVMGroupSubnet string) ([]pulumi.Resource, error) {
 	sudoPassword := GetSudoPassword(ctx, isLocal)
 	iptablesAllowTCPArgs := command.Args{
 		Create:                   pulumi.Sprintf(iptablesTCPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),
@@ -92,7 +102,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,
 	}
-	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp"), &iptablesAllowTCPArgs)
+	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp", microVMGroupSubnet), &iptablesAllowTCPArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -104,7 +114,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,
 	}
-	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp"), &iptablesAllowUDPArgs)
+	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp", microVMGroupSubnet), &iptablesAllowUDPArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -112,7 +122,15 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 	return []pulumi.Resource{iptablesAllowTCPDone, iptablesAllowUDPDone}, nil
 }
 
-func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
+func generateNetworkResource(
+	ctx *pulumi.Context,
+	providerFn LibvirtProviderFn,
+	depends []pulumi.Resource,
+	resourceNamer namer.Namer,
+	dhcpEntries []interface{},
+	microVMGroupSubnet string,
+	setID vmconfig.VMSetID,
+) (*libvirt.Network, error) {
 	// Collect all DHCP entries in a single string to be
 	// formatted in network XML.
 	dhcpEntriesJoined := pulumi.All(dhcpEntries...).ApplyT(
@@ -137,9 +155,11 @@ func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, 
 			resources.DHCPEntries: dhcpEntriesJoined,
 		},
 	)
-	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network"), &libvirt.NetworkArgs{
+	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network", setID.String()), &libvirt.NetworkArgs{
 		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
 		Mode:      pulumi.String("nat"),
+		// enable jumbo frames for the underlying interface. This is an optimization for NFS.
+		Mtu: pulumi.Int(9000),
 		Xml: libvirt.NetworkXmlArgs{
 			Xslt: netXML,
 		},

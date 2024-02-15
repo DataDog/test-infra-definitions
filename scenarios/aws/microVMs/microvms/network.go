@@ -1,10 +1,13 @@
 package microvms
 
 import (
+	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -146,4 +149,75 @@ func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, 
 	}
 
 	return network, nil
+}
+
+type dhcpLease struct {
+	name string
+	ip   string
+	mac  string
+}
+
+func parseBootpDHCPLeases() ([]dhcpLease, error) {
+	var leases []dhcpLease
+
+	file, err := os.Open("/var/db/dhcpd_leases")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var parsingLease dhcpLease
+	for scanner.Scan() {
+		// Single lease format, for reference:
+		// {
+		// 	name=ddvm
+		// 	ip_address=192.168.64.3
+		// 	hw_address=1,28:21:40:26:78:37
+		// 	identifier=1,28:21:40:26:78:37
+		// 	lease=0x65ce3cb6
+		// }
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "name=") {
+			parsingLease.name = strings.TrimPrefix(line, "name=")
+		}
+		if strings.HasPrefix(line, "ip_address=") {
+			parsingLease.ip = strings.TrimPrefix(line, "ip_address=")
+		}
+		if strings.HasPrefix(line, "hw_address=") {
+			hwaddr := strings.TrimPrefix(line, "hw_address=")
+			parts := strings.Split(hwaddr, ",")
+
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("parseBootpDHCPLeases: invalid hw_address format: %s", hwaddr)
+			}
+
+			parsingLease.mac = parts[1]
+		}
+		if line == "}" {
+			leases = append(leases, parsingLease)
+			parsingLease = dhcpLease{}
+		}
+	}
+
+	return leases, nil
+}
+
+func waitForBootpDHCPLeases(mac string) (string, error) {
+	// The DHCP server will assign an IP address to the VM based on its MAC address, wait until it is assigned
+	// and then return the IP address.
+	for {
+		leases, err := parseBootpDHCPLeases()
+
+		if err != nil {
+			return "", fmt.Errorf("waitForBootpDHCPLeases: error parsing leases: %s", err)
+		}
+
+		for _, lease := range leases {
+			if lease.mac == mac {
+				return lease.ip, nil
+			}
+		}
+		time.Sleep(500 * time.Millisecond)
+	}
 }

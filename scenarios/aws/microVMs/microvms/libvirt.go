@@ -350,6 +350,16 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		return domains[i].domainID < domains[j].domainID
 	})
 
+	if runtime.GOOS == "darwin" {
+		// We have no network setup on macOS. We use the native vmnet framework
+		// for networking, which is not managed by libvirt but by QEMU. In order to resolve
+		// the IPs, we need to wait and watch the DHCP leases in another goroutine.
+		for _, domain := range domains {
+			domain.ip = domain.mac.ApplyT(waitForBootpDHCPLeases).(pulumi.StringOutput)
+		}
+		return vmCollections, waitFor, nil
+	}
+
 	// Discover subnet to use for the network.
 	// This is done dynamically so we can have concurrent micro-vm groups
 	// active, without the network conflicting.
@@ -367,7 +377,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 	ip = getNextVMIP(&ip)
 	for _, d := range domains {
 		ip = getNextVMIP(&ip)
-		d.ipValueResolver(pulumi.Sprintf("%s", ip))
+		d.ip = pulumi.Sprintf("%s", ip)
 		d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
 	}
 

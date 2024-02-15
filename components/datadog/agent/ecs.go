@@ -74,7 +74,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 }
 
 func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, params *ecsagentparams.Params) ecs.TaskDefinitionContainerDefinitionArgs {
-	taskDef := ecs.TaskDefinitionContainerDefinitionArgs{
+	return ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(200),
 		Memory:    pulumi.IntPtr(512),
 		Name:      pulumi.String("datadog-agent"),
@@ -199,7 +199,6 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 			)),
 		},
 	}
-	return taskDef
 }
 
 func ecsAgentAdditionalEndpointsEnv(params *ecsagentparams.Params) []ecs.TaskDefinitionKeyValuePairInput {

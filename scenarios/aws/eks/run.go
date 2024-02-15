@@ -274,11 +274,11 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", "/var/run/datadog/apm.socket", cgroupV1Ng); err != nil {
+			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", cgroupV1Ng); err != nil {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", "/var/run/datadog/apm.socket", cgroupV2Ng); err != nil {
+			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", cgroupV2Ng); err != nil {
 				return err
 			}
 

@@ -6,7 +6,7 @@ import "github.com/DataDog/test-infra-definitions/common"
 // The Params configuration uses the [Functional options pattern].
 //
 // The available options are:
-//   - [WithEnvironmentVariables]
+//   - [WithAgentServiceEnvVariable]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 

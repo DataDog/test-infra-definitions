@@ -65,7 +65,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:  pulumi.String("tracegen"),
+							Name:  pulumi.String("tracegen-uds"),
 							Image: pulumi.String("ghcr.io/datadog/apps-tracegen:main"),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
@@ -75,11 +75,11 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
-									"cpu":    pulumi.String("100m"),
+									"cpu":    pulumi.String("10m"),
 									"memory": pulumi.String("32Mi"),
 								},
 								Requests: pulumi.StringMap{
-									"cpu":    pulumi.String("10m"),
+									"cpu":    pulumi.String("2m"),
 									"memory": pulumi.String("32Mi"),
 								},
 							},

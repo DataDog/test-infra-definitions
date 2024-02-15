@@ -128,6 +128,9 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
+					NodeSelector: pulumi.StringMap{
+						"eks.amazonaws.com/nodegroup": nodeGroup,
+					},
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen-tcp"),

@@ -4,6 +4,10 @@ type PoolType string
 
 type VMSetID string
 
+func (id VMSetID) String() string {
+	return string(id)
+}
+
 const (
 	RecipeCustomAMD64 = "custom-x86_64"
 	RecipeCustomARM64 = "custom-arm64"

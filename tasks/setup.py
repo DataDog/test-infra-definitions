@@ -44,9 +44,12 @@ def setup(
             if is_windows():
                 # Add common pulumi install locations to PATH
                 paths = [
-                    Path().home().joinpath(".pulumi", "bin"),
-                    Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
-                    'C:\\Program Files (x86)\\Pulumi\\bin',
+                    str(x)
+                    for x in [
+                        Path().home().joinpath(".pulumi", "bin"),
+                        Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
+                        'C:\\Program Files (x86)\\Pulumi\\bin',
+                    ]
                 ]
                 os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
             else:

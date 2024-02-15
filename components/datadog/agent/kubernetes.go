@@ -12,8 +12,8 @@ import (
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	AgentInstallNameLinux   string `json:"agentInstallNameLinux"`
-	AgentInstallNameWindows string `json:"agentInstallNameWindows"`
+	InstallNameLinux   string `json:"installNameLinux"`
+	InstallNameWindows string `json:"installNameWindows"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
@@ -21,8 +21,8 @@ type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	InstallNameLinux   pulumi.StringOutput `pulumi:"agentInstallNameLinux"`
-	InstallNameWindows pulumi.StringOutput `pulumi:"agentInstallNameWindows"`
+	InstallNameLinux   pulumi.StringOutput `pulumi:"installNameLinux"`
+	InstallNameWindows pulumi.StringOutput `pulumi:"installNameWindows"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {

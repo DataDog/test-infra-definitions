@@ -21,16 +21,16 @@ type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	AgentInstallNameLinux   pulumi.StringOutput `pulumi:"agentInstallNameLinux"`
-	AgentInstallNameWindows pulumi.StringOutput `pulumi:"agentInstallNameWindows"`
+	InstallNameLinux   pulumi.StringOutput `pulumi:"agentInstallNameLinux"`
+	InstallNameWindows pulumi.StringOutput `pulumi:"agentInstallNameWindows"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {
 	return components.Export(ctx, h, out)
 }
 
-func NewKubernetesAgent(e config.CommonEnvironment, clusterName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
-	return components.NewComponent(e, clusterName, func(comp *KubernetesAgent) error {
+func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
+	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
 		params, err := kubernetesagentparams.NewParams(&e, options...)
 		if err != nil {
 			return err
@@ -46,9 +46,9 @@ func NewKubernetesAgent(e config.CommonEnvironment, clusterName string, kubeProv
 		}
 
 		// Fill component
-		comp.AgentInstallNameLinux = helmComponent.LinuxHelmReleaseName.Elem()
+		comp.InstallNameLinux = helmComponent.LinuxHelmReleaseName.Elem()
 		if params.DeployWindows {
-			comp.AgentInstallNameWindows = helmComponent.WindowsHelmReleaseName.Elem()
+			comp.InstallNameWindows = helmComponent.WindowsHelmReleaseName.Elem()
 		}
 		return nil
 	})

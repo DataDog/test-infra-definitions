@@ -31,16 +31,16 @@ def setup(
     else:
         info("🤖 Install Pulumi")
         if is_windows():
-            os.system("winget install pulumi")
+            ctx.run("winget install pulumi")
         elif is_linux():
-            os.system("curl -fsSL https://get.pulumi.com | sh")
+            ctx.run("curl -fsSL https://get.pulumi.com | sh")
         else:
-            os.system("brew install pulumi/tap/pulumi")
+            ctx.run("brew install pulumi/tap/pulumi")
 
     # install plugins
-    os.system("pulumi --non-interactive plugin install")
+    ctx.run("pulumi --non-interactive plugin install")
     # login to local stack storage
-    os.system("pulumi login --local")
+    ctx.run("pulumi login --local")
 
     try:
         config = get_local_config(config_path)

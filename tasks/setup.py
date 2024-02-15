@@ -479,6 +479,14 @@ def debug_env(ctx, config_path: Optional[str] = None):
         raise Exit(code=1)
     info(f"Pulumi version: {out.stdout.strip()}")
 
+    # Check pulumi credentials
+    try:
+        out = ctx.run("pulumi whoami", hide=True)
+    except UnexpectedExit:
+        error("No pulumi credentials found")
+        info("Please login, e.g. pulumi login --local")
+        raise Exit(code=1)
+
     # check awscli version
     out = ctx.run("aws --version", hide=True)
     if not out.stdout.startswith("aws-cli/2"):

@@ -87,7 +87,9 @@ RUN curl --retry 10 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSIO
 ARG PULUMI_VERSION
 
 # Install the Pulumi SDK, including the CLI and language runtimes.
-RUN curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
+RUN --mount=type=secret,id=github_token \
+  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+  curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
   mv ~/.pulumi/bin/* /usr/bin
 
 # Install Pulumi plugins
@@ -95,7 +97,9 @@ RUN curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI
 # because it's not used directly by this repository, thus go mod tidy
 # would remove it...
 COPY . /tmp/test-infra
-RUN cd /tmp/test-infra && \
+RUN --mount=type=secret,id=github_token \
+  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+  cd /tmp/test-infra && \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
   pulumi --non-interactive plugin install && \

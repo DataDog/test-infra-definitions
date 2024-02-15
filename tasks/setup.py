@@ -334,6 +334,20 @@ def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairN
         warn("WARNING: Key type is not RSA. This key cannot be used to decrypt Windows RDP credentials.")
 
 
+def _passphrase_decrypts_privatekey(ctx: Context, path: str, passphrase: str):
+    try:
+        ctx.run(f"ssh-keygen -y -P '{passphrase}' -f {path}", hide=True)
+    except UnexpectedExit as e:
+        # incorrect passphrase supplied to decrypt private key
+        if 'incorrect passphrase' in str(e):
+            return False
+    return True
+
+
+def _is_key_encrypted(ctx: Context, path: str):
+    return not _passphrase_decrypts_privatekey(ctx, path, "")
+
+
 @task(help={"config_path": doc.config_path})
 def debug_keys(ctx: Context, config_path: Optional[str] = None):
     """
@@ -379,7 +393,35 @@ def debug_keys(ctx: Context, config_path: Optional[str] = None):
             debug(json.dumps(keypair, indent=4))
             break
     else:
-        warn("WARNING: Configured keyPairName missing from aws!")
+        error(
+            "Configured keyPairName missing from aws! Ensure the keypair is uploaded to the correct region and account."
+        )
+        raise Exit(code=1)
+    # check if private key is encrypted
+    if awsConf.privateKeyPath and _is_key_encrypted(ctx, awsConf.privateKeyPath):
+        if awsConf.privateKeyPassword:
+            if not _passphrase_decrypts_privatekey(ctx, awsConf.privateKeyPath, awsConf.privateKeyPassword):
+                error("Private key password is incorrect")
+                raise Exit(code=1)
+        else:
+            # pulumi-command remote.Connection errors if the private key is encrypted and no password is provided
+            # and exits with an error before trying any other auth methods.
+            # https://github.com/pulumi/pulumi-command/blob/58dda0317f72920537b3a0c9613ce5fed0610533/provider/pkg/provider/remote/connection.go#L81-L93
+            if is_windows():
+                error(
+                    "Private key is encrypted and no password is provided in the config. Pulumi does not support Windows SSH agent."
+                )
+                info("Remove the passphrase from the key or provide the privateKeyPassword.")
+            else:
+                error("Private key is encrypted and no password is provided in the config.")
+                info(
+                    "Remove the privateKeyPath option, or remove the passphrase from the key, or provide the privateKeyPassword."
+                )
+            raise Exit(code=1)
+    if is_windows() and not awsConf.privateKeyPath:
+        # https://github.com/pulumi/pulumi-command/blob/58dda0317f72920537b3a0c9613ce5fed0610533/provider/pkg/provider/remote/connection.go#L105-L118
+        error("Private key is not provided in the config. Pulumi does not support Windows SSH agent.")
+        info("Configure privateKeyPath and provide the privateKeyPassword if the key is encrypted.")
     for keyname in ["privateKeyPath", "publicKeyPath"]:
         keypair_path = getattr(awsConf, keyname)
         if keypair_path is None:

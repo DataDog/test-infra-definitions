@@ -17,30 +17,18 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func nodeGroupAffinity(nodeGroups pulumi.StringArrayInput) corev1.AffinityPtrInput {
+func nodeSelector(nodeGroups pulumi.StringArrayInput) pulumi.StringMapInput {
 	return nodeGroups.ToStringArrayOutput().ApplyT(
-		func(arr []string) corev1.AffinityPtrInput {
-			if len(arr) == 0 {
-				return nil
+		func(arr []string) pulumi.StringMapInput {
+			for _, ng := range arr {
+				if ng != "" {
+					return pulumi.StringMap{
+						"eks.amazonaws.com/nodegroup": pulumi.String(ng),
+					}
+				}
 			}
-			return &corev1.AffinityArgs{
-				NodeAffinity: &corev1.NodeAffinityArgs{
-					RequiredDuringSchedulingIgnoredDuringExecution: &corev1.NodeSelectorArgs{
-						NodeSelectorTerms: corev1.NodeSelectorTermArray{
-							&corev1.NodeSelectorTermArgs{
-								MatchExpressions: corev1.NodeSelectorRequirementArray{
-									&corev1.NodeSelectorRequirementArgs{
-										Key:      pulumi.String("eks.amazonaws.com/nodegroup"),
-										Operator: pulumi.String("In"),
-										Values:   nodeGroups,
-									},
-								},
-							},
-						},
-					},
-				},
-			}
-		}).(corev1.AffinityPtrInput)
+			return nil
+		}).(pulumi.StringMapInput)
 }
 
 func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, traceAgentURL string, nodeGroups pulumi.StringArrayInput, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
@@ -62,7 +50,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	affinity := nodeGroupAffinity(nodeGroups)
+	nodeSel := nodeSelector(nodeGroups)
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
@@ -88,7 +76,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
-					Affinity: affinity,
+					NodeSelector: nodeSel,
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen"),
@@ -154,7 +142,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
-					Affinity: affinity,
+					NodeSelector: nodeSel,
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen-tcp"),

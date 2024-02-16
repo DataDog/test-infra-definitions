@@ -30,31 +30,7 @@ def setup(
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")
     else:
-        info("🤖 Install Pulumi")
-        if is_windows():
-            ctx.run("winget install pulumi")
-        elif is_linux():
-            ctx.run("curl -fsSL https://get.pulumi.com | sh")
-        else:
-            ctx.run("brew install pulumi/tap/pulumi")
-        if shutil.which("pulumi") is None:
-            print()
-            warn("Pulumi is not in the PATH, please add pulumi to PATH before running tests")
-            # Pulumi is not in the PATH, add it to the process env so rest of setup can continue
-            if is_windows():
-                # Add common pulumi install locations to PATH
-                paths = [
-                    str(x)
-                    for x in [
-                        Path().home().joinpath(".pulumi", "bin"),
-                        Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
-                        'C:\\Program Files (x86)\\Pulumi\\bin',
-                    ]
-                ]
-                os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
-            else:
-                path = Path().home().joinpath(".pulumi", "bin")
-                os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
+        _install_pulumi(ctx)
 
     # install plugins
     ctx.run("pulumi --non-interactive plugin install")
@@ -77,6 +53,8 @@ def setup(
 
         config.save_to_local_config(config_path)
 
+    _check_config(ctx, config)
+
     if debug:
         debug_env(ctx, config_path=config_path)
 
@@ -86,6 +64,41 @@ def setup(
         print(
             f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
         )
+
+
+def _install_pulumi(ctx: Context):
+    info("🤖 Install Pulumi")
+    if is_windows():
+        ctx.run("winget install pulumi")
+    elif is_linux():
+        ctx.run("curl -fsSL https://get.pulumi.com | sh")
+    else:
+        ctx.run("brew install pulumi/tap/pulumi")
+    # If pulumi was just installed for the first time it's probably not on the PATH,
+    # add it to the process env so rest of setup can continue.
+    if shutil.which("pulumi") is None:
+        print()
+        warn("Pulumi is not in the PATH, please add pulumi to PATH before running tests")
+        if is_windows():
+            # Add common pulumi install locations to PATH
+            paths = [
+                str(x)
+                for x in [
+                    Path().home().joinpath(".pulumi", "bin"),
+                    Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
+                    'C:\\Program Files (x86)\\Pulumi\\bin',
+                ]
+            ]
+            os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
+        else:
+            path = Path().home().joinpath(".pulumi", "bin")
+            os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
+
+
+def _check_config(ctx: Context, config: Config):
+    aws = config.get_aws()
+    if aws.privateKeyPassword:
+        warn("WARNING: privateKeyPassword is set. Please ensure privateKeyPath is used ONLY for E2E tests.")
 
 
 def setupAWSConfig(config: Config):

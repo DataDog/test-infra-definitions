@@ -2,7 +2,6 @@ package kubernetesagentparams
 
 import (
 	"github.com/DataDog/test-infra-definitions/common"
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -50,7 +49,7 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(e *config.CommonEnvironment, options ...Option) (*Params, error) {
+func NewParams(options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
 	}

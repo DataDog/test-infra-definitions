@@ -23,8 +23,15 @@ type Environment struct {
 	Namer namer.Namer
 }
 
+type HyperVParameter struct{}
+
+func (p *HyperVParameter) GetInternalRegistry() string {
+	return ""
+}
+
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	commonEnv, err := config.NewCommonEnvironment(ctx)
+	hyperVParameter := &HyperVParameter{}
+	commonEnv, err := config.NewCommonEnvironment(ctx, hyperVParameter)
 	if err != nil {
 		return Environment{}, err
 	}

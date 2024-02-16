@@ -62,6 +62,12 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
+type AwsParameter struct{}
+
+func (p *AwsParameter) GetInternalRegistry() string {
+	return "669783387624.dkr.ecr.us-east-1.amazonaws.com"
+}
+
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
@@ -77,8 +83,10 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	for _, opt := range options {
 		opt(&env)
 	}
+
+	awsParameter := &AwsParameter{}
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx)
+		commonEnv, err := config.NewCommonEnvironment(ctx, awsParameter)
 		if err != nil {
 			return Environment{}, err
 		}

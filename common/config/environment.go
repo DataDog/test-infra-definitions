@@ -59,8 +59,9 @@ const (
 type CommonEnvironment struct {
 	providerRegistry
 
-	Ctx         *pulumi.Context
-	CommonNamer namer.Namer
+	Ctx                    *pulumi.Context
+	CommonNamer            namer.Namer
+	CloudProviderParameter CloudProviderEnvironment
 
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
@@ -71,16 +72,21 @@ type CommonEnvironment struct {
 	username string
 }
 
-func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
+type CloudProviderEnvironment interface {
+	GetInternalRegistry() string
+}
+
+func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderParameter CloudProviderEnvironment) (CommonEnvironment, error) {
 	env := CommonEnvironment{
-		Ctx:                   ctx,
-		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
-		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
-		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
-		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
-		CommonNamer:           namer.NewNamer(ctx, ""),
-		providerRegistry:      newProviderRegistry(ctx),
+		Ctx:                    ctx,
+		InfraConfig:            sdkconfig.New(ctx, DDInfraConfigNamespace),
+		AgentConfig:            sdkconfig.New(ctx, DDAgentConfigNamespace),
+		TestingWorkloadConfig:  sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		DogstatsdConfig:        sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:          sdkconfig.New(ctx, DDUpdaterConfigNamespace),
+		CommonNamer:            namer.NewNamer(ctx, ""),
+		CloudProviderParameter: cloudProviderParameter,
+		providerRegistry:       newProviderRegistry(ctx),
 	}
 	// store username
 	user, err := user.Current()

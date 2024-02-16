@@ -33,15 +33,15 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
-type AzureParameter struct{}
+type CloudProviderEnvironment struct{}
 
-func (p *AzureParameter) GetInternalRegistry() string {
+func (p *CloudProviderEnvironment) GetInternalRegistry() string {
 	return ""
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
-	azureParameter := &AzureParameter{}
+	azureParameter := &CloudProviderEnvironment{}
 	commonEnv, err := config.NewCommonEnvironment(ctx, azureParameter)
 	if err != nil {
 		return Environment{}, err

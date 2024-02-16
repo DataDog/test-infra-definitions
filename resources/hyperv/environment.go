@@ -23,14 +23,14 @@ type Environment struct {
 	Namer namer.Namer
 }
 
-type HyperVParameter struct{}
+type CloudProviderEnvironment struct{}
 
-func (p *HyperVParameter) GetInternalRegistry() string {
+func (p *CloudProviderEnvironment) GetInternalRegistry() string {
 	return ""
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	hyperVParameter := &HyperVParameter{}
+	hyperVParameter := &CloudProviderEnvironment{}
 	commonEnv, err := config.NewCommonEnvironment(ctx, hyperVParameter)
 	if err != nil {
 		return Environment{}, err

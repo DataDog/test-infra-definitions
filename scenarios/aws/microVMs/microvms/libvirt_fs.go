@@ -206,14 +206,6 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	}
 }
 
-func buildAria2ConfigEntry(sb *strings.Builder, source string, imagePath string) {
-	dir := filepath.Dir(imagePath)
-	out := filepath.Base(imagePath)
-	fmt.Fprintf(sb, "%s\n", source)
-	fmt.Fprintf(sb, " dir=%s\n", dir)
-	fmt.Fprintf(sb, " out=%s\n", out)
-}
-
 func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath string, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var downloadCmd string
 	var refreshCmd string
@@ -252,9 +244,7 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 
 func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
-	var aria2DownloadConfig strings.Builder
 
-	webDownload := false
 	for _, volume := range fs.volumes {
 		// only download backing stores for volumes inside default pool since these are
 		// the iamges from which VMs boot
@@ -278,37 +268,15 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 
 			waitFor = append(waitFor, resources...)
 		} else {
-			buildAria2ConfigEntry(&aria2DownloadConfig, fsImage.imageSource, fsImage.imagePath)
-			webDownload = true
+			downloadWithCurlArgs := command.Args{
+				Create: pulumi.Sprintf("curl -Z -o %s %s", fsImage.imagePath, fsImage.imageSource),
+			}
+			downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl", filepath.Base(fsImage.imagePath)), &downloadWithCurlArgs)
+			if err != nil {
+				return waitFor, err
+			}
+			waitFor = append(waitFor, downloadWithCurlDone)
 		}
-	}
-
-	if webDownload {
-		configPath := fmt.Sprintf("/tmp/aria2-%s.config", fs.fsNamer.ResourceName("aria2c"))
-		writeConfigFile := command.Args{
-			Create: pulumi.Sprintf("echo \"%s\" > %s", aria2DownloadConfig.String(), configPath),
-			Update: pulumi.Sprintf("echo \"%s\" > %s", aria2DownloadConfig.String(), configPath),
-		}
-		writeConfigFileDone, err := runner.Command(fs.fsNamer.ResourceName("write-aria2c-config"), &writeConfigFile)
-		if err != nil {
-			return waitFor, err
-		}
-
-		// We allow this command to fail.
-		// The '--auto-file-renaming' flag allows us to skip downloading already downloaded files.
-		// However, it causes aria2c to fail if a control file for the corresponding file does not exist.
-		// We let the update fail assuming that most of the failures are due to the above case. If there is
-		// a problem downloading the file for some other reason, subsequent commands will fail, thus alerting us.
-		downloadWithAria2Args := command.Args{
-			Create:   pulumi.Sprintf("aria2c --auto-file-renaming=false -i %s -x 16 -j $(cat %s | grep dir | wc -l) || true", configPath, configPath),
-			Triggers: pulumi.Array{pulumi.String(aria2DownloadConfig.String())},
-			Stdin:    pulumi.String(aria2DownloadConfig.String()),
-		}
-
-		depends = append(depends, writeConfigFileDone)
-		downloadWithAria2Done, _ := runner.Command(fs.fsNamer.ResourceName("download-with-aria2c"), &downloadWithAria2Args, pulumi.DependsOn(depends))
-
-		waitFor = append(waitFor, downloadWithAria2Done)
 	}
 
 	return waitFor, nil

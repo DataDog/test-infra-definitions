@@ -281,7 +281,7 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 		downloadWithCurlArgs := command.Args{
 			Create: pulumi.Sprintf("curl -s -Z --parallel-max %d %s", parallelDownloadMax, curlDownload.String()),
 		}
-		downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl", filepath.Base(fsImage.imagePath)), &downloadWithCurlArgs)
+		downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl"), &downloadWithCurlArgs)
 		if err != nil {
 			return waitFor, err
 		}

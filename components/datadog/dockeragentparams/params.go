@@ -32,7 +32,7 @@ import (
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type Params struct {
-	// FullImagePath is the full path of the docker agent image to use.
+	// AgentFullImagePath is the full path of the docker agent image to use.
 	// It has priority over ImageTag and Repository.
 	FullImagePath string
 	// ImageTag is the docker agent image tag to use.
@@ -55,10 +55,6 @@ func NewParams(e *config.CommonEnvironment, options ...Option) (*Params, error) 
 	version := &Params{
 		AgentServiceEnvironment: pulumi.Map{},
 		EnvironmentVariables:    pulumi.StringMap{},
-	}
-
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)

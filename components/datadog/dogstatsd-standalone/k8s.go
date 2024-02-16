@@ -27,7 +27,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, fullImagePath string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -127,6 +127,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			},
 		)
 	}
+	dogstastdImagePath := e.DogstatsdFullImagePath()
+	if fullImagePath != "" {
+		dogstastdImagePath = fullImagePath
+	}
 
 	daemonSetArgs := appsv1.DaemonSetArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -152,7 +156,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd-standalone"),
-							Image: pulumi.String(dockerDogstatsdFullImagePath(&e, "gcr.io/datadoghq/dogstatsd")),
+							Image: pulumi.String(dogstastdImagePath),
 							Ports: corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
 									ContainerPort: pulumi.Int(8125),

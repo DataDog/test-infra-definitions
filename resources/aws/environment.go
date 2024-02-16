@@ -27,6 +27,7 @@ const (
 	DDInfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
+	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -160,6 +161,10 @@ func (e *Environment) DefaultPrivateKeyPath() string {
 
 func (e *Environment) DefaultPrivateKeyPassword() string {
 	return e.InfraConfig.Get(DDInfraDefaultPrivateKeyPassword)
+}
+
+func (e *Environment) DefaultInternalRegistry() string {
+	return e.InfraConfig.Get(DDInfraDefaultInternalRegistry)
 }
 
 func (e *Environment) DefaultInstanceStorageSize() int {

@@ -21,11 +21,13 @@ const (
 )
 
 type HelmInstallationArgs struct {
-	KubeProvider  *kubernetes.Provider
-	Namespace     string
-	ValuesYAML    pulumi.AssetOrArchiveArrayInput
-	Fakeintake    *fakeintake.Fakeintake
-	DeployWindows bool
+	KubeProvider              *kubernetes.Provider
+	AgentFullImagePath        string
+	ClusterAgentFullImagePath string
+	Namespace                 string
+	ValuesYAML                pulumi.AssetOrArchiveArrayInput
+	Fakeintake                *fakeintake.Fakeintake
+	DeployWindows             bool
 }
 
 type HelmComponent struct {
@@ -101,9 +103,15 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	// Compute some values
 	agentImagePath := dockerAgentFullImagePath(&e, "", "")
+	if args.AgentFullImagePath != "" {
+		agentImagePath = args.AgentFullImagePath
+	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
 	clusterAgentImagePath := dockerClusterAgentFullImagePath(&e, "")
+	if args.ClusterAgentFullImagePath != "" {
+		clusterAgentImagePath = args.ClusterAgentFullImagePath
+	}
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := installName

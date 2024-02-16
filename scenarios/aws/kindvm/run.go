@@ -86,9 +86,19 @@ agents:
   useHostNetwork: true
 `, kindClusterName)
 
+		agentFullImagePath := ""
+		clusterAgentFullImagePath := ""
+
+		if awsEnv.PipelineID() != "" && awsEnv.CommitSHA() != "" {
+			agentFullImagePath = fmt.Sprintf("%s/agent:%s-%s", awsEnv.DefaultInternalRegistry(), awsEnv.PipelineID(), awsEnv.CommitSHA())
+			clusterAgentFullImagePath = fmt.Sprintf("%s/cluster-agent:%s-%s", awsEnv.DefaultInternalRegistry(), awsEnv.PipelineID(), awsEnv.CommitSHA())
+		}
+
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
-			KubeProvider: kindKubeProvider,
-			Namespace:    "datadog",
+			ClusterAgentFullImagePath: clusterAgentFullImagePath,
+			AgentFullImagePath:        agentFullImagePath,
+			KubeProvider:              kindKubeProvider,
+			Namespace:                 "datadog",
 			ValuesYAML: pulumi.AssetOrArchiveArray{
 				pulumi.NewStringAsset(customValues),
 			},
@@ -106,7 +116,12 @@ agents:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName); err != nil {
+		dogstatsdFullImagePath := ""
+		if awsEnv.CommonEnvironment.PipelineID() != "" && awsEnv.CommonEnvironment.CommitSHA() != "" {
+			dogstatsdFullImagePath = fmt.Sprintf("%s:%s-%s", awsEnv.DefaultInternalRegistry(), awsEnv.CommonEnvironment.PipelineID(), awsEnv.CommonEnvironment.CommitSHA())
+		}
+
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName, dogstatsdFullImagePath); err != nil {
 			return err
 		}
 	}

@@ -2,6 +2,7 @@ package ec2
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
@@ -101,6 +102,8 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, dockeragentparams.WithFullImagePath(env.AgentFullImagePath()))
 		} else if env.AgentVersion() != "" {
 			agentOptions = append(agentOptions, dockeragentparams.WithImageTag(env.AgentVersion()))
+		} else if env.PipelineID() != "" && env.CommitSHA() != "" {
+			agentOptions = append(agentOptions, dockeragentparams.WithFullImagePath(fmt.Sprintf("%s/agent:%s-%s", env.DefaultInternalRegistry(), env.PipelineID(), env.CommitSHA())))
 		}
 
 		if env.AgentUseFakeintake() {

@@ -1,6 +1,8 @@
 package eks
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -215,11 +217,22 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy the agent
 		if awsEnv.AgentDeploy() {
+
+			agentFullImagePath := ""
+			clusterAgentFullImagePath := ""
+
+			if awsEnv.CommonEnvironment.PipelineID() != "" && awsEnv.CommonEnvironment.CommitSHA() != "" {
+				agentFullImagePath = fmt.Sprintf("%s/agent:%s-%s", awsEnv.DefaultInternalRegistry(), awsEnv.CommonEnvironment.PipelineID(), awsEnv.CommonEnvironment.CommitSHA())
+				clusterAgentFullImagePath = fmt.Sprintf("%s/cluster-agent:%s-%s", awsEnv.DefaultInternalRegistry(), awsEnv.CommonEnvironment.PipelineID(), awsEnv.CommonEnvironment.CommitSHA())
+			}
+
 			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
-				KubeProvider:  eksKubeProvider,
-				Namespace:     "datadog",
-				Fakeintake:    fakeIntake,
-				DeployWindows: awsEnv.EKSWindowsNodeGroup(),
+				AgentFullImagePath:        agentFullImagePath,
+				ClusterAgentFullImagePath: clusterAgentFullImagePath,
+				KubeProvider:              eksKubeProvider,
+				Namespace:                 "datadog",
+				Fakeintake:                fakeIntake,
+				DeployWindows:             awsEnv.EKSWindowsNodeGroup(),
 			}, nil)
 			if err != nil {
 				return err
@@ -237,7 +250,11 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy standalone dogstatsd
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
+			dogstatsdFullImagePath := ""
+			if awsEnv.CommonEnvironment.PipelineID() != "" && awsEnv.CommonEnvironment.CommitSHA() != "" {
+				dogstatsdFullImagePath = fmt.Sprintf("%s:%s-%s", awsEnv.DefaultInternalRegistry(), awsEnv.CommonEnvironment.PipelineID(), awsEnv.CommonEnvironment.CommitSHA())
+			}
+			if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, "", dogstatsdFullImagePath); err != nil {
 				return err
 			}
 		}

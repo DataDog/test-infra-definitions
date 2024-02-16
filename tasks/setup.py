@@ -53,7 +53,7 @@ def setup(
 
         config.save_to_local_config(config_path)
 
-    _check_config(ctx, config)
+    _check_config(config)
 
     if debug:
         debug_env(ctx, config_path=config_path)
@@ -95,7 +95,7 @@ def _install_pulumi(ctx: Context):
             os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
 
 
-def _check_config(ctx: Context, config: Config):
+def _check_config(config: Config):
     aws = config.get_aws()
     if aws.privateKeyPassword:
         warn("WARNING: privateKeyPassword is set. Please ensure privateKeyPath is used ONLY for E2E tests.")

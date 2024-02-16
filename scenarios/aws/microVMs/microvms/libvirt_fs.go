@@ -245,6 +245,9 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
+	var webDownload bool
+	var curlDownload strings.Builder
+	var parallelDownloadMax int
 	for _, volume := range fs.volumes {
 		// only download backing stores for volumes inside default pool since these are
 		// the iamges from which VMs boot
@@ -268,15 +271,21 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 
 			waitFor = append(waitFor, resources...)
 		} else {
-			downloadWithCurlArgs := command.Args{
-				Create: pulumi.Sprintf("curl -Z -o %s %s", fsImage.imagePath, fsImage.imageSource),
-			}
-			downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl", filepath.Base(fsImage.imagePath)), &downloadWithCurlArgs)
-			if err != nil {
-				return waitFor, err
-			}
-			waitFor = append(waitFor, downloadWithCurlDone)
+			webDownload = true
+			parallelDownloadMax += 1
+			fmt.Fprintf(&curlDownload, "%s -o %s ", fsImage.imagePath, fsImage.imageSource)
 		}
+	}
+
+	if webDownload {
+		downloadWithCurlArgs := command.Args{
+			Create: pulumi.Sprintf("curl -s -Z --parallel-max %d %s", parallelDownloadMax, curlDownload.String()),
+		}
+		downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl", filepath.Base(fsImage.imagePath)), &downloadWithCurlArgs)
+		if err != nil {
+			return waitFor, err
+		}
+		waitFor = append(waitFor, downloadWithCurlDone)
 	}
 
 	return waitFor, nil

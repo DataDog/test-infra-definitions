@@ -62,16 +62,14 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
-type CloudProviderEnvironment struct{}
-
-func (e *CloudProviderEnvironment) GetInternalRegistry() string {
+func (e *Environment) GetInternalRegistry() string {
 	return "669783387624.dkr.ecr.us-east-1.amazonaws.com"
 }
 
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
-		awsEnv.CommonEnvironment.CloudProviderEnvironment = &CloudProviderEnvironment{}
+		awsEnv.CommonEnvironment.CloudProviderEnvironment = awsEnv
 	}
 }
 
@@ -85,9 +83,8 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 		opt(&env)
 	}
 
-	awsParameter := &CloudProviderEnvironment{}
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx, awsParameter)
+		commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 		if err != nil {
 			return Environment{}, err
 		}

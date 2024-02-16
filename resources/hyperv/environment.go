@@ -25,21 +25,21 @@ type Environment struct {
 
 type CloudProviderEnvironment struct{}
 
-func (p *CloudProviderEnvironment) GetInternalRegistry() string {
+func (p *Environment) GetInternalRegistry() string {
 	return ""
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	hyperVParameter := &CloudProviderEnvironment{}
-	commonEnv, err := config.NewCommonEnvironment(ctx, hyperVParameter)
+	env := Environment{
+		Namer: namer.NewNamer(ctx, hvNamerNamespace),
+	}
+
+	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 	if err != nil {
 		return Environment{}, err
 	}
 
-	env := Environment{
-		CommonEnvironment: &commonEnv,
-		Namer:             namer.NewNamer(ctx, hvNamerNamespace),
-	}
+	env.CommonEnvironment = &commonEnv
 
 	return env, nil
 }

@@ -35,23 +35,21 @@ type Environment struct {
 
 type CloudProviderEnvironment struct{}
 
-func (p *CloudProviderEnvironment) GetInternalRegistry() string {
+func (p *Environment) GetInternalRegistry() string {
 	return ""
 }
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
-	azureParameter := &CloudProviderEnvironment{}
-	commonEnv, err := config.NewCommonEnvironment(ctx, azureParameter)
+	env := Environment{
+		Namer: namer.NewNamer(ctx, azNamerNamespace),
+	}
+	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 	if err != nil {
 		return Environment{}, err
 	}
-
-	env := Environment{
-		CommonEnvironment: &commonEnv,
-		Namer:             namer.NewNamer(ctx, azNamerNamespace),
-		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace)),
-	}
+	env.CommonEnvironment = &commonEnv
+	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace))
 
 	azureProvider, err := sdkazure.NewProvider(ctx, string(config.ProviderAzure), &sdkazure.ProviderArgs{
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),

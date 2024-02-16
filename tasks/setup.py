@@ -90,7 +90,7 @@ def _install_pulumi(ctx: Context):
                 ]
             ]
             os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
-        else:
+        elif is_linux():
             path = Path().home().joinpath(".pulumi", "bin")
             os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
 

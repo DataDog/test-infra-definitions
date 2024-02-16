@@ -1,12 +1,15 @@
-import os
-from invoke.tasks import task
-from invoke.exceptions import Exit
 import difflib
+import os
+
+from invoke.exceptions import Exit
+from invoke.tasks import task
 
 try:
     from termcolor import colored
 except ImportError:
-    colored = lambda *args: args[0]
+
+    def colored(*args):
+        return args[0]
 
 
 @task(
@@ -17,7 +20,7 @@ except ImportError:
         "xml": "File to use as a base for transformation. This can be one of the names in the tasks/microvm-sample-xmls directory (e.g., domain, network, volume) or a path to an XML file.",
     },
 )
-def check_xslt(ctx, xslt, replacements=None, xml="domain"):
+def check_xslt(_, xslt, replacements=None, xml="domain"):
     """
     Checks the XSLT transformations in the scenarios/aws/microVMs/microvms/resources path
     Useful for testing and checking transformation there without running the full pulumi stack
@@ -62,7 +65,7 @@ def check_xslt(ctx, xslt, replacements=None, xml="domain"):
         data = f.read()
 
     for key, value in default_replacements.items():
-        data = data.replace("{%s}" % key, value)
+        data = data.replace(f"{{{key}}}", value)
 
     xslt = etree.fromstring(data, parser)
     transform = etree.XSLT(xslt)

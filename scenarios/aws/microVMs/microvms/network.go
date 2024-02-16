@@ -177,6 +177,7 @@ type dhcpLease struct {
 	mac  string
 }
 
+// parseBootpDHCPLeases parses the dhcpd_leases file and returns a slice of dhcpLease structs.
 func parseBootpDHCPLeases() ([]dhcpLease, error) {
 	var leases []dhcpLease
 
@@ -223,6 +224,8 @@ func parseBootpDHCPLeases() ([]dhcpLease, error) {
 	return leases, nil
 }
 
+// waitForBootpDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
+// returns that IP address.
 func waitForBootpDHCPLeases(mac string) (string, error) {
 	// The DHCP server will assign an IP address to the VM based on its MAC address, wait until it is assigned
 	// and then return the IP address.

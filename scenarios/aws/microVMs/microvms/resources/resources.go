@@ -27,7 +27,6 @@ const (
 	VCPU          = "vcpu"
 	CPUTune       = "cputune"
 	Hypervisor    = "hypervisor"
-	EnableEfi     = "enableEfi"
 	CommandLine   = "commandLine"
 )
 

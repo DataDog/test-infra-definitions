@@ -21,4 +21,4 @@ ns.add_task(destroy_aks)  # pyright: ignore [reportArgumentType]
 ns.add_task(create_ecs)  # pyright: ignore [reportArgumentType]
 ns.add_task(destroy_ecs)  # pyright: ignore [reportArgumentType]
 ns.add_collection(setup)  # pyright: ignore [reportArgumentType]
-ns.add_collection(test)
+ns.add_collection(test)  # pyright: ignore [reportArgumentType]

@@ -187,6 +187,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 
 func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error {
 	if runtime.GOOS != "darwin" {
+		// We have no network setup on macOS. We use the native vmnet framework as libvirt does not support macOS fully.
 		return nil
 	}
 

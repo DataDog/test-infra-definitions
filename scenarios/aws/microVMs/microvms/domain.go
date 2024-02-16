@@ -36,8 +36,6 @@ type Domain struct {
 	domainArgs      *libvirt.DomainArgs
 	domainNamer     namer.Namer
 	ip              pulumi.StringOutput
-	ipValueResolver func(interface{})
-	ipErrorResolver func(error)
 	mac             pulumi.StringOutput
 	lvDomain        *libvirt.Domain
 	tag             string

@@ -23,7 +23,7 @@ type Environment struct {
 	Namer namer.Namer
 }
 
-type CloudProviderEnvironment struct{}
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
 
 func (p *Environment) GetInternalRegistry() string {
 	return ""

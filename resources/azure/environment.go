@@ -33,7 +33,7 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
-type CloudProviderEnvironment struct{}
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
 
 func (p *Environment) GetInternalRegistry() string {
 	return ""

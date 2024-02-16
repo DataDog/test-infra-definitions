@@ -66,6 +66,8 @@ func (e *Environment) GetInternalRegistry() string {
 	return "669783387624.dkr.ecr.us-east-1.amazonaws.com"
 }
 
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
+
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e

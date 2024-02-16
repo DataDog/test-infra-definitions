@@ -273,7 +273,7 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 		} else {
 			webDownload = true
 			parallelDownloadMax += 1
-			fmt.Fprintf(&curlDownload, "%s -o %s ", fsImage.imagePath, fsImage.imageSource)
+			fmt.Fprintf(&curlDownload, "%s -o %s ", fsImage.imageSource, fsImage.imagePath)
 		}
 	}
 

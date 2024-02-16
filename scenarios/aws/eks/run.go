@@ -29,6 +29,9 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+// eksNodeSelector is the label used to select the node group for tracegen
+const eksNodeSelector = "eks.amazonaws.com/nodegroup"
+
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := resourcesAws.NewEnvironment(ctx)
 	if err != nil {
@@ -274,11 +277,11 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", cgroupV1Ng); err != nil {
+			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", pulumi.StringMap{eksNodeSelector: cgroupV1Ng}); err != nil {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", cgroupV2Ng); err != nil {
+			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", pulumi.StringMap{eksNodeSelector: cgroupV2Ng}); err != nil {
 				return err
 			}
 

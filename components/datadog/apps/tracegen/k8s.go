@@ -17,7 +17,7 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, nodeGroup pulumi.StringInput, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, nodeSelector pulumi.StringMapInput, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -60,9 +60,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
-					NodeSelector: pulumi.StringMap{
-						"eks.amazonaws.com/nodegroup": nodeGroup,
-					},
+					NodeSelector: nodeSelector,
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen-uds"),
@@ -128,9 +126,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
-					NodeSelector: pulumi.StringMap{
-						"eks.amazonaws.com/nodegroup": nodeGroup,
-					},
+					NodeSelector: nodeSelector,
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("tracegen-tcp"),

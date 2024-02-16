@@ -71,6 +71,7 @@ func (e *CloudProviderEnvironment) GetInternalRegistry() string {
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
+		awsEnv.CommonEnvironment.CloudProviderParameter = &CloudProviderEnvironment{}
 	}
 }
 

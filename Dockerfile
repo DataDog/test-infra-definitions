@@ -54,6 +54,9 @@ RUN apt-get update -y && \
   # xsltproc is required by libvirt-sdk used in the micro-vms scenario
   xsltproc \
   jq && \
+  # Install the datadog-ci-uploader
+  curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci" && \
+  chmod +x /usr/local/bin/datadog-ci && \
   # Clean up the lists work
   rm -rf /var/lib/apt/lists/*
 

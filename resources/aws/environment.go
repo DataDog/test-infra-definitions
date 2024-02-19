@@ -27,6 +27,7 @@ const (
 	DDInfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
+	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -60,10 +61,6 @@ type Environment struct {
 	envDefault environmentDefault
 
 	randomSubnets pulumi.StringArrayOutput
-}
-
-func (e *Environment) GetInternalRegistry() string {
-	return "669783387624.dkr.ecr.us-east-1.amazonaws.com"
 }
 
 var _ config.CloudProviderEnvironment = (*Environment)(nil)
@@ -118,6 +115,11 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	env.randomSubnets = shuffle.Results
 
 	return env, nil
+}
+
+// Cross Cloud Provider config
+func (e *Environment) InternalRegistry() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalRegistry, e.envDefault.ddInfra.defaultInternalRegistry)
 }
 
 // Common

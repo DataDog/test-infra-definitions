@@ -25,10 +25,6 @@ type Environment struct {
 
 var _ config.CloudProviderEnvironment = (*Environment)(nil)
 
-func (p *Environment) GetInternalRegistry() string {
-	return ""
-}
-
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
 		Namer: namer.NewNamer(ctx, hvNamerNamespace),
@@ -42,6 +38,11 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.CommonEnvironment = &commonEnv
 
 	return env, nil
+}
+
+// Cross Cloud Provider config
+func (p *Environment) InternalRegistry() string {
+	return "none"
 }
 
 // Common

@@ -73,7 +73,7 @@ type CommonEnvironment struct {
 }
 
 type CloudProviderEnvironment interface {
-	GetInternalRegistry() string
+	InternalRegistry() string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {

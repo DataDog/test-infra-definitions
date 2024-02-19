@@ -28,3 +28,4 @@ repos:
           - "@task"
           - --ignore-names
           - 'test_*,Test*'
+          - tasks

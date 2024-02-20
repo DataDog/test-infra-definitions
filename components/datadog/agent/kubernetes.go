@@ -31,7 +31,7 @@ func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput
 
 func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
-		params, err := kubernetesagentparams.NewParams(options...)
+		params, err := kubernetesagentparams.NewParams(e, options...)
 		if err != nil {
 			return err
 		}

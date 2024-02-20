@@ -29,6 +29,7 @@ type ddInfra struct {
 	defaultARMInstanceType     string
 	defaultInstanceStorageSize int
 	defaultShutdownBehavior    string
+	defaultInternalRegistry    string
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -87,6 +88,7 @@ func sandboxDefault() environmentDefault {
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
@@ -127,6 +129,7 @@ func agentSandboxDefault() environmentDefault {
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
@@ -167,6 +170,7 @@ func agentQADefault() environmentDefault {
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",

@@ -27,6 +27,7 @@ const (
 	DDInfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
+	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -62,9 +63,12 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
+
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
+		awsEnv.CommonEnvironment.CloudProviderEnvironment = awsEnv
 	}
 }
 
@@ -77,8 +81,9 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	for _, opt := range options {
 		opt(&env)
 	}
+
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx)
+		commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 		if err != nil {
 			return Environment{}, err
 		}
@@ -110,6 +115,11 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	env.randomSubnets = shuffle.Results
 
 	return env, nil
+}
+
+// Cross Cloud Provider config
+func (e *Environment) InternalRegistry() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalRegistry, e.envDefault.ddInfra.defaultInternalRegistry)
 }
 
 // Common

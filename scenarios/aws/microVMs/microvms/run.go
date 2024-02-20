@@ -372,7 +372,7 @@ func RunAndReturnInstances(e commonConfig.CommonEnvironment) (*ScenarioDone, err
 }
 
 func Run(ctx *pulumi.Context) error {
-	commonEnv, err := commonConfig.NewCommonEnvironment(ctx)
+	commonEnv, err := commonConfig.NewCommonEnvironment(ctx, nil)
 	if err != nil {
 		return err
 	}

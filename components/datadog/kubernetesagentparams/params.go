@@ -19,32 +19,28 @@ const (
 // The Params configuration uses the [Functional options pattern].
 //
 // The available options are:
-//   - [WithImageTag]
-//   - [WithRepository]
-//   - [WithFullImagePath]
-//   - [WithPulumiDependsOn]
+//   - [WithAgentFullImagePath]
+//   - [WithClusterAgentFullImagePath]
+//   - [WithPulumiResourceOptions]
 //   - [WithDeployWindows]
 //   - [WithHelmValues]
 //   - [WithNamespace]
-//   - [WithHostName]
+//   - [WithDeployWindows]
 //	 - [WithFakeintake]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type Params struct {
-	// FullImagePath is the full path of the docker agent image to use.
-	// It has priority over ImageTag and Repository.
-	FullImagePath string
-	// ImageTag is the docker agent image tag to use.
-	ImageTag string
-	// Repository is the docker repository to use.
-	Repository string
+	// AgentFullImagePath is the full path of the docker agent image to use.
+	AgentFullImagePath string
+	// ClusterAgentFullImagePath is the full path of the docker cluster agent image to use.
+	ClusterAgentFullImagePath string
 	// Namespace is the namespace to deploy the agent to.
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
 	HelmValues pulumi.AssetOrArchiveArray
 	// PulumiDependsOn is a list of resources to depend on.
-	PulumiDependsOn []pulumi.ResourceOption
+	PulumiResourceOptions []pulumi.ResourceOption
 	// FakeIntake is the fake intake to use for the agent installation.
 	FakeIntake *fakeintake.Fakeintake
 	// DeployWindows is a flag to deploy the agent on Windows.
@@ -59,32 +55,25 @@ func NewParams(e config.CommonEnvironment, options ...Option) (*Params, error) {
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithFullImagePath(utils.BuildDockerImagePath(e.CloudProviderEnvironment.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.CloudProviderEnvironment.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.CloudProviderEnvironment.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)
 }
 
-// WithImageTag sets the agent image tag to use.
-func WithImageTag(agentImageTag string) func(*Params) error {
+// WithAgentFullImagePath sets the full path of the agent image to use.
+func WithAgentFullImagePath(fullImagePath string) func(*Params) error {
 	return func(p *Params) error {
-		p.ImageTag = agentImageTag
+		p.AgentFullImagePath = fullImagePath
 		return nil
 	}
 }
 
-// WithRepository sets the repository to use for the agent installation.
-func WithRepository(repository string) func(*Params) error {
+// WithClusterAgentFullImagePath sets the full path of the agent image to use.
+func WithClusterAgentFullImagePath(fullImagePath string) func(*Params) error {
 	return func(p *Params) error {
-		p.Repository = repository
-		return nil
-	}
-}
-
-// WithFullImagePath sets the full path of the agent image to use.
-func WithFullImagePath(fullImagePath string) func(*Params) error {
-	return func(p *Params) error {
-		p.FullImagePath = fullImagePath
+		p.ClusterAgentFullImagePath = fullImagePath
 		return nil
 	}
 }
@@ -100,7 +89,7 @@ func WithNamespace(namespace string) func(*Params) error {
 // WithPulumiDependsOn sets the resources to depend on.
 func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
-		p.PulumiDependsOn = resources
+		p.PulumiResourceOptions = resources
 		return nil
 	}
 }

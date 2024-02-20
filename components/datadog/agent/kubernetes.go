@@ -35,12 +35,16 @@ func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubePro
 		if err != nil {
 			return err
 		}
+
 		helmComponent, err := NewHelmInstallation(e, HelmInstallationArgs{
-			KubeProvider: kubeProvider,
-			Namespace:    params.Namespace,
-			ValuesYAML:   params.HelmValues,
-			Fakeintake:   params.FakeIntake,
-		}, params.PulumiDependsOn...)
+			KubeProvider:              kubeProvider,
+			DeployWindows:             params.DeployWindows,
+			Namespace:                 params.Namespace,
+			ValuesYAML:                params.HelmValues,
+			Fakeintake:                params.FakeIntake,
+			AgentFullImagePath:        params.AgentFullImagePath,
+			ClusterAgentFullImagePath: params.ClusterAgentFullImagePath,
+		}, params.PulumiResourceOptions...)
 		if err != nil {
 			return err
 		}

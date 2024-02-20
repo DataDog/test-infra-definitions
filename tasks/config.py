@@ -16,6 +16,7 @@ class Config(BaseModel, extra=Extra.forbid):
             keyPairName: Optional[str]
             publicKeyPath: Optional[str]
             privateKeyPath: Optional[str] = None
+            privateKeyPassword: Optional[str] = None
             account: Optional[str]
             teamTag: Optional[str]
 

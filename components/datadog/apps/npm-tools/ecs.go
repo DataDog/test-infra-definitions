@@ -1,0 +1,62 @@
+package npmtools
+
+import (
+	"fmt"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
+
+	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+)
+
+type EcsComponent struct {
+	pulumi.ResourceState
+}
+
+func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, testURL string, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
+	namer := e.Namer.WithPrefix("npm-tools")
+	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
+
+	ecsComponent := &EcsComponent{}
+	if err := e.Ctx.RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, pulumi.Parent(ecsComponent))
+
+	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("curl-dig"), &ecs.EC2ServiceArgs{
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("curl-dig")),
+		Cluster:              clusterArn,
+		DesiredCount:         pulumi.IntPtr(1),
+		EnableExecuteCommand: pulumi.BoolPtr(true),
+		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
+			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
+				"curl-dig": {
+					Name:  pulumi.String("curl-dig"),
+					Image: pulumi.String("ghcr.io/datadog/apps-npm-tools:main"),
+					Command: pulumi.StringArray{
+						pulumi.String("sh"),
+						pulumi.String("-c"),
+						pulumi.String(fmt.Sprintf("while [ 1 ] ; do curl %s ; dig @8.8.8.8 www.google.ch ; sleep 20 ; done", testURL)),
+					},
+					Cpu:    pulumi.IntPtr(200),
+					Memory: pulumi.IntPtr(64),
+				},
+			},
+			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
+				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
+			},
+			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
+				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
+			},
+			NetworkMode: pulumi.StringPtr("none"),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("curl-dig-ec2")),
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
+	return ecsComponent, nil
+}

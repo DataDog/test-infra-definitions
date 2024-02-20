@@ -113,7 +113,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(args.Fakeintake)
+	values.configureFakeintake(e, args.Fakeintake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -138,7 +138,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(args.Fakeintake)
+		values.configureFakeintake(e, args.Fakeintake)
 
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
 			RepoURL:     DatadogHelmRepo,
@@ -341,9 +341,13 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {
 	if fakeintake == nil {
 		return
+	}
+
+	if fakeintake.Scheme != "https" {
+		e.Ctx.Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
 	}
 
 	additionalEndpointsEnvVar := pulumi.MapArray{
@@ -361,11 +365,11 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),

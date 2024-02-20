@@ -33,7 +33,7 @@ MAX_RETRY_NB=10
 keys_url="keys.datadoghq.com"
 
 printf "\033[34m\n* Installing APT package sources for Datadog\n\033[0m\n"
-$sudo_cmd sh -c "echo 'deb [signed-by=${apt_usr_share_keyring}] https://${apt_url}/ ${apt_repo_version}' > /etc/apt/sources.list.d/datadog.list"
+$sudo_cmd sh -c "echo \"deb [signed-by=${apt_usr_share_keyring}] https://${apt_url}/ ${apt_repo_version}\" > /etc/apt/sources.list.d/datadog.list"
 $sudo_cmd sh -c "chmod a+r /etc/apt/sources.list.d/datadog.list"
 
 if [ ! -f $apt_usr_share_keyring ]; then

@@ -61,7 +61,7 @@ func NewHostUpdater(e *config.CommonEnvironment, host *remoteComp.Host, options 
 func (h *HostUpdater) installUpdater(params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
 	arch := h.host.OS.Descriptor().Architecture
 	testAPTRepoVersion := fmt.Sprintf(`DD_TEST_APT_REPO_VERSION="%v-u7-%s 7"`, params.Version.PipelineID, arch)
-	installCmdStr := fmt.Sprintf(`export %v && bash -c %s`, testAPTRepoVersion, installScript)
+	installCmdStr := fmt.Sprintf(`export %v && bash -c '%s'`, testAPTRepoVersion, installScript)
 	_, err := h.host.OS.Runner().Command(
 		h.namer.ResourceName("install-updater"),
 		&command.Args{

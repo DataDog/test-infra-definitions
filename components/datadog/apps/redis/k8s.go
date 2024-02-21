@@ -73,7 +73,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("redis"),
-							Image: pulumi.String("redis:latest"),
+							Image: pulumi.String("public.ecr.aws/docker/library/redis:latest"),
 							Args: pulumi.StringArray{
 								pulumi.String("--loglevel"),
 								pulumi.String("verbose"),

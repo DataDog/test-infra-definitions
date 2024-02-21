@@ -3,6 +3,7 @@ import getpass
 import json
 import os
 import os.path
+import shutil
 from pathlib import Path
 from typing import NamedTuple, Optional, Tuple
 
@@ -29,18 +30,12 @@ def setup(
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")
     else:
-        info("🤖 Install Pulumi")
-        if is_windows():
-            os.system("winget install pulumi")
-        elif is_linux():
-            os.system("curl -fsSL https://get.pulumi.com | sh")
-        else:
-            os.system("brew install pulumi/tap/pulumi")
+        _install_pulumi(ctx)
 
     # install plugins
-    os.system("pulumi --non-interactive plugin install")
+    ctx.run("pulumi --non-interactive plugin install")
     # login to local stack storage
-    os.system("pulumi login --local")
+    ctx.run("pulumi login --local")
 
     try:
         config = get_local_config(config_path)
@@ -58,6 +53,8 @@ def setup(
 
         config.save_to_local_config(config_path)
 
+    _check_config(config)
+
     if debug:
         debug_env(ctx, config_path=config_path)
 
@@ -67,6 +64,41 @@ def setup(
         print(
             f"\nYou can run the following command to print your configuration: `{cat_profile_command}`. This command was copied to the clipboard\n"
         )
+
+
+def _install_pulumi(ctx: Context):
+    info("🤖 Install Pulumi")
+    if is_windows():
+        ctx.run("winget install pulumi")
+    elif is_linux():
+        ctx.run("curl -fsSL https://get.pulumi.com | sh")
+    else:
+        ctx.run("brew install pulumi/tap/pulumi")
+    # If pulumi was just installed for the first time it's probably not on the PATH,
+    # add it to the process env so rest of setup can continue.
+    if shutil.which("pulumi") is None:
+        print()
+        warn("Pulumi is not in the PATH, please add pulumi to PATH before running tests")
+        if is_windows():
+            # Add common pulumi install locations to PATH
+            paths = [
+                str(x)
+                for x in [
+                    Path().home().joinpath(".pulumi", "bin"),
+                    Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
+                    'C:\\Program Files (x86)\\Pulumi\\bin',
+                ]
+            ]
+            os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
+        elif is_linux():
+            path = Path().home().joinpath(".pulumi", "bin")
+            os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
+
+
+def _check_config(config: Config):
+    aws = config.get_aws()
+    if aws.privateKeyPassword:
+        warn("WARNING: privateKeyPassword is set. Please ensure privateKeyPath is used ONLY for E2E tests.")
 
 
 def setupAWSConfig(config: Config):
@@ -321,8 +353,10 @@ def find_matching_ec2_keypair(ctx: Context, keypairs: dict, path: Path) -> Tuple
 
 
 def get_ssh_keys():
+    ignore = ["known_hosts", "authorized_keys", "config"]
     root = Path.home().joinpath(".ssh")
-    return list(map(root.joinpath, os.listdir(root)))
+    filenames = filter(lambda x: x.is_file() and x not in ignore, root.iterdir())
+    return list(map(root.joinpath, filenames))
 
 
 def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairName: str):
@@ -332,6 +366,20 @@ def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairN
         warn("WARNING: Key missing from ssh-agent. This key will not be used for connections.")
     if "rsa" not in keypair["KeyType"].lower():
         warn("WARNING: Key type is not RSA. This key cannot be used to decrypt Windows RDP credentials.")
+
+
+def _passphrase_decrypts_privatekey(ctx: Context, path: str, passphrase: str):
+    try:
+        ctx.run(f"ssh-keygen -y -P '{passphrase}' -f {path}", hide=True)
+    except UnexpectedExit as e:
+        # incorrect passphrase supplied to decrypt private key
+        if 'incorrect passphrase' in str(e):
+            return False
+    return True
+
+
+def _is_key_encrypted(ctx: Context, path: str):
+    return not _passphrase_decrypts_privatekey(ctx, path, "")
 
 
 @task(help={"config_path": doc.config_path})
@@ -379,7 +427,35 @@ def debug_keys(ctx: Context, config_path: Optional[str] = None):
             debug(json.dumps(keypair, indent=4))
             break
     else:
-        warn("WARNING: Configured keyPairName missing from aws!")
+        error(
+            "Configured keyPairName missing from aws! Ensure the keypair is uploaded to the correct region and account."
+        )
+        raise Exit(code=1)
+    # check if private key is encrypted
+    if awsConf.privateKeyPath and _is_key_encrypted(ctx, awsConf.privateKeyPath):
+        if awsConf.privateKeyPassword:
+            if not _passphrase_decrypts_privatekey(ctx, awsConf.privateKeyPath, awsConf.privateKeyPassword):
+                error("Private key password is incorrect")
+                raise Exit(code=1)
+        else:
+            # pulumi-command remote.Connection errors if the private key is encrypted and no password is provided
+            # and exits with an error before trying any other auth methods.
+            # https://github.com/pulumi/pulumi-command/blob/58dda0317f72920537b3a0c9613ce5fed0610533/provider/pkg/provider/remote/connection.go#L81-L93
+            if is_windows():
+                error(
+                    "Private key is encrypted and no password is provided in the config. Pulumi does not support Windows SSH agent."
+                )
+                info("Remove the passphrase from the key or provide the privateKeyPassword.")
+            else:
+                error("Private key is encrypted and no password is provided in the config.")
+                info(
+                    "Remove the privateKeyPath option, or remove the passphrase from the key, or provide the privateKeyPassword."
+                )
+            raise Exit(code=1)
+    if is_windows() and not awsConf.privateKeyPath:
+        # https://github.com/pulumi/pulumi-command/blob/58dda0317f72920537b3a0c9613ce5fed0610533/provider/pkg/provider/remote/connection.go#L105-L118
+        error("Private key is not provided in the config. Pulumi does not support Windows SSH agent.")
+        info("Configure privateKeyPath and provide the privateKeyPassword if the key is encrypted.")
     for keyname in ["privateKeyPath", "publicKeyPath"]:
         keypair_path = getattr(awsConf, keyname)
         if keypair_path is None:
@@ -434,6 +510,14 @@ def debug_env(ctx, config_path: Optional[str] = None):
         error("Pulumi CLI not found, please install it: https://www.pulumi.com/docs/get-started/install/")
         raise Exit(code=1)
     info(f"Pulumi version: {out.stdout.strip()}")
+
+    # Check pulumi credentials
+    try:
+        out = ctx.run("pulumi whoami", hide=True)
+    except UnexpectedExit:
+        error("No pulumi credentials found")
+        info("Please login, e.g. pulumi login --local")
+        raise Exit(code=1)
 
     # check awscli version
     out = ctx.run("aws --version", hide=True)

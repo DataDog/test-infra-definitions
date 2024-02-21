@@ -23,18 +23,26 @@ type Environment struct {
 	Namer namer.Namer
 }
 
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
+
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	commonEnv, err := config.NewCommonEnvironment(ctx)
+	env := Environment{
+		Namer: namer.NewNamer(ctx, hvNamerNamespace),
+	}
+
+	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 	if err != nil {
 		return Environment{}, err
 	}
 
-	env := Environment{
-		CommonEnvironment: &commonEnv,
-		Namer:             namer.NewNamer(ctx, hvNamerNamespace),
-	}
+	env.CommonEnvironment = &commonEnv
 
 	return env, nil
+}
+
+// Cross Cloud Provider config
+func (p *Environment) InternalRegistry() string {
+	return "none"
 }
 
 // Common

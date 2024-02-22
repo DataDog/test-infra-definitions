@@ -123,18 +123,25 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain.RecipeLibvirtDomainArgs.Vcpu = vcpu
 	domain.RecipeLibvirtDomainArgs.Memory = memory
 	domain.RecipeLibvirtDomainArgs.ConsoleType = set.ConsoleType
-	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
+	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(set.Arch), "kernel-packages", kernel.Dir, "bzImage")
 
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
-	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
-	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
+	varstore := filepath.Join(GetWorkingDirectory(set.Arch), fmt.Sprintf("varstore.%s", domainName))
+	efi := filepath.Join(GetWorkingDirectory(set.Arch), "efi.fd")
 
 	// OS-dependent settings
 	var hypervisor string
 	var commandLine pulumi.StringInput = pulumi.String("")
-	if runtime.GOOS == "linux" {
-		domain.RecipeLibvirtDomainArgs.Type = "kvm"
-	} else if runtime.GOOS == "darwin" {
+	var hostOS string
+	if set.Arch == LocalVMSet {
+		hostOS = runtime.GOOS
+	} else {
+		hostOS = "linux" // Remote VMs are always on Linux hosts
+	}
+
+	if hostOS == "linux" {
+		hypervisor = "kvm"
+	} else if hostOS == "darwin" {
 		hypervisor = "hvf"
 		// Network ID must be unique for each VMSet, as they must be on the same network.
 		// We use the VMSet ID to ensure uniqueness.

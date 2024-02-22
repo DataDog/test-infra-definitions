@@ -48,7 +48,7 @@ func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]stri
 	var config strings.Builder
 	for _, subnet := range subnets {
 		pattern := getMicroVMGroupSubnetPattern(subnet)
-		fmt.Fprintf(&config, "Host %s\nIdentityFile %s\nUser root\nStrictHostKeyChecking no\n", pattern, filepath.Join(GetWorkingDirectory(), "ddvm_rsa"))
+		fmt.Fprintf(&config, "Host %s\nIdentityFile %s\nUser root\nStrictHostKeyChecking no\n", pattern, filepath.Join(GetWorkingDirectory(instance.Arch), "ddvm_rsa"))
 	}
 	args := command.Args{
 		Create: pulumi.Sprintf(`echo -e "%s" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, config.String()),
@@ -62,7 +62,7 @@ func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]stri
 
 func readMicroVMSSHKey(instance *Instance, depends []pulumi.Resource) (pulumi.StringOutput, []pulumi.Resource, error) {
 	args := command.Args{
-		Create: pulumi.Sprintf("cat %s", filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+		Create: pulumi.Sprintf("cat %s", filepath.Join(GetWorkingDirectory(instance.Arch), "ddvm_rsa")),
 	}
 	done, err := instance.runner.RemoteCommand(instance.instanceNamer.ResourceName("read-microvm-ssh-key"), &args, pulumi.DependsOn(depends))
 	if err != nil {
@@ -275,7 +275,7 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 				}
 
 				// create new ssh connection to build proxy
-				conn, err := remoteComp.NewConnection(domain.ip, "root", filepath.Join(GetWorkingDirectory(), "ddvm_rsa"), "", "")
+				conn, err := remoteComp.NewConnection(domain.ip, "root", filepath.Join(GetWorkingDirectory(domain.vmset.Arch), "ddvm_rsa"), "", "")
 				if err != nil {
 					return nil, err
 				}

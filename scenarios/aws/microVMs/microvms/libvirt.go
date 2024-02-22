@@ -161,7 +161,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 		// Setup individual Nvram disk for arm64 distro images
 		if resources.GetLocalArchRecipe(set.Recipe) == vmconfig.RecipeDistroARM64 {
 			for _, domain := range domains {
-				varstorePath := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domain.DomainName))
+				varstorePath := filepath.Join(GetWorkingDirectory(domain.vmset.Arch), fmt.Sprintf("varstore.%s", domain.DomainName))
 				varstoreArgs := command.Args{
 					Create: pulumi.Sprintf("truncate -s 64m %s", varstorePath),
 					Delete: pulumi.Sprintf("rm -f %s", varstorePath),
@@ -367,16 +367,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		return domains[i].domainID < domains[j].domainID
 	})
 
-	if runtime.GOOS == "darwin" {
-		// We have no network setup on macOS. We use the native vmnet framework
-		// for networking, which is not managed by libvirt but by QEMU. In order to resolve
-		// the IPs, we need to wait and watch the DHCP leases in another goroutine.
-		for _, domain := range domains {
-			domain.ip = domain.mac.ApplyT(waitForBootpDHCPLeases).(pulumi.StringOutput)
-		}
-		return vmCollections, waitFor, nil
-	}
-
 	// Discover subnet to use for the network.
 	// This is done dynamically so we can have concurrent micro-vm groups
 	// active, without the network conflicting.
@@ -405,9 +395,16 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 				if d.vmset.ID != set.ID {
 					continue
 				}
-				ip = getNextVMIP(&ip)
-				d.ip = pulumi.Sprintf("%s", ip)
-				d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
+				if runtime.GOOS == "darwin" && set.Arch == LocalVMSet {
+					// We have no network setup on macOS. We use the native vmnet framework
+					// for networking, which is not managed by libvirt but by QEMU. In order to resolve
+					// the IPs, we need to wait and watch the DHCP leases in another goroutine.
+					d.ip = d.mac.ApplyT(waitForBootpDHCPLeases).(pulumi.StringOutput)
+				} else {
+					ip = getNextVMIP(&ip)
+					d.ip = pulumi.Sprintf("%s", ip)
+					d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
+				}
 			}
 		}
 	}
@@ -415,6 +412,10 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 	// setup the network for each collection
 	// Network setup has to be done after the dhcp entries have been generated for each domain
 	for _, collection := range vmCollections {
+		if collection.instance.Arch == LocalVMSet && runtime.GOOS == "darwin" {
+			continue
+		}
+
 		if err := collection.SetupCollectionNetwork(waitFor); err != nil {
 			return vmCollections, waitFor, err
 		}

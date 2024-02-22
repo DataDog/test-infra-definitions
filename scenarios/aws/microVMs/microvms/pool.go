@@ -30,7 +30,7 @@ type globalLibvirtPool struct {
 }
 
 func generateGlobalPoolPath(name string) string {
-	return fmt.Sprintf("%s/libvirt/pools/%s", GetWorkingDirectory(), name)
+	return fmt.Sprintf("%s/libvirt/pools/%s", GetWorkingDirectory(LocalVMSet), name)
 }
 
 func NewGlobalLibvirtPool(ctx *pulumi.Context) LibvirtPool {

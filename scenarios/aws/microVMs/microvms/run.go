@@ -60,11 +60,15 @@ var SSHKeyFileNames = map[string]string{
 	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
 }
 
-var GetWorkingDirectory func() string
+// GetWorkingDirectory is a function that returns the working directory for the kernel version testing, given the architecture (local or non-local).
+var GetWorkingDirectory func(string) string
 
-func getKernelVersionTestingWorkingDir(m *config.DDMicroVMConfig) func() string {
-	return func() string {
-		return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMWorkingDirectory, "/tmp")
+func getKernelVersionTestingWorkingDir(m *config.DDMicroVMConfig) func(string) string {
+	return func(arch string) string {
+		if arch == LocalVMSet {
+			return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMLocalWorkingDirectory, "/tmp")
+		}
+		return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMRemoteWorkingDirectory, "/tmp")
 	}
 }
 
@@ -270,7 +274,7 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 						"ip":           pulumi.ToOutput(domain.ip),
 						"tag":          pulumi.ToOutput(domain.tag),
 						"vmset-tags":   pulumi.ToArrayOutput(tags),
-						"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+						"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(domain.vmset.Arch), "ddvm_rsa")),
 					}))
 				}
 			}

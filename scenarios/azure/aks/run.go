@@ -31,7 +31,6 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		ctx.Export("kubeconfig", kubeConfig)
 		// Filling Kubernetes component from EKS cluster
 		comp.ClusterName = cluster.Name
 		comp.KubeConfig = kubeConfig
@@ -44,9 +43,9 @@ func Run(ctx *pulumi.Context) error {
 		if err != nil {
 			return err
 		}
+		comp.KubeProvider = aksKubeProvider
 
 		var dependsOnCrd pulumi.ResourceOption
-
 		// TODO: add node pools and fake intake without using ecs
 
 		// Deploy the agent

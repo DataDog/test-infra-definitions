@@ -1,10 +1,14 @@
 package ec2
 
 import (
+	"errors"
+
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/updater"
 	"github.com/DataDog/test-infra-definitions/components/docker"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -19,7 +23,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.Ubuntu)
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err
@@ -48,6 +52,15 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
+	if env.UpdaterDeploy() {
+		if env.AgentDeploy() {
+			return errors.New("cannot deploy both agent and updater installers, updater installs the agent")
+		}
+
+		_, err := updater.NewHostUpdater(env.CommonEnvironment, vm)
+		return err
+	}
+
 	return nil
 }
 
@@ -62,7 +75,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 	}
 
 	// If no OS is provided, we default to AmazonLinuxECS as it ships with Docker pre-installed
-	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECS)
+	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err
@@ -71,8 +84,13 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, installDocker := osWithDockerProvided[vm.OS.Descriptor().Flavor]
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, installDocker)
+	installEcrCredsHelperCmd, err := InstallECRCredentialsHelper(env, vm)
+	if err != nil {
+		return err
+	}
+
+	_, isDockerInstalled := osWithDockerProvided[vm.OS.Descriptor().Flavor]
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -96,17 +114,23 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			if err != nil {
 				return err
 			}
+
+			if err := fakeintake.Export(env.Ctx, nil); err != nil {
+				return err
+			}
+			if err != nil {
+				return err
+			}
+
 			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
 		}
 
-		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
-		if err != nil {
-			return err
+		if env.TestingWorkloadDeploy() {
+			agentOptions = append(agentOptions, dockeragentparams.WithExtraComposeManifest(dogstatsd.DockerComposeManifest.Name, dogstatsd.DockerComposeManifest.Content))
+			agentOptions = append(agentOptions, dockeragentparams.WithEnvironmentVariables(pulumi.StringMap{"HOST_IP": vm.Address}))
 		}
-	}
 
-	if env.TestingWorkloadDeploy() {
-		_, err := manager.ComposeStrUp("dogstatsd-apps", []docker.ComposeInlineManifest{dogstatsd.DockerComposeManifest}, pulumi.StringMap{"HOST_IP": vm.Address})
+		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
 		if err != nil {
 			return err
 		}

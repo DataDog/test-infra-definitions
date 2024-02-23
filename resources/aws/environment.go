@@ -19,6 +19,7 @@ const (
 	DDInfraDefaultSubnetsParamName         = "aws/defaultSubnets"
 	DDInfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
 	DDInfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
+	DDInfraDefaultInstanceProfileParamName = "aws/defaultInstanceProfile"
 	DDInfraDefaultARMInstanceTypeParamName = "aws/defaultARMInstanceType"
 	DDInfraDefaultKeyPairParamName         = "aws/defaultKeyPairName"
 	DDinfraDefaultPublicKeyPath            = "aws/defaultPublicKeyPath"
@@ -26,6 +27,7 @@ const (
 	DDInfraDefaultPrivateKeyPassword       = "aws/defaultPrivateKeyPassword"
 	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
+	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -61,9 +63,12 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
+
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
+		awsEnv.CommonEnvironment.CloudProviderEnvironment = awsEnv
 	}
 }
 
@@ -76,8 +81,9 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	for _, opt := range options {
 		opt(&env)
 	}
+
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx)
+		commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 		if err != nil {
 			return Environment{}, err
 		}
@@ -111,6 +117,11 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	return env, nil
 }
 
+// Cross Cloud Provider config
+func (e *Environment) InternalRegistry() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalRegistry, e.envDefault.ddInfra.defaultInternalRegistry)
+}
+
 // Common
 func (e *Environment) Region() string {
 	return e.GetStringWithDefault(e.awsConfig, awsRegionParamName, e.envDefault.aws.region)
@@ -134,6 +145,10 @@ func (e *Environment) DefaultSecurityGroups() []string {
 
 func (e *Environment) DefaultInstanceType() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
+}
+
+func (e *Environment) DefaultInstanceProfileName() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceProfileParamName, e.envDefault.ddInfra.defaultInstanceProfileName)
 }
 
 func (e *Environment) DefaultARMInstanceType() string {

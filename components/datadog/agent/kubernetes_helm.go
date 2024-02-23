@@ -32,6 +32,10 @@ type HelmInstallationArgs struct {
 	Fakeintake *fakeintake.Fakeintake
 	// DeployWindows is used to deploy the Windows agent
 	DeployWindows bool
+	// AgentFullImagePath is used to specify the full image path for the agent
+	AgentFullImagePath string
+	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
+	ClusterAgentFullImagePath string
 }
 
 type HelmComponent struct {
@@ -107,9 +111,15 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	// Compute some values
 	agentImagePath := dockerAgentFullImagePath(&e, "", "")
+	if args.AgentFullImagePath != "" {
+		agentImagePath = args.AgentFullImagePath
+	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
 	clusterAgentImagePath := dockerClusterAgentFullImagePath(&e, "")
+	if args.ClusterAgentFullImagePath != "" {
+		clusterAgentImagePath = args.ClusterAgentFullImagePath
+	}
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := installName
@@ -205,7 +215,8 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			},
 			"sbom": pulumi.Map{
 				"containerImage": pulumi.Map{
-					"enabled": pulumi.Bool(true),
+					"enabled":                   pulumi.Bool(true),
+					"uncompressedLayersSupport": pulumi.Bool(true),
 				},
 			},
 			// The fake intake keeps payloads only for a hardcoded period of 15 minutes.
@@ -237,6 +248,24 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"repository":    pulumi.String(agentImagePath),
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"podAnnotations": pulumi.StringMap{
+				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
+					map[string]interface{}{
+						"openmetrics": map[string]interface{}{
+							"init_configs": []map[string]interface{}{},
+							"instances": []map[string]interface{}{
+								{
+									"openmetrics_endpoint": "http://localhost:6000/telemetry",
+									"namespace":            "datadog.agent",
+									"metrics": []string{
+										".*",
+									},
+								},
+							},
+						},
+					}),
+				),
 			},
 		},
 		"clusterAgent": pulumi.Map{
@@ -336,6 +365,10 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 	additionalEndpointsEnvVar := pulumi.MapArray{
 		pulumi.Map{
 			"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+			"value": pulumi.String("true"),
+		},
+		pulumi.Map{
+			"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
 			"value": pulumi.String("true"),
 		},
 		pulumi.Map{

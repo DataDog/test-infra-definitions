@@ -5,9 +5,10 @@ import (
 )
 
 const (
-	sandboxEnv      = "aws/sandbox"
-	agentSandboxEnv = "aws/agent-sandbox"
-	agentQAEnv      = "aws/agent-qa"
+	sandboxEnv       = "aws/sandbox"
+	agentSandboxEnv  = "aws/agent-sandbox"
+	agentQAEnv       = "aws/agent-qa"
+	tsePlaygroundEnv = "aws/tse-playground"
 )
 
 type environmentDefault struct {
@@ -24,9 +25,11 @@ type ddInfra struct {
 	defaultSubnets             []string
 	defaultSecurityGroups      []string
 	defaultInstanceType        string
+	defaultInstanceProfileName string
 	defaultARMInstanceType     string
 	defaultInstanceStorageSize int
 	defaultShutdownBehavior    string
+	defaultInternalRegistry    string
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -64,6 +67,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 		return agentSandboxDefault()
 	case agentQAEnv:
 		return agentQADefault()
+	case tsePlaygroundEnv:
+		return tsePlaygroundDefault()
 	default:
 		panic("Unknown environment: " + envName)
 	}
@@ -79,9 +84,11 @@ func sandboxDefault() environmentDefault {
 			defaultSubnets:             []string{"subnet-b89e00e2", "subnet-8ee8b1c6", "subnet-3f5db45b"},
 			defaultSecurityGroups:      []string{"sg-46506837", "sg-7fedd80a", "sg-0e952e295ab41e748"},
 			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
@@ -118,9 +125,11 @@ func agentSandboxDefault() environmentDefault {
 			defaultSubnets:             []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
 			defaultSecurityGroups:      []string{"sg-038231b976eb13d44", "sg-05466e7ce253d21b1"},
 			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
@@ -157,9 +166,11 @@ func agentQADefault() environmentDefault {
 			defaultSubnets:             []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
 			defaultSecurityGroups:      []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
 			defaultInstanceType:        "t3.medium",
+			defaultInstanceProfileName: "ec2InstanceRole",
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
@@ -177,6 +188,45 @@ func agentQADefault() environmentDefault {
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
+				fargateNamespace:             "fargate",
+				linuxNodeGroup:               true,
+				linuxARMNodeGroup:            true,
+				linuxBottlerocketNodeGroup:   true,
+				windowsLTSCNodeGroup:         true,
+			},
+		},
+	}
+}
+
+func tsePlaygroundDefault() environmentDefault {
+	return environmentDefault{
+		aws: awsProvider{
+			region: string(aws.RegionUSEast1),
+		},
+		ddInfra: ddInfra{
+			defaultVPCID:               "vpc-0570ac09560a97693",
+			defaultSubnets:             []string{"subnet-0ec4b9823cf352b95", "subnet-0e9c45e996754e357", "subnet-070e1a6c79f6bc499"},
+			defaultSecurityGroups:      []string{"sg-091a00b0944f04fd2", "sg-073f15b823d4bb39a", "sg-0a3ec6b0ee295e826"},
+			defaultInstanceType:        "t3.medium",
+			defaultARMInstanceType:     "t4g.medium",
+			defaultInstanceStorageSize: 200,
+			defaultShutdownBehavior:    "stop",
+
+			ecs: ddInfraECS{
+				execKMSKeyID:                "arn:aws:kms:us-east-1:570690476889:key/f1694e5a-bb52-42a7-b414-dfd34fbd6759",
+				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs",
+				taskExecutionRole:           "arn:aws:iam::570690476889:role/ecsExecTaskExecutionRole",
+				taskRole:                    "arn:aws:iam::570690476889:role/ecsExecTaskRole",
+				instanceProfile:             "arn:aws:iam::570690476889:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:     false,
+				fargateCapacityProvider:     true,
+				linuxECSOptimizedNodeGroup:  true,
+				linuxBottlerocketNodeGroup:  true,
+				windowsLTSCNodeGroup:        true,
+			},
+
+			eks: ddInfraEKS{
+				allowedInboundSecurityGroups: []string{"sg-091a00b0944f04fd2", "sg-0a3ec6b0ee295e826"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,

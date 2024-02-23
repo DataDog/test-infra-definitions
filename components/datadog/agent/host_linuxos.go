@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
@@ -50,15 +51,15 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 	}
 
 	return fmt.Sprintf(
-		`DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/%v)"`,
-		commandLine,
-		fmt.Sprintf("install_script_agent%s.sh", version.Major)), nil
+		`curl -L https://s3.amazonaws.com/dd-agent/scripts/%v --retry 10 -o install-script.sh && for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && break || sleep 2; done`,
+		fmt.Sprintf("install_script_agent%s.sh", version.Major),
+		commandLine), nil
 }
 
 func (am *agentLinuxManager) getAgentConfigFolder() string {
 	return "/etc/datadog-agent"
 }
 
-func (am *agentLinuxManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", triggers, opts...)
+func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", transform, opts...)
 }

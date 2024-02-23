@@ -80,7 +80,26 @@ func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.Stri
 	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel) (*Domain, error) {
+func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
+	var vcpuMap []string
+
+	if cpuCount == 0 {
+		return "", 0
+	}
+
+	for i := 0; i < vmcpus; i++ {
+		vcpuMap = append(vcpuMap, fmt.Sprintf("<vcpupin vcpu='%d' cpuset='%d'/>", i, hostCPUSet))
+		hostCPUSet++
+		if hostCPUSet >= cpuCount {
+			// start from cpu 1, since we want to leave cpu 0 for the system
+			hostCPUSet = 1
+		}
+	}
+
+	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
+}
+
+func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
@@ -115,6 +134,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 			resources.Nvram:         pulumi.String(varstore),
 			resources.Efi:           pulumi.String(efi),
 			resources.VCPU:          pulumi.Sprintf("%d", vcpu),
+			resources.CPUTune:       pulumi.String(cputune),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine
@@ -156,15 +176,17 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
+func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
 	var domains []*Domain
+	var cpuTuneXML string
 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
-				domain, err := newDomainConfiguration(e, set, vcpu, memory, kernel)
+				cpuTuneXML, cpuSetStart = getCPUTuneXML(vcpu, cpuSetStart, set.VMHost.AvailableCPUs)
+				domain, err := newDomainConfiguration(e, set, vcpu, memory, kernel, cpuTuneXML)
 				if err != nil {
-					return []*Domain{}, err
+					return []*Domain{}, 0, err
 				}
 
 				// setup volume to be used by this domain
@@ -181,7 +203,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						vol.FullResourceName("final-overlay", kernel.Tag),
 					)
 					if err != nil {
-						return []*Domain{}, err
+						return []*Domain{}, 0, err
 					}
 					domain.Disks = append(domain.Disks, resources.DomainDisk{
 						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
@@ -194,7 +216,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					&domain.RecipeLibvirtDomainArgs,
 				)
 				if err != nil {
-					return []*Domain{}, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
+					return []*Domain{}, 0, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
 				}
 
 				domains = append(domains, domain)
@@ -202,6 +224,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 		}
 	}
 
-	return domains, nil
+	return domains, cpuSetStart, nil
 
 }

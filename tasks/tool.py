@@ -10,6 +10,23 @@ from invoke.exceptions import Exit
 from termcolor import colored
 
 
+def is_windows():
+    return platform.system() == "Windows"
+
+
+if is_windows():
+    try:
+        # Explicitly enable terminal colors work on Windows
+        # os.system() seems to implicitly enable them, but ctx.run() does not
+        from colorama import just_fix_windows_console
+
+        just_fix_windows_console()
+    except ImportError:
+        print(
+            "colorama is not up to date, terminal colors may not work properly. Please run 'pip install -r requirements.txt' to fix this."
+        )
+
+
 def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
@@ -92,10 +109,6 @@ def get_aws_wrapper(
     aws_account: str,
 ) -> str:
     return f"aws-vault exec sso-{aws_account}-account-admin -- "
-
-
-def is_windows():
-    return platform.system() == "Windows"
 
 
 def is_linux():

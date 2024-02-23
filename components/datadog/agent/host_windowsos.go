@@ -37,10 +37,9 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 	}
 
 	localFilename := `C:\datadog-agent.msi`
-
 	// Disable the progress as it slows down the download.
 	cmd := "$ProgressPreference = 'SilentlyContinue'"
-	cmd += fmt.Sprintf("; Invoke-WebRequest %v -OutFile %v", url, localFilename)
+	cmd += fmt.Sprintf("; for ($i=0; $i -lt 3; $i++) { try { Invoke-WebRequest %v -OutFile %v; break } catch { if ($i -eq 2) { throw } } }", url, localFilename)
 	// Use `if ($?) { .. }` to get an error if the download fail.
 	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%%v" SITE="datadoghq.com"'}`, localFilename)
 	return cmd, nil
@@ -50,12 +49,19 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 	return `C:\ProgramData\Datadog`
 }
 
-func (am *agentWindowsManager) restartAgentServices(triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
-	return am.host.OS.Runner().Command(am.host.Name()+"-"+"restart-agent", &command.Args{
-		Create:   pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
-		Triggers: triggers,
-	}, opts...)
+	cmdName := am.host.Name() + "-" + "restart-agent"
+	cmdArgs := command.Args{
+		Create: pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
+	}
+
+	// If a transform is provided, use it to modify the command name and args
+	if transform != nil {
+		cmdName, cmdArgs = transform(cmdName, cmdArgs)
+	}
+
+	return am.host.OS.Runner().Command(cmdName, &cmdArgs, opts...)
 }
 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {
@@ -91,8 +97,9 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		if fullVersion, err = finder.getLatestVersion(); err != nil {
 			return "", err
 		}
+	} else {
+		fullVersion += "-1"
 	}
-	fullVersion += "-1"
 
 	return finder.findVersion(fullVersion)
 }

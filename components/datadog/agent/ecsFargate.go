@@ -2,6 +2,7 @@ package agent
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 
 	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
@@ -27,6 +28,10 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 				Name:  pulumi.StringPtr("ECS_FARGATE"),
 				Value: pulumi.StringPtr("true"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
+			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
@@ -50,5 +55,23 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 		LogConfiguration: logConfig,
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
 		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
+		DockerLabels: pulumi.StringMap{
+			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
+				map[string]interface{}{
+					"openmetrics": map[string]interface{}{
+						"init_configs": []map[string]interface{}{},
+						"instances": []map[string]interface{}{
+							{
+								"openmetrics_endpoint": "http://localhost:5000/telemetry",
+								"namespace":            "datadog.agent",
+								"metrics": []string{
+									".*",
+								},
+							},
+						},
+					},
+				},
+			)),
+		},
 	}
 }

@@ -43,6 +43,7 @@ type Params struct {
 	Integrations        map[string]*FileDefinition
 	Files               map[string]*FileDefinition
 	ExtraAgentConfig    []pulumi.StringInput
+	ResourceOptions     []pulumi.ResourceOption
 }
 
 type Option = func(*Params) error
@@ -187,6 +188,13 @@ func WithTelemetry() func(*Params) error {
 	}
 }
 
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
+	return func(p *Params) error {
+		p.ResourceOptions = resources
+		return nil
+	}
+}
+
 func withIntakeHostname(hostname pulumi.StringInput) func(*Params) error {
 	return func(p *Params) error {
 		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:80
@@ -194,6 +202,7 @@ logs_config.logs_dd_url: %[1]s:80
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true
 process_config.process_dd_url: http://%[1]s:80
+apm_config.apm_dd_url: http://%[1]s:80
 database_monitoring.metrics.logs_dd_url: %[1]s:80
 database_monitoring.metrics.logs_no_ssl: true
 database_monitoring.activity.logs_dd_url: %[1]s:80

@@ -18,10 +18,17 @@ func newMacOSServiceManager(e config.CommonEnvironment, runner *command.Runner) 
 	return &macOSServiceManager{e: e, runner: runner}
 }
 
-func (s *macOSServiceManager) EnsureRestarted(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return s.runner.Command(s.e.CommonNamer.ResourceName("running", serviceName), &command.Args{
-		Sudo:     true,
-		Create:   pulumi.String(fmt.Sprintf("launchctl stop %s && launchctl start %s", serviceName, serviceName)),
-		Triggers: triggers,
-	}, opts...)
+func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	cmdName := s.e.CommonNamer.ResourceName("running", serviceName)
+	cmdArgs := command.Args{
+		Sudo:   true,
+		Create: pulumi.String(fmt.Sprintf("launchctl stop %s && launchctl start %s", serviceName, serviceName)),
+	}
+
+	// If a transform is provided, use it to modify the command name and args
+	if transform != nil {
+		cmdName, cmdArgs = transform(cmdName, cmdArgs)
+	}
+
+	return s.runner.Command(cmdName, &cmdArgs, opts...)
 }

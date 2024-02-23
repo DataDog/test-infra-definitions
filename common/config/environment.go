@@ -20,6 +20,7 @@ const (
 	DDAgentConfigNamespace     = "ddagent"
 	DDTestingWorkloadNamespace = "ddtestworkload"
 	DDDogstatsdNamespace       = "dddogstatsd"
+	DDUpdaterConfigNamespace   = "ddupdater"
 
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
@@ -33,6 +34,7 @@ const (
 	DDAgentDeployParamName               = "deploy"
 	DDAgentVersionParamName              = "version"
 	DDAgentPipelineID                    = "pipeline_id"
+	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
@@ -42,6 +44,9 @@ const (
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
+
+	// Updater Namespace
+	DDUpdaterParamName = "deploy"
 
 	// Testing workload namerNamespace
 	DDTestingWorkloadDeployParamName = "deploy"
@@ -54,34 +59,44 @@ const (
 type CommonEnvironment struct {
 	providerRegistry
 
-	Ctx         *pulumi.Context
-	CommonNamer namer.Namer
+	Ctx                      *pulumi.Context
+	CommonNamer              namer.Namer
+	CloudProviderEnvironment CloudProviderEnvironment
 
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
 	TestingWorkloadConfig *sdkconfig.Config
 	DogstatsdConfig       *sdkconfig.Config
+	UpdaterConfig         *sdkconfig.Config
 
 	username string
 }
 
-func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
+type CloudProviderEnvironment interface {
+	InternalRegistry() string
+}
+
+func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {
 	env := CommonEnvironment{
-		Ctx:                   ctx,
-		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
-		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
-		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
-		CommonNamer:           namer.NewNamer(ctx, ""),
-		providerRegistry:      newProviderRegistry(ctx),
+		Ctx:                      ctx,
+		InfraConfig:              sdkconfig.New(ctx, DDInfraConfigNamespace),
+		AgentConfig:              sdkconfig.New(ctx, DDAgentConfigNamespace),
+		TestingWorkloadConfig:    sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		DogstatsdConfig:          sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:            sdkconfig.New(ctx, DDUpdaterConfigNamespace),
+		CommonNamer:              namer.NewNamer(ctx, ""),
+		CloudProviderEnvironment: cloudProviderEnvironment,
+		providerRegistry:         newProviderRegistry(ctx),
 	}
 	// store username
 	user, err := user.Current()
 	if err != nil {
 		return env, err
 	}
-	env.username = user.Username
+	env.username = strings.ReplaceAll(user.Username, "\\", "/")
 
+	ctx.Log.Debug(fmt.Sprintf("user name: %s", env.username), nil)
+	ctx.Log.Debug(fmt.Sprintf("resource tags: %v", env.DefaultResourceTags()), nil)
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
@@ -161,6 +176,10 @@ func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
 }
 
+func (e *CommonEnvironment) CommitSHA() string {
+	return e.AgentConfig.Get(DDAgentCommitSHA)
+}
+
 func (e *CommonEnvironment) ClusterAgentVersion() string {
 	return e.AgentConfig.Get(DDClusterAgentVersionParamName)
 }
@@ -208,7 +227,12 @@ func (e *CommonEnvironment) DogstatsdDeploy() bool {
 }
 
 func (e *CommonEnvironment) DogstatsdFullImagePath() string {
-	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
+	return e.AgentConfig.Get(DDDogstatsdFullImagePathParamName)
+}
+
+// Updater namespace
+func (e *CommonEnvironment) UpdaterDeploy() bool {
+	return e.GetBoolWithDefault(e.UpdaterConfig, DDUpdaterParamName, false)
 }
 
 // Generic methods

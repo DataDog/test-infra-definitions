@@ -11,6 +11,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -36,7 +37,9 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), awsEnv.KubernetesVersion())
+	kindClusterName := ctx.Stack()
+
+	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion())
 	if err != nil {
 		return err
 	}
@@ -57,7 +60,10 @@ func Run(ctx *pulumi.Context) error {
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
-		fakeIntakeOptions := []fakeintake.Option{}
+		fakeIntakeOptions := []fakeintake.Option{
+			fakeintake.WithCPU(1024),
+			fakeintake.WithMemory(6144),
+		}
 		if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 		}
@@ -70,8 +76,6 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
-	clusterName := ctx.Stack()
-
 	// Deploy the agent
 	if awsEnv.AgentDeploy() {
 		customValues := fmt.Sprintf(`
@@ -81,7 +85,7 @@ datadog:
   clusterName: "%s"
 agents:
   useHostNetwork: true
-`, clusterName)
+`, kindClusterName)
 
 		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 			KubeProvider: kindKubeProvider,
@@ -103,7 +107,7 @@ agents:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, clusterName); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName); err != nil {
 			return err
 		}
 	}
@@ -129,6 +133,11 @@ agents:
 
 		// dogstatsd clients that report to the dogstatsd standalone deployment
 		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+			return err
+		}
+
+		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel
+		if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-tracegen", nil); err != nil {
 			return err
 		}
 

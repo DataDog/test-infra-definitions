@@ -22,6 +22,7 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
+    install_updater: Optional[bool] = None,
     install_workload: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
@@ -35,7 +36,8 @@ def deploy(
 
     if install_agent is None:
         install_agent = tool.get_default_agent_install()
-    flags["ddagent:deploy"] = install_agent
+    flags["ddagent:deploy"] = install_agent and not install_updater
+    flags["ddupdater:deploy"] = install_updater
 
     if install_workload is None:
         install_workload = tool.get_default_workload_install()
@@ -78,7 +80,9 @@ def deploy(
     if app_key_required:
         flags["ddagent:appKey"] = _get_app_key(cfg)
 
-    return _deploy(ctx, stack_name, flags, debug, use_aws_vault)
+    return _deploy(
+        ctx, stack_name, flags, debug, use_aws_vault, cfg.get_pulumi().logLevel, cfg.get_pulumi().logToStdErr
+    )
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
@@ -110,6 +114,8 @@ def _deploy(
     flags: Dict[str, Any],
     debug: Optional[bool],
     use_aws_vault: Optional[bool],
+    log_level: Optional[int],
+    log_to_stderr: Optional[bool],
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     aws_account = flags["ddinfra:env"][len("aws/") :]
@@ -126,9 +132,18 @@ def _deploy(
         if value is not None and value != "":
             up_flags += f" -c {key}={value}"
 
-    if debug:
-        global_flags += " --logflow --logtostderr -v 3"
-        up_flags += " --debug"
+    should_log = debug or log_level is not None or log_to_stderr
+    if log_level is None:
+        log_level = 3
+    if log_to_stderr is None:
+        # default to true if debug is enabled
+        log_to_stderr = debug
+    if should_log:
+        if log_to_stderr:
+            global_flags += " --logtostderr"
+        global_flags += f" -v {log_level}"
+        if debug:
+            up_flags += " --debug"
 
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"

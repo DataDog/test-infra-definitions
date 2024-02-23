@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/docker"
 
@@ -49,11 +51,16 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(options ...Option) (*Params, error) {
+func NewParams(e *config.CommonEnvironment, options ...Option) (*Params, error) {
 	version := &Params{
 		AgentServiceEnvironment: pulumi.Map{},
 		EnvironmentVariables:    pulumi.StringMap{},
 	}
+
+	if e.PipelineID() != "" && e.CommitSHA() != "" {
+		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+	}
+
 	return common.ApplyOption(version, options)
 }
 
@@ -122,15 +129,17 @@ func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSLCertificateVal
 		return strings.HasPrefix(host, "https"), nil
 	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
-		logsEnvVars := pulumi.Map{
-			"DD_DD_URL":                        pulumi.Sprintf("http://%s:80", hostname),
-			"DD_LOGS_CONFIG_DD_URL":            pulumi.Sprintf("%s:80", hostname),
-			"DD_PROCESS_CONFIG_PROCESS_DD_URL": pulumi.Sprintf("http://%s:80", hostname),
-			"DD_SKIP_SSL_VALIDATION":           pulumi.Bool(shouldSkipSSLCertificateValidation),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":       pulumi.Bool(shouldSkipSSLCertificateValidation),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":    shouldEnforceHTTPInput,
+		envVars := pulumi.Map{
+			"DD_DD_URL":                                 pulumi.Sprintf("http://%s:80", hostname),
+			"DD_LOGS_CONFIG_DD_URL":                     pulumi.Sprintf("%s:80", hostname),
+			"DD_PROCESS_CONFIG_PROCESS_DD_URL":          pulumi.Sprintf("http://%s:80", hostname),
+			"DD_APM_DD_URL":                             pulumi.Sprintf("http://%s:80", hostname),
+			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldSkipSSLCertificateValidation),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             shouldEnforceHTTPInput,
 		}
-		for key, value := range logsEnvVars {
+		for key, value := range envVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {
 				return err
 			}
@@ -169,11 +178,12 @@ func WithAdditionalFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) e
 	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
 		logsEnvVars := pulumi.Map{
-			"DD_ADDITIONAL_ENDPOINTS":             additionalEndpointsContentInput,
-			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS": additionalLogsEndpointsContentInput,
-			"DD_SKIP_SSL_VALIDATION":              pulumi.Bool(true),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":          pulumi.Bool(true),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":       shouldEnforceHTTPInput,
+			"DD_ADDITIONAL_ENDPOINTS":                   additionalEndpointsContentInput,
+			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS":       additionalLogsEndpointsContentInput,
+			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(true),
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(true),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(true),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             shouldEnforceHTTPInput,
 		}
 		for key, value := range logsEnvVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {

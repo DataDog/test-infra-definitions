@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"math"
@@ -33,6 +34,24 @@ func reportStats(done chan struct{}) {
 	}
 }
 
+func retrieveDDAgentHostECS() (string, error) {
+	filePath := os.Getenv("ECS_CONTAINER_METADATA_FILE")
+	fileContent, err := os.ReadFile(filePath)
+	if err != nil {
+		return "", err
+	}
+	var metadata struct {
+		HostPrivateIPv4Address string `json:"HostPrivateIPv4Address"`
+	}
+	if err := json.Unmarshal(fileContent, &metadata); err != nil {
+		return "", err
+	}
+	if metadata.HostPrivateIPv4Address == "" {
+		return "", fmt.Errorf("HostPrivateIPv4Address is empty")
+	}
+	return metadata.HostPrivateIPv4Address, nil
+}
+
 func main() {
 	tps := flag.Float64("tps", 1, "Target number of traces to generate per second.")
 	spt := flag.Uint64("spt", 2, "Number of spans to put in each trace. (>=1)")
@@ -57,6 +76,16 @@ func main() {
 		if err != nil {
 			panic(fmt.Sprintf("Invalid TRACEGEN_TESTTIME=%v: %v", v, err))
 		}
+	}
+
+	var opts []tracer.StartOption
+	if v, ok := os.LookupEnv("ECS_AGENT_HOST"); ok && v == "true" {
+		host, err := retrieveDDAgentHostECS()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to retrieve DD agent host: %v", err))
+		}
+		os.Setenv("DD_AGENT_HOST", host)
+		opts = append(opts, tracer.WithAgentAddr(host))
 	}
 
 	tracer.Start()

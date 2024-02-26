@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -36,15 +35,21 @@ func reportStats(done chan struct{}) {
 }
 
 func retrieveDDAgentHostECS() (string, error) {
-	resp, err := http.Get("http://169.254.169.254/latest/meta-data/local-ipv4")
+	filePath := os.Getenv("ECS_CONTAINER_METADATA_FILE")
+	fileContent, err := os.ReadFile(filePath)
 	if err != nil {
 		return "", err
 	}
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
+	var metadata struct {
+		HostPrivateIPv4Address string `json:"HostPrivateIPv4Address"`
+	}
+	if err := json.Unmarshal(fileContent, &metadata); err != nil {
 		return "", err
 	}
-	return string(bodyBytes), nil
+	if metadata.HostPrivateIPv4Address == "" {
+		return "", fmt.Errorf("HostPrivateIPv4Address is empty")
+	}
+	return metadata.HostPrivateIPv4Address, nil
 }
 
 func main() {

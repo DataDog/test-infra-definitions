@@ -8,10 +8,13 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
+
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -38,6 +41,9 @@ func Run(ctx *pulumi.Context) error {
 		capacityProviders = append(capacityProviders, pulumi.String("FARGATE"))
 	}
 
+	var cgroupV1Ng pulumi.StringOutput
+	var cgroupV2Ng pulumi.StringOutput
+
 	linuxNodeGroupPresent := false
 	if awsEnv.ECSLinuxECSOptimizedNodeGroup() {
 		cpName, err := ecs.NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, false)
@@ -46,6 +52,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		capacityProviders = append(capacityProviders, cpName)
+		cgroupV2Ng = cpName
 		linuxNodeGroupPresent = true
 	}
 
@@ -56,6 +63,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		capacityProviders = append(capacityProviders, cpName)
+		cgroupV2Ng = cpName
 		linuxNodeGroupPresent = true
 	}
 
@@ -66,6 +74,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		capacityProviders = append(capacityProviders, cpName)
+		cgroupV1Ng = cpName
 		linuxNodeGroupPresent = true
 	}
 
@@ -145,6 +154,37 @@ func Run(ctx *pulumi.Context) error {
 		if _, err := prometheus.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
 			return err
 		}
+
+		if _, err := tracegen.EcsAppDefinition(awsEnv,
+			"workload-tracegen-cgroupv1",
+			ecsCluster.Arn,
+			classicECS.ServicePlacementConstraintArray{
+				classicECS.ServicePlacementConstraintArgs{
+					Type: pulumi.String("memberOf"),
+					Expression: cgroupV1Ng.ApplyT(func(v string) string {
+						return "attribute:aws:autoscaling:groupName == " + v
+					}).(pulumi.StringOutput),
+				},
+			},
+		); err != nil {
+			return err
+		}
+
+		if _, err := tracegen.EcsAppDefinition(awsEnv,
+			"workload-tracegen-cgroupv2",
+			ecsCluster.Arn,
+			classicECS.ServicePlacementConstraintArray{
+				classicECS.ServicePlacementConstraintArgs{
+					Type: pulumi.String("memberOf"),
+					Expression: cgroupV2Ng.ApplyT(func(v string) string {
+						return "attribute:aws:autoscaling:groupName == " + v
+					}).(pulumi.StringOutput),
+				},
+			},
+		); err != nil {
+			return err
+		}
+
 	}
 
 	// Deploy Fargate Agents

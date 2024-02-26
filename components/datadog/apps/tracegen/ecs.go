@@ -1,7 +1,6 @@
 package tracegen
 
 import (
-	"fmt"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
@@ -10,19 +9,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-//classicECS.ServicePlacementConstraintArray{
-//classicECS.ServicePlacementConstraintArgs{
-//Type:       pulumi.String("memberOf"),
-//Expression: pulumi.StringPtr("attribute:ecs.os-type == linux"),
-//},
-//},
-
 type EcsComponent struct {
 	pulumi.ResourceState
 }
 
-func EcsAppDefinition(e aws.Environment, workloadName string, clusterArn pulumi.StringInput, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
-	namer := e.Namer.WithPrefix(fmt.Sprintf("%s/tracegen", workloadName))
+func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
+	namer := e.Namer.WithPrefix("tracegen")
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	ecsComponent := &EcsComponent{}
@@ -66,7 +58,7 @@ func EcsAppDefinition(e aws.Environment, workloadName string, clusterArn pulumi.
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("none"),
-			Family:      e.Namer.DisplayName(255, pulumi.String("tracegen-uds-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("tracegen-uds-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					Name:     pulumi.String("apmsocketpath"),
@@ -105,7 +97,7 @@ func EcsAppDefinition(e aws.Environment, workloadName string, clusterArn pulumi.
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("none"),
-			Family:      e.Namer.DisplayName(255, pulumi.String("tracegen-tcp-ec2")),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("tracegen-tcp-ec2")),
 		},
 	}, opts...); err != nil {
 		return nil, err

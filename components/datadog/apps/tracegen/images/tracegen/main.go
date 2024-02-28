@@ -34,6 +34,8 @@ func reportStats(done chan struct{}) {
 	}
 }
 
+// On ECS with TCP, the agent host can be found in the ECS_CONTAINER_METADATA_FILE
+// https://docs.datadoghq.com/containers/amazon_ecs/apm/?tab=ec2metadataendpoint#code
 func retrieveDDAgentHostECS() (string, error) {
 	filePath := os.Getenv("ECS_CONTAINER_METADATA_FILE")
 	fileContent, err := os.ReadFile(filePath)
@@ -44,10 +46,10 @@ func retrieveDDAgentHostECS() (string, error) {
 		HostPrivateIPv4Address string `json:"HostPrivateIPv4Address"`
 	}
 	if err := json.Unmarshal(fileContent, &metadata); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to unmarshal ECS metadata: %v, content: %v", err, string(fileContent))
 	}
 	if metadata.HostPrivateIPv4Address == "" {
-		return "", fmt.Errorf("HostPrivateIPv4Address is empty")
+		return "", fmt.Errorf("HostPrivateIPv4Address is empty, content: %v", string(fileContent))
 	}
 	return metadata.HostPrivateIPv4Address, nil
 }

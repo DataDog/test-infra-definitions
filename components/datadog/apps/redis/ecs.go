@@ -4,10 +4,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/lb"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -25,26 +23,6 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	}
 
 	opts = append(opts, pulumi.Parent(ecsComponent))
-
-	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
-		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("ec2")),
-		SubnetIds: e.RandomSubnets(),
-		Internal:  pulumi.BoolPtr(true),
-		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("ec2")),
-			Port:       pulumi.IntPtr(6379),
-			Protocol:   pulumi.StringPtr("TCP"),
-			TargetType: pulumi.StringPtr("instance"),
-			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-		},
-		Listener: &lb.ListenerArgs{
-			Port:     pulumi.IntPtr(6379),
-			Protocol: pulumi.StringPtr("TCP"),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
 
 	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("server"), &ecs.EC2ServiceArgs{
 		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("redis"), pulumi.String("ec2")),
@@ -73,43 +51,16 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 						},
 					},
 				},
-			},
-			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
-				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
-			},
-			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
-				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
-			},
-			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2"})...),
-		},
-		LoadBalancers: classicECS.ServiceLoadBalancerArray{
-			&classicECS.ServiceLoadBalancerArgs{
-				ContainerName:  pulumi.String("redis"),
-				ContainerPort:  pulumi.Int(6379),
-				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
-			},
-		},
-	}, opts...); err != nil {
-		return nil, err
-	}
-
-	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("query"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2", "query"})...),
-		Cluster:              clusterArn,
-		DesiredCount:         pulumi.IntPtr(1),
-		EnableExecuteCommand: pulumi.BoolPtr(true),
-		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
-			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"query": {
 					Name:  pulumi.String("query"),
 					Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
 					Command: pulumi.StringArray{
 						pulumi.String("-addr"),
-						pulumi.Sprintf("%s:6379", nlb.LoadBalancer.DnsName()),
+						pulumi.String("redis:6379"),
 					},
 					Cpu:    pulumi.IntPtr(50),
 					Memory: pulumi.IntPtr(32),
+					Links:  pulumi.ToStringArray([]string{"redis:redis"}),
 				},
 			},
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
@@ -119,7 +70,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2", "query"})...),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "ec2"})...),
 		},
 	}, opts...); err != nil {
 		return nil, err

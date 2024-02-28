@@ -96,7 +96,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
-			NetworkMode: pulumi.StringPtr("none"),
+			NetworkMode: pulumi.StringPtr("bridge"),
 			Family:      e.CommonNamer.DisplayName(255, pulumi.String("tracegen-tcp-ec2")),
 		},
 	}, opts...); err != nil {

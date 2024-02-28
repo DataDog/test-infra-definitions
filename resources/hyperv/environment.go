@@ -41,7 +41,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 }
 
 // Cross Cloud Provider config
-func (p *Environment) InternalRegistry() string {
+func (e *Environment) InternalRegistry() string {
 	return "none"
 }
 

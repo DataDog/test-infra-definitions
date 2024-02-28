@@ -2,10 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -34,22 +35,19 @@ func reportStats(done chan struct{}) {
 	}
 }
 
+// retrieveDDAgentHostECS retrieves the IP address of the ECS agent
+// https://docs.datadoghq.com/containers/amazon_ecs/apm/?tab=ec2metadataendpoint#code
+// We could use the ECS_CONTAINER_METADATA_FILE if the ECS Agent was configured to inject it.
 func retrieveDDAgentHostECS() (string, error) {
-	filePath := os.Getenv("ECS_CONTAINER_METADATA_FILE")
-	fileContent, err := os.ReadFile(filePath)
+	resp, err := http.Get("http://169.254.169.254/latest/meta-data/local-ipv4")
 	if err != nil {
 		return "", err
 	}
-	var metadata struct {
-		HostPrivateIPv4Address string `json:"HostPrivateIPv4Address"`
-	}
-	if err := json.Unmarshal(fileContent, &metadata); err != nil {
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return "", err
 	}
-	if metadata.HostPrivateIPv4Address == "" {
-		return "", fmt.Errorf("HostPrivateIPv4Address is empty")
-	}
-	return metadata.HostPrivateIPv4Address, nil
+	return string(bodyBytes), nil
 }
 
 func main() {
@@ -83,6 +81,9 @@ func main() {
 		host, err := retrieveDDAgentHostECS()
 		if err != nil {
 			panic(fmt.Sprintf("Failed to retrieve DD agent host: %v", err))
+		}
+		if host == "" {
+			panic("Failed to retrieve DD agent host: no IP address found")
 		}
 		os.Setenv("DD_AGENT_HOST", host)
 		opts = append(opts, tracer.WithAgentAddr(host))

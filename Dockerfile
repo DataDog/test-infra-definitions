@@ -7,6 +7,8 @@ ENV GO_VERSION=1.21.5
 ENV GO_SHA=e2bc0b3e4b64111ec117295c088bde5f00eeed1567999ff77bc859d7df70078e
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
+ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
+ARG CI_UPLOADER_VERSION=2.30.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 
@@ -54,6 +56,10 @@ RUN apt-get update -y && \
   # xsltproc is required by libvirt-sdk used in the micro-vms scenario
   xsltproc \
   jq && \
+  # Install the datadog-ci-uploader
+  curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/download/v${CI_UPLOADER_VERSION}/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci" && \
+  echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \
+  chmod +x /usr/local/bin/datadog-ci && \
   # Clean up the lists work
   rm -rf /var/lib/apt/lists/*
 
@@ -87,15 +93,23 @@ RUN curl --retry 10 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSIO
 ARG PULUMI_VERSION
 
 # Install the Pulumi SDK, including the CLI and language runtimes.
-RUN curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
+RUN --mount=type=secret,id=github_token \
+  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+  curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
   mv ~/.pulumi/bin/* /usr/bin
 
 # Install Pulumi plugins
+# The time resource is installed explicitly here instead in go.mod
+# because it's not used directly by this repository, thus go mod tidy
+# would remove it...
 COPY . /tmp/test-infra
-RUN cd /tmp/test-infra && \
+RUN --mount=type=secret,id=github_token \
+  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+  cd /tmp/test-infra && \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
   pulumi --non-interactive plugin install && \
+  pulumi --non-interactive plugin install resource time v0.0.16 && \
   pulumi --non-interactive plugin ls && \
   cd / && \
   rm -rf /tmp/test-infra

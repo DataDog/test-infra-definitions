@@ -81,7 +81,8 @@ type VMCollection struct {
 	vmsets   []vmconfig.VMSet
 	pools    map[vmconfig.PoolType]LibvirtPool
 	fs       map[vmconfig.VMSetID]*LibvirtFilesystem
-	domains  []*Domain
+	domains  map[vmconfig.VMSetID][]*Domain
+	subnets  map[vmconfig.VMSetID]string
 	LibvirtProvider
 }
 
@@ -177,39 +178,51 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 			}
 		}
 
-		vm.domains = append(vm.domains, domains...)
+		vm.domains[set.ID] = append(vm.domains[set.ID], domains...)
 	}
 
 	return waitFor, nil
 }
 
 func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error {
-	var dhcpEntries []interface{}
-	var err error
-
-	for _, d := range vm.domains {
-		dhcpEntries = append(dhcpEntries, d.dhcpEntry)
-
-	}
-
-	network, err := generateNetworkResource(vm.instance.e.Ctx, vm.libvirtProviderFn, depends, vm.instance.instanceNamer, dhcpEntries)
-	if err != nil {
-		return err
-	}
-
-	for _, domain := range vm.domains {
-		domain.domainArgs.NetworkInterfaces = libvirt.DomainNetworkInterfaceArray{
-			libvirt.DomainNetworkInterfaceArgs{
-				NetworkId:    network.ID(),
-				WaitForLease: pulumi.Bool(false),
-			},
+	dhcpEntries := make(map[vmconfig.VMSetID][]interface{})
+	for setID, dls := range vm.domains {
+		for _, domain := range dls {
+			dhcpEntries[setID] = append(dhcpEntries[setID], domain.dhcpEntry)
 		}
 	}
 
-	// set iptable rules for allowing ports to access NFS server
-	_, err = allowNFSPortsForBridge(vm.instance.e.Ctx, vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer)
-	if err != nil {
-		return err
+	for setID, domains := range vm.domains {
+		network, err := generateNetworkResource(
+			vm.instance.e.Ctx,
+			vm.libvirtProviderFn,
+			depends,
+			vm.instance.instanceNamer,
+			dhcpEntries[setID],
+			vm.subnets[setID],
+			setID,
+		)
+		if err != nil {
+			return err
+		}
+
+		for _, domain := range domains {
+			if domain.vmset.ID != setID {
+				continue
+			}
+			domain.domainArgs.NetworkInterfaces = libvirt.DomainNetworkInterfaceArray{
+				libvirt.DomainNetworkInterfaceArgs{
+					NetworkId:    network.ID(),
+					WaitForLease: pulumi.Bool(false),
+				},
+			}
+		}
+
+		// set iptable rules for allowing ports to access NFS server
+		_, err = allowNFSPortsForBridge(vm.instance.e.Ctx, vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer, vm.subnets[setID])
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -273,6 +286,9 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			instance: instance,
 		}
 
+		collection.subnets = make(map[vmconfig.VMSetID]string)
+		collection.domains = make(map[vmconfig.VMSetID][]*Domain)
+
 		// We want to lazily initialize the libvirt provider.
 		// If there is too long a time between the provider being initialized,
 		// which essentially creates a connection with the libvirt daemon, and the provider
@@ -309,17 +325,19 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		}
 		waitFor = append(waitFor, wait...)
 		// setup console logs
-		for _, domain := range collection.domains {
-			if domain.ConsoleType == "file" {
-				createConsoleLogFile, err := createDomainConsoleLog(collection.instance.runner,
-					domain.DomainName,
-					domain.domainNamer.ResourceName("create-console-log", domain.domainID),
-					depends,
-				)
-				if err != nil {
-					return vmCollections, waitFor, err
+		for _, dls := range collection.domains {
+			for _, domain := range dls {
+				if domain.ConsoleType == "file" {
+					createConsoleLogFile, err := createDomainConsoleLog(collection.instance.runner,
+						domain.DomainName,
+						domain.domainNamer.ResourceName("create-console-log", domain.domainID),
+						depends,
+					)
+					if err != nil {
+						return vmCollections, waitFor, err
+					}
+					waitFor = append(waitFor, createConsoleLogFile)
 				}
-				waitFor = append(waitFor, createConsoleLogFile)
 			}
 		}
 	}
@@ -327,7 +345,11 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 	// map domains to ips
 	var domains []*Domain
 	for _, collection := range vmCollections {
-		domains = append(domains, collection.domains...)
+		for _, dls := range collection.domains {
+			for _, domain := range dls {
+				domains = append(domains, domain)
+			}
+		}
 	}
 	// Sort the domains so the ips are mapped deterministically across updates
 	// Otherwise an update could compute the mapping to be different even if nothing
@@ -342,27 +364,41 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 	// Discover subnet to use for the network.
 	// This is done dynamically so we can have concurrent micro-vm groups
 	// active, without the network conflicting.
-	var err error
-	initMicroVMGroupSubnet.Do(func() {
-		microVMGroupSubnet, err = getMicroVMGroupSubnet()
-	})
-	if err != nil {
-		return vmCollections, waitFor, fmt.Errorf("generateNetworkResource: unable to find any free subnet")
-	}
-	ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
-	// The first ip address is derived from the microvm subnet.
-	// The gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
-	// Therefore we call getNextVMIP consecutively to move start from xxx.yyy.zzz.2
-	ip = getNextVMIP(&ip)
-	for _, d := range domains {
-		ip = getNextVMIP(&ip)
-		d.ip = fmt.Sprintf("%s", ip)
-		d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
+	//
+	// Moreover, each vmset has its own subnet, so we need to dynamically
+	// determine free ranges.
+	for _, collection := range vmCollections {
+		var taken []string
+		for _, set := range collection.vmsets {
+			for _, subnet := range collection.subnets {
+				taken = append(taken, subnet)
+			}
+			microVMGroupSubnet, err := getMicroVMGroupSubnet(taken)
+			if err != nil {
+				return vmCollections, waitFor, fmt.Errorf("generateNetworkResource: unable to find any free subnet")
+			}
+			fmt.Printf("subnet: %s\n", microVMGroupSubnet)
+			collection.subnets[set.ID] = microVMGroupSubnet
+
+			ip, _, _ := net.ParseCIDR(microVMGroupSubnet)
+			// The first ip address is derived from the microvm subnet.
+			// The gateway ip address is xxx.yyy.zzz.1. So the first VM should have address xxx.yyy.zzz.2
+			// Therefore we call getNextVMIP consecutively to move start from xxx.yyy.zzz.2
+			ip = getNextVMIP(&ip)
+			for _, d := range domains {
+				if d.vmset.ID != set.ID {
+					continue
+				}
+				ip = getNextVMIP(&ip)
+				d.ip = fmt.Sprintf("%s", ip)
+				d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
+			}
+		}
 	}
 
+	// setup the network for each collection
 	// Network setup has to be done after the dhcp entries have been generated for each domain
 	for _, collection := range vmCollections {
-		// setup the network for each collection
 		if err := collection.SetupCollectionNetwork(waitFor); err != nil {
 			return vmCollections, waitFor, err
 		}
@@ -380,23 +416,25 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 		if err != nil {
 			return libvirtDomains, err
 		}
-		for _, domain := range collection.domains {
-			d, err := libvirt.NewDomain(collection.instance.e.Ctx,
-				domain.domainNamer.ResourceName(domain.domainID),
-				domain.domainArgs,
-				pulumi.Provider(provider),
-				pulumi.ReplaceOnChanges([]string{"*"}),
-				pulumi.DeleteBeforeReplace(true),
-				pulumi.DependsOn(depends),
-				// Pulumi incorrectly detects these as changing everytime.
-				pulumi.IgnoreChanges([]string{"filesystems", "firmware", "nvram"}),
-			)
-			if err != nil {
-				return libvirtDomains, err
-			}
-			domain.lvDomain = d
+		for _, dls := range collection.domains {
+			for _, domain := range dls {
+				d, err := libvirt.NewDomain(collection.instance.e.Ctx,
+					domain.domainNamer.ResourceName(domain.domainID),
+					domain.domainArgs,
+					pulumi.Provider(provider),
+					pulumi.ReplaceOnChanges([]string{"*"}),
+					pulumi.DeleteBeforeReplace(true),
+					pulumi.DependsOn(depends),
+					// Pulumi incorrectly detects these as changing everytime.
+					pulumi.IgnoreChanges([]string{"filesystems", "firmware", "nvram"}),
+				)
+				if err != nil {
+					return libvirtDomains, err
+				}
+				domain.lvDomain = d
 
-			libvirtDomains = append(libvirtDomains, d)
+				libvirtDomains = append(libvirtDomains, d)
+			}
 		}
 	}
 

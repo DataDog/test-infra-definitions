@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/docker"
 
@@ -49,11 +51,16 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(options ...Option) (*Params, error) {
+func NewParams(e *config.CommonEnvironment, options ...Option) (*Params, error) {
 	version := &Params{
 		AgentServiceEnvironment: pulumi.Map{},
 		EnvironmentVariables:    pulumi.StringMap{},
 	}
+
+	if e.PipelineID() != "" && e.CommitSHA() != "" {
+		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+	}
+
 	return common.ApplyOption(version, options)
 }
 

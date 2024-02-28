@@ -102,9 +102,10 @@ func Run(ctx *pulumi.Context) error {
 			}
 		}
 		apiKeyParam, err = ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
-			Name:  awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
-			Type:  ssm.ParameterTypeSecureString,
-			Value: awsEnv.AgentAPIKey(),
+			Name:      awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
+			Type:      ssm.ParameterTypeSecureString,
+			Overwrite: pulumi.Bool(true),
+			Value:     awsEnv.AgentAPIKey(),
 		}, awsEnv.WithProviders(config.ProviderAWS))
 		if err != nil {
 			return err

@@ -29,6 +29,7 @@ type ddInfra struct {
 	defaultARMInstanceType     string
 	defaultInstanceStorageSize int
 	defaultShutdownBehavior    string
+	defaultInternalRegistry    string
 
 	ecs ddInfraECS
 	eks ddInfraEKS
@@ -37,6 +38,8 @@ type ddInfra struct {
 type ddInfraECS struct {
 	execKMSKeyID                  string
 	fargateFakeintakeClusterArn   string
+	fakeintakeLBListenerArn       string
+	fakeintakeLBBaseHostHeader    string
 	taskExecutionRole             string
 	taskRole                      string
 	instanceProfile               string
@@ -87,6 +90,7 @@ func sandboxDefault() environmentDefault {
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
@@ -127,10 +131,13 @@ func agentSandboxDefault() environmentDefault {
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
 				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs",
+				fakeintakeLBListenerArn:     "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106",
+				fakeintakeLBBaseHostHeader:  ".lb1.fi.sandbox.dda-testing.com",
 				taskExecutionRole:           "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",
 				taskRole:                    "arn:aws:iam::376334461865:role/ecsTaskRole",
 				instanceProfile:             "arn:aws:iam::376334461865:instance-profile/ecsInstanceRole",
@@ -167,10 +174,13 @@ func agentQADefault() environmentDefault {
 			defaultARMInstanceType:     "t4g.medium",
 			defaultInstanceStorageSize: 200,
 			defaultShutdownBehavior:    "stop",
+			defaultInternalRegistry:    "669783387624.dkr.ecr.us-east-1.amazonaws.com",
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
 				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs",
+				fakeintakeLBListenerArn:     "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake/de7956e70776e471/ddfa738893c2dc0e",
+				fakeintakeLBBaseHostHeader:  ".lb1.fi.qa.dda-testing.com",
 				taskExecutionRole:           "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
 				taskRole:                    "arn:aws:iam::669783387624:role/ecsTaskRole",
 				instanceProfile:             "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole",

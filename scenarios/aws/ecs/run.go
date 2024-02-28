@@ -8,10 +8,12 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
+
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -143,6 +145,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if _, err := prometheus.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
+		}
+
+		if _, err := tracegen.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
 			return err
 		}
 	}

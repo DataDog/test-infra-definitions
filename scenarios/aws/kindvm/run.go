@@ -137,7 +137,7 @@ agents:
 		}
 
 		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel
-		if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-tracegen", nil); err != nil {
+		if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-tracegen"); err != nil {
 			return err
 		}
 

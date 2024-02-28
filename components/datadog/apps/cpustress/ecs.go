@@ -33,7 +33,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"stress-ng": {
 					Name:  pulumi.String("stress-ng"),
-					Image: pulumi.String("ghcr.io/colinianking/stress-ng"),
+					Image: pulumi.String(getStressNGImage()),
 					Command: pulumi.StringArray{
 						pulumi.String("--cpu=1"),
 						pulumi.String("--cpu-load=15"),

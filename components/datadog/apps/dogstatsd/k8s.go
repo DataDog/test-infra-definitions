@@ -151,6 +151,13 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 										},
 									},
 								},
+								&corev1.EnvVarArgs{
+									// This test should only make sure that when DD_ENTITY_ID is set, pod tags are retrieved
+									// A change in agent 7.53 will make this test fail as it will be able to retrieve container tags.
+									// https://github.com/DataDog/datadog-go/blob/208eafd4be2b9752131e66446497244328956b4d/statsd/statsd.go#L104C28-L104C55
+									Name:  pulumi.String("DD_ORIGIN_DETECTION_ENABLED"),
+									Value: pulumi.String("false"),
+								},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{

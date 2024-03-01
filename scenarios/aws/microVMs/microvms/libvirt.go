@@ -382,7 +382,6 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 			if err != nil {
 				return vmCollections, waitFor, fmt.Errorf("generateNetworkResource: unable to find any free subnet")
 			}
-			fmt.Printf("subnet: %s\n", microVMGroupSubnet)
 			collection.subnets[set.ID] = microVMGroupSubnet
 
 			ip, _, _ := net.ParseCIDR(microVMGroupSubnet)

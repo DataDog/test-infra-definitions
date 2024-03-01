@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
-	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -186,7 +185,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 }
 
 func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error {
-	if runtime.GOOS == "darwin" {
+	if vm.instance.IsMacOSHost() {
 		// We have no network setup on macOS. We use the native vmnet framework as libvirt does not support macOS fully.
 		return nil
 	}
@@ -395,7 +394,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 				if d.vmset.ID != set.ID {
 					continue
 				}
-				if runtime.GOOS == "darwin" && set.Arch == LocalVMSet {
+				if collection.instance.IsMacOSHost() {
 					// We have no network setup on macOS. We use the native vmnet framework
 					// for networking, which is not managed by libvirt but by QEMU. In order to resolve
 					// the IPs, we need to wait and watch the DHCP leases in another goroutine.
@@ -412,7 +411,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 	// setup the network for each collection
 	// Network setup has to be done after the dhcp entries have been generated for each domain
 	for _, collection := range vmCollections {
-		if collection.instance.Arch == LocalVMSet && runtime.GOOS == "darwin" {
+		if collection.instance.IsMacOSHost() {
 			continue
 		}
 

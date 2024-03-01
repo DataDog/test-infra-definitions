@@ -37,6 +37,10 @@ type Instance struct {
 	libvirtURI    pulumi.StringOutput
 }
 
+func (i *Instance) IsMacOSHost() bool {
+	return runtime.GOOS == "darwin" && i.Arch == LocalVMSet
+}
+
 type sshKeyPair struct {
 	privateKey string
 	publicKey  string

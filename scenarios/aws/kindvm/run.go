@@ -15,6 +15,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
@@ -29,7 +30,8 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	vm, err := ec2.NewVM(awsEnv, "kind")
+	osDesc := os.DescriptorFromString(awsEnv.InfraOSDescriptor(), os.UbuntuDefault)
+	vm, err := ec2.NewVM(awsEnv, "kind", ec2.WithOS(osDesc))
 	if err != nil {
 		return err
 	}

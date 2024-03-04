@@ -182,7 +182,10 @@ func parseBootpDHCPLeases() ([]dhcpLease, error) {
 	var leases []dhcpLease
 
 	file, err := os.Open("/var/db/dhcpd_leases")
-	if err != nil {
+	if os.IsNotExist(err) {
+		return leases, nil
+		// Do not return error if file was not found, it only gets created when a lease is assigned.
+	} else if err != nil {
 		return nil, err
 	}
 	defer file.Close()

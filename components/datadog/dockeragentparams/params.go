@@ -130,10 +130,10 @@ func withIntakeHostname(hostname pulumi.StringInput, shouldSkipSSLCertificateVal
 	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
 		envVars := pulumi.Map{
-			"DD_DD_URL":                                 pulumi.Sprintf("http://%s:80", hostname),
+			"DD_DD_URL":                                 pulumi.Sprintf("https://%s", hostname),
 			"DD_LOGS_CONFIG_DD_URL":                     pulumi.Sprintf("%s:80", hostname),
-			"DD_PROCESS_CONFIG_PROCESS_DD_URL":          pulumi.Sprintf("http://%s:80", hostname),
-			"DD_APM_DD_URL":                             pulumi.Sprintf("http://%s:80", hostname),
+			"DD_PROCESS_CONFIG_PROCESS_DD_URL":          pulumi.Sprintf("https://%s", hostname),
+			"DD_APM_DD_URL":                             pulumi.Sprintf("https://%s", hostname),
 			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldSkipSSLCertificateValidation),
 			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldSkipSSLCertificateValidation),
 			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldSkipSSLCertificateValidation),

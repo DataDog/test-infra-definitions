@@ -13,41 +13,25 @@ ARG CI_UPLOADER_VERSION=2.30.1
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 
 # Install deps all in one step
-RUN apt-get update -y && \
-  apt-get install -y \
-  apt-transport-https \
-  build-essential \
-  ca-certificates \
-  curl \
-  git \
-  gnupg \
-  software-properties-common \
-  wget \
-  unzip && \
-  # Get all of the signatures we need all at once.
-  curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add - && \
-  curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add - && \
-  curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add - && \
-  curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-  curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add - && \
-  # IAM Authenticator for EKS
-  curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
-  chmod +x /usr/bin/aws-iam-authenticator && \
-  # AWS v2 cli
-  curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
-  unzip -q awscliv2.zip && \
-  ./aws/install && \
-  rm -rf aws && \
-  rm awscliv2.zip && \
-  # Add additional apt repos all at once
-  echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"      | tee /etc/apt/sources.list.d/docker.list           && \
-  echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"               | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
-  echo "deb http://apt.kubernetes.io/ kubernetes-xenial main"                                     | tee /etc/apt/sources.list.d/kubernetes.list       && \
-  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/azure.list            && \
-  # Install second wave of dependencies
-  apt-get update -y && \
-  apt-get install -y \
-  # Pin azure-cli to 2.33.1 as workaround for https://github.com/pulumi/pulumi-docker-containers/issues/106
+RUN apt-get update -y
+RUN apt-get install -y apt-transport-https build-essential ca-certificates curl git gnupg software-properties-common wget unzip
+RUN curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add -
+RUN curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add -
+RUN curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add -
+RUN curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+RUN curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add -
+RUN curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64
+RUN chmod +x /usr/bin/aws-iam-authenticator
+RUN curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+RUN unzip -q awscliv2.zip
+RUN ./aws/install
+RUN rm -rf aws
+RUN rm awscliv2.zip
+RUN echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"      | tee /etc/apt/sources.list.d/docker.list
+RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"               | tee /etc/apt/sources.list.d/google-cloud-sdk.list
+RUN echo "deb http://apt.kubernetes.io/ kubernetes-xenial main"                                     | tee /etc/apt/sources.list.d/kubernetes.list
+RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/azure.list
+RUN apt-get update -y && apt-get install -y \
   "azure-cli=2.33.1-1~bullseye" \
   docker-ce \
   google-cloud-sdk \
@@ -55,13 +39,11 @@ RUN apt-get update -y && \
   kubectl \
   # xsltproc is required by libvirt-sdk used in the micro-vms scenario
   xsltproc \
-  jq && \
-  # Install the datadog-ci-uploader
-  curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/download/v${CI_UPLOADER_VERSION}/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci" && \
-  echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \
-  chmod +x /usr/local/bin/datadog-ci && \
-  # Clean up the lists work
-  rm -rf /var/lib/apt/lists/*
+  jq
+RUN curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/download/v${CI_UPLOADER_VERSION}/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci"
+RUN echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check
+RUN chmod +x /usr/local/bin/datadog-ci
+RUN rm -rf /var/lib/apt/lists/*
 
 # Install Go
 RUN curl --retry 10 -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.linux-amd64.tar.gz && \

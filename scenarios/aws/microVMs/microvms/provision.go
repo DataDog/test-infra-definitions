@@ -142,6 +142,19 @@ func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer
 	return waitFor, nil
 }
 
+func enableNFSConnKiller(runner *Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("systemctl enable --now kill-dead-nfs-connections.timer"),
+		Sudo:   true,
+	}
+	done, err := runner.Command(namer.ResourceName("enable-nfs-conn-killer"), &args, pulumi.DependsOn(depends))
+	if err != nil {
+		return nil, err
+	}
+
+	return []pulumi.Resource{done}, nil
+}
+
 // This function provisions the metal instance for setting up libvirt based micro-vms.
 func provisionMetalInstance(instance *Instance) ([]pulumi.Resource, error) {
 	if instance.Arch == LocalVMSet {
@@ -293,6 +306,14 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 					return nil, err
 				}
 				microVMRunner := NewRunner(WithRemoteRunner(remoteRunner))
+
+				if collection.instance.IsMacOSHost() {
+					nfsConnKillerDone, err := enableNFSConnKiller(microVMRunner, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+					if err != nil {
+						return nil, err
+					}
+					waitFor = append(waitFor, nfsConnKillerDone...)
+				}
 
 				mountDisksDone, err := mountMicroVMDisks(microVMRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 				if err != nil {

@@ -20,7 +20,6 @@ RUN curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              
 RUN curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add -
 RUN curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 RUN curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add -
-RUN curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 RUN curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64
 RUN chmod +x /usr/bin/aws-iam-authenticator
 RUN curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
@@ -32,6 +31,7 @@ RUN echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_releas
 RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"               | tee /etc/apt/sources.list.d/google-cloud-sdk.list
 RUN echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list
 RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/azure.list
+RUN curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 RUN apt-get update -y && apt-get install -y azure-cli
 RUN apt-get update -y && apt-get install -y docker-ce
 RUN apt-get update -y && apt-get install -y google-cloud-sdk

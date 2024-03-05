@@ -14,7 +14,9 @@ type K8sComponent struct {
 	pulumi.ResourceState
 }
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+// K8sAppDefinitions creates a Kubernetes deployment annotated with a specific
+// lib version and another one without the annotation.
+func K8sAppDefinitions(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
@@ -23,7 +25,6 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
-
 	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespace),
@@ -35,40 +36,63 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, pulumi.Parent(ns))
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "mutated", &appsv1.DeploymentArgs{
+	if err = k8sDeployment(e, namespace, true, opts...); err != nil {
+		return nil, err
+	}
+
+	if err = k8sDeployment(e, namespace, false, opts...); err != nil {
+		return nil, err
+	}
+
+	return k8sComponent, nil
+}
+
+func k8sDeployment(e config.CommonEnvironment, namespace string, withLibInjectionAnnotation bool, opts ...pulumi.ResourceOption) error {
+	name := "mutated"
+	annotations := pulumi.StringMap{}
+	if withLibInjectionAnnotation {
+		name = "mutated-with-lib-annotation"
+		annotations["admission.datadoghq.com/python-lib.version"] = pulumi.String("v2.7.0")
+	}
+
+	if _, err := appsv1.NewDeployment(e.Ctx, name, &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("mutated"),
+			Name:      pulumi.String(name),
 			Namespace: pulumi.String(namespace),
-			Labels:    pulumi.StringMap{"app": pulumi.String("mutated")},
+			Labels:    pulumi.StringMap{"app": pulumi.String(name)},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
 			Replicas: pulumi.Int(1),
 			Selector: &metav1.LabelSelectorArgs{
-				MatchLabels: pulumi.StringMap{"app": pulumi.String("mutated")},
+				MatchLabels: pulumi.StringMap{"app": pulumi.String(name)},
 			},
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app":                             pulumi.String("mutated"),
+						"app":                             pulumi.String(name),
 						"admission.datadoghq.com/enabled": pulumi.String("true"),
 						"tags.datadoghq.com/env":          pulumi.String("e2e"),
 						"tags.datadoghq.com/service":      pulumi.String("mutated"),
 						"tags.datadoghq.com/version":      pulumi.String("v0.0.1"),
 					},
+					Annotations: annotations,
 				},
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
-							Name:  pulumi.String("mutated"),
-							Image: pulumi.String("ghcr.io/datadog/apps-mutated:main"),
+							Name:  pulumi.String(name),
+							Image: pulumi.String("python:3.12-slim"),
+							Command: pulumi.ToStringArray([]string{
+								"python", "-c", "while True: import time; time.sleep(60)",
+							}),
 						},
 					},
 				},
 			},
 		},
 	}, opts...); err != nil {
-		return nil, err
+		return err
 	}
 
-	return k8sComponent, nil
+	return nil
 }

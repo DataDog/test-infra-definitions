@@ -275,7 +275,7 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinitions(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
 				return err
 			}
 		}

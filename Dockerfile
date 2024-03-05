@@ -14,7 +14,7 @@ ENV PULUMI_SKIP_UPDATE_CHECK=true
 
 # Install deps all in one step
 RUN apt-get update -y
-RUN apt-get install -y apt-transport-https build-essential ca-certificates curl git gnupg software-properties-common wget unzip
+RUN apt-get install -y apt-transport-https build-essential ca-certificates curl git gnupg software-properties-common wget unzip gpg
 RUN curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add -
 RUN curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add -
 RUN curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add -

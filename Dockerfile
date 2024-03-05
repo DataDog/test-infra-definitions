@@ -31,15 +31,14 @@ RUN echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_releas
 RUN echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"               | tee /etc/apt/sources.list.d/google-cloud-sdk.list
 RUN echo "deb http://apt.kubernetes.io/ kubernetes-xenial main"                                     | tee /etc/apt/sources.list.d/kubernetes.list
 RUN echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/azure.list
-RUN apt-get update -y && apt-get install -y \
-  "azure-cli=2.33.1-1~bullseye" \
-  docker-ce \
-  google-cloud-sdk \
-  google-cloud-sdk-gke-gcloud-auth-plugin \
-  kubectl \
-  # xsltproc is required by libvirt-sdk used in the micro-vms scenario
-  xsltproc \
-  jq
+RUN apt-get update -y && apt-get install -y "azure-cli=2.33.1-1~bullseye"
+RUN apt-get update -y && apt-get install -y docker-ce
+RUN apt-get update -y && apt-get install -y google-cloud-sdk
+RUN apt-get update -y && apt-get install -y google-cloud-sdk-gke-gcloud-auth-plugin
+RUN apt-get update -y && apt-get install -y kubectl
+# xsltproc is required by libvirt-sdk used in the micro-vms scenario
+RUN apt-get update -y && apt-get install -y xsltproc
+RUN apt-get update -y && apt-get install -y jq
 RUN curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/download/v${CI_UPLOADER_VERSION}/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci"
 RUN echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check
 RUN chmod +x /usr/local/bin/datadog-ci

@@ -14,13 +14,13 @@ ENV PULUMI_SKIP_UPDATE_CHECK=true
 
 # Install deps all in one step
 RUN apt-get update -y
-RUN apt-get install -y apt-transport-https build-essential ca-certificates curl git gnupg software-properties-common wget unzip gpg
+RUN apt-get install -y apt-transport-https build-essential ca-certificates curl git gnupg software-properties-common wget unzip
 RUN curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add -
 RUN curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add -
 RUN curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add -
 RUN curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
 RUN curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add -
-RUN curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | apt-key add -
+RUN curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 RUN curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64
 RUN chmod +x /usr/bin/aws-iam-authenticator
 RUN curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip

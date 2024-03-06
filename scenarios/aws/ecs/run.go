@@ -13,8 +13,7 @@ import (
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
-
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ssm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

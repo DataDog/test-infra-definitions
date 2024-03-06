@@ -7,9 +7,12 @@ import (
 	"context"
 	"reflect"
 
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/utilities"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
+
+var _ = utilities.GetEnvOrDefault
 
 // DatadogMetric allows autoscaling on arbitrary Datadog query
 type DatadogMetricType struct {
@@ -33,6 +36,8 @@ type DatadogMetricSpec struct {
 	MaxAge *string `pulumi:"maxAge"`
 	// Query is the raw datadog query
 	Query *string `pulumi:"query"`
+	// TimeWindow provides the time window for the metric query, defaults to MaxAge.
+	TimeWindow *string `pulumi:"timeWindow"`
 }
 
 // DatadogMetricSpecInput is an input type that accepts DatadogMetricSpecArgs and DatadogMetricSpecOutput values.
@@ -54,6 +59,8 @@ type DatadogMetricSpecArgs struct {
 	MaxAge pulumi.StringPtrInput `pulumi:"maxAge"`
 	// Query is the raw datadog query
 	Query pulumi.StringPtrInput `pulumi:"query"`
+	// TimeWindow provides the time window for the metric query, defaults to MaxAge.
+	TimeWindow pulumi.StringPtrInput `pulumi:"timeWindow"`
 }
 
 func (DatadogMetricSpecArgs) ElementType() reflect.Type {
@@ -149,6 +156,11 @@ func (o DatadogMetricSpecOutput) Query() pulumi.StringPtrOutput {
 	return o.ApplyT(func(v DatadogMetricSpec) *string { return v.Query }).(pulumi.StringPtrOutput)
 }
 
+// TimeWindow provides the time window for the metric query, defaults to MaxAge.
+func (o DatadogMetricSpecOutput) TimeWindow() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v DatadogMetricSpec) *string { return v.TimeWindow }).(pulumi.StringPtrOutput)
+}
+
 type DatadogMetricSpecPtrOutput struct{ *pulumi.OutputState }
 
 func (DatadogMetricSpecPtrOutput) ElementType() reflect.Type {
@@ -200,6 +212,16 @@ func (o DatadogMetricSpecPtrOutput) Query() pulumi.StringPtrOutput {
 			return nil
 		}
 		return v.Query
+	}).(pulumi.StringPtrOutput)
+}
+
+// TimeWindow provides the time window for the metric query, defaults to MaxAge.
+func (o DatadogMetricSpecPtrOutput) TimeWindow() pulumi.StringPtrOutput {
+	return o.ApplyT(func(v *DatadogMetricSpec) *string {
+		if v == nil {
+			return nil
+		}
+		return v.TimeWindow
 	}).(pulumi.StringPtrOutput)
 }
 

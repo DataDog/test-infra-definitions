@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx"
 	"github.com/pulumi/pulumi-command/sdk/go/command"
-	"github.com/pulumi/pulumi-eks/sdk/go/eks"
+	"github.com/pulumi/pulumi-eks/sdk/v2/go/eks"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"

@@ -26,8 +26,7 @@ func reportStats(done chan struct{}) {
 		select {
 		case <-done:
 			return
-		default:
-			time.Sleep(5 * time.Second)
+		case <-time.After(5 * time.Second):
 			tc := tracecount.Swap(0)
 			sc := spancount.Swap(0)
 			fmt.Printf("Finished %d traces/s, %d spans/second.\n", tc/5, sc/5)
@@ -99,6 +98,7 @@ func main() {
 		<-sigs
 		close(done)
 		fmt.Println("Exiting tracegen.")
+		time.Sleep(10 * time.Second) // alow time for other goroutines to shut down.
 		os.Exit(0)
 	}()
 
@@ -120,6 +120,8 @@ func main() {
 	for {
 		select {
 		case <-done:
+			sp := tracer.StartSpan("poison_pill")
+			sp.Finish()
 			return
 		default:
 			istart := time.Now()

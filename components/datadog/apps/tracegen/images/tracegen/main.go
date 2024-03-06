@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -26,8 +27,7 @@ func reportStats(done chan struct{}) {
 		select {
 		case <-done:
 			return
-		default:
-			time.Sleep(5 * time.Second)
+		case <-time.After(5 * time.Second):
 			tc := tracecount.Swap(0)
 			sc := spancount.Swap(0)
 			fmt.Printf("Finished %d traces/s, %d spans/second.\n", tc/5, sc/5)
@@ -99,6 +99,7 @@ func main() {
 		<-sigs
 		close(done)
 		fmt.Println("Exiting tracegen.")
+		time.Sleep(10 * time.Second) // alow time for other goroutines to shut down.
 		os.Exit(0)
 	}()
 
@@ -117,14 +118,15 @@ func main() {
 	testStart := time.Now()
 	go reportStats(done)
 	fmt.Printf("Sending %v Traces/s, each with %d spans.\n", *tps, *spt)
+traceloop:
 	for {
 		select {
 		case <-done:
-			return
+			break traceloop
 		default:
 			istart := time.Now()
 			if *testDuration > 0 && istart.After(testStart.Add(*testDuration)) {
-				return
+				break traceloop
 			}
 			lim.WaitN(context.Background(), tperloop)
 			for sel := 0; sel < tperloop; sel++ {
@@ -137,6 +139,8 @@ func main() {
 			}
 		}
 	}
+	sp := tracer.StartSpan("poison_pill", tracer.Tag(ext.ManualKeep, true))
+	sp.Finish()
 }
 
 // genChain generates a trace with spans count of spans in it.

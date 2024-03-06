@@ -103,7 +103,7 @@ func mountMicroVMDisks(runner *Runner, disks []resources.DomainDisk, namer namer
 		}
 
 		args := command.Args{
-			Create: pulumi.Sprintf("mkdir %[1]s && mount %[2]s %[1]s", d.Mountpoint, d.Target),
+			Create: pulumi.Sprintf("mkdir -p %[1]s && mount %[2]s %[1]s", d.Mountpoint, d.Target),
 		}
 
 		done, err := runner.Command(namer.ResourceName("mount-disk", fsPathToLibvirtResource(d.Target)), &args, pulumi.DependsOn(depends))

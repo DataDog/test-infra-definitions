@@ -5,8 +5,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -138,7 +139,7 @@ traceloop:
 			}
 		}
 	}
-	sp := tracer.StartSpan("poison_pill")
+	sp := tracer.StartSpan("poison_pill", tracer.Tag(ext.ManualKeep, true))
 	sp.Finish()
 }
 

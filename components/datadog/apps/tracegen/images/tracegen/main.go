@@ -117,16 +117,15 @@ func main() {
 	testStart := time.Now()
 	go reportStats(done)
 	fmt.Printf("Sending %v Traces/s, each with %d spans.\n", *tps, *spt)
+traceloop:
 	for {
 		select {
 		case <-done:
-			sp := tracer.StartSpan("poison_pill")
-			sp.Finish()
-			return
+			break traceloop
 		default:
 			istart := time.Now()
 			if *testDuration > 0 && istart.After(testStart.Add(*testDuration)) {
-				return
+				break traceloop
 			}
 			lim.WaitN(context.Background(), tperloop)
 			for sel := 0; sel < tperloop; sel++ {
@@ -139,6 +138,8 @@ func main() {
 			}
 		}
 	}
+	sp := tracer.StartSpan("poison_pill")
+	sp.Finish()
 }
 
 // genChain generates a trace with spans count of spans in it.

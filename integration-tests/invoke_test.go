@@ -52,18 +52,23 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 	t.Helper()
 	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm with docker")
-	var cmdStdOut, cmdStdErr bytes.Buffer
+	var stdOut, stdErr bytes.Buffer
 
 	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
-	createCmd.Stdout = &cmdStdOut
-	createCmd.Stderr = &cmdStdErr
+	createCmd.Stdout = &stdOut
+	createCmd.Stderr = &stdErr
 	err := createCmd.Run()
-	assert.NoError(t, err, "Error found creating docker vm.\n   stdout: %s\n  stderr: %s", cmdStdOut.String(), cmdStdErr.String())
+	assert.NoError(t, err, "Error found creating docker vm.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
+
+	stdOut.Reset()
+	stdErr.Reset()
 
 	t.Log("destroying vm with docker")
 	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
-	destroyOutput, err := destroyCmd.Output()
-	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+	destroyCmd.Stdout = &stdOut
+	destroyCmd.Stderr = &stdErr
+	err = destroyCmd.Run()
+	require.NoError(t, err, "Error found destroying stack.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
 }
 
 //go:embed testfixture/config.yaml

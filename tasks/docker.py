@@ -82,12 +82,25 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
         pyperclip.copy(command)
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_docker(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "yes": doc.yes,
+        "use_aws_vault": doc.use_aws_vault,
+    }
+)
+def destroy_docker(
+    ctx: Context,
+    config_path: Optional[str] = None,
+    stack_name: Optional[str] = None,
+    yes: Optional[bool] = False,
+    use_aws_vault: Optional[bool] = True,
+):
     """
     Destroy an environment created by invoke create_docker.
     """
-    destroy(ctx, scenario_name, stack_name, force_yes=yes)
+    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
 
 
 def _get_architecture(architecture: Optional[str]) -> str:

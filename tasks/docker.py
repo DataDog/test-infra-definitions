@@ -61,10 +61,10 @@ def create_docker(
     if interactive:
         tool.notify(ctx, "Your Docker environment is now created")
 
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name, interactive)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     remoteHost = tool.RemoteHost("aws-vm", outputs)
     host = remoteHost.host
@@ -77,8 +77,9 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     )
     print(f"If you want to use docker context, you can run the following commands \n\n{command}")
 
-    input("Press a key to copy command to clipboard...")
-    pyperclip.copy(command)
+    if copy_to_clipboard:
+        input("Press a key to copy command to clipboard...")
+        pyperclip.copy(command)
 
 
 @task(help={"stack_name": doc.stack_name, "yes": doc.yes})

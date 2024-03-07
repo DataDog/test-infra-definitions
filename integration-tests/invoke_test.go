@@ -64,7 +64,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 	stdErr.Reset()
 
 	t.Log("destroying vm with docker")
-	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	destroyCmd.Stdout = &stdOut
 	destroyCmd.Stderr = &stdErr
 	err = destroyCmd.Run()

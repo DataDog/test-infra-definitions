@@ -79,8 +79,14 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"dogstatsd": {
-					Name:   pulumi.String("dogstatsd"),
-					Image:  pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+					Name:  pulumi.String("dogstatsd"),
+					Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+					Environment: ecs.TaskDefinitionKeyValuePairArray{
+						ecs.TaskDefinitionKeyValuePairArgs{
+							Name:  pulumi.StringPtr("ECS_AGENT_HOST"),
+							Value: pulumi.StringPtr("true"),
+						},
+					},
 					Cpu:    pulumi.IntPtr(10),
 					Memory: pulumi.IntPtr(32),
 				},

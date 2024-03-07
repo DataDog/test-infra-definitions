@@ -400,7 +400,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 					d.ip = d.mac.ApplyT(waitForBootpDHCPLeases).(pulumi.StringOutput)
 				} else {
 					ip = getNextVMIP(&ip)
-					d.ip = pulumi.Sprintf("%s", ip)
+					d.ip = pulumi.Sprintf("%s", ip.String()) // Calling .String() is important, if we don't do that pulumi keeps the reference to IP (a byte array) and not the value itself
 					d.dhcpEntry = generateDHCPEntry(d.mac, d.ip, d.domainID)
 				}
 			}

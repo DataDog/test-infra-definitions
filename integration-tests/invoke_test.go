@@ -52,9 +52,13 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 	t.Helper()
 	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm with docker")
+	var cmdStdOut, cmdStdErr bytes.Buffer
+
 	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
-	createOutput, err := createCmd.Output()
-	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+	createCmd.Stdout = &cmdStdOut
+	createCmd.Stderr = &cmdStdErr
+	err := createCmd.Run()
+	assert.NoError(t, err, "Error found creating docker vm.\n   stdout: %s\n  stderr: %s", cmdStdOut.String(), cmdStdErr.String())
 
 	t.Log("destroying vm with docker")
 	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)

@@ -21,6 +21,7 @@ scenario_name = "aws/dockervm"
         "architecture": doc.architecture,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
+        "interactive": doc.interactive,
     }
 )
 def create_docker(
@@ -32,6 +33,7 @@ def create_docker(
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
+    interactive: Optional[bool] = True,
 ):
     """
     Create a docker environment.
@@ -53,7 +55,8 @@ def create_docker(
         extra_flags=extra_flags,
     )
 
-    tool.notify(ctx, "Your Docker environment is now created")
+    if interactive:
+        tool.notify(ctx, "Your Docker environment is now created")
 
     _show_connection_message(ctx, full_stack_name)
 

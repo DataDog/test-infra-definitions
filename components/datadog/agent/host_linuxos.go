@@ -35,7 +35,7 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		commandLine := strings.Join(testEnvVars, " ")
 
 		return fmt.Sprintf(
-			`curl --retry 10 -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v  -o install-script.sh && for i in 1 2 3; do DD_API_KEY=%%s %v bash install-script.sh  && break || sleep 2 && done`,
+			`curl --retry 10 -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v  -o install-script.sh && for i in 1 2 3; do DD_API_KEY=%%s %v bash install-script.sh  && break || sleep 2; done`,
 			"install_script_agent7.sh",
 			commandLine), nil
 	}

@@ -7,6 +7,8 @@ ENV GO_VERSION=1.21.5
 ENV GO_SHA=e2bc0b3e4b64111ec117295c088bde5f00eeed1567999ff77bc859d7df70078e
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
+ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
+ARG CI_UPLOADER_VERSION=2.30.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 
@@ -28,6 +30,7 @@ RUN apt-get update -y && \
   curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add - && \
   curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
   curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add - && \
+  curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /usr/share/keyrings/kubernetes-archive-keyring.gpg && \
   # IAM Authenticator for EKS
   curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
@@ -38,15 +41,14 @@ RUN apt-get update -y && \
   rm -rf aws && \
   rm awscliv2.zip && \
   # Add additional apt repos all at once
-  echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"      | tee /etc/apt/sources.list.d/docker.list           && \
-  echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"               | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
-  echo "deb http://apt.kubernetes.io/ kubernetes-xenial main"                                     | tee /etc/apt/sources.list.d/kubernetes.list       && \
-  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/azure.list            && \
+  echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"                               | tee /etc/apt/sources.list.d/docker.list           && \
+  echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                        | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
+  echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list && \
+  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main"                          | tee /etc/apt/sources.list.d/azure.list            && \
   # Install second wave of dependencies
   apt-get update -y && \
   apt-get install -y \
-  # Pin azure-cli to 2.33.1 as workaround for https://github.com/pulumi/pulumi-docker-containers/issues/106
-  "azure-cli=2.33.1-1~bullseye" \
+  azure-cli \
   docker-ce \
   google-cloud-sdk \
   google-cloud-sdk-gke-gcloud-auth-plugin \
@@ -55,7 +57,8 @@ RUN apt-get update -y && \
   xsltproc \
   jq && \
   # Install the datadog-ci-uploader
-  curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/latest/download/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci" && \
+  curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/download/v${CI_UPLOADER_VERSION}/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci" && \
+  echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \
   chmod +x /usr/local/bin/datadog-ci && \
   # Clean up the lists work
   rm -rf /var/lib/apt/lists/*

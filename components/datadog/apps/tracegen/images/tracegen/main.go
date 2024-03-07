@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -33,6 +35,21 @@ func reportStats(done chan struct{}) {
 	}
 }
 
+// retrieveDDAgentHostECS retrieves the IP address of the ECS agent
+// https://docs.datadoghq.com/containers/amazon_ecs/apm/?tab=ec2metadataendpoint#code
+// We could use the ECS_CONTAINER_METADATA_FILE if the ECS Agent was configured to inject it.
+func retrieveDDAgentHostECS() (string, error) {
+	resp, err := http.Get("http://169.254.169.254/latest/meta-data/local-ipv4")
+	if err != nil {
+		return "", err
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(bodyBytes), nil
+}
+
 func main() {
 	tps := flag.Float64("tps", 1, "Target number of traces to generate per second.")
 	spt := flag.Uint64("spt", 2, "Number of spans to put in each trace. (>=1)")
@@ -57,6 +74,19 @@ func main() {
 		if err != nil {
 			panic(fmt.Sprintf("Invalid TRACEGEN_TESTTIME=%v: %v", v, err))
 		}
+	}
+
+	var opts []tracer.StartOption
+	if v, ok := os.LookupEnv("ECS_AGENT_HOST"); ok && v == "true" {
+		host, err := retrieveDDAgentHostECS()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to retrieve DD agent host: %v", err))
+		}
+		if host == "" {
+			panic("Failed to retrieve DD agent host: no IP address found")
+		}
+		os.Setenv("DD_AGENT_HOST", host)
+		opts = append(opts, tracer.WithAgentAddr(host))
 	}
 
 	tracer.Start()

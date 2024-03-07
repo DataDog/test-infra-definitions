@@ -40,7 +40,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
-			NetworkMode: pulumi.StringPtr("bridge"),
+			NetworkMode: pulumi.StringPtr(params.NetworkMode),
 			PidMode:     pulumi.StringPtr("host"),
 			Family:      e.CommonNamer.DisplayName(255, pulumi.String("datadog-agent-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
@@ -86,6 +86,14 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 			},
 		},
 		Environment: append(append(ecs.TaskDefinitionKeyValuePairArray{
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_APM_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_APM_NON_LOCAL_TRAFFIC"),
+				Value: pulumi.StringPtr("true"),
+			},
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
 				Value: pulumi.StringPtr("high"),

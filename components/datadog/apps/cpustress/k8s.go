@@ -61,7 +61,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
 							Name:  pulumi.String("stress-ng"),
-							Image: pulumi.String("ghcr.io/colinianking/stress-ng"),
+							Image: pulumi.String(getStressNGImage()),
 							Args: pulumi.StringArray{
 								pulumi.String("--cpu=1"),
 								pulumi.String("--cpu-load=15"),

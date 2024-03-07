@@ -22,6 +22,7 @@ scenario_name = "aws/dockervm"
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
+        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def create_docker(
@@ -34,6 +35,7 @@ def create_docker(
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
+    use_aws_vault: Optional[bool] = True,
 ):
     """
     Create a docker environment.
@@ -53,6 +55,7 @@ def create_docker(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
+        use_aws_vault=use_aws_vault,
     )
 
     if interactive:

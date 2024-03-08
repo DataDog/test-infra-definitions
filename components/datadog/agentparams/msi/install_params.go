@@ -22,6 +22,13 @@ type MSIInstallAgentParams struct {
 // MSIInstallAgentOption is an optional function parameter type for MSIInstallAgentParams options
 type MSIInstallAgentOption = func(*MSIInstallAgentParams)
 
+// NewInstallParams instantiates a new MSIInstallAgentParams and runs all the given MSIInstallAgentOption
+// Example usage:
+// awshost.WithAgentOptions(
+//	agentparams.WithAdditionalInstallParameters(
+//		msiparams.NewInstallParams(
+//			msiparams.WithAgentUser(fmt.Sprintf("%s\\%s", TestDomain, TestUser)),
+//			msiparams.WithAgentUserPassword(TestPassword)))),
 func NewInstallParams(msiInstallParams ...MSIInstallAgentOption) []string {
 	msiInstallAgentParams := &MSIInstallAgentParams{}
 	for _, o := range msiInstallParams {

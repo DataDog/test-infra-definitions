@@ -107,6 +107,11 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Value: pulumi.StringPtr("true"),
 			},
 			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_DOGSTATSD_ORIGIN_DETECTION_CLIENT"),
+				Value: pulumi.StringPtr("true"),
+			},
+
+			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
 				Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),
 			},

@@ -71,5 +71,38 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		return nil, err
 	}
 
+	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("udp"), &ecs.EC2ServiceArgs{
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-udp")),
+		Cluster:              clusterArn,
+		DesiredCount:         pulumi.IntPtr(1),
+		EnableExecuteCommand: pulumi.BoolPtr(true),
+		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
+			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
+				"dogstatsd": {
+					Name:  pulumi.String("dogstatsd"),
+					Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+					Environment: ecs.TaskDefinitionKeyValuePairArray{
+						ecs.TaskDefinitionKeyValuePairArgs{
+							Name:  pulumi.StringPtr("ECS_AGENT_HOST"),
+							Value: pulumi.StringPtr("true"),
+						},
+					},
+					Cpu:    pulumi.IntPtr(10),
+					Memory: pulumi.IntPtr(32),
+				},
+			},
+			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
+				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
+			},
+			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
+				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
+			},
+			NetworkMode: pulumi.StringPtr("bridge"),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-udp-ec2")),
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
 	return ecsComponent, nil
 }

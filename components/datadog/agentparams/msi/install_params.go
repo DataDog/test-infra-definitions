@@ -16,7 +16,6 @@ type MSIInstallAgentParams struct {
 	AgentUser           string `installer_arg:"DDAGENTUSER_NAME"`
 	AgentUserPassword   string `installer_arg:"DDAGENTUSER_PASSWORD"`
 	DdURL               string `installer_arg:"DD_URL"`
-	WixFailWhenDeferred string `installer_arg:"WIXFAILWHENDEFERRED"`
 	InstallLogFile      string
 }
 
@@ -81,9 +80,3 @@ func WithFakeIntake(fakeIntake *fakeintake.FakeintakeOutput) MSIInstallAgentOpti
 	return WithDdURL(fakeIntake.URL)
 }
 
-// WithWixFailWhenDeferred sets the WixFailWhenDeferred parameter.
-func WithWixFailWhenDeferred() MSIInstallAgentOption {
-	return func(i *MSIInstallAgentParams) {
-		i.WixFailWhenDeferred = "1"
-	}
-}

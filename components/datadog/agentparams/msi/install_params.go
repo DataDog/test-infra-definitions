@@ -16,6 +16,7 @@ type InstallAgentParams struct {
 	AgentUser         string `installer_arg:"DDAGENTUSER_NAME"`
 	AgentUserPassword string `installer_arg:"DDAGENTUSER_PASSWORD"`
 	DdURL             string `installer_arg:"DD_URL"`
+	Site              string `installer_arg:"SITE"`
 	InstallLogFile    string
 }
 
@@ -66,6 +67,14 @@ func WithAgentUser(username string) InstallAgentOption {
 func WithAgentUserPassword(password string) InstallAgentOption {
 	return func(i *InstallAgentParams) {
 		i.AgentUserPassword = password
+	}
+}
+
+// WithSite specifies the SITE parameter.
+func WithSite(site string) InstallAgentOption {
+	return func(i *InstallAgentParams) error {
+		i.Site = site
+		return nil
 	}
 }
 

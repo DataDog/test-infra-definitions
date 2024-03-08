@@ -36,11 +36,11 @@ func NewInstallParams(msiInstallParams ...InstallAgentOption) []string {
 	for _, o := range msiInstallParams {
 		o(msiInstallAgentParams)
 	}
-	return msiInstallAgentParams.toArgs()
+	return msiInstallAgentParams.ToArgs()
 }
 
 // ToArgs convert the params to a list of valid msi switches, based on the `installer_arg` tag
-func (p *InstallAgentParams) toArgs() []string {
+func (p *InstallAgentParams) ToArgs() []string {
 	var args []string
 	typeOfMSIInstallAgentParams := reflect.TypeOf(*p)
 	for fieldIndex := 0; fieldIndex < typeOfMSIInstallAgentParams.NumField(); fieldIndex++ {

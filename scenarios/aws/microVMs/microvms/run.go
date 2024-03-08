@@ -64,7 +64,7 @@ var SSHKeyFileNames = map[string]string{
 	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
 }
 
-// GetWorkingDirectory is a function that returns the working directory for the kernel version testing, given the architecture (local or non-local).
+// GetWorkingDirectory is a function that returns the working directory for the kernel matrix testing, given the architecture (local or non-local).
 var GetWorkingDirectory func(string) string
 
 func getKernelVersionTestingWorkingDir(m *config.DDMicroVMConfig) func(string) string {

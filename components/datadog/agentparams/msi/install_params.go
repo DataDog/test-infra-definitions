@@ -12,7 +12,7 @@ type InstallAgentParams struct {
 	AgentUserPassword string `installer_arg:"DDAGENTUSER_PASSWORD"`
 	DdURL             string `installer_arg:"DD_URL"`
 	Site              string `installer_arg:"SITE"`
-	InstallLogFile    string
+	InstallLogFile    string `installer_arg:"/log"`
 }
 
 // InstallAgentOption is an optional function parameter type for InstallAgentParams options
@@ -44,7 +44,11 @@ func (p *InstallAgentParams) ToArgs() []string {
 		if installerArg != "" {
 			installerArgValue := reflect.ValueOf(*p).FieldByName(field.Name).String()
 			if installerArgValue != "" {
-				args = append(args, fmt.Sprintf("%s=%s", installerArg, installerArgValue))
+				format := "%s=%s"
+				if field.Name == "InstallLogFile" {
+					format = "%s %s"
+				}
+				args = append(args, fmt.Sprintf(format, installerArg, installerArgValue))
 			}
 		}
 	}

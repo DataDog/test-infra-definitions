@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"io"
 	"net/http"
 	"reflect"
@@ -36,6 +37,21 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 		return "", err
 	}
 
+	logFilePath := "C:\\install.log"
+	logParamIdx := slices.IndexFunc(additionalInstallParameters, func(s string) bool {
+		return strings.HasPrefix(s, "/log")
+	})
+	if logParamIdx < 0 {
+		additionalInstallParameters = append(additionalInstallParameters, fmt.Sprintf("/log %s", logFilePath))
+	} else {
+		// "/log C:\mycustomlog.txt" -> "C:\mycustomlog.txt"
+		paramParts := strings.Split(additionalInstallParameters[logParamIdx], " ")
+		if len(paramParts) != 2 {
+			return "", fmt.Errorf("/log parameter was malformed, must be '/log <path_to_log_file>'")
+		}
+		logFilePath = paramParts[1]
+	}
+
 	localFilename := `C:\datadog-agent.msi`
 	cmd := fmt.Sprintf(`
 $ProgressPreference = 'SilentlyContinue';
@@ -49,10 +65,10 @@ for ($i=0; $i -lt 3; $i++) {
 		}
 	}
 };
-$exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s /log C:\install.log %s').ExitCode
-Get-Content C:\install.log
+$exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s %s').ExitCode
+Get-Content %s
 Exit $exitCode 
-`, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "))
+`, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "), logFilePath)
 	return cmd, nil
 }
 

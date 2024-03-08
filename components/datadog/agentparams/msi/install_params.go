@@ -11,26 +11,27 @@ import (
 	"reflect"
 )
 
-// MSIInstallAgentParams are the parameters used for installing the Agent using msiexec.
-type MSIInstallAgentParams struct {
-	AgentUser           string `installer_arg:"DDAGENTUSER_NAME"`
-	AgentUserPassword   string `installer_arg:"DDAGENTUSER_PASSWORD"`
-	DdURL               string `installer_arg:"DD_URL"`
-	InstallLogFile      string
+// InstallAgentParams are the parameters used for installing the Agent using msiexec.
+type InstallAgentParams struct {
+	AgentUser         string `installer_arg:"DDAGENTUSER_NAME"`
+	AgentUserPassword string `installer_arg:"DDAGENTUSER_PASSWORD"`
+	DdURL             string `installer_arg:"DD_URL"`
+	InstallLogFile    string
 }
 
-// MSIInstallAgentOption is an optional function parameter type for MSIInstallAgentParams options
-type MSIInstallAgentOption = func(*MSIInstallAgentParams)
+// InstallAgentOption is an optional function parameter type for InstallAgentParams options
+type InstallAgentOption = func(*InstallAgentParams)
 
-// NewInstallParams instantiates a new MSIInstallAgentParams and runs all the given MSIInstallAgentOption
+// NewInstallParams instantiates a new InstallAgentParams and runs all the given InstallAgentOption
 // Example usage:
 // awshost.WithAgentOptions(
+//
 //	agentparams.WithAdditionalInstallParameters(
 //		msiparams.NewInstallParams(
 //			msiparams.WithAgentUser(fmt.Sprintf("%s\\%s", TestDomain, TestUser)),
 //			msiparams.WithAgentUserPassword(TestPassword)))),
-func NewInstallParams(msiInstallParams ...MSIInstallAgentOption) []string {
-	msiInstallAgentParams := &MSIInstallAgentParams{}
+func NewInstallParams(msiInstallParams ...InstallAgentOption) []string {
+	msiInstallAgentParams := &InstallAgentParams{}
 	for _, o := range msiInstallParams {
 		o(msiInstallAgentParams)
 	}
@@ -38,7 +39,7 @@ func NewInstallParams(msiInstallParams ...MSIInstallAgentOption) []string {
 }
 
 // ToArgs convert the params to a list of valid msi switches, based on the `installer_arg` tag
-func (p *MSIInstallAgentParams) toArgs() []string {
+func (p *InstallAgentParams) toArgs() []string {
 	var args []string
 	typeOfMSIInstallAgentParams := reflect.TypeOf(*p)
 	for fieldIndex := 0; fieldIndex < typeOfMSIInstallAgentParams.NumField(); fieldIndex++ {
@@ -55,35 +56,34 @@ func (p *MSIInstallAgentParams) toArgs() []string {
 }
 
 // WithAgentUser specifies the DDAGENTUSER_NAME parameter.
-func WithAgentUser(username string) MSIInstallAgentOption {
-	return func(i *MSIInstallAgentParams) {
+func WithAgentUser(username string) InstallAgentOption {
+	return func(i *InstallAgentParams) {
 		i.AgentUser = username
 	}
 }
 
 // WithAgentUserPassword specifies the DDAGENTUSER_PASSWORD parameter.
-func WithAgentUserPassword(password string) MSIInstallAgentOption {
-	return func(i *MSIInstallAgentParams) {
+func WithAgentUserPassword(password string) InstallAgentOption {
+	return func(i *InstallAgentParams) {
 		i.AgentUserPassword = password
 	}
 }
 
 // WithDdURL specifies the DD_URL parameter.
-func WithDdURL(ddURL string) MSIInstallAgentOption {
-	return func(i *MSIInstallAgentParams) {
+func WithDdURL(ddURL string) InstallAgentOption {
+	return func(i *InstallAgentParams) {
 		i.DdURL = ddURL
 	}
 }
 
 // WithInstallLogFile specifies the file where to save the MSI install logs.
-func WithInstallLogFile(logFileName string) MSIInstallAgentOption {
-	return func(i *MSIInstallAgentParams) {
+func WithInstallLogFile(logFileName string) InstallAgentOption {
+	return func(i *InstallAgentParams) {
 		i.InstallLogFile = logFileName
 	}
 }
 
 // WithFakeIntake configures the Agent to use a fake intake URL.
-func WithFakeIntake(fakeIntake *fakeintake.FakeintakeOutput) MSIInstallAgentOption {
+func WithFakeIntake(fakeIntake *fakeintake.FakeintakeOutput) InstallAgentOption {
 	return WithDdURL(fakeIntake.URL)
 }
-

@@ -67,9 +67,8 @@ func WithAgentUserPassword(password string) InstallAgentOption {
 
 // WithSite specifies the SITE parameter.
 func WithSite(site string) InstallAgentOption {
-	return func(i *InstallAgentParams) error {
+	return func(i *InstallAgentParams) {
 		i.Site = site
-		return nil
 	}
 }
 

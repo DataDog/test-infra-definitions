@@ -62,7 +62,7 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 }
 
 func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
-	installCmdStr, err := h.manager.getInstallCommand(params.Version)
+	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
 		return err
 	}

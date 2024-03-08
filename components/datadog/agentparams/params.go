@@ -44,6 +44,9 @@ type Params struct {
 	Files               map[string]*FileDefinition
 	ExtraAgentConfig    []pulumi.StringInput
 	ResourceOptions     []pulumi.ResourceOption
+	// This is a list of additional installer flags that can be used to pass installer-specific
+	// parameters like the MSI flags.
+	AdditionalInstallParameters []string
 }
 
 type Option = func(*Params) error
@@ -246,6 +249,14 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 func WithLogs() func(*Params) error {
 	return func(p *Params) error {
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("logs_enabled: true"))
+		return nil
+	}
+}
+
+// WithAdditionalInstallParameters passes a list of parameters to the underlying installer
+func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
+	return func(p *Params) error {
+		p.AdditionalInstallParameters = parameters
 		return nil
 	}
 }

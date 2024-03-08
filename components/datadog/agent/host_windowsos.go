@@ -30,18 +30,29 @@ func newWindowsManager(host *remoteComp.Host) agentOSManager {
 	return &agentWindowsManager{host: host}
 }
 
-func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion) (string, error) {
+func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
 	url, err := getAgentURL(version)
 	if err != nil {
 		return "", err
 	}
 
 	localFilename := `C:\datadog-agent.msi`
-	// Disable the progress as it slows down the download.
-	cmd := "$ProgressPreference = 'SilentlyContinue'"
-	cmd += fmt.Sprintf("; for ($i=0; $i -lt 3; $i++) { try { Invoke-WebRequest %v -OutFile %v; break } catch { if ($i -eq 2) { throw } } }", url, localFilename)
-	// Use `if ($?) { .. }` to get an error if the download fail.
-	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%%v" SITE="datadoghq.com"'}`, localFilename)
+	cmd := fmt.Sprintf(`
+$ProgressPreference = 'SilentlyContinue';
+$ErrorActionPreference = 'Stop';
+for ($i=0; $i -lt 3; $i++) {
+	try {
+		(New-Object Net.WebClient).DownloadFile('%s','%s')
+	} catch {
+		if ($i -eq 2) {
+			throw
+		}
+	}
+};
+$exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s /log C:\install.log %s').ExitCode
+Get-Content C:\install.log
+Exit $exitCode 
+`, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "))
 	return cmd, nil
 }
 

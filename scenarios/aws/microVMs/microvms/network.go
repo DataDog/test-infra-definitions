@@ -232,7 +232,9 @@ func parseBootpDHCPLeases() ([]dhcpLease, error) {
 func waitForBootpDHCPLeases(mac string) (string, error) {
 	// The DHCP server will assign an IP address to the VM based on its MAC address, wait until it is assigned
 	// and then return the IP address.
-	for {
+	maxWait := 5 * time.Minute
+	interval := 500 * time.Millisecond
+	for totalWait := 0 * time.Second; totalWait < maxWait; totalWait += interval {
 		leases, err := parseBootpDHCPLeases()
 
 		if err != nil {
@@ -244,6 +246,7 @@ func waitForBootpDHCPLeases(mac string) (string, error) {
 				return lease.ip, nil
 			}
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(interval)
 	}
+	return "", fmt.Errorf("waitForBootpDHCPLeases: timed out waiting for lease")
 }

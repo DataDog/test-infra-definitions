@@ -16,10 +16,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
-	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/lb"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
-	awsxEcs "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
+	clb "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/lb"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ssm"
+	awsxEcs "github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/cenkalti/backoff/v4"

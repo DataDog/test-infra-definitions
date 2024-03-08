@@ -4,9 +4,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -66,6 +66,39 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 					HostPath: pulumi.StringPtr("/var/run/datadog"),
 				},
 			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("udp"), &ecs.EC2ServiceArgs{
+		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-udp")),
+		Cluster:              clusterArn,
+		DesiredCount:         pulumi.IntPtr(1),
+		EnableExecuteCommand: pulumi.BoolPtr(true),
+		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
+			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
+				"dogstatsd": {
+					Name:  pulumi.String("dogstatsd"),
+					Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+					Environment: ecs.TaskDefinitionKeyValuePairArray{
+						ecs.TaskDefinitionKeyValuePairArgs{
+							Name:  pulumi.StringPtr("ECS_AGENT_HOST"),
+							Value: pulumi.StringPtr("true"),
+						},
+					},
+					Cpu:    pulumi.IntPtr(10),
+					Memory: pulumi.IntPtr(32),
+				},
+			},
+			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
+				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
+			},
+			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
+				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
+			},
+			NetworkMode: pulumi.StringPtr("bridge"),
+			Family:      e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-udp-ec2")),
 		},
 	}, opts...); err != nil {
 		return nil, err

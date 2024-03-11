@@ -42,7 +42,7 @@ RUN apt-get update -y && \
   rm awscliv2.zip && \
   # Add additional apt repos all at once
   echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"                               | tee /etc/apt/sources.list.d/docker.list           && \
-  echo "deb http://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                        | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
+  echo "deb https://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                        | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
   echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list && \
   echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main"                          | tee /etc/apt/sources.list.d/azure.list            && \
   # Install second wave of dependencies

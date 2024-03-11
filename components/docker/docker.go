@@ -159,7 +159,7 @@ func (d *Manager) install() (*remote.Command, error) {
 }
 
 func (d *Manager) installCompose() (*remote.Command, error) {
-	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
+	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl --retry 10 -fsSLo /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
 	return d.host.OS.Runner().Command(
 		d.namer.ResourceName("install-compose"),
 		&command.Args{

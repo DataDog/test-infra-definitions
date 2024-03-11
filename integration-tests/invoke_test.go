@@ -14,36 +14,85 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-//go:embed testfixture/config.yaml
-var testInfraTestConfig string
-
-func TestInvokeVM(t *testing.T) {
-	var setupStdout, setupStderr bytes.Buffer
-
+func TestInvokes(t *testing.T) {
+	// Arrange
 	t.Log("Creating temporary configuration file")
-	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
-	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", os.Getenv("E2E_KEY_PAIR_NAME"))
-	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", os.Getenv("E2E_PUBLIC_KEY_PATH"))
-	err := os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
+	tmpConfigFile, err := createTemporaryConfigurationFile()
 	require.NoError(t, err, "Error writing temporary configuration")
 	defer os.Remove(tmpConfigFile)
 
 	t.Log("setup test infra")
+	err = setupTestInfra(tmpConfigFile)
+	require.NoError(t, err)
+
+	// Subtests
+	t.Run("invoke-vm", func(t *testing.T) {
+		testInvokeVM(t, tmpConfigFile)
+	})
+	t.Run("invoke-docker-vm", func(t *testing.T) {
+		testInvokeDockerVM(t, tmpConfigFile)
+	})
+}
+
+func testInvokeVM(t *testing.T, tmpConfigFile string) {
+	t.Helper()
+	stackName := fmt.Sprintf("invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
+
+func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
+	t.Helper()
+	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm with docker")
+	var stdOut, stdErr bytes.Buffer
+
+	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd.Stdout = &stdOut
+	createCmd.Stderr = &stdErr
+	err := createCmd.Run()
+	assert.NoError(t, err, "Error found creating docker vm.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
+
+	stdOut.Reset()
+	stdErr.Reset()
+
+	t.Log("destroying vm with docker")
+	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd.Stdout = &stdOut
+	destroyCmd.Stderr = &stdErr
+	err = destroyCmd.Run()
+	require.NoError(t, err, "Error found destroying stack.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
+}
+
+//go:embed testfixture/config.yaml
+var testInfraTestConfig string
+
+func createTemporaryConfigurationFile() (string, error) {
+	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", os.Getenv("E2E_KEY_PAIR_NAME"))
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", os.Getenv("E2E_PUBLIC_KEY_PATH"))
+	err := os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
+	return tmpConfigFile, err
+}
+
+func setupTestInfra(tmpConfigFile string) error {
+	var setupStdout, setupStderr bytes.Buffer
+
 	setupCmd := exec.Command("invoke", "setup", "--no-interactive", "--config-path", tmpConfigFile)
 	setupCmd.Stdout = &setupStdout
 	setupCmd.Stderr = &setupStderr
 
 	setupCmd.Dir = "../"
-	err = setupCmd.Run()
-	require.NoError(t, err, "Error found running setup.\nstdout: %s\n%s", setupStdout.String(), setupStderr.String())
-
-	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault", "--config-path", tmpConfigFile)
-	createOutput, err := createCmd.Output()
-	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
-
-	t.Log("destroying vm")
-	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", fmt.Sprintf("integration-testing-%s", os.Getenv("CI_PIPELINE_ID")), "--no-use-aws-vault", "--config-path", tmpConfigFile)
-	destroyOutput, err := destroyCmd.Output()
-	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+	err := setupCmd.Run()
+	if err != nil {
+		return fmt.Errorf("stdout: %s\n%s, %v", setupStdout.String(), setupStderr.String(), err)
+	}
+	return nil
 }

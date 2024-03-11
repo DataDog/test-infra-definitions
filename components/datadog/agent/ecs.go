@@ -132,7 +132,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Value: pulumi.StringPtr("true"),
 			},
 			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("DD_PROCESS_AGENT_ENABLED"),
+				Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED"),
 				Value: pulumi.StringPtr("true"),
 			},
 		}, ecsAgentAdditionalEndpointsEnv(params)...), ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),

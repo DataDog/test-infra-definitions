@@ -21,7 +21,7 @@ func newLinuxManager(host *remoteComp.Host) agentOSManager {
 	return &agentLinuxManager{targetOS: host.OS}
 }
 
-func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion) (string, error) {
+func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, _ []string) (string, error) {
 	if version.PipelineID != "" {
 		testEnvVars := []string{}
 		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")

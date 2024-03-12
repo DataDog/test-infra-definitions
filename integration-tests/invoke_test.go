@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -31,6 +32,10 @@ func TestInvokes(t *testing.T) {
 	})
 	t.Run("invoke-docker-vm", func(t *testing.T) {
 		testInvokeDockerVM(t, tmpConfigFile)
+	})
+
+	t.Run("invoke-kind", func(t *testing.T) {
+		testInvokeKind(t, tmpConfigFile)
 	})
 }
 
@@ -71,6 +76,24 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 	require.NoError(t, err, "Error found destroying stack.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
 }
 
+func testInvokeKind(t *testing.T, tmpConfigFile string) {
+	t.Helper()
+	stackParts := []string{"invoke", "kind"}
+	if os.Getenv("CI") == "true" {
+		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
+	}
+	stackName := strings.Join(stackParts, "-")
+	t.Log("creating kind cluster")
+	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
+
+	t.Log("destroying kind cluster")
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
+}
+
 //go:embed testfixture/config.yaml
 var testInfraTestConfig string
 
@@ -78,7 +101,13 @@ func createTemporaryConfigurationFile() (string, error) {
 	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
 	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", os.Getenv("E2E_KEY_PAIR_NAME"))
 	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", os.Getenv("E2E_PUBLIC_KEY_PATH"))
-	err := os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
+	isCI, err := strconv.ParseBool(os.Getenv("CI"))
+	account := "agent-sandbox"
+	if err == nil && isCI {
+		account = "agent-qa"
+	}
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "ACCOUNT", account)
+	err = os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
 	return tmpConfigFile, err
 }
 

@@ -38,7 +38,12 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 			return err
 		}
 
-		_, dockerInstallCmd, err := docker.NewManager(env, vm, true, opts...)
+		shouldInstallDocker := true
+		// docker is installed by default on Amazon Linux ECS
+		if vm.OS.Descriptor().Flavor == os.AmazonLinuxECS {
+			shouldInstallDocker = false
+		}
+		_, dockerInstallCmd, err := docker.NewManager(env, vm, shouldInstallDocker, opts...)
 		if err != nil {
 			return err
 		}
@@ -56,7 +61,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		kindInstall, err := runner.Command(
 			commonEnvironment.CommonNamer.ResourceName("kind-install"),
 			&command.Args{
-				Create: pulumi.Sprintf(`curl --retry 10 --fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
+				Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
 			},
 			opts...,
 		)

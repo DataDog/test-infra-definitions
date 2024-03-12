@@ -30,7 +30,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString(awsEnv.InfraOSDescriptor(), os.UbuntuDefault)
+	osDesc := os.DescriptorFromString(awsEnv.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
 	vm, err := ec2.NewVM(awsEnv, "kind", ec2.WithOS(osDesc))
 	if err != nil {
 		return err

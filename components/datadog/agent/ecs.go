@@ -132,6 +132,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Value: pulumi.StringPtr("true"),
 			},
 			ecs.TaskDefinitionKeyValuePairArgs{
+				// DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED is compatible with Agent 7.35+
 				Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED"),
 				Value: pulumi.StringPtr("true"),
 			},

@@ -87,6 +87,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 					},
 					Environment: map[string]any{
 						"DD_API_KEY": apiKeyResolved,
+						// DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED is compatible with Agent 7.35+
 						"DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED": true,
 					},
 					Pid:   "host",

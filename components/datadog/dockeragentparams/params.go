@@ -87,7 +87,7 @@ func WithFullImagePath(fullImagePath string) func(*Params) error {
 
 func WithPulumiDependsOn(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
-		p.PulumiDependsOn = resources
+		p.PulumiDependsOn = append(p.PulumiDependsOn, resources...)
 		return nil
 	}
 }
@@ -122,7 +122,10 @@ func WithIntake(url string) func(*Params) error {
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	shouldSkipSSLValidation := fakeintake.Scheme == "http"
-	return withIntakeHostname(fakeintake.URL, shouldSkipSSLValidation)
+	return func(p *Params) error {
+		p.PulumiDependsOn = append(p.PulumiDependsOn, utils.PulumiDependsOn(fakeintake))
+		return withIntakeHostname(fakeintake.URL, shouldSkipSSLValidation)(p)
+	}
 }
 
 func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation bool) func(*Params) error {

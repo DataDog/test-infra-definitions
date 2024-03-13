@@ -33,17 +33,12 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
-		curlCommand, err := packageManager.Ensure("curl", nil, opts...)
+		curlCommand, err := packageManager.Ensure("curl", nil, "", opts...)
 		if err != nil {
 			return err
 		}
 
-		shouldInstallDocker := true
-		// docker is installed by default on Amazon Linux ECS
-		if vm.OS.Descriptor().Flavor == os.AmazonLinuxECS {
-			shouldInstallDocker = false
-		}
-		_, dockerInstallCmd, err := docker.NewManager(env, vm, shouldInstallDocker, opts...)
+		_, dockerInstallCmd, err := docker.NewManager(env, vm, opts...)
 		if err != nil {
 			return err
 		}

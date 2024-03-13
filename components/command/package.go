@@ -37,7 +37,7 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, check string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	opts = append(opts, m.opts...)
 	if m.updateCmd != "" {
 		updateDB, err := m.updateDB(opts)
@@ -47,8 +47,13 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 
 		opts = append(opts, utils.PulumiDependsOn(updateDB))
 	}
+	var cmdStr string
+	if check != "" {
+		cmdStr = fmt.Sprintf("bash -c '%s || %s %s'", check, m.installCmd, packageRef)
+	} else {
+		cmdStr = fmt.Sprintf("%s %s", m.installCmd, packageRef)
+	}
 
-	cmdStr := fmt.Sprintf("%s %s", m.installCmd, packageRef)
 	cmdName := m.namer.ResourceName("install-"+packageRef, utils.StrHash(cmdStr))
 	cmdArgs := Args{
 		Create:      pulumi.String(cmdStr),

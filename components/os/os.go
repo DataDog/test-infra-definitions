@@ -12,7 +12,7 @@ import (
 
 // Interfaces used by OS components
 type PackageManager interface {
-	Ensure(packageRef string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	Ensure(packageRef string, transform command.Transformer, check string, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 type ServiceManager interface {

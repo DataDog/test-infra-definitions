@@ -24,10 +24,10 @@ const HostPort = 8128
 // It's not the default to avoid conflict with the agent.
 const Socket = "/var/run/datadog/dsd-standalone.socket"
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.WorkloadComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
-	k8sComponent := &componentskube.WorkloadComponent{}
+	k8sComponent := &componentskube.Workload{}
 	if err := e.Ctx.RegisterComponentResource("dd:dogstatsd-standalone", "dogstatsd", k8sComponent, opts...); err != nil {
 		return nil, err
 	}

@@ -20,10 +20,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*componentskube.WorkloadComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
-	k8sComponent := &componentskube.WorkloadComponent{}
+	k8sComponent := &componentskube.Workload{}
 	if err := e.Ctx.RegisterComponentResource("dd:apps", "nginx", k8sComponent, opts...); err != nil {
 		return nil, err
 	}

@@ -28,7 +28,8 @@ func (c *Cluster) Export(ctx *pulumi.Context, out *ClusterOutput) error {
 	return components.Export(ctx, c, out)
 }
 
-type WorkloadComponent struct {
+// Workload is a Component that represents a Kubernetes workload
+type Workload struct {
 	pulumi.ResourceState
 	components.Component
 }

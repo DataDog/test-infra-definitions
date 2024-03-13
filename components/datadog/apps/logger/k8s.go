@@ -10,6 +10,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+var LoggerPort = 3333
+
 type K8sComponent struct {
 	pulumi.ResourceState
 }
@@ -60,13 +62,8 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
-							Name: pulumi.String("logger"),
-							// TODO Actual image name
-							Image: pulumi.String("PUT AN ACTUAL IMAGE HERE"),
-							Args: pulumi.StringArray{
-								pulumi.String("--loglevel"),
-								pulumi.String("verbose"),
-							},
+							Name:  pulumi.String("logger"),
+							Image: pulumi.String("http://ghcr.io/datadog/apps-logger:main"),
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),
@@ -80,7 +77,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Ports: &corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
 									Name:          pulumi.String("logger"),
-									ContainerPort: pulumi.Int(3333),
+									ContainerPort: pulumi.Int(LoggerPort),
 									Protocol:      pulumi.String("TCP"),
 								},
 							},

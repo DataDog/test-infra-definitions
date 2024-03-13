@@ -7,6 +7,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -193,7 +194,7 @@ func WithTelemetry() func(*Params) error {
 
 func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
-		p.ResourceOptions = resources
+		p.ResourceOptions = append(p.ResourceOptions, resources...)
 		return nil
 	}
 }
@@ -242,7 +243,10 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 //
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
-	return withIntakeHostname(fakeintake.Host)
+	return func(p *Params) error {
+		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
+		return withIntakeHostname(fakeintake.Host)(p)
+	}
 }
 
 // WithLogs enables the log agent

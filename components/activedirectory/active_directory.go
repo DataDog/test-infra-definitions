@@ -1,11 +1,13 @@
 package activedirectory
 
 import (
+	"fmt"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumiverse/pulumi-time/sdk/go/time"
@@ -59,7 +61,7 @@ func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *
 		// Print flavor in case OS family don't match, as it's more precise than the family (and the .String() conversion already exists).
 		return nil, nil, fmt.Errorf("wrong Operating System family, expected Windows, got %s", host.OS.Descriptor().Flavor.String())
 	}
-	
+
 	params, err := common.ApplyOption(&Configuration{}, options)
 	if err != nil {
 		return nil, nil, err

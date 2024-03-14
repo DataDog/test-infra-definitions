@@ -1,4 +1,7 @@
+from datetime import datetime
+from dateutil import parser
 import os
+import requests
 import subprocess
 from typing import Any, Callable, Dict, List, Optional
 
@@ -47,6 +50,9 @@ def deploy(
         cfg = config.get_local_config(config_path)
     except ValidationError as e:
         raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+
+    if pipeline_id is not None:
+        _verify_pipeline_valid(pipeline_id)
 
     flags[default_public_path_key_name] = _get_public_path_key_name(cfg, public_key_required)
     flags["scenario"] = scenario_name
@@ -202,3 +208,25 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
             + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
             + "You can skip this check by setting `checkKeyPair: false` in the config"
         )
+
+
+def _verify_pipeline_valid(pipeline_id):
+    """
+    Verify that the pipeline exists and images has been published less than 24h before now
+    """
+    gitlab_token = os.environ['GITLAB_TOKEN']
+    rq = requests.get(f'https://gitlab.ddbuild.io/api/v4/projects/4670/pipelines/{pipeline_id}', headers={'PRIVATE-TOKEN': gitlab_token})
+
+    assert rq.ok, f'Pipeline with id {pipeline_id} cannot be found'
+
+    result = rq.json()
+    updated_at = result.get('updated_at', None)
+    if updated_at is None:
+        assert 'created_at' in result, f'Got invalid pipeline information for pipeline with id {pipeline_id}'
+        updated_at = result['created_at']
+
+    updated_at = parser.isoparse(updated_at)
+    diff = datetime.now(updated_at.tzinfo) - updated_at
+    diff_hours = diff.total_seconds() // (60 * 60)
+
+    assert diff_hours <= 24 , f'Pipeline with id {pipeline_id} is outdated, use `/trigger-ci` to run it again'

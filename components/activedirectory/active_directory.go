@@ -66,7 +66,7 @@ func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *
 	if err != nil {
 		return nil, nil, err
 	}
-	// Make the resource options that will be passed to the component
+	// Tell the component its parent is host and allow to delete it with host. This will prevent uninstalling AD on host delete, we will directly delete the host
 	params.ResourceOptions = append([]pulumi.ResourceOption{pulumi.Parent(host), pulumi.DeletedWith(host)}, params.ResourceOptions...)
 
 	adCtx := activeDirectoryContext{

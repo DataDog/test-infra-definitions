@@ -11,6 +11,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumiverse/pulumi-time/sdk/go/time"
+	"strings"
 )
 
 // Output is an object that models the output of the resource creation
@@ -100,24 +101,23 @@ func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *
 		}
 
 		if len(params.DomainUsers) > 0 {
-			// Create users in parallel
-			var createUserResources []pulumi.Resource
+			var addUserCmds []string
 			for _, user := range params.DomainUsers {
-				createDomainUserCmd, err := host.OS.Runner().Command(comp.namer.ResourceName("create-domain-users", user.Username), &command.Args{
-					Create: pulumi.Sprintf(`
+				addUserCmds = append(addUserCmds, fmt.Sprintf(`
 $HashArguments = @{
 	Name = '%s'
 	AccountPassword = (ConvertTo-SecureString %s -AsPlainText -Force)
 	Enabled = $true
 }; New-ADUser @HashArguments
-`, user.Username, user.Password),
-				}, pulumi.DependsOn(adCtx.createdResources))
-				if err != nil {
-					return err
-				}
-				createUserResources = append(createUserResources, createDomainUserCmd)
+`, user.Username, user.Password))
 			}
-			adCtx.createdResources = append(adCtx.createdResources, createUserResources...)
+			createDomainUserCmd, err := host.OS.Runner().Command(comp.namer.ResourceName("create-domain-users"), &command.Args{
+				Create: pulumi.String(strings.Join(addUserCmds, ";")),
+			}, pulumi.DependsOn(adCtx.createdResources))
+			if err != nil {
+				return err
+			}
+			adCtx.createdResources = append(adCtx.createdResources, createDomainUserCmd)
 		}
 
 		return nil

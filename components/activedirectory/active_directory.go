@@ -57,7 +57,7 @@ type activeDirectoryContext struct {
 func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *remote.Host, options ...Option) (*Component, []pulumi.Resource, error) {
 	if host.OS.Descriptor().Family() != os.WindowsFamily {
 		// Print flavor in case OS family don't match, as it's more precise than the family (and the .String() conversion already exists).
-		return nil, fmt.Errorf("wrong Operating System family, expected Windows, got %s", host.OS.Descriptor().Flavor.String())
+		return nil, nil, fmt.Errorf("wrong Operating System family, expected Windows, got %s", host.OS.Descriptor().Flavor.String())
 	}
 	
 	params, err := common.ApplyOption(&Configuration{}, options)

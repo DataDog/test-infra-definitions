@@ -41,7 +41,7 @@ func Run(ctx *pulumi.Context) error {
 
 	kindClusterName := ctx.Stack()
 
-	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion())
+	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer().ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion())
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func Run(ctx *pulumi.Context) error {
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
-		if err := fakeIntake.Export(awsEnv.Ctx, nil); err != nil {
+		if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 	}

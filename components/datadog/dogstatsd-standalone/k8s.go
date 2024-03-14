@@ -31,14 +31,14 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:dogstatsd-standalone", "dogstatsd", k8sComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:dogstatsd-standalone", "dogstatsd", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
 	ns, err := corev1.NewNamespace(
-		e.Ctx,
+		e.Ctx(),
 		namespace,
 		&corev1.NamespaceArgs{
 			Metadata: metav1.ObjectMetaArgs{
@@ -293,19 +293,19 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		},
 	}
 
-	if _, err := corev1.NewServiceAccount(e.Ctx, "dogstatsd-standalone", &serviceAccountArgs, opts...); err != nil {
+	if _, err := corev1.NewServiceAccount(e.Ctx(), "dogstatsd-standalone", &serviceAccountArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := v1.NewClusterRole(e.Ctx, "dogstatsd-standalone", &clusterRoleArgs, opts...); err != nil {
+	if _, err := v1.NewClusterRole(e.Ctx(), "dogstatsd-standalone", &clusterRoleArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := v1.NewClusterRoleBinding(e.Ctx, "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
+	if _, err := v1.NewClusterRoleBinding(e.Ctx(), "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDaemonSet(e.Ctx, "dogstatsd-standalone", &daemonSetArgs, opts...); err != nil {
+	if _, err := appsv1.NewDaemonSet(e.Ctx(), "dogstatsd-standalone", &daemonSetArgs, opts...); err != nil {
 		return nil, err
 	}
 

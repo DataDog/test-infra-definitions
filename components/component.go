@@ -118,8 +118,8 @@ func NewComponent[C component](e config.CommonEnvironment, name string, builder 
 	compName := reflect.TypeOf(comp).Elem().Name()
 	comp = reflect.New(compType.Elem()).Interface().(C)
 
-	comp.init(name, e.CommonNamer.ResourceName("dd", compName, name))
-	err := e.Ctx.RegisterComponentResource(fmt.Sprintf("dd:%s", compName), e.CommonNamer.ResourceName(name), comp, opts...)
+	comp.init(name, e.CommonNamer().ResourceName("dd", compName, name))
+	err := e.Ctx().RegisterComponentResource(fmt.Sprintf("dd:%s", compName), e.CommonNamer().ResourceName(name), comp, opts...)
 	if err != nil {
 		return comp, err
 	}
@@ -131,5 +131,5 @@ func NewComponent[C component](e config.CommonEnvironment, name string, builder 
 		}
 	}
 
-	return comp, comp.registerOutputs(e.Ctx, comp)
+	return comp, comp.registerOutputs(e.Ctx(), comp)
 }

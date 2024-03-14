@@ -16,7 +16,7 @@ type VMArgs struct {
 }
 
 func NewVM(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*remote.Host, error) {
-	cmd, err := local.NewCommand(e.Ctx, e.CommonNamer.ResourceName("hyperv", args.Name), &local.CommandArgs{
+	cmd, err := local.NewCommand(e.Ctx(), e.CommonNamer().ResourceName("hyperv", args.Name), &local.CommandArgs{
 		Interpreter: pulumi.ToStringArray([]string{"powershell", "-Command"}),
 		Environment: pulumi.StringMap{},                        // if you need to inject environment variables
 		Create:      pulumi.String(`Write-Host "Hello World"`), // What to do when you create the resource. Creating the VM or reading some file to get the info

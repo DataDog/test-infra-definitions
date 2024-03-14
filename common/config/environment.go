@@ -185,7 +185,7 @@ func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
 func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
 	tags, err := tagListToKeyValueMap(e.GetStringListWithDefault(e.InfraConfig, DDInfraExtraResourcesTags, []string{}))
 	if err != nil {
-		e.Ctx.Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
 	}
 	return tags
 }
@@ -294,7 +294,7 @@ func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramNa
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -307,7 +307,7 @@ func (e *CommonEnvironment) GetStringListWithDefault(config *sdkconfig.Config, p
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -320,7 +320,7 @@ func (e *CommonEnvironment) GetStringWithDefault(config *sdkconfig.Config, param
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -333,7 +333,7 @@ func (e *CommonEnvironment) GetObjectWithDefault(config *sdkconfig.Config, param
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -346,7 +346,7 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue

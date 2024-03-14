@@ -65,7 +65,7 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
-var _ config.CloudProviderEnvironment = (*Environment)(nil)
+var _ config.Env = (*Environment)(nil)
 
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
@@ -107,7 +107,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
-	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
+	shuffle, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
 		Inputs:      pulumi.ToStringArray(env.DefaultSubnets()),
 		ResultCount: pulumi.IntPtr(2),
 	}, env.WithProviders(config.ProviderRandom))

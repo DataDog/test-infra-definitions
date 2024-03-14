@@ -105,7 +105,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain := new(Domain)
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
-	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
+	domain.domainNamer = libvirtResourceNamer(e.Ctx(), domain.domainID)
 	domain.tag = kernel.Tag
 	// copy the vmset tag. The pointer refers to
 	// a local variable and can change causing an incorrect mapping
@@ -123,7 +123,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain.RecipeLibvirtDomainArgs.ConsoleType = set.ConsoleType
 	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
 
-	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
+	domainName := libvirtResourceName(e.Ctx().Stack(), domain.domainID)
 	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
 	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
@@ -195,7 +195,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				for _, vol := range libvirtVolumes {
 					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
 					rootVolume, err := setupDomainVolume(
-						e.Ctx,
+						e.Ctx(),
 						providerFn,
 						depends,
 						vol.Key(),

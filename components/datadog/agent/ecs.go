@@ -19,8 +19,8 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 		return nil, err
 	}
 
-	return ecs.NewEC2Service(e.Ctx, e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
-		Name:               e.CommonNamer.DisplayName(255, pulumi.String(name)),
+	return ecs.NewEC2Service(e.Ctx(), e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
+		Name:               e.CommonNamer().DisplayName(255, pulumi.String(name)),
 		Cluster:            clusterArn,
 		SchedulingStrategy: pulumi.StringPtr("DAEMON"),
 		PlacementConstraints: classicECS.ServicePlacementConstraintArray{
@@ -42,7 +42,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			},
 			NetworkMode: pulumi.StringPtr(params.NetworkMode),
 			PidMode:     pulumi.StringPtr("host"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.String("datadog-agent-ec2")),
+			Family:      e.CommonNamer().DisplayName(255, pulumi.String("datadog-agent-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					HostPath: pulumi.StringPtr("/var/run/docker.sock"),

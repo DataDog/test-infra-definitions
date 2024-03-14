@@ -15,7 +15,7 @@ type RandomGenerator struct {
 func NewRandomGenerator(e config.CommonEnvironment, name string, options ...func(*RandomGenerator)) *RandomGenerator {
 	rand := &RandomGenerator{
 		e:     e,
-		namer: namer.NewNamer(e.Ctx, "random-"+name),
+		namer: namer.NewNamer(e.Ctx(), "random-"+name),
 	}
 	for _, opt := range options {
 		opt(rand)
@@ -25,7 +25,7 @@ func NewRandomGenerator(e config.CommonEnvironment, name string, options ...func
 }
 
 func (r *RandomGenerator) RandomString(name string, length int, special bool) (*random.RandomString, error) {
-	return random.NewRandomString(r.e.Ctx, r.namer.ResourceName("random-string", name), &random.RandomStringArgs{
+	return random.NewRandomString(r.e.Ctx(), r.namer.ResourceName("random-string", name), &random.RandomStringArgs{
 		Length:  pulumi.Int(length),
 		Special: pulumi.Bool(special),
 	}, r.e.WithProviders(config.ProviderRandom))

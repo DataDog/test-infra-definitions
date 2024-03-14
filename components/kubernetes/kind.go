@@ -59,7 +59,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 			kindArch = "amd64"
 		}
 		kindInstall, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-install"),
+			commonEnvironment.CommonNamer().ResourceName("kind-install"),
 			&command.Args{
 				Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
 			},
@@ -79,7 +79,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 
 		nodeImage := fmt.Sprintf("%s:%s", kindNodeImageRegistry, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
@@ -92,7 +92,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		}
 
 		kubeConfigCmd, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-kubeconfig", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig", resourceName),
 			&command.Args{
 				Create: pulumi.Sprintf("kind get kubeconfig --name %s", kindClusterName),
 			},

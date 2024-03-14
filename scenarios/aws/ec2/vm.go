@@ -64,7 +64,7 @@ func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.
 	}
 
 	ecrConfigCommand, err := vm.OS.Runner().Command(
-		e.CommonNamer.ResourceName("ecr-config"),
+		e.CommonNamer().ResourceName("ecr-config"),
 		&command.Args{
 			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
 			Sudo:   false,

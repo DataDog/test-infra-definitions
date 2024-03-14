@@ -17,7 +17,7 @@ func newWindowsServiceManager(e config.CommonEnvironment, runner *command.Runner
 }
 
 func (s *windowsServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	cmdName := s.e.CommonNamer.ResourceName("running", serviceName)
+	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
 	cmdArgs := command.Args{
 		Create: pulumi.String("Restart-Service -Name " + serviceName),
 	}

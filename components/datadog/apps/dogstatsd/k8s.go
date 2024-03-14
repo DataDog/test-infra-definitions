@@ -21,13 +21,13 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", fmt.Sprintf("dogstatsd-%d", statsdPort), k8sComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", fmt.Sprintf("dogstatsd-%d", statsdPort), k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
-	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespace),
 		},
@@ -38,7 +38,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("dogstatsd-uds-%d", statsdPort), &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-uds-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-uds"),
 			Namespace: pulumi.String(namespace),
@@ -104,7 +104,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("dogstatsd-udp-%d", statsdPort), &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-udp-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-udp"),
 			Namespace: pulumi.String(namespace),
@@ -171,7 +171,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("dogstatsd-udp-origin-detection-%d", statsdPort), &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-udp-origin-detection-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-udp-origin-detection"),
 			Namespace: pulumi.String(namespace),

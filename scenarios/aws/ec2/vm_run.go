@@ -115,7 +115,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if err := fakeintake.Export(env.Ctx, nil); err != nil {
+			if err := fakeintake.Export(env.Ctx(), nil); err != nil {
 				return err
 			}
 			if err != nil {

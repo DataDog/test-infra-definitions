@@ -43,8 +43,8 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		namer := e.Namer.WithPrefix("fakeintake").WithPrefix(name)
 		opts := []pulumi.ResourceOption{pulumi.Parent(fi)}
 
-		apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
-			Name:      e.CommonNamer.DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
+		apiKeyParam, err := ssm.NewParameter(e.Ctx(), namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
+			Name:      e.CommonNamer().DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
 			Type:      ssm.ParameterTypeSecureString,
 			Value:     e.AgentAPIKey(),
 			Overwrite: pulumi.Bool(true),
@@ -71,7 +71,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			if e.ECSFakeintakeLBListenerArn() != "" {
 				useLoadBalancer = true
 			} else {
-				e.Ctx.Log.Warn("Load balancer is enabled but no listener is defined, will not use LB", nil)
+				e.Ctx().Log.Warn("Load balancer is enabled but no listener is defined, will not use LB", nil)
 			}
 		}
 
@@ -102,8 +102,8 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 		serviceName := args[1].(string)
 		var ipAddress string
 		err := backoff.Retry(func() error {
-			e.Ctx.Log.Debug("waiting for fakeintake task private ip", nil)
-			ecsClient, err := ecs.NewECSClient(e.Ctx.Context(), e.Region())
+			e.Ctx().Log.Debug("waiting for fakeintake task private ip", nil)
+			ecsClient, err := ecs.NewECSClient(e.Ctx().Context(), e.Region())
 			if err != nil {
 				return err
 			}
@@ -111,7 +111,7 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 			if err != nil {
 				return err
 			}
-			e.Ctx.Log.Info(fmt.Sprintf("fakeintake task private ip found: %s\n", ipAddress), nil)
+			e.Ctx().Log.Info(fmt.Sprintf("fakeintake task private ip found: %s\n", ipAddress), nil)
 			return err
 		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
 		if err != nil {
@@ -119,10 +119,10 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 		}
 
 		// fail the deployment if the fakeintake is not healthy
-		e.Ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
+		e.Ctx().Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
 		healthURL := buildFakeIntakeURL("http", ipAddress, "/fakeintake/health", httpPort)
 		err = backoff.Retry(func() error {
-			e.Ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", healthURL), nil)
+			e.Ctx().Log.Debug(fmt.Sprintf("getting fakeintake health at %s", healthURL), nil)
 			resp, err := http.Get(healthURL)
 			if err != nil {
 				return err
@@ -150,23 +150,23 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 }
 
 func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.FargateTaskDefinition, fi *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) error {
-	targetGroup, err := clb.NewTargetGroup(e.Ctx, namer.ResourceName("target-group"), &clb.TargetGroupArgs{
+	targetGroup, err := clb.NewTargetGroup(e.Ctx(), namer.ResourceName("target-group"), &clb.TargetGroupArgs{
 		Port:          pulumi.Int(80),
 		Protocol:      pulumi.String("HTTP"),
 		TargetType:    pulumi.String("ip"),
 		IpAddressType: pulumi.String("ipv4"),
 		VpcId:         pulumi.StringPtr(e.DefaultVPCID()),
-		Name:          e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
+		Name:          e.CommonNamer().DisplayName(32, pulumi.String("fakeintake")),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
 	if err != nil {
 		return err
 	}
 
 	// Hashing fakeintake resource name as prefix for Host header
-	hostPrefix := utils.StrHash(namer.ResourceName(e.Ctx.Stack()))
+	hostPrefix := utils.StrHash(namer.ResourceName(e.Ctx().Stack()))
 	host := hostPrefix + e.ECSFakeintakeLBBaseHost()
 
-	_, err = clb.NewListenerRule(e.Ctx, namer.ResourceName(hostPrefix), &clb.ListenerRuleArgs{
+	_, err = clb.NewListenerRule(e.Ctx(), namer.ResourceName(hostPrefix), &clb.ListenerRuleArgs{
 		ListenerArn: pulumi.String(e.ECSFakeintakeLBListenerArn()),
 		Conditions: clb.ListenerRuleConditionArray{
 			clb.ListenerRuleConditionArgs{

@@ -20,14 +20,14 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	ecsComponent := &EcsComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
-	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("server"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("nginx"), pulumi.String("ec2")),
+	if _, err := ecs.NewEC2Service(e.Ctx(), namer.ResourceName("server"), &ecs.EC2ServiceArgs{
+		Name:                 e.CommonNamer().DisplayName(255, pulumi.String("nginx"), pulumi.String("ec2")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(2),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -99,7 +99,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"nginx", "ec2"})...),
+			Family:      e.CommonNamer().DisplayName(255, pulumi.ToStringArray([]string{"nginx", "ec2"})...),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					Name: pulumi.String("cache"),

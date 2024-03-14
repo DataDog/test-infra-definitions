@@ -37,7 +37,7 @@ func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
 // NewHostAgent creates a new instance of a on-host Agent
 func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
 	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostAgent) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 		comp.manager = getOSManager(host)
 

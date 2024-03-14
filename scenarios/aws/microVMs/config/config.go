@@ -31,7 +31,7 @@ type DDMicroVMConfig struct {
 
 func NewMicroVMConfig(e config.CommonEnvironment) DDMicroVMConfig {
 	return DDMicroVMConfig{
-		sdkconfig.New(e.Ctx, ddMicroVMNamespace),
+		sdkconfig.New(e.Ctx(), ddMicroVMNamespace),
 		e,
 	}
 }

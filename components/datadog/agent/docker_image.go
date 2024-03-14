@@ -64,7 +64,7 @@ func dockerAgentImageTag(e *config.CommonEnvironment, semverVersion func(*config
 	if agentVersion != nil && err == nil {
 		agentImageTag = agentVersion.String()
 	} else {
-		e.Ctx.Log.Debug("Unable to parse agent version, using latest", nil)
+		e.Ctx().Log.Debug("Unable to parse agent version, using latest", nil)
 	}
 
 	return agentImageTag

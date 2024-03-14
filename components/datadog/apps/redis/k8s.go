@@ -27,7 +27,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &K8sComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", "redis", k8sComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", "redis", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
@@ -38,7 +38,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
-	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespace),
 		},
@@ -49,7 +49,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "redis", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), "redis", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("redis"),
 			Namespace: pulumi.String(namespace),
@@ -118,7 +118,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	kubeThresholdVersion, _ := semver.NewVersion("1.21.0")
 
 	if kubeVersion.Compare(kubeThresholdVersion) < 0 {
-		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1beta1.PodDisruptionBudgetArgs{
+		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx(), "redis", &policyv1beta1.PodDisruptionBudgetArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
 				Namespace: pulumi.String(namespace),
@@ -138,7 +138,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			return nil, err
 		}
 	} else {
-		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1.PodDisruptionBudgetArgs{
+		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx(), "redis", &policyv1.PodDisruptionBudgetArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
 				Namespace: pulumi.String(namespace),
@@ -160,7 +160,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	}
 
 	if dependsOnCrd != nil {
-		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis", &ddv1alpha1.DatadogMetricArgs{
+		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx(), "redis", &ddv1alpha1.DatadogMetricArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
 				Namespace: pulumi.String(namespace),
@@ -180,7 +180,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		kubeThresholdVersion, _ = semver.NewVersion("1.23.0")
 
 		if kubeVersion.Compare(kubeThresholdVersion) < 0 {
-			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
+			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx(), "redis", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Name:      pulumi.String("redis"),
 					Namespace: pulumi.String(namespace),
@@ -215,7 +215,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 				return nil, err
 			}
 		} else {
-			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
+			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx(), "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Name:      pulumi.String("redis"),
 					Namespace: pulumi.String(namespace),
@@ -253,7 +253,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	}
 
-	if _, err := corev1.NewService(e.Ctx, "redis", &corev1.ServiceArgs{
+	if _, err := corev1.NewService(e.Ctx(), "redis", &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("redis"),
 			Namespace: pulumi.String(namespace),
@@ -278,7 +278,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "redis-query", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), "redis-query", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("redis-query"),
 			Namespace: pulumi.String(namespace),

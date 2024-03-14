@@ -38,7 +38,7 @@ func Run(ctx *pulumi.Context) error {
 	clusterComp, err := components.NewComponent(*awsEnv.CommonEnvironment, awsEnv.Namer.ResourceName("eks"), func(comp *kubeComp.Cluster) error {
 		// Create Cluster SG
 		clusterSG, err := ec2.NewSecurityGroup(ctx, awsEnv.Namer.ResourceName("eks-sg"), &ec2.SecurityGroupArgs{
-			NamePrefix:  awsEnv.CommonNamer.DisplayName(255, pulumi.String("eks-sg")),
+			NamePrefix:  awsEnv.CommonNamer().DisplayName(255, pulumi.String("eks-sg")),
 			Description: pulumi.StringPtr("EKS Cluster sg for stack: " + ctx.Stack()),
 			Ingress: ec2.SecurityGroupIngressArray{
 				ec2.SecurityGroupIngressArgs{
@@ -95,7 +95,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Create an EKS cluster with the default configuration.
 		cluster, err := eks.NewCluster(ctx, awsEnv.Namer.ResourceName("eks"), &eks.ClusterArgs{
-			Name:                         awsEnv.CommonNamer.DisplayName(100),
+			Name:                         awsEnv.CommonNamer().DisplayName(100),
 			Version:                      pulumi.StringPtr(awsEnv.KubernetesVersion()),
 			EndpointPrivateAccess:        pulumi.BoolPtr(true),
 			EndpointPublicAccess:         pulumi.BoolPtr(false),
@@ -167,7 +167,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Building Kubernetes provider
-		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
+		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx(), awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 			EnableServerSideApply: pulumi.BoolPtr(true),
 			Kubeconfig:            utils.KubeconfigToJSON(cluster.Kubeconfig),
 		}, awsEnv.WithProviders(config.ProviderAWS), pulumi.DependsOn(nodeGroups))
@@ -177,7 +177,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Applying necessary Windows configuration if Windows nodes
 		if awsEnv.EKSWindowsNodeGroup() {
-			_, err := corev1.NewConfigMapPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
+			_, err := corev1.NewConfigMapPatch(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
 				Metadata: metav1.ObjectMetaPatchArgs{
 					Namespace: pulumi.String("kube-system"),
 					Name:      pulumi.String("amazon-vpc-cni"),
@@ -209,7 +209,7 @@ func Run(ctx *pulumi.Context) error {
 			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
 				return err
 			}
-			if err := fakeIntake.Export(awsEnv.Ctx, nil); err != nil {
+			if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 				return err
 			}
 		}

@@ -9,9 +9,9 @@ import (
 )
 
 func CreateLaunchTemplate(e aws.Environment, name string, ami, instanceType, iamProfileArn, keyPair, userData pulumi.StringInput) (*ec2.LaunchTemplate, error) {
-	launchTemplate, err := ec2.NewLaunchTemplate(e.Ctx, e.Namer.ResourceName(name), &ec2.LaunchTemplateArgs{
+	launchTemplate, err := ec2.NewLaunchTemplate(e.Ctx(), e.Namer.ResourceName(name), &ec2.LaunchTemplateArgs{
 		ImageId:      ami,
-		NamePrefix:   e.CommonNamer.DisplayName(128, pulumi.String(name)),
+		NamePrefix:   e.CommonNamer().DisplayName(128, pulumi.String(name)),
 		InstanceType: instanceType,
 		IamInstanceProfile: ec2.LaunchTemplateIamInstanceProfileArgs{
 			Arn: iamProfileArn,

@@ -29,7 +29,7 @@ type Manager struct {
 
 func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker bool, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
 	manager := &Manager{
-		namer: e.CommonNamer.WithPrefix("docker"),
+		namer: e.CommonNamer().WithPrefix("docker"),
 		host:  host,
 		opts:  opts,
 	}

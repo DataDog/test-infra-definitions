@@ -27,7 +27,7 @@ func NewImagePullSecret(e config.CommonEnvironment, namespace string, opts ...pu
 	}).(pulumi.StringOutput)
 
 	return corev1.NewSecret(
-		e.Ctx,
+		e.Ctx(),
 		imagePullSecretName,
 		&corev1.SecretArgs{
 			Metadata: metav1.ObjectMetaArgs{

@@ -59,9 +59,8 @@ const (
 type CommonEnvironment struct {
 	providerRegistry
 
-	ctx                      *pulumi.Context
-	commonNamer              namer.Namer
-	CloudProviderEnvironment CloudProviderEnvironment
+	ctx         *pulumi.Context
+	commonNamer namer.Namer
 
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
@@ -110,6 +109,8 @@ type Env interface {
 	GetStringWithDefault(config *sdkconfig.Config, paramName string, defaultValue string) string
 	GetObjectWithDefault(config *sdkconfig.Config, paramName string, outputValue, defaultValue interface{}) interface{}
 	GetIntWithDefault(config *sdkconfig.Config, paramName string, defaultValue int) int
+
+	CloudEnv
 }
 type CloudEnv interface {
 	InternalRegistry() string
@@ -119,17 +120,16 @@ type CloudProviderEnvironment interface {
 	InternalRegistry() string
 }
 
-func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {
+func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	env := CommonEnvironment{
-		ctx:                      ctx,
-		InfraConfig:              sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig:              sdkconfig.New(ctx, DDAgentConfigNamespace),
-		TestingWorkloadConfig:    sdkconfig.New(ctx, DDTestingWorkloadNamespace),
-		DogstatsdConfig:          sdkconfig.New(ctx, DDDogstatsdNamespace),
-		UpdaterConfig:            sdkconfig.New(ctx, DDUpdaterConfigNamespace),
-		commonNamer:              namer.NewNamer(ctx, ""),
-		CloudProviderEnvironment: cloudProviderEnvironment,
-		providerRegistry:         newProviderRegistry(ctx),
+		ctx:                   ctx,
+		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
+		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
+		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
+		commonNamer:           namer.NewNamer(ctx, ""),
+		providerRegistry:      newProviderRegistry(ctx),
 	}
 	// store username
 	user, err := user.Current()

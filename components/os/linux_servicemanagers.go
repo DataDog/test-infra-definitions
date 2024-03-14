@@ -8,11 +8,11 @@ import (
 )
 
 type systemdServiceManager struct {
-	e      config.CommonEnvironment
+	e      config.Env
 	runner *command.Runner
 }
 
-func newSystemdServiceManager(e config.CommonEnvironment, runner *command.Runner) ServiceManager {
+func newSystemdServiceManager(e config.Env, runner *command.Runner) ServiceManager {
 	return &systemdServiceManager{e: e, runner: runner}
 }
 

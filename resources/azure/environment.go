@@ -33,13 +33,13 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
-var _ config.CloudProviderEnvironment = (*Environment)(nil)
+var _ config.Env = (*Environment)(nil)
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
 		Namer: namer.NewNamer(ctx, azNamerNamespace),
 	}
-	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
+	commonEnv, err := config.NewCommonEnvironment(ctx)
 	if err != nil {
 		return Environment{}, err
 	}

@@ -64,7 +64,7 @@ func (o os) ServiceManger() ServiceManager {
 }
 
 func NewOS(
-	e config.CommonEnvironment,
+	e config.Env,
 	descriptor Descriptor,
 	runner *command.Runner,
 ) OS {

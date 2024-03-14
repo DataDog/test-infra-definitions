@@ -49,14 +49,14 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(e config.CommonEnvironment, options ...Option) (*Params, error) {
+func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.CloudProviderEnvironment.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
-		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.CloudProviderEnvironment.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)

@@ -33,7 +33,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	}
 
 	// Create the EC2 instance
-	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(c *remote.Host) error {
+	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		instanceArgs := ec2.InstanceArgs{
 			AMI:             amiInfo.id,
 			InstanceType:    vmArgs.instanceType,
@@ -53,7 +53,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			return err
 		}
 
-		return remote.InitHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, amiInfo.defaultUser, amiInfo.readyFunc, c)
+		return remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, amiInfo.defaultUser, amiInfo.readyFunc, c)
 	})
 }
 

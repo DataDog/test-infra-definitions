@@ -17,7 +17,7 @@ type InstallArgs struct {
 }
 
 // Important: set relevant Kubernetes provider in `opts`
-func NewInstallation(e config.CommonEnvironment, args InstallArgs, opts ...pulumi.ResourceOption) (*helm.Release, error) {
+func NewInstallation(e config.Env, args InstallArgs, opts ...pulumi.ResourceOption) (*helm.Release, error) {
 	return helm.NewRelease(e.Ctx(), args.InstallName, &helm.ReleaseArgs{
 		Namespace: pulumi.StringPtr(args.Namespace),
 		Name:      pulumi.StringPtr(args.InstallName),

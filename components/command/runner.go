@@ -54,7 +54,7 @@ type runnerConfiguration struct {
 }
 
 type Runner struct {
-	e           config.CommonEnvironment
+	e           config.Env
 	namer       namer.Namer
 	waitCommand *remote.Command
 	config      runnerConfiguration
@@ -71,7 +71,7 @@ type RunnerArgs struct {
 	OSCommand      OSCommand
 }
 
-func NewRunner(e config.CommonEnvironment, args RunnerArgs) (*Runner, error) {
+func NewRunner(e config.Env, args RunnerArgs) (*Runner, error) {
 	runner := &Runner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx(), "remote").WithPrefix(args.ConnectionName),
@@ -119,7 +119,7 @@ func (r *Runner) NewCopyFile(localPath, remotePath string, opts ...pulumi.Resour
 }
 
 type LocalRunner struct {
-	e         config.CommonEnvironment
+	e         config.Env
 	namer     namer.Namer
 	config    runnerConfiguration
 	osCommand OSCommand
@@ -130,7 +130,7 @@ type LocalRunnerArgs struct {
 	OSCommand OSCommand
 }
 
-func NewLocalRunner(e config.CommonEnvironment, args LocalRunnerArgs) *LocalRunner {
+func NewLocalRunner(e config.Env, args LocalRunnerArgs) *LocalRunner {
 	localRunner := &LocalRunner{
 		e:         e,
 		namer:     namer.NewNamer(e.Ctx(), "local"),

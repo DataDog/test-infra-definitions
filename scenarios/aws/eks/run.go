@@ -35,7 +35,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	clusterComp, err := components.NewComponent(*awsEnv.CommonEnvironment, awsEnv.Namer.ResourceName("eks"), func(comp *kubeComp.Cluster) error {
+	clusterComp, err := components.NewComponent(&awsEnv, awsEnv.Namer.ResourceName("eks"), func(comp *kubeComp.Cluster) error {
 		// Create Cluster SG
 		clusterSG, err := ec2.NewSecurityGroup(ctx, awsEnv.Namer.ResourceName("eks-sg"), &ec2.SecurityGroupArgs{
 			NamePrefix:  awsEnv.CommonNamer().DisplayName(255, pulumi.String("eks-sg")),
@@ -216,7 +216,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy the agent
 		if awsEnv.AgentDeploy() {
-			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
+			helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
 				KubeProvider:  eksKubeProvider,
 				Namespace:     "datadog",
 				Fakeintake:    fakeIntake,
@@ -238,44 +238,44 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy standalone dogstatsd
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
 				return err
 			}
 		}
 
 		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
 				return err
 			}
 
-			if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+			if _, err := redis.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
 				return err
 			}
 
-			if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-cpustress"); err != nil {
+			if _, err := cpustress.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-cpustress"); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen"); err != nil {
+			if _, err := tracegen.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-tracegen"); err != nil {
 				return err
 			}
 
-			if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {
+			if _, err := prometheus.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-prometheus"); err != nil {
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-mutated"); err != nil {
 				return err
 			}
 		}

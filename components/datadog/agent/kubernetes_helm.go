@@ -40,7 +40,7 @@ type HelmComponent struct {
 	WindowsHelmReleaseStatus kubeHelm.ReleaseStatusOutput
 }
 
-func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	installName := "dda"
@@ -102,13 +102,13 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(&e, "", "")
+	agentImagePath := dockerAgentFullImagePath(e, "", "")
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
-	clusterAgentImagePath := dockerClusterAgentFullImagePath(&e, "")
+	clusterAgentImagePath := dockerClusterAgentFullImagePath(e, "")
 	if args.ClusterAgentFullImagePath != "" {
 		clusterAgentImagePath = args.ClusterAgentFullImagePath
 	}
@@ -349,7 +349,7 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake) {
 	if fakeintake == nil {
 		return
 	}

@@ -46,7 +46,7 @@ func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) str
 	// is expected in the consumers of this framework
 	return fmt.Sprintf("%s-%s-%s-ddvm-%d-%d", arch, tag, vmsetTags, vcpu, memory)
 }
-func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
+func generateNewUnicastMac(e config.Env, domainID string) (pulumi.StringOutput, error) {
 	r := utils.NewRandomGenerator(e, domainID)
 
 	pulumiRandStr, err := r.RandomString(domainID, 6, true)
@@ -67,8 +67,8 @@ func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.
 	return macAddr, nil
 }
 
-func generateMACAddress(e *config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
-	mac, err := generateNewUnicastMac(*e, domainID)
+func generateMACAddress(e config.Env, domainID string) (pulumi.StringOutput, error) {
+	mac, err := generateNewUnicastMac(e, domainID)
 	if err != nil {
 		return mac, err
 	}
@@ -99,7 +99,7 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
+func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
@@ -176,7 +176,7 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
+func GenerateDomainConfigurationsForVMSet(e config.Env, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
 	var domains []*Domain
 	var cpuTuneXML string
 

@@ -107,7 +107,7 @@ func Export(ctx *pulumi.Context, c component, imp Importable) error {
 
 // Create any component type and register it as a Pulumi component
 // Passing a nil `builder` is valid and will only produce an empty component.
-func NewComponent[C component](e config.CommonEnvironment, name string, builder func(comp C) error, opts ...pulumi.ResourceOption) (C, error) {
+func NewComponent[C component](e config.Env, name string, builder func(comp C) error, opts ...pulumi.ResourceOption) (C, error) {
 	var comp C
 
 	compType := reflect.TypeOf(comp)

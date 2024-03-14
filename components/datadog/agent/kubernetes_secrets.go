@@ -12,7 +12,7 @@ import (
 
 const imagePullSecretName = "registry-credentials"
 
-func NewImagePullSecret(e config.CommonEnvironment, namespace string, opts ...pulumi.ResourceOption) (*corev1.Secret, error) {
+func NewImagePullSecret(e config.Env, namespace string, opts ...pulumi.ResourceOption) (*corev1.Secret, error) {
 	dockerConfigJSON := e.ImagePullPassword().ApplyT(func(password string) (string, error) {
 		dockerConfigJSON, err := json.Marshal(map[string]map[string]map[string]string{
 			"auths": {

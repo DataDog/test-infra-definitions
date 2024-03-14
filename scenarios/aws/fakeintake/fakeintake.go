@@ -39,7 +39,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		return nil, paramsErr
 	}
 
-	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(fi *fakeintake.Fakeintake) error {
+	return components.NewComponent(&e, e.Namer.ResourceName(name), func(fi *fakeintake.Fakeintake) error {
 		namer := e.Namer.WithPrefix("fakeintake").WithPrefix(name)
 		opts := []pulumi.ResourceOption{pulumi.Parent(fi)}
 

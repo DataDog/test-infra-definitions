@@ -27,7 +27,7 @@ type Manager struct {
 	opts []pulumi.ResourceOption
 }
 
-func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker bool, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
+func NewManager(e config.Env, host *remoteComp.Host, installDocker bool, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
 	manager := &Manager{
 		namer: e.CommonNamer().WithPrefix("docker"),
 		host:  host,

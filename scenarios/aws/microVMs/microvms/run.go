@@ -125,7 +125,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewHostAgent(awsEnv.CommonEnvironment, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
+		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
 			awsEnv.Ctx().Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}
@@ -184,7 +184,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	var url pulumi.StringOutput
 	var err error
 
-	env := *instance.e.CommonEnvironment
+	env := *instance.e
 	osCommand := command.NewUnixOSCommand()
 	localRunner := command.NewLocalRunner(env, command.LocalRunnerArgs{
 		OSCommand: osCommand,
@@ -372,7 +372,7 @@ func RunAndReturnInstances(e commonConfig.CommonEnvironment) (*ScenarioDone, err
 }
 
 func Run(ctx *pulumi.Context) error {
-	commonEnv, err := commonConfig.NewCommonEnvironment(ctx, nil)
+	commonEnv, err := commonConfig.NewCommonEnvironment(ctx)
 	if err != nil {
 		return err
 	}

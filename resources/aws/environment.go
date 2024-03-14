@@ -70,7 +70,6 @@ var _ config.Env = (*Environment)(nil)
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
-		awsEnv.CommonEnvironment.CloudProviderEnvironment = awsEnv
 	}
 }
 
@@ -85,7 +84,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx, &env)
+		commonEnv, err := config.NewCommonEnvironment(ctx)
 		if err != nil {
 			return Environment{}, err
 		}

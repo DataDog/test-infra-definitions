@@ -8,11 +8,11 @@ import (
 )
 
 type RandomGenerator struct {
-	e     config.CommonEnvironment
+	e     config.Env
 	namer namer.Namer
 }
 
-func NewRandomGenerator(e config.CommonEnvironment, name string, options ...func(*RandomGenerator)) *RandomGenerator {
+func NewRandomGenerator(e config.Env, name string, options ...func(*RandomGenerator)) *RandomGenerator {
 	rand := &RandomGenerator{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx(), "random-"+name),

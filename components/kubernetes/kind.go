@@ -26,7 +26,7 @@ const (
 var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine.
-func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, resourceName, func(clusterComp *Cluster) error {
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 

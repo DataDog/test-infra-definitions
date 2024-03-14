@@ -59,8 +59,8 @@ const (
 type CommonEnvironment struct {
 	providerRegistry
 
-	Ctx                      *pulumi.Context
-	CommonNamer              namer.Namer
+	ctx                      *pulumi.Context
+	commonNamer              namer.Namer
 	CloudProviderEnvironment CloudProviderEnvironment
 
 	InfraConfig           *sdkconfig.Config
@@ -72,19 +72,62 @@ type CommonEnvironment struct {
 	username string
 }
 
+type Env interface {
+	provider
+
+	Ctx() *pulumi.Context
+	CommonNamer() namer.Namer
+
+	InfraShouldDeployFakeintakeWithLB() bool
+	InfraEnvironmentNames() []string
+	InfraOSDescriptor() string
+	InfraOSImageID() string
+	KubernetesVersion() string
+	DefaultResourceTags() map[string]string
+	ExtraResourcesTags() map[string]string
+	ResourcesTags() pulumi.StringMap
+
+	AgentDeploy() bool
+	AgentVersion() string
+	PipelineID() string
+	CommitSHA() string
+	ClusterAgentVersion() string
+	AgentFullImagePath() string
+	ClusterAgentFullImagePath() string
+	ImagePullRegistry() string
+	ImagePullUsername() string
+	ImagePullPassword() pulumi.StringOutput
+	AgentAPIKey() pulumi.StringOutput
+	AgentAPPKey() pulumi.StringOutput
+	AgentUseFakeintake() bool
+	TestingWorkloadDeploy() bool
+	DogstatsdDeploy() bool
+	DogstatsdFullImagePath() string
+	UpdaterDeploy() bool
+
+	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
+	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
+	GetStringWithDefault(config *sdkconfig.Config, paramName string, defaultValue string) string
+	GetObjectWithDefault(config *sdkconfig.Config, paramName string, outputValue, defaultValue interface{}) interface{}
+	GetIntWithDefault(config *sdkconfig.Config, paramName string, defaultValue int) int
+}
+type CloudEnv interface {
+	InternalRegistry() string
+}
+
 type CloudProviderEnvironment interface {
 	InternalRegistry() string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {
 	env := CommonEnvironment{
-		Ctx:                      ctx,
+		ctx:                      ctx,
 		InfraConfig:              sdkconfig.New(ctx, DDInfraConfigNamespace),
 		AgentConfig:              sdkconfig.New(ctx, DDAgentConfigNamespace),
 		TestingWorkloadConfig:    sdkconfig.New(ctx, DDTestingWorkloadNamespace),
 		DogstatsdConfig:          sdkconfig.New(ctx, DDDogstatsdNamespace),
 		UpdaterConfig:            sdkconfig.New(ctx, DDUpdaterConfigNamespace),
-		CommonNamer:              namer.NewNamer(ctx, ""),
+		commonNamer:              namer.NewNamer(ctx, ""),
 		CloudProviderEnvironment: cloudProviderEnvironment,
 		providerRegistry:         newProviderRegistry(ctx),
 	}
@@ -102,6 +145,14 @@ func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudPro
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
 	return env, nil
+}
+
+func (e *CommonEnvironment) Ctx() *pulumi.Context {
+	return e.ctx
+}
+
+func (e *CommonEnvironment) CommonNamer() namer.Namer {
+	return e.commonNamer
 }
 
 // Infra namespace

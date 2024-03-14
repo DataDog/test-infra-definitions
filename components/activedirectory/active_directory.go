@@ -102,7 +102,13 @@ func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *
 		if len(params.DomainUsers) > 0 {
 			// Create users in parallel
 			var createUserResources []pulumi.Resource
+			var userMaps = make(map[string]struct{})
 			for _, user := range params.DomainUsers {
+				if _, ok := userMaps[user.Username]; ok {
+					return fmt.Errorf("duplicated Active Directory user requested")
+				}
+				userMaps[user.Username] = struct{}{}
+
 				createDomainUserCmd, err := host.OS.Runner().Command(comp.namer.ResourceName("create-domain-users", user.Username), &command.Args{
 					Create: pulumi.Sprintf(`
 $HashArguments = @{

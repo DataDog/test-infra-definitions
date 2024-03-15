@@ -34,11 +34,11 @@ func anyAgentSemverVersion(version string) (*semver.Version, error) {
 	return semver.NewVersion(version)
 }
 
-func AgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
+func AgentSemverVersion(e Env) (*semver.Version, error) {
 	return anyAgentSemverVersion(e.AgentVersion())
 }
 
-func ClusterAgentSemverVersion(e *CommonEnvironment) (*semver.Version, error) {
+func ClusterAgentSemverVersion(e Env) (*semver.Version, error) {
 	return anyAgentSemverVersion(e.ClusterAgentVersion())
 }
 

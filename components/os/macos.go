@@ -5,7 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-func newMacOS(e config.CommonEnvironment, desc Descriptor, runner *command.Runner) OS {
+func newMacOS(e config.Env, desc Descriptor, runner *command.Runner) OS {
 	os := &os{
 		descriptor:     desc,
 		runner:         runner,

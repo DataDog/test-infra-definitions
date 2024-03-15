@@ -8,16 +8,16 @@ import (
 )
 
 type systemdServiceManager struct {
-	e      config.CommonEnvironment
+	e      config.Env
 	runner *command.Runner
 }
 
-func newSystemdServiceManager(e config.CommonEnvironment, runner *command.Runner) ServiceManager {
+func newSystemdServiceManager(e config.Env, runner *command.Runner) ServiceManager {
 	return &systemdServiceManager{e: e, runner: runner}
 }
 
 func (s *systemdServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	cmdName := s.e.CommonNamer.ResourceName("running", serviceName)
+	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
 	cmdArgs := command.Args{
 		Sudo:   true,
 		Create: pulumi.String("systemctl restart " + serviceName),

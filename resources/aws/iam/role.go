@@ -12,7 +12,7 @@ const (
 )
 
 func GetAWSPrincipalAssumeRole(e aws.Environment, serviceName []string) (*iam.GetPolicyDocumentResult, error) {
-	return iam.GetPolicyDocument(e.Ctx, &iam.GetPolicyDocumentArgs{
+	return iam.GetPolicyDocument(e.Ctx(), &iam.GetPolicyDocumentArgs{
 		Statements: []iam.GetPolicyDocumentStatement{
 			{
 				Actions: []string{

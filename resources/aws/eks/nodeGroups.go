@@ -39,13 +39,13 @@ func NewBottlerocketNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole 
 }
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string) (*eks.ManagedNodeGroup, error) {
-	return eks.NewManagedNodeGroup(e.Ctx, e.Namer.ResourceName(name), &eks.ManagedNodeGroupArgs{
+	return eks.NewManagedNodeGroup(e.Ctx(), e.Namer.ResourceName(name), &eks.ManagedNodeGroupArgs{
 		AmiType:             pulumi.StringPtr(amiType),
 		Cluster:             cluster.Core,
 		DiskSize:            pulumi.Int(80),
 		InstanceTypes:       pulumi.ToStringArray([]string{instanceType}),
 		ForceUpdateVersion:  pulumi.BoolPtr(true),
-		NodeGroupNamePrefix: e.CommonNamer.DisplayName(37, pulumi.String(name), pulumi.String("ng")),
+		NodeGroupNamePrefix: e.CommonNamer().DisplayName(37, pulumi.String(name), pulumi.String("ng")),
 		ScalingConfig: awsEks.NodeGroupScalingConfigArgs{
 			DesiredSize: pulumi.Int(1),
 			MaxSize:     pulumi.Int(1),
@@ -60,7 +60,7 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 }
 
 func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role) (*eks.NodeGroup, error) {
-	windowsAmi, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
+	windowsAmi, err := ssm.LookupParameter(e.Ctx(), &ssm.LookupParameterArgs{
 		Name: fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-2022-English-Core-EKS_Optimized-%s/image_id", e.KubernetesVersion()),
 	}, e.WithProvider(config.ProviderAWS))
 	if err != nil {
@@ -71,15 +71,15 @@ func NewWindowsUnmanagedNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeR
 }
 
 func newUnmanagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, ami, instanceType, userData pulumi.StringInput) (*eks.NodeGroup, error) {
-	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx, e.Namer.ResourceName(name), &awsIam.InstanceProfileArgs{
-		Name: e.CommonNamer.DisplayName(255, pulumi.String(name)),
+	instanceProfile, err := awsIam.NewInstanceProfile(e.Ctx(), e.Namer.ResourceName(name), &awsIam.InstanceProfileArgs{
+		Name: e.CommonNamer().DisplayName(255, pulumi.String(name)),
 		Role: nodeRole.Name,
 	}, e.WithProviders(config.ProviderAWS))
 	if err != nil {
 		return nil, err
 	}
 
-	return eks.NewNodeGroup(e.Ctx, e.Namer.ResourceName(name), &eks.NodeGroupArgs{
+	return eks.NewNodeGroup(e.Ctx(), e.Namer.ResourceName(name), &eks.NodeGroupArgs{
 		NodeUserDataOverride: userData,
 		Cluster:              cluster.Core,
 		DesiredCapacity:      pulumi.Int(1),

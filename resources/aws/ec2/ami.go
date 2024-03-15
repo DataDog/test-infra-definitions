@@ -21,7 +21,7 @@ func LatestUbuntuAMI(e aws.Environment, arch string) (string, error) {
 }
 
 func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
-	image, err := ec2.LookupAmi(e.Ctx, &ec2.LookupAmiArgs{
+	image, err := ec2.LookupAmi(e.Ctx(), &ec2.LookupAmiArgs{
 		MostRecent: pulumi.BoolRef(true),
 		Filters: []ec2.GetAmiFilter{
 			{
@@ -59,7 +59,7 @@ func SearchAMI(e aws.Environment, owner, name, arch string) (string, error) {
 }
 
 func GetAMIFromSSM(e aws.Environment, paramName string) (string, error) {
-	result, err := ssm.LookupParameter(e.Ctx, &ssm.LookupParameterArgs{
+	result, err := ssm.LookupParameter(e.Ctx(), &ssm.LookupParameterArgs{
 		Name: paramName,
 	}, e.WithProvider(config.ProviderAWS))
 	if err != nil {

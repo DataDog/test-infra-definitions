@@ -30,7 +30,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		Namer: namer.NewNamer(ctx, hvNamerNamespace),
 	}
 
-	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
+	commonEnv, err := config.NewCommonEnvironment(ctx)
 	if err != nil {
 		return Environment{}, err
 	}

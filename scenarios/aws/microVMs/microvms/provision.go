@@ -220,7 +220,7 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 
 				pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
 				remoteRunner, err := command.NewRunner(
-					*collection.instance.e.CommonEnvironment,
+					collection.instance.e,
 					command.RunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     pc,
@@ -281,7 +281,7 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 				}
 
 				remoteRunner, err := command.NewRunner(
-					*collection.instance.e.CommonEnvironment,
+					*collection.instance.e,
 					command.RunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     conn,

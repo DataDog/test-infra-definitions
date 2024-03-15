@@ -34,7 +34,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 	}
 
 	// Create the EC2 instance
-	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(c *remote.Host) error {
+	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		// Create the Azure instance
 		var err error
 		var nwIface *network.NetworkInterface
@@ -58,7 +58,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 		}
 
 		// TODO: Check support of cloud-init on Azure
-		return remote.InitHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, command.WaitForSuccessfulConnection, c)
+		return remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, command.WaitForSuccessfulConnection, c)
 	})
 }
 

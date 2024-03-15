@@ -9,8 +9,8 @@ import (
 )
 
 func NewCapacityProvider(e aws.Environment, name string, asgArn pulumi.StringInput) (*ecs.CapacityProvider, error) {
-	return ecs.NewCapacityProvider(e.Ctx, e.Namer.ResourceName(name), &ecs.CapacityProviderArgs{
-		Name: e.CommonNamer.DisplayName(255, pulumi.String(name)),
+	return ecs.NewCapacityProvider(e.Ctx(), e.Namer.ResourceName(name), &ecs.CapacityProviderArgs{
+		Name: e.CommonNamer().DisplayName(255, pulumi.String(name)),
 		AutoScalingGroupProvider: &ecs.CapacityProviderAutoScalingGroupProviderArgs{
 			AutoScalingGroupArn: asgArn,
 			ManagedScaling: &ecs.CapacityProviderAutoScalingGroupProviderManagedScalingArgs{
@@ -22,7 +22,7 @@ func NewCapacityProvider(e aws.Environment, name string, asgArn pulumi.StringInp
 }
 
 func NewClusterCapacityProvider(e aws.Environment, name string, clusterName pulumi.StringInput, capacityProviders pulumi.StringArray) (*ecs.ClusterCapacityProviders, error) {
-	return ecs.NewClusterCapacityProviders(e.Ctx, e.Namer.ResourceName(name), &ecs.ClusterCapacityProvidersArgs{
+	return ecs.NewClusterCapacityProviders(e.Ctx(), e.Namer.ResourceName(name), &ecs.ClusterCapacityProvidersArgs{
 		ClusterName:       clusterName,
 		CapacityProviders: capacityProviders,
 	}, e.WithProviders(config.ProviderAWS))

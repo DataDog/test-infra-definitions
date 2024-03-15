@@ -19,8 +19,8 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 		return nil, err
 	}
 
-	return ecs.NewEC2Service(e.Ctx, e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
-		Name:               e.CommonNamer.DisplayName(255, pulumi.String(name)),
+	return ecs.NewEC2Service(e.Ctx(), e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
+		Name:               e.CommonNamer().DisplayName(255, pulumi.String(name)),
 		Cluster:            clusterArn,
 		SchedulingStrategy: pulumi.StringPtr("DAEMON"),
 		PlacementConstraints: classicECS.ServicePlacementConstraintArray{
@@ -32,7 +32,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-				"datadog-agent": ecsLinuxAgentSingleContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, params),
+				"datadog-agent": ecsLinuxAgentSingleContainerDefinition(&e, apiKeySSMParamName, fakeintake, params),
 			},
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
@@ -42,7 +42,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			},
 			NetworkMode: pulumi.StringPtr(params.NetworkMode),
 			PidMode:     pulumi.StringPtr("host"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.String("datadog-agent-ec2")),
+			Family:      e.CommonNamer().DisplayName(255, pulumi.String("datadog-agent-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					HostPath: pulumi.StringPtr("/var/run/docker.sock"),
@@ -73,12 +73,12 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, params *ecsagentparams.Params) ecs.TaskDefinitionContainerDefinitionArgs {
+func ecsLinuxAgentSingleContainerDefinition(e config.Env, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, params *ecsagentparams.Params) ecs.TaskDefinitionContainerDefinitionArgs {
 	return ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(200),
 		Memory:    pulumi.IntPtr(512),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "")),
+		Image:     pulumi.String(dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "")),
 		Essential: pulumi.BoolPtr(true),
 		LinuxParameters: ecs.TaskDefinitionLinuxParametersArgs{
 			Capabilities: ecs.TaskDefinitionKernelCapabilitiesArgs{

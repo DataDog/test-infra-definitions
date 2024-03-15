@@ -27,7 +27,7 @@ type InstanceArgs struct {
 func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulumi.ResourceOption) (*ec2.Instance, error) {
 	defaultInstanceArgs(e, &args)
 
-	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
+	instance, err := ec2.NewInstance(e.Ctx(), e.Namer.ResourceName(name), &ec2.InstanceArgs{
 		Ami:                     pulumi.StringPtr(args.AMI),
 		SubnetId:                e.RandomSubnets().Index(pulumi.Int(0)),
 		IamInstanceProfile:      pulumi.StringPtr(args.InstanceProfile),

@@ -63,7 +63,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
 							Name:  pulumi.String("logger"),
-							Image: pulumi.String("http://ghcr.io/datadog/apps-logger:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-logger:main"),
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),

@@ -90,5 +90,25 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
+	if _, err := corev1.NewService(e.Ctx, "logger", &corev1.ServiceArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("logger"),
+			Namespace: pulumi.String(namespace),
+		},
+		Spec: &corev1.ServiceSpecArgs{
+			Selector: pulumi.StringMap{
+				"app": pulumi.String("logger"),
+			},
+			Ports: &corev1.ServicePortArray{
+				&corev1.ServicePortArgs{
+					Port:       pulumi.Int(LoggerPort),
+					TargetPort: pulumi.Int(LoggerPort),
+				},
+			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
 	return k8sComponent, nil
 }

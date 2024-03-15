@@ -62,6 +62,8 @@ jobs:
             image: go-httpbin
           - app: npm-tools
             image: npm-tools
+          - app: logger
+            image: logger
 
     steps:
       - name: Checkout repository

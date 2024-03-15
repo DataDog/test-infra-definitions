@@ -3,7 +3,7 @@ import json
 import pathlib
 import platform
 from io import StringIO
-from typing import Any, List, Optional
+from typing import Any, List, Optional, Union
 
 from invoke.context import Context
 from invoke.exceptions import Exit
@@ -60,6 +60,45 @@ def get_os_families() -> List[str]:
         "centos",
         "rockylinux",
     ]
+
+
+def get_package_for_os(os: str) -> str:
+    package_map = {
+        get_default_os_family(): "deb",
+        "windows": "windows",
+        "amazonlinux": "rpm",
+        "amazonlinuxdocker": "rpm",
+        "debian": "deb",
+        "redhat": "rpm",
+        "suse": "suse_rpm",
+        "fedora": "rpm",
+        "centos": "rpm",
+        "rockylinux": "rpm",
+    }
+
+    return package_map[os]
+
+
+def get_deploy_job(os: str, arch: Union[str, None]) -> str:
+    """
+    Returns the deploy job name within the datadog agent repo that creates
+    images used in create-vm
+    """
+    pkg = get_package_for_os(os)
+
+    if os == 'windows':
+        suffix = '-a7'
+    elif os == 'suse':
+        suffix = '_x64-a7'
+    elif pkg == 'deb':
+        suffix = '-a7_x64' if arch == 'x86_64' else '-u7_arm64'
+    elif pkg == 'rpm':
+        assert arch == 'x86_64', 'Invalid architecture for rpm package'
+        suffix = '-a7_x64'
+    else:
+        raise RuntimeError(f'Cannot deduce deploy job from {os}::{arch}')
+
+    return f'deploy_{pkg}_testing{suffix}'
 
 
 def get_default_os_family() -> str:

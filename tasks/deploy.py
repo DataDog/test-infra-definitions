@@ -1,7 +1,4 @@
-from datetime import datetime
-from dateutil import parser
 import os
-import requests
 import subprocess
 from typing import Any, Callable, Dict, List, Optional
 
@@ -9,7 +6,7 @@ from invoke.context import Context
 from invoke.exceptions import Exit
 from pydantic import ValidationError
 
-from . import config, tool
+from . import config, pipeline, tool
 from .config import Config, get_full_profile_path
 
 default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
@@ -32,6 +29,7 @@ def deploy(
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
     use_aws_vault: Optional[bool] = True,
+    deploy_job: Optional[str] = None,
 ) -> str:
     flags = extra_flags
     if flags is None:
@@ -51,8 +49,8 @@ def deploy(
     except ValidationError as e:
         raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
 
-    if pipeline_id is not None:
-        _verify_pipeline_valid(pipeline_id)
+    if deploy_job is not None and pipeline_id is not None:
+        _verify_deploy_job_valid(pipeline_id, deploy_job)
 
     flags[default_public_path_key_name] = _get_public_path_key_name(cfg, public_key_required)
     flags["scenario"] = scenario_name
@@ -210,23 +208,12 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
         )
 
 
-def _verify_pipeline_valid(pipeline_id):
+def _verify_deploy_job_valid(pipeline_id, deploy_job):
     """
     Verify that the pipeline exists and images has been published less than 24h before now
     """
-    gitlab_token = os.environ['GITLAB_TOKEN']
-    rq = requests.get(f'https://gitlab.ddbuild.io/api/v4/projects/4670/pipelines/{pipeline_id}', headers={'PRIVATE-TOKEN': gitlab_token})
+    job_time = pipeline.get_job_time_since_execution(pipeline_id, deploy_job)
 
-    assert rq.ok, f'Pipeline with id {pipeline_id} cannot be found'
-
-    result = rq.json()
-    updated_at = result.get('updated_at', None)
-    if updated_at is None:
-        assert 'created_at' in result, f'Got invalid pipeline information for pipeline with id {pipeline_id}'
-        updated_at = result['created_at']
-
-    updated_at = parser.isoparse(updated_at)
-    diff = datetime.now(updated_at.tzinfo) - updated_at
-    diff_hours = diff.total_seconds() // (60 * 60)
-
-    assert diff_hours <= 24 , f'Pipeline with id {pipeline_id} is outdated, use `/trigger-ci` to run it again'
+    assert (
+        job_time <= 24
+    ), f'Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy'

@@ -108,7 +108,13 @@ if ($result.RestartNeeded -eq "Yes") {
 		}
 
 		if len(params.Sites) > 0 {
+			var sitesMap = make(map[string]struct{})
 			for _, site := range params.Sites {
+				if _, ok := sitesMap[site.Name]; ok {
+					return fmt.Errorf("duplicated IIS Site requested")
+				}
+				sitesMap[site.Name] = struct{}{}
+
 				dependencies := []pulumi.ResourceOption{
 					utils.PulumiDependsOn(ensureIISStarted),
 				}

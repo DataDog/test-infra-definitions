@@ -99,9 +99,6 @@ RUN --mount=type=secret,id=github_token \
   mv ~/.pulumi/bin/* /usr/bin
 
 # Install Pulumi plugins
-# The time resource is installed explicitly here instead in go.mod
-# because it's not used directly by this repository, thus go mod tidy
-# would remove it...
 COPY . /tmp/test-infra
 RUN --mount=type=secret,id=github_token \
   export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
@@ -109,7 +106,6 @@ RUN --mount=type=secret,id=github_token \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
   pulumi --non-interactive plugin install && \
-  pulumi --non-interactive plugin install resource time v0.0.16 && \
   pulumi --non-interactive plugin ls && \
   cd / && \
   rm -rf /tmp/test-infra

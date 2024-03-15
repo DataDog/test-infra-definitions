@@ -220,7 +220,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
@@ -229,7 +229,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
@@ -245,7 +245,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{
 						"openmetrics": map[string]interface{}{
-							"init_configs": []map[string]interface{}{},
+							"init_config": []map[string]interface{}{},
 							"instances": []map[string]interface{}{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",

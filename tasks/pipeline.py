@@ -51,7 +51,6 @@ def _get_job(pipeline_id, job_name):
     agent_repo = gl.projects.get('DataDog/datadog-agent')
     pipeline = agent_repo.pipelines.get(pipeline_id)
 
-    # TODO : Optimize (graphql / filter by stage ?)
     jobs = pipeline.jobs.list(all=True, per_page=100)
 
     # Latest job first by default

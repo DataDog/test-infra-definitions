@@ -1,9 +1,12 @@
 package microvms
 
 import (
+	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strings"
+	"time"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -166,4 +169,84 @@ func generateNetworkResource(
 	}
 
 	return network, nil
+}
+
+type dhcpLease struct {
+	name string
+	ip   string
+	mac  string
+}
+
+// parseBootpDHCPLeases parses the dhcpd_leases file and returns a slice of dhcpLease structs.
+func parseBootpDHCPLeases() ([]dhcpLease, error) {
+	var leases []dhcpLease
+
+	file, err := os.Open("/var/db/dhcpd_leases")
+	if os.IsNotExist(err) {
+		return leases, nil
+		// Do not return error if file was not found, it only gets created when a lease is assigned.
+	} else if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var parsingLease dhcpLease
+	for scanner.Scan() {
+		// Single lease format, for reference:
+		// {
+		// 	name=ddvm
+		// 	ip_address=192.168.64.3
+		// 	hw_address=1,28:21:40:26:78:37
+		// 	identifier=1,28:21:40:26:78:37
+		// 	lease=0x65ce3cb6
+		// }
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "name=") {
+			parsingLease.name = strings.TrimPrefix(line, "name=")
+		}
+		if strings.HasPrefix(line, "ip_address=") {
+			parsingLease.ip = strings.TrimPrefix(line, "ip_address=")
+		}
+		if strings.HasPrefix(line, "hw_address=") {
+			hwaddr := strings.TrimPrefix(line, "hw_address=")
+			parts := strings.Split(hwaddr, ",")
+
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("parseBootpDHCPLeases: invalid hw_address format: %s", hwaddr)
+			}
+
+			parsingLease.mac = parts[1]
+		}
+		if line == "}" {
+			leases = append(leases, parsingLease)
+			parsingLease = dhcpLease{}
+		}
+	}
+
+	return leases, nil
+}
+
+// waitForBootpDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
+// returns that IP address.
+func waitForBootpDHCPLeases(mac string) (string, error) {
+	// The DHCP server will assign an IP address to the VM based on its MAC address, wait until it is assigned
+	// and then return the IP address.
+	maxWait := 5 * time.Minute
+	interval := 500 * time.Millisecond
+	for totalWait := 0 * time.Second; totalWait < maxWait; totalWait += interval {
+		leases, err := parseBootpDHCPLeases()
+
+		if err != nil {
+			return "", fmt.Errorf("waitForBootpDHCPLeases: error parsing leases: %s", err)
+		}
+
+		for _, lease := range leases {
+			if lease.mac == mac {
+				return lease.ip, nil
+			}
+		}
+		time.Sleep(interval)
+	}
+	return "", fmt.Errorf("waitForBootpDHCPLeases: timed out waiting for lease")
 }

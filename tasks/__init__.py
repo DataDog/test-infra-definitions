@@ -1,6 +1,7 @@
 from invoke.collection import Collection
 
 import tasks.setup as setup
+import tasks.test as test
 from tasks.aks import create_aks, destroy_aks
 from tasks.docker import create_docker, destroy_docker
 from tasks.ecs import create_ecs, destroy_ecs
@@ -23,3 +24,4 @@ ns.add_task(destroy_ecs)  # pyright: ignore [reportArgumentType]
 ns.add_task(create_kind)  # pyright: ignore [reportArgumentType]
 ns.add_task(destroy_kind)  # pyright: ignore [reportArgumentType]
 ns.add_collection(setup)  # pyright: ignore [reportArgumentType]
+ns.add_collection(test)  # pyright: ignore [reportArgumentType]

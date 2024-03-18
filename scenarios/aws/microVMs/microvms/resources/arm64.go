@@ -77,6 +77,9 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 	if args.Machine != "" {
 		domainArgs.Machine = pulumi.String(args.Machine)
 	}
+	if args.Type != "" {
+		domainArgs.Type = pulumi.String(args.Type)
+	}
 
 	return &domainArgs, nil
 }

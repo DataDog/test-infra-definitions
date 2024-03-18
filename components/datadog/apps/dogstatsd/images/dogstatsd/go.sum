@@ -1,5 +1,5 @@
-github.com/DataDog/datadog-go/v5 v5.5.1-0.20240307111531-3f5998a2da25 h1:yhJAhV6ew3Ybea81k7h04X/3VT6FJq3NMj53jd2n1kw=
-github.com/DataDog/datadog-go/v5 v5.5.1-0.20240307111531-3f5998a2da25/go.mod h1:K9kcYBlxkcPP8tvvjZZKs/m1edNAUFzBbdpTUKfCsuw=
+github.com/DataDog/datadog-go/v5 v5.5.1-0.20240318112615-19bca2118b52 h1:t5mc716gQVRjd2i/6i3YvPQmEDnon8nFHrCY5Qiv01g=
+github.com/DataDog/datadog-go/v5 v5.5.1-0.20240318112615-19bca2118b52/go.mod h1:K9kcYBlxkcPP8tvvjZZKs/m1edNAUFzBbdpTUKfCsuw=
 github.com/Microsoft/go-winio v0.5.0 h1:Elr9Wn+sGKPlkaBvwu4mTrxtmOp3F3yV9qhaHbXGjwU=
 github.com/Microsoft/go-winio v0.5.0/go.mod h1:JPGBdM1cNvN/6ISo+n8V5iA4v8pBzdOpzfwIujj1a84=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=

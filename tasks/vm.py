@@ -59,7 +59,7 @@ def create_vm(
 
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
-    deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch)
+    deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
     extra_flags["ddinfra:osDescriptor"] = f"{os_family}::{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 

@@ -121,7 +121,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 }
 
 func (d *Manager) install() (*remote.Command, error) {
-	dockerInstall, err := d.host.OS.PackageManager().Ensure("docker.io", nil, "docker version", d.opts...)
+	dockerInstall, err := d.host.OS.PackageManager().Ensure("docker.io", nil, "docker", d.opts...)
 	if err != nil {
 		return nil, err
 	}

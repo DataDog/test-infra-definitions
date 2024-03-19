@@ -13,9 +13,9 @@ import (
 // Interfaces used by OS components
 type PackageManager interface {
 	// Ensure ensures that a package is installed
-	// checkCmd is command that can be specified by the caller, it it is not empty it will first run the checkCmd and if it fails it will run the installCmd,
+	// checkBinary is a binary that should be checked before running the install command, if it is not empty it will first run the `command -v checkBinary` command and if it fails it will run the installCmd,
 	// if it succeeds we consider the package is already installed
-	Ensure(packageRef string, transform command.Transformer, checkCmd string, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 type ServiceManager interface {

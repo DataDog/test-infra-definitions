@@ -74,7 +74,6 @@ func (a *DistroAMD64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirt
 		domainArgs.Type = pulumi.String(args.Type)
 	}
 
-
 	return &domainArgs, nil
 }
 

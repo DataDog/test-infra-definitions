@@ -6,4 +6,4 @@ pydantic==2.5.3
 colorama>=0.4.6
 lxml==5.1.0
 python-gitlab==4.4.0
-python-dateutil>=2.9.0
+boto3>=1.28.0

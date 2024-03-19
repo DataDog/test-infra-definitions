@@ -1,8 +1,6 @@
 import os
-from datetime import datetime
 
 import gitlab
-from dateutil import parser
 from invoke.tasks import task
 
 from . import doc
@@ -25,19 +23,6 @@ def retry_job(_, pipeline_id, job_name):
     print(
         f'Job {job_name} retried, see status at https://gitlab.ddbuild.io/DataDog/datadog-agent/-/jobs/{new_job["id"]}'
     )
-
-
-def get_job_time_since_execution(pipeline_id, job_name) -> float:
-    """
-    Retrieves the job time since execution in hours
-    """
-    _, _, job = _get_job(pipeline_id, job_name)
-    finished_at = parser.isoparse(job.finished_at)
-
-    diff = datetime.now(finished_at.tzinfo) - finished_at
-    diff_hours = diff.total_seconds() / (60 * 60)
-
-    return diff_hours
 
 
 def _get_job(pipeline_id, job_name):

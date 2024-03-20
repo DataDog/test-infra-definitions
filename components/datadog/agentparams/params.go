@@ -22,12 +22,16 @@ import (
 //   - [WithAgentConfig]
 //   - [WithSystemProbeConfig]
 //   - [WithSecurityAgentConfig]
-//   - [WithFile]
 //   - [WithIntegration]
+//   - [WithFile]
 //   - [WithTelemetry]
-//   - [WithFakeintake]
+//   - [WithPulumiResourceOptions]
+//   - [withIntakeHostname]
 //   - [WithIntakeHostname]
+//   - [WithFakeintake]
 //   - [WithLogs]
+//   - [WithAdditionalInstallParameters]
+//   - [WithSkipAPIKeyInConfig]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -48,6 +52,7 @@ type Params struct {
 	// This is a list of additional installer flags that can be used to pass installer-specific
 	// parameters like the MSI flags.
 	AdditionalInstallParameters []string
+	SkipAPIKeyInConfig          bool
 }
 
 type Option = func(*Params) error
@@ -119,7 +124,7 @@ func parseVersion(s string) (PackageVersion, error) {
 	return version, nil
 }
 
-// WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
+// WithAgentConfig sets the configuration of the Agent.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.AgentConfig = config
@@ -261,6 +266,14 @@ func WithLogs() func(*Params) error {
 func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
 	return func(p *Params) error {
 		p.AdditionalInstallParameters = parameters
+		return nil
+	}
+}
+
+// WithSkipAPIKeyInConfig does not add the API key in the Agent configuration file.
+func WithSkipAPIKeyInConfig() func(*Params) error {
+	return func(p *Params) error {
+		p.SkipAPIKeyInConfig = true
 		return nil
 	}
 }

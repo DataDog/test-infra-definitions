@@ -22,12 +22,16 @@ import (
 //   - [WithAgentConfig]
 //   - [WithSystemProbeConfig]
 //   - [WithSecurityAgentConfig]
-//   - [WithFile]
 //   - [WithIntegration]
+//   - [WithFile]
 //   - [WithTelemetry]
-//   - [WithFakeintake]
+//   - [WithPulumiResourceOptions]
+//   - [withIntakeHostname]
 //   - [WithIntakeHostname]
+//   - [WithFakeintake]
 //   - [WithLogs]
+//   - [WithAdditionalInstallParameters]
+//   - [WithSkipAPIKeyInConfig]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -48,7 +52,7 @@ type Params struct {
 	// This is a list of additional installer flags that can be used to pass installer-specific
 	// parameters like the MSI flags.
 	AdditionalInstallParameters []string
-	SkipAPIKeyInAgentConfig     bool
+	SkipAPIKeyInConfig          bool
 }
 
 type Option = func(*Params) error
@@ -266,10 +270,10 @@ func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
 	}
 }
 
-// WithSkipAPIKeyInAgentConfig does not add the API key in the Agent configuration file.
-func WithSkipAPIKeyInAgentConfig() func(*Params) error {
+// WithSkipAPIKeyInConfig does not add the API key in the Agent configuration file.
+func WithSkipAPIKeyInConfig() func(*Params) error {
 	return func(p *Params) error {
-		p.SkipAPIKeyInAgentConfig = true
+		p.SkipAPIKeyInConfig = true
 		return nil
 	}
 }

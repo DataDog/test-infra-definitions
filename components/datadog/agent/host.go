@@ -80,7 +80,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	configFiles := make(map[string]pulumi.StringInput)
 
 	// Update core Agent
-	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, params.SkipAPIKeyInAgentConfig, afterInstallOpts...)
+	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, params.SkipAPIKeyInConfig, afterInstallOpts...)
 	if err != nil {
 		return err
 	}
@@ -130,13 +130,13 @@ func (h *HostAgent) updateCoreAgentConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,
-	skipAPIKeyInAgentConfig bool,
+	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, pulumi.StringInput, error) {
 	for _, extraConfig := range extraAgentConfig {
 		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
 	}
-	if !skipAPIKeyInAgentConfig {
+	if !skipAPIKeyInConfig {
 		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
 	}
 

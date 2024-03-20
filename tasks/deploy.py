@@ -66,7 +66,7 @@ def deploy(
     if deploy_job is not None and pipeline_id is not None:
         cmd = f'inv -e check-s3-image-exists --pipeline-id={pipeline_id} --deploy-job={deploy_job}'
         cmd = tool.get_aws_wrapper(aws_account) + cmd
-        output = ctx.run(cmd)
+        output = ctx.run(cmd, warn=True)
 
         # The command already has a traceback
         if not output or output.return_code != 0:

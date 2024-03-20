@@ -48,7 +48,7 @@ type Params struct {
 	// This is a list of additional installer flags that can be used to pass installer-specific
 	// parameters like the MSI flags.
 	AdditionalInstallParameters []string
-	WithoutDefaultAPIKey        bool
+	SkipAPIKeyInAgentConfig     bool
 }
 
 type Option = func(*Params) error
@@ -266,10 +266,10 @@ func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
 	}
 }
 
-// WithoutDefaultAPIKey does not add the default API key in the Agent configuration.
-func WithoutDefaultAPIKey() func(*Params) error {
+// WithSkipAPIKeyInAgentConfig does not add the API key in the Agent configuration file.
+func WithSkipAPIKeyInAgentConfig() func(*Params) error {
 	return func(p *Params) error {
-		p.WithoutDefaultAPIKey = true
+		p.SkipAPIKeyInAgentConfig = true
 		return nil
 	}
 }

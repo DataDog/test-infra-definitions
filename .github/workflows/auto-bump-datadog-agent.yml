@@ -45,7 +45,7 @@ jobs:
         working-directory: datadog-agent
         run: |
           GO_MOD_ONLY="--go-mod-only"
-          if [[ ${github.pull_request_merged} == 'true']]; then
+          if [[ '${github.pull_request_merged}' == 'true']]; then
             GO_MOD_ONLY=""
           fi
           inv -e buildimages.update-test-infra-definitions --commit-sha ${{ github.event.pull_request.head.sha }}

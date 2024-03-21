@@ -241,6 +241,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"priorityClassCreate": pulumi.Bool(true),
 			"podAnnotations": pulumi.StringMap{
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{

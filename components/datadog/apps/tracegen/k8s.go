@@ -65,7 +65,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("DD_TRACE_AGENT_URL"),
-									Value: pulumi.String("/var/run/datadog/apm.socket"),
+									Value: pulumi.String("unix:///var/run/datadog/apm.socket"),
 								},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{

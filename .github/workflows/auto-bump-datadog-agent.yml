@@ -39,7 +39,7 @@ jobs:
       - name: Update test-infra-defintions version
         working-directory: datadog-agent
         run: |
-          inv -e update-test-infra-definitions --commit-sha ${{ github.event.pull_request.head.sha }}
+          inv -e buildimages.update-test-infra-definitions --commit-sha ${{ github.event.pull_request.head.sha }}
 
       - name: create datadog-agent PR
         uses: peter-evans/create-pull-request@v5

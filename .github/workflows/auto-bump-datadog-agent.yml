@@ -24,7 +24,12 @@ jobs:
           path: datadog-agent
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
-
+      - name: Get previous SHA
+        id: get-previous-sha
+        working-directory: datadog-agent
+        run: |
+          PREVIOUS_SHA=$(cat .gitlab-ci.yml | grep TEST_INFRA_DEFINITIONS_BUILDIMAGES: | awk -F " " '{print $NF}')
+          echo PREVIOUS_SHA=${PREVIOUS_SHA} >> "${GITHUB_OUTPUT}"
       - name: Setup Python3
         uses: actions/setup-python@v4
         with:
@@ -49,11 +54,11 @@ jobs:
           delete-branch: true
           path: datadog-agent
           add-paths: release.json
-          commit-message: 'omnibus: bump OMNIBUS_RUBY_VERSION'
-          title: '[omnibus][automated] Bump OMNIBUS_RUBY_VERSION'
-          branch: 'automated/omnibus-ruby/${{ github.event.number }}'
-          labels: 'team/agent-platform,changelog/no-changelog,qa/no-code-change'
+          commit-message: 'test-infra-definitions: bump test-infra-definitions version'
+          title: '[test-infra-definitions][automated] Bump test-infra-definitions'
+          branch: 'automated/test-infra-definitions/${{ github.event.number }}'
+          labels: 'team/agent-developer-tools,changelog/no-changelog,qa/no-code-change'
           body: >
             Automatically created by merging ${{ github.event.pull_request.html_url }}
-
+            Here is the full changelog between your 2 changes: https://github.com/DataDog/test-infra-definitions/compare/{{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..{{github.event.pull_request.head.sha}}
             :warning: This PR is opened with the skip-qa labels by default. Please make sure this is appropriate

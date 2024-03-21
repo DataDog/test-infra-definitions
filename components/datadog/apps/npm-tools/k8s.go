@@ -72,7 +72,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									"memory": pulumi.String("64Mi"),
 								},
 								Requests: pulumi.StringMap{
-									"cpu":    pulumi.String("200m"),
+									"cpu":    pulumi.String("50m"),
 									"memory": pulumi.String("64Mi"),
 								},
 							},

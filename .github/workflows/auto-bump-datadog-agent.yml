@@ -53,10 +53,6 @@ jobs:
           base: main
           delete-branch: true
           path: datadog-agent
-          add-paths: |
-            .gitlab-ci.yml
-            test/new-e2e/go.mod
-            test/new-e2e/go.sum
           commit-message: 'test-infra-definitions: bump test-infra-definitions version'
           title: '[test-infra-definitions][automated] Bump test-infra-definitions'
           branch: 'automated/test-infra-definitions/${{ github.event.number }}'

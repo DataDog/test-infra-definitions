@@ -367,12 +367,15 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		return nil, err
 	}
 
-	if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {
-		return nil, err
-	}
+	shouldProvisionDomain := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionDomain, true)
+	if shouldProvisionDomain {
+		if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {
+			return nil, err
+		}
 
-	if _, err := provisionLocalMicroVMs(vmCollections); err != nil {
-		return nil, err
+		if _, err := provisionLocalMicroVMs(vmCollections); err != nil {
+			return nil, err
+		}
 	}
 
 	return &scenarioReady, nil

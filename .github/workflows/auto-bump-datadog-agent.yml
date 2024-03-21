@@ -40,7 +40,7 @@ jobs:
         run: |
           pip3 install -r requirements.txt
 
-       - name: Update test-infra-defintions version
+      - name: Update test-infra-defintions version
         working-directory: datadog-agent
         run: |
           inv -e update-test-infra-definitions --commit-sha ${{ github.event.pull_request.head.sha }}

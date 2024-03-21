@@ -5,6 +5,7 @@ on:
     types:
       - closed
       - push
+      - opened
 
 jobs:
   open_bump_pr:

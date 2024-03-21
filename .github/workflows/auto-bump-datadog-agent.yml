@@ -44,11 +44,16 @@ jobs:
       - name: Update test-infra-defintions version
         working-directory: datadog-agent
         run: |
+          GO_MOD_ONLY="--go-mod-only"
+          if [[ ${github.pull_request_merged} == 'true']]; then
+            GO_MOD_ONLY=""
+          fi
           inv -e buildimages.update-test-infra-definitions --commit-sha ${{ github.event.pull_request.head.sha }}
 
       - name: create datadog-agent PR
         uses: peter-evans/create-pull-request@v5
         with:
+          draft: ${{ github.event.pull_request_merged != 'true'}}
           token: ${{ steps.app-token.outputs.token }}
           base: main
           delete-branch: true
@@ -61,6 +66,6 @@ jobs:
             Automatically created by merging ${{ github.event.pull_request.html_url }}/n
 
             Here is the full changelog between your 2 changes: https://github.com/DataDog/test-infra-definitions/compare/${{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..${{github.event.pull_request.head.sha}}
-            
+
 
             :warning: This PR is opened with the skip-qa labels by default. Please make sure this is appropriate

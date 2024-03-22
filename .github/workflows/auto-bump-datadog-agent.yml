@@ -58,7 +58,7 @@ jobs:
           path: datadog-agent
           commit-message: 'test-infra-definitions: bump test-infra-definitions version'
           title: '[test-infra-definitions][automated] Bump test-infra-definitions'
-          branch: 'automated/test-infra-definitions/${{ github.event.number }}'
+          branch: 'automated/test-infra-definitions/${{ github.run_id }}'
           labels: 'team/agent-developer-tools,changelog/no-changelog,qa/no-code-change'
           body: >
             Automatically created by merging ${{ github.event.pull_request.html_url }}

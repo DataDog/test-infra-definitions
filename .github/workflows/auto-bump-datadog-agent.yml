@@ -60,9 +60,9 @@ jobs:
           branch: 'automated/test-infra-definitions/${{ github.event.number }}'
           labels: 'team/agent-developer-tools,changelog/no-changelog,qa/no-code-change'
           body: >
-            Automatically created by merging ${{ github.event.pull_request.html_url }}/n
+            Automatically created by merging ${{ github.event.pull_request.html_url }}
 
-            Here is the full changelog between your 2 changes: https://github.com/DataDog/test-infra-definitions/compare/${{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..${{github.event.pull_request.head.sha}}
+            Here is the full changelog between the two version of test-infra-definitions: https://github.com/DataDog/test-infra-definitions/compare/${{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..${{github.event.pull_request.head.sha}}
 
 
             :warning: This PR is opened with the skip-qa labels by default. Please make sure this is appropriate

@@ -1,9 +1,9 @@
 name: Open datadog-agent PR
 run-name:
 on:
-  pull_request:
-    types:
-      - closed
+  push:
+    branches:
+      - main
 
 jobs:
   open_bump_pr:
@@ -26,12 +26,14 @@ jobs:
           path: datadog-agent
           token: ${{ steps.app-token.outputs.token }}
           fetch-depth: 0
+
       - name: Get previous SHA
         id: get-previous-sha
         working-directory: datadog-agent
         run: |
           PREVIOUS_SHA=$(cat .gitlab-ci.yml | grep TEST_INFRA_DEFINITIONS_BUILDIMAGES: | awk -F " " '{print $NF}')
           echo PREVIOUS_SHA=${PREVIOUS_SHA} >> "${GITHUB_OUTPUT}"
+
       - name: Setup Python3
         uses: actions/setup-python@v4
         with:
@@ -46,7 +48,7 @@ jobs:
       - name: Update test-infra-defintions version
         working-directory: datadog-agent
         run: |
-          inv -e buildimages.update-test-infra-definitions --commit-sha ${{ github.event.pull_request.head.sha }}
+          inv -e buildimages.update-test-infra-definitions --commit-sha ${{ vars.GITHUB_SHA }}
 
       - name: create datadog-agent PR
         uses: peter-evans/create-pull-request@v5
@@ -62,7 +64,7 @@ jobs:
           body: >
             Automatically created by merging ${{ github.event.pull_request.html_url }}
 
-            Here is the full changelog between the two version of test-infra-definitions: https://github.com/DataDog/test-infra-definitions/compare/${{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..${{github.event.pull_request.head.sha}}
+            Here is the full changelog between the two version of test-infra-definitions: https://github.com/DataDog/test-infra-definitions/compare/${{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..${{vars.GITHUB_SHA}}
 
 
             :warning: This PR is opened with the `qa/no-code-change` and `changelog/no-changelog` labels by default. Please make sure this is appropriate

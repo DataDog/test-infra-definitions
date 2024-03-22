@@ -13,6 +13,7 @@ import (
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
+	schedulingv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/scheduling/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -230,9 +231,18 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							},
 						},
 					},
+					PriorityClassName: pulumi.String("dogstatsd-standalone"),
 				},
 			},
 		},
+	}
+
+	priorityClassArgs := schedulingv1.PriorityClassArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name: pulumi.String("dogstatsd-standalone"),
+		},
+		PreemptionPolicy: pulumi.StringPtr("PreemptLowerPriority"),
+		Value:            pulumi.Int(1000000000),
 	}
 
 	serviceAccountArgs := corev1.ServiceAccountArgs{
@@ -299,6 +309,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	}
 
 	if _, err := v1.NewClusterRoleBinding(e.Ctx, "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := schedulingv1.NewPriorityClass(e.Ctx, "dogstatsd-standalone", &priorityClassArgs, opts...); err != nil {
 		return nil, err
 	}
 

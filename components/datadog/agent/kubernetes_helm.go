@@ -206,6 +206,9 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"enabled": pulumi.Bool(true),
 			},
 			"sbom": pulumi.Map{
+				"host": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+				},
 				"containerImage": pulumi.Map{
 					"enabled":                   pulumi.Bool(true),
 					"uncompressedLayersSupport": pulumi.Bool(true),

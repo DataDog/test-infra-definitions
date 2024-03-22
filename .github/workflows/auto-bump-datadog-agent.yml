@@ -65,4 +65,4 @@ jobs:
             Here is the full changelog between the two version of test-infra-definitions: https://github.com/DataDog/test-infra-definitions/compare/${{steps.get-previous-sha.outputs.PREVIOUS_SHA}}..${{github.event.pull_request.head.sha}}
 
 
-            :warning: This PR is opened with the skip-qa labels by default. Please make sure this is appropriate
+            :warning: This PR is opened with the `qa/no-code-change` and `changelog/no-changelog` labels by default. Please make sure this is appropriate

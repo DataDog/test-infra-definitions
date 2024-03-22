@@ -2,8 +2,8 @@ name: Open datadog-agent PR
 run-name:
 on:
   push:
-    branches:
-      - main
+    # branches:
+    #   - main
 
 jobs:
   open_bump_pr:
@@ -47,7 +47,7 @@ jobs:
       - name: Update test-infra-defintions version
         working-directory: datadog-agent
         run: |
-          inv -e buildimages.update-test-infra-definitions --commit-sha ${{ github.sha }}
+          inv -e buildimages.update-test-infra-definitions --commit-sha ${{github.sha}}
 
       - name: create datadog-agent PR
         uses: peter-evans/create-pull-request@v5

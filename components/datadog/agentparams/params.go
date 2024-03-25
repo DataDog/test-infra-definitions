@@ -8,7 +8,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -78,7 +77,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Major = "7"
-		p.Version.Channel = agentparams.StableChannel
+		p.Version.Channel = StableChannel
 		return nil
 	}
 }
@@ -86,7 +85,7 @@ func WithLatest() func(*Params) error {
 func WithLatestNightly() func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Major = "7"
-		p.Version.Channel = agentparams.NightlyChannel
+		p.Version.Channel = NightlyChannel
 		return nil
 	}
 }
@@ -130,9 +129,9 @@ func parseVersion(s string) (PackageVersion, error) {
 	}
 	version.Minor = strings.TrimPrefix(s, prefix)
 
-	version.Channel = agentparams.StableChannel
+	version.Channel = StableChannel
 	if strings.Contains(s, "~") {
-		version.Channel = agentparams.BetaChannel
+		version.Channel = BetaChannel
 	}
 
 	return version, nil

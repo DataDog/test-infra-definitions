@@ -62,7 +62,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 		Integrations: make(map[string]*FileDefinition),
 		Files:        make(map[string]*FileDefinition),
 	}
-	defaultVersion := WithLatest()
+	defaultVersion := WithLatestNightly()
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
@@ -78,6 +78,15 @@ func WithLatest() func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Major = "7"
 		p.Version.BetaChannel = false
+		p.Version.NightlyChannel = false
+		return nil
+	}
+}
+
+func WithLatestNightly() func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Major = "7"
+		p.Version.NightlyChannel = true
 		return nil
 	}
 }

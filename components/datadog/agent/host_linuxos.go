@@ -50,6 +50,10 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		commandLine += "REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=beta "
 	}
 
+	if version.NightlyChannel {
+		commandLine += "REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=nightly "
+	}
+
 	return fmt.Sprintf(
 		`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && break || sleep $((2**$i)); done`,
 		fmt.Sprintf("install_script_agent%s.sh", version.Major),

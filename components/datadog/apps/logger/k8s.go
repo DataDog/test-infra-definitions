@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -103,6 +105,61 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 				&corev1.ServicePortArgs{
 					Port:       pulumi.Int(LoggerPort),
 					TargetPort: pulumi.Int(LoggerPort),
+				},
+			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := appsv1.NewDeployment(e.Ctx, "logger-query", &appsv1.DeploymentArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("logger-query"),
+			Namespace: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"app": pulumi.String("logger-query"),
+			},
+		},
+		Spec: &appsv1.DeploymentSpecArgs{
+			Replicas: pulumi.Int(1),
+			Selector: &metav1.LabelSelectorArgs{
+				MatchLabels: pulumi.StringMap{
+					"app": pulumi.String("logger-query"),
+				},
+			},
+			Template: &corev1.PodTemplateSpecArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Labels: pulumi.StringMap{
+						"app": pulumi.String("logger-query"),
+					},
+				},
+				Spec: &corev1.PodSpecArgs{
+					Containers: corev1.ContainerArray{
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("query"),
+							Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
+							Args: pulumi.StringArray{
+								pulumi.String("-url"),
+								pulumi.String(fmt.Sprintf("http://localhost:%d", LoggerPort)),
+								pulumi.String("-min-tps"),
+								pulumi.String("1"),
+								pulumi.String("-max-tps"),
+								pulumi.String("60"),
+								pulumi.String("-period"),
+								pulumi.String("20m"),
+							},
+							Resources: &corev1.ResourceRequirementsArgs{
+								Limits: pulumi.StringMap{
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("32Mi"),
+								},
+								Requests: pulumi.StringMap{
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
+								},
+							},
+						},
+					},
 				},
 			},
 		},

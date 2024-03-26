@@ -46,8 +46,8 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		commandLine += fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v ", version.Minor)
 	}
 
-	if version.BetaChannel {
-		commandLine += "REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=beta "
+	if version.Channel != "" && version.Channel != agentparams.StableChannel {
+		commandLine += fmt.Sprintf("REPO_URL=datad0g.com DD_AGENT_DIST_CHANNEL=%s ", version.Channel)
 	}
 
 	return fmt.Sprintf(

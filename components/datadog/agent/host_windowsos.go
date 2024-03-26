@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"io"
 	"net/http"
 	"reflect"
 	"sort"
 	"strings"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
@@ -99,7 +100,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		return getAgentURLFromPipelineID(version.PipelineID)
 	}
 
-	if version.BetaChannel {
+	if version.Channel == agentparams.BetaChannel {
 		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
 		if err != nil {
 			return "", err

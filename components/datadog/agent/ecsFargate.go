@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -79,9 +80,9 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 // ECSFargateWindowsContainerDefinition returns the container definition for the Windows agent running on ECS Fargate.
 // Firelens is not supported. Logs could be collected if sent to cloudwatch using the `awslogs` driver. See:
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/tutorial-deploy-fluentbit-on-windows.html
-func ECSFargateWindowsContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) *ecs.TaskDefinitionContainerDefinitionArgs {
+func ECSFargateWindowsContainerDefinition(e aws.Environment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		image = dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "latest")
+		image = dockerAgentFullImagePath(e.CommonEnvironment, "public.ecr.aws/datadog/agent", "latest")
 	}
 
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
@@ -105,6 +106,14 @@ func ECSFargateWindowsContainerDefinition(e config.CommonEnvironment, image stri
 				ValueFrom: apiKeySSMParamName,
 			},
 		},
+		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
+			Retries:     pulumi.IntPtr(2),
+			Command:     pulumi.ToStringArray([]string{"CMD-SHELL", "agent health"}),
+			StartPeriod: pulumi.IntPtr(10),
+			Interval:    pulumi.IntPtr(30),
+			Timeout:     pulumi.IntPtr(5),
+		},
+		// Firelens is not compatible with windows containers
 		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
 		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
 		WorkingDirectory: pulumi.String(`C:\`),

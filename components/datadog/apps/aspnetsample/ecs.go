@@ -34,13 +34,13 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Internal:  pulumi.BoolPtr(true),
 		DefaultTargetGroup: &lb.TargetGroupArgs{
 			Name:       e.CommonNamer.DisplayName(32, pulumi.String("aspnetsample"), pulumi.String("fg")),
-			Port:       pulumi.IntPtr(80),
+			Port:       pulumi.IntPtr(8080),
 			Protocol:   pulumi.StringPtr("TCP"),
 			TargetType: pulumi.StringPtr("ip"),
 			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
 		},
 		Listener: &lb.ListenerArgs{
-			Port:     pulumi.IntPtr(80),
+			Port:     pulumi.IntPtr(8080),
 			Protocol: pulumi.StringPtr("TCP"),
 		},
 	}, opts...)
@@ -55,11 +55,11 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 				map[string]interface{}{
 					"http_check": map[string]interface{}{
-						"name":        "aspnetsample",
 						"init_config": map[string]interface{}{},
 						"instances": []map[string]interface{}{
 							{
-								"url": "http://%%host%%/80",
+								"name": "aspnetsample",
+								"url":  "http://%%host%%:8080",
 							},
 						},
 					},
@@ -70,17 +70,16 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Cpu:       pulumi.IntPtr(1024),
 		Memory:    pulumi.IntPtr(2048),
 		Essential: pulumi.BoolPtr(true),
-		// Health check is disabled in the agent.
-		//DependsOn: ecs.TaskDefinitionContainerDependencyArray{
-		//	ecs.TaskDefinitionContainerDependencyArgs{
-		//		ContainerName: pulumi.String("datadog-agent"),
-		//		Condition:     pulumi.String("HEALTHY"),
-		//	},
-		//},
+		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
+			ecs.TaskDefinitionContainerDependencyArgs{
+				ContainerName: pulumi.String("datadog-agent"),
+				Condition:     pulumi.String("HEALTHY"),
+			},
+		},
 		PortMappings: ecs.TaskDefinitionPortMappingArray{
 			ecs.TaskDefinitionPortMappingArgs{
-				ContainerPort: pulumi.IntPtr(80),
-				HostPort:      pulumi.IntPtr(80),
+				ContainerPort: pulumi.IntPtr(8080),
+				HostPort:      pulumi.IntPtr(8080),
 				Protocol:      pulumi.StringPtr("tcp"),
 			},
 		},
@@ -106,7 +105,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		LoadBalancers: classicECS.ServiceLoadBalancerArray{
 			&classicECS.ServiceLoadBalancerArgs{
 				ContainerName:  pulumi.String("aspnetsample"),
-				ContainerPort:  pulumi.Int(80),
+				ContainerPort:  pulumi.Int(8080),
 				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
 			},
 		},

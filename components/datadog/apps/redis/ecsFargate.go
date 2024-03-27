@@ -5,9 +5,8 @@ import (
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -26,26 +25,6 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	}
 
 	opts = append(opts, pulumi.Parent(EcsFargateComponent))
-
-	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
-		Name:      e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("fg")),
-		SubnetIds: e.RandomSubnets(),
-		Internal:  pulumi.BoolPtr(true),
-		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String("redis"), pulumi.String("fg")),
-			Port:       pulumi.IntPtr(6379),
-			Protocol:   pulumi.StringPtr("TCP"),
-			TargetType: pulumi.StringPtr("ip"),
-			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-		},
-		Listener: &lb.ListenerArgs{
-			Port:     pulumi.IntPtr(6379),
-			Protocol: pulumi.StringPtr("TCP"),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("redis"),
@@ -71,7 +50,27 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		LogConfiguration: ecsClient.GetFirelensLogConfiguration(pulumi.String("redis"), pulumi.String("redis"), apiKeySSMParamName),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg-server", pulumi.String("redis-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"redis": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
+	queryContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
+		Name:  e.CommonNamer.DisplayName(255, pulumi.String("query")),
+		Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
+		Command: pulumi.StringArray{
+			pulumi.String("-addr"),
+			pulumi.Sprintf("localhost:6379"),
+		},
+		Cpu:       pulumi.IntPtr(50),
+		Memory:    pulumi.IntPtr(32),
+		Essential: pulumi.BoolPtr(true),
+	}
+
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg", pulumi.String("redis-fg"), 1024, 2048,
+		map[string]ecs.TaskDefinitionContainerDefinitionArgs{
+			"redis": *serverContainer,
+			"query": *queryContainer,
+		},
+		apiKeySSMParamName,
+		fakeIntake,
+		opts...,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -83,49 +82,9 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-			Subnets:        nlb.LoadBalancer.Subnets(),
+			Subnets:        e.RandomSubnets(),
 		},
 		TaskDefinition:            serverTaskDef.TaskDefinition.Arn(),
-		EnableExecuteCommand:      pulumi.BoolPtr(true),
-		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
-		LoadBalancers: classicECS.ServiceLoadBalancerArray{
-			&classicECS.ServiceLoadBalancerArgs{
-				ContainerName:  pulumi.String("redis"),
-				ContainerPort:  pulumi.Int(6379),
-				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
-			},
-		},
-	}, opts...); err != nil {
-		return nil, err
-	}
-
-	queryContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
-		Name:  e.CommonNamer.DisplayName(255, pulumi.String("query")),
-		Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
-		Command: pulumi.StringArray{
-			pulumi.String("-addr"),
-			pulumi.Sprintf("%s:6379", nlb.LoadBalancer.DnsName()),
-		},
-		Cpu:       pulumi.IntPtr(50),
-		Memory:    pulumi.IntPtr(32),
-		Essential: pulumi.BoolPtr(true),
-	}
-
-	queryTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg-query", pulumi.String("redis-fg-query"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"query": *queryContainer}, apiKeySSMParamName, fakeIntake, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("query"), &ecs.FargateServiceArgs{
-		Cluster:      clusterArn,
-		Name:         e.CommonNamer.DisplayName(255, pulumi.ToStringArray([]string{"redis", "fg", "query"})...),
-		DesiredCount: pulumi.IntPtr(1),
-		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
-			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
-			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-			Subnets:        nlb.LoadBalancer.Subnets(),
-		},
-		TaskDefinition:            queryTaskDef.TaskDefinition.Arn(),
 		EnableExecuteCommand:      pulumi.BoolPtr(true),
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
 	}, opts...); err != nil {

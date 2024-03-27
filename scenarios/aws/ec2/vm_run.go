@@ -64,10 +64,6 @@ func VMRun(ctx *pulumi.Context) error {
 	return nil
 }
 
-var osWithDockerProvided = map[os.Flavor]struct{}{
-	os.AmazonLinuxECS: {},
-}
-
 func VMRunWithDocker(ctx *pulumi.Context) error {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
@@ -89,8 +85,7 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	_, isDockerInstalled := osWithDockerProvided[vm.OS.Descriptor().Flavor]
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, !isDockerInstalled, utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}

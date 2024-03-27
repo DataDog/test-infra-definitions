@@ -4,8 +4,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -33,7 +33,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"stress-ng": {
 					Name:  pulumi.String("stress-ng"),
-					Image: pulumi.String("ghcr.io/colinianking/stress-ng"),
+					Image: pulumi.String(getStressNGImage()),
 					Command: pulumi.StringArray{
 						pulumi.String("--cpu=1"),
 						pulumi.String("--cpu-load=15"),

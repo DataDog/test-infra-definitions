@@ -217,6 +217,10 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 				Name:  pulumi.StringPtr("GOMEMLIMIT"),
 				Value: pulumi.StringPtr(fmt.Sprintf("%dMiB", GoMemLimitMiB)),
 			},
+			awsxEcs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("STORAGE_DRIVER"),
+				Value: pulumi.StringPtr("sql"),
+			},
 		},
 		PortMappings: awsxEcs.TaskDefinitionPortMappingArray{
 			awsxEcs.TaskDefinitionPortMappingArgs{

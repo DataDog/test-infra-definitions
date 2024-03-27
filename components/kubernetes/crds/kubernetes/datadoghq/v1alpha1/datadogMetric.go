@@ -7,7 +7,8 @@ import (
 	"context"
 	"reflect"
 
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/utilities"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -33,6 +34,7 @@ func NewDatadogMetric(ctx *pulumi.Context,
 
 	args.ApiVersion = pulumi.StringPtr("datadoghq.com/v1alpha1")
 	args.Kind = pulumi.StringPtr("DatadogMetric")
+	opts = utilities.PkgResourceDefaultOpts(opts)
 	var resource DatadogMetric
 	err := ctx.RegisterResource("kubernetes:datadoghq.com/v1alpha1:DatadogMetric", name, args, &resource, opts...)
 	if err != nil {

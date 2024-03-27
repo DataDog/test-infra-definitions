@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"strings"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"gopkg.in/yaml.v3"
 
@@ -36,7 +38,7 @@ func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error 
 
 func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...dockeragentparams.Option) (*DockerAgent, error) {
 	return components.NewComponent(e, vm.Name(), func(comp *DockerAgent) error {
-		params, err := dockeragentparams.NewParams(options...)
+		params, err := dockeragentparams.NewParams(&e, options...)
 		if err != nil {
 			return err
 		}
@@ -58,6 +60,14 @@ func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *do
 }
 
 func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput, envVars pulumi.Map) docker.ComposeInlineManifest {
+	runInPrivileged := false
+	for k := range envVars {
+		if strings.HasPrefix(k, "DD_SYSTEM_PROBE_") {
+			runInPrivileged = true
+			break
+		}
+	}
+
 	agentManifestContent := pulumi.All(apiKey, envVars).ApplyT(func(args []interface{}) (string, error) {
 		apiKeyResolved := args[0].(string)
 		envVarsResolved := args[1].(map[string]any)
@@ -65,6 +75,7 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 			Version: "3.9",
 			Services: map[string]docker.ComposeManifestService{
 				"agent": {
+					Privileged:    runInPrivileged,
 					Image:         agentImagePath,
 					ContainerName: agentContainerName,
 					Volumes: []string{
@@ -72,10 +83,12 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 						"/proc/:/host/proc",
 						"/sys/fs/cgroup/:/host/sys/fs/cgroup",
 						"/var/run/datadog:/var/run/datadog",
+						"/sys/kernel/tracing:/sys/kernel/tracing",
 					},
 					Environment: map[string]any{
-						"DD_API_KEY":               apiKeyResolved,
-						"DD_PROCESS_AGENT_ENABLED": true,
+						"DD_API_KEY": apiKeyResolved,
+						// DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED is compatible with Agent 7.35+
+						"DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED": true,
 					},
 					Pid:   "host",
 					Ports: []string{"8125:8125/udp", "8126:8126/tcp"},

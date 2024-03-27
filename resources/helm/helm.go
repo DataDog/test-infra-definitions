@@ -3,7 +3,7 @@ package helm
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 

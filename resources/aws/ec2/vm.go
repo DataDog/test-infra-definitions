@@ -5,7 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -14,10 +14,11 @@ type InstanceArgs struct {
 	AMI string
 
 	// Defaulted
-	InstanceType string // Note that caller must ensure it matches with AMI Architecture
-	KeyPairName  string
-	Tenancy      string
-	StorageSize  int
+	InstanceType    string // Note that caller must ensure it matches with AMI Architecture
+	KeyPairName     string
+	Tenancy         string
+	StorageSize     int
+	InstanceProfile string
 
 	// Optional
 	UserData string
@@ -29,6 +30,7 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 	instance, err := ec2.NewInstance(e.Ctx, e.Namer.ResourceName(name), &ec2.InstanceArgs{
 		Ami:                     pulumi.StringPtr(args.AMI),
 		SubnetId:                e.RandomSubnets().Index(pulumi.Int(0)),
+		IamInstanceProfile:      pulumi.StringPtr(args.InstanceProfile),
 		InstanceType:            pulumi.StringPtr(args.InstanceType),
 		VpcSecurityGroupIds:     pulumi.ToStringArray(e.DefaultSecurityGroups()),
 		KeyName:                 pulumi.StringPtr(args.KeyPairName),

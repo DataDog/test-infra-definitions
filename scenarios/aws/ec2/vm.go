@@ -1,12 +1,15 @@
 package ec2
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 
+	goremote "github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -32,9 +35,10 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	// Create the EC2 instance
 	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		instanceArgs := ec2.InstanceArgs{
-			AMI:          amiInfo.id,
-			InstanceType: vmArgs.instanceType,
-			UserData:     vmArgs.userData,
+			AMI:             amiInfo.id,
+			InstanceType:    vmArgs.instanceType,
+			UserData:        vmArgs.userData,
+			InstanceProfile: vmArgs.instanceProfile,
 		}
 
 		// Create the EC2 instance
@@ -53,9 +57,32 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	})
 }
 
+func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.Command, error) {
+	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", nil, "")
+	if err != nil {
+		return nil, err
+	}
+
+	ecrConfigCommand, err := vm.OS.Runner().Command(
+		e.CommonNamer.ResourceName("ecr-config"),
+		&command.Args{
+			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
+			Sudo:   false,
+		}, utils.PulumiDependsOn(ecrCredsHelperInstall))
+	if err != nil {
+		return nil, err
+	}
+
+	return ecrConfigCommand, nil
+}
+
 func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 	if vmArgs.osInfo == nil {
 		vmArgs.osInfo = &os.UbuntuDefault
+	}
+
+	if vmArgs.instanceProfile == "" {
+		vmArgs.instanceProfile = e.DefaultInstanceProfileName()
 	}
 
 	if vmArgs.instanceType == "" {

@@ -2,16 +2,23 @@ package agent
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/ecsagentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/awsx"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, clusterArn pulumi.StringInput) (*ecs.EC2Service, error) {
+func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, clusterArn pulumi.StringInput, options ...ecsagentparams.Option) (*ecs.EC2Service, error) {
+	params, err := ecsagentparams.NewParams(options...)
+	if err != nil {
+		return nil, err
+	}
+
 	return ecs.NewEC2Service(e.Ctx, e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
 		Name:               e.CommonNamer.DisplayName(255, pulumi.String(name)),
 		Cluster:            clusterArn,
@@ -25,7 +32,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-				"datadog-agent": ecsLinuxAgentSingleContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake),
+				"datadog-agent": ecsLinuxAgentSingleContainerDefinition(*e.CommonEnvironment, apiKeySSMParamName, fakeintake, params),
 			},
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
@@ -33,7 +40,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 			TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
-			NetworkMode: pulumi.StringPtr("bridge"),
+			NetworkMode: pulumi.StringPtr(params.NetworkMode),
 			PidMode:     pulumi.StringPtr("host"),
 			Family:      e.CommonNamer.DisplayName(255, pulumi.String("datadog-agent-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
@@ -66,7 +73,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) ecs.TaskDefinitionContainerDefinitionArgs {
+func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, params *ecsagentparams.Params) ecs.TaskDefinitionContainerDefinitionArgs {
 	return ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(200),
 		Memory:    pulumi.IntPtr(512),
@@ -78,7 +85,15 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Add: pulumi.ToStringArray([]string{"SYS_ADMIN", "SYS_RESOURCE", "SYS_PTRACE", "NET_ADMIN", "NET_BROADCAST", "NET_RAW", "IPC_LOCK", "CHOWN"}),
 			},
 		},
-		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
+		Environment: append(append(ecs.TaskDefinitionKeyValuePairArray{
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_APM_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_APM_NON_LOCAL_TRAFFIC"),
+				Value: pulumi.StringPtr("true"),
+			},
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
 				Value: pulumi.StringPtr("high"),
@@ -91,6 +106,11 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_ORIGIN_DETECTION"),
 				Value: pulumi.StringPtr("true"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_DOGSTATSD_ORIGIN_DETECTION_CLIENT"),
+				Value: pulumi.StringPtr("true"),
+			},
+
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
 				Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),
@@ -112,10 +132,11 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Value: pulumi.StringPtr("true"),
 			},
 			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("DD_PROCESS_AGENT_ENABLED"),
+				// DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED is compatible with Agent 7.35+
+				Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED"),
 				Value: pulumi.StringPtr("true"),
 			},
-		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
+		}, ecsAgentAdditionalEndpointsEnv(params)...), ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
 				Name:      pulumi.String("DD_API_KEY"),
@@ -173,7 +194,37 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Protocol:      pulumi.StringPtr("tcp"),
 			},
 		},
+		DockerLabels: pulumi.StringMap{
+			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
+				map[string]interface{}{
+					"openmetrics": map[string]interface{}{
+						"init_configs": []map[string]interface{}{},
+						"instances": []map[string]interface{}{
+							{
+								"openmetrics_endpoint": "http://localhost:5000/telemetry",
+								"namespace":            "datadog.agent",
+								"metrics": []string{
+									".*",
+								},
+							},
+						},
+					},
+				},
+			)),
+		},
 	}
+}
+
+func ecsAgentAdditionalEndpointsEnv(params *ecsagentparams.Params) []ecs.TaskDefinitionKeyValuePairInput {
+	if params == nil {
+		return []ecs.TaskDefinitionKeyValuePairInput{}
+	}
+
+	taskDefArray := []ecs.TaskDefinitionKeyValuePairInput{}
+	for k, v := range params.AgentServiceEnvironment {
+		taskDefArray = append(taskDefArray, ecs.TaskDefinitionKeyValuePairArgs{Name: pulumi.StringPtr(k), Value: pulumi.StringPtr(v)})
+	}
+	return taskDefArray
 }
 
 func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ecs.TaskDefinitionKeyValuePairInput {
@@ -184,6 +235,14 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_SKIP_SSL_VALIDATION"),
 			Value: pulumi.StringPtr("true"),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+			Value: pulumi.StringPtr("true"),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_DD_URL"),
+			Value: pulumi.Sprintf("https://%s", fakeintake.Host),
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),

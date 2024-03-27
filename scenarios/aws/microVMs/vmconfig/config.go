@@ -4,6 +4,10 @@ type PoolType string
 
 type VMSetID string
 
+func (id VMSetID) String() string {
+	return string(id)
+}
+
 const (
 	RecipeCustomAMD64 = "custom-x86_64"
 	RecipeCustomARM64 = "custom-arm64"
@@ -34,6 +38,10 @@ type Image struct {
 	ImageSourceURI string `json:"image_source,omitempty"`
 }
 
+type Host struct {
+	AvailableCPUs int `json:"available_cpus"`
+}
+
 type VMSet struct {
 	Tags        []string `json:"tags"`
 	Recipe      string   `json:"recipe"`
@@ -46,6 +54,7 @@ type VMSet struct {
 	ID          VMSetID `json:"omitempty"`
 	Disks       []Disk  `json:"disks,omitempty"`
 	ConsoleType string  `json:"console_type"`
+	VMHost      Host    `json:"host,omitempty"`
 }
 
 type Config struct {

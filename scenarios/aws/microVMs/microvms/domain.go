@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -34,7 +35,7 @@ type Domain struct {
 	dhcpEntry   pulumi.StringOutput
 	domainArgs  *libvirt.DomainArgs
 	domainNamer namer.Namer
-	ip          string
+	ip          pulumi.StringOutput
 	mac         pulumi.StringOutput
 	lvDomain    *libvirt.Domain
 	tag         string
@@ -76,14 +77,34 @@ func generateMACAddress(e *config.CommonEnvironment, domainID string) (pulumi.St
 	return mac, err
 }
 
-func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.StringOutput {
+func generateDHCPEntry(mac pulumi.StringOutput, ip pulumi.StringOutput, domainID string) pulumi.StringOutput {
 	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel) (*Domain, error) {
+func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
+	var vcpuMap []string
+
+	if cpuCount == 0 {
+		return "", 0
+	}
+
+	for i := 0; i < vmcpus; i++ {
+		vcpuMap = append(vcpuMap, fmt.Sprintf("<vcpupin vcpu='%d' cpuset='%d'/>", i, hostCPUSet))
+		hostCPUSet++
+		if hostCPUSet >= cpuCount {
+			// start from cpu 1, since we want to leave cpu 0 for the system
+			hostCPUSet = 1
+		}
+	}
+
+	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
+}
+
+func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
+
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
@@ -102,11 +123,48 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain.RecipeLibvirtDomainArgs.Vcpu = vcpu
 	domain.RecipeLibvirtDomainArgs.Memory = memory
 	domain.RecipeLibvirtDomainArgs.ConsoleType = set.ConsoleType
-	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
+	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(set.Arch), "kernel-packages", kernel.Dir, "bzImage")
 
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
-	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
-	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
+	varstore := filepath.Join(GetWorkingDirectory(set.Arch), fmt.Sprintf("varstore.%s", domainName))
+	efi := filepath.Join(GetWorkingDirectory(set.Arch), "efi.fd")
+
+	// OS-dependent settings
+	var hypervisor string
+	var commandLine pulumi.StringInput = pulumi.String("")
+	var hostOS string
+	if set.Arch == LocalVMSet {
+		hostOS = runtime.GOOS
+	} else {
+		hostOS = "linux" // Remote VMs are always on Linux hosts
+	}
+
+	if hostOS == "linux" {
+		hypervisor = "kvm"
+	} else if hostOS == "darwin" {
+		hypervisor = "hvf"
+		// Network ID must be unique for each VMSet, as they must be on the same network.
+		// We use the VMSet ID to ensure uniqueness.
+		// We have to use QEMU network devices because libvirt does not support the macOS
+		// network devices.
+		netID := pulumi.Sprintf("net%s", set.ID)
+		qemuArgs := map[string]pulumi.StringInput{
+			"-netdev": pulumi.Sprintf("vmnet-shared,id=%s", netID),
+			// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI
+			// device and that information can be used by udev to rename the device, instead of having eth0.
+			// This makes the naming consistent across different execution environments and avoids
+			// problems (for example, DHCP is configured for interfaces starting with en*, so
+			// if we had eth0 we wouldn't have a network connection)
+			// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
+			"-device": pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac),
+		}
+
+		for k, v := range qemuArgs {
+			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
+			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
+		}
+	}
+
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
@@ -115,6 +173,9 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 			resources.Nvram:         pulumi.String(varstore),
 			resources.Efi:           pulumi.String(efi),
 			resources.VCPU:          pulumi.Sprintf("%d", vcpu),
+			resources.CPUTune:       pulumi.String(cputune),
+			resources.Hypervisor:    pulumi.String(hypervisor),
+			resources.CommandLine:   commandLine,
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine
@@ -156,15 +217,17 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem) ([]*Domain, error) {
+func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
 	var domains []*Domain
+	var cpuTuneXML string
 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
-				domain, err := newDomainConfiguration(e, set, vcpu, memory, kernel)
+				cpuTuneXML, cpuSetStart = getCPUTuneXML(vcpu, cpuSetStart, set.VMHost.AvailableCPUs)
+				domain, err := newDomainConfiguration(e, set, vcpu, memory, kernel, cpuTuneXML)
 				if err != nil {
-					return []*Domain{}, err
+					return []*Domain{}, 0, err
 				}
 
 				// setup volume to be used by this domain
@@ -181,7 +244,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						vol.FullResourceName("final-overlay", kernel.Tag),
 					)
 					if err != nil {
-						return []*Domain{}, err
+						return []*Domain{}, 0, err
 					}
 					domain.Disks = append(domain.Disks, resources.DomainDisk{
 						VolumeID:   pulumi.StringPtrInput(rootVolume.ID()),
@@ -194,7 +257,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 					&domain.RecipeLibvirtDomainArgs,
 				)
 				if err != nil {
-					return []*Domain{}, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
+					return []*Domain{}, 0, fmt.Errorf("failed to setup domain arguments for %s: %v", domain.domainID, err)
 				}
 
 				domains = append(domains, domain)
@@ -202,6 +265,6 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 		}
 	}
 
-	return domains, nil
+	return domains, cpuSetStart, nil
 
 }

@@ -1,10 +1,12 @@
 package microvms
 
 import (
+	"bufio"
 	"fmt"
 	"net"
+	"os"
 	"strings"
-	"sync"
+	"time"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -12,6 +14,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
 
 // The microvm subnet changed from /16 to /24 because the underlying libvirt sdk would identify
@@ -29,9 +32,6 @@ const iptablesAddRuleFlag = "-A"
 
 const iptablesTCPRule = "iptables %s INPUT -p tcp -i %s -s %s -m multiport --dports $(%s) -m state --state NEW,ESTABLISHED -j ACCEPT"
 const iptablesUDPRule = "iptables %s INPUT -p udp -i %s -s %s -m multiport --dports $(%s) -j ACCEPT"
-
-var initMicroVMGroupSubnet sync.Once
-var microVMGroupSubnet string
 
 func freeSubnet(subnet string) (bool, error) {
 	startIP, _, err := net.ParseCIDR(subnet)
@@ -69,9 +69,22 @@ func getMicroVMGroupSubnetPattern(subnet string) string {
 	return fmt.Sprintf("%d.%d.%d.*", ipv4[0], ipv4[1], ipv4[2])
 }
 
-func getMicroVMGroupSubnet() (string, error) {
+func subnetIsTaken(taken []string, subnet string) bool {
+	for _, t := range taken {
+		if t == subnet {
+			return true
+		}
+	}
+
+	return false
+}
+
+func getMicroVMGroupSubnet(taken []string) (string, error) {
 	for i := 1; i < 254; i++ {
 		subnet := fmt.Sprintf(microVMGroupSubnetTemplate, i)
+		if subnetIsTaken(taken, subnet) {
+			continue
+		}
 		if free, err := freeSubnet(subnet); err == nil && free {
 			return subnet, nil
 		}
@@ -80,7 +93,7 @@ func getMicroVMGroupSubnet() (string, error) {
 	return "", fmt.Errorf("getMicroVMGroupSubnet: could not find subnet")
 }
 
-func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer) ([]pulumi.Resource, error) {
+func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.StringOutput, runner *Runner, resourceNamer namer.Namer, microVMGroupSubnet string) ([]pulumi.Resource, error) {
 	sudoPassword := GetSudoPassword(ctx, isLocal)
 	iptablesAllowTCPArgs := command.Args{
 		Create:                   pulumi.Sprintf(iptablesTCPRule, iptablesAddRuleFlag, bridge, microVMGroupSubnet, tcpRPCInfoPorts),
@@ -89,7 +102,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,
 	}
-	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp"), &iptablesAllowTCPArgs)
+	iptablesAllowTCPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-tcp", microVMGroupSubnet), &iptablesAllowTCPArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -101,7 +114,7 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 		RequirePasswordFromStdin: true,
 		Stdin:                    sudoPassword,
 	}
-	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp"), &iptablesAllowUDPArgs)
+	iptablesAllowUDPDone, err := runner.Command(resourceNamer.ResourceName("allow-nfs-ports-udp", microVMGroupSubnet), &iptablesAllowUDPArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +122,15 @@ func allowNFSPortsForBridge(ctx *pulumi.Context, isLocal bool, bridge pulumi.Str
 	return []pulumi.Resource{iptablesAllowTCPDone, iptablesAllowUDPDone}, nil
 }
 
-func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, depends []pulumi.Resource, resourceNamer namer.Namer, dhcpEntries []interface{}) (*libvirt.Network, error) {
+func generateNetworkResource(
+	ctx *pulumi.Context,
+	providerFn LibvirtProviderFn,
+	depends []pulumi.Resource,
+	resourceNamer namer.Namer,
+	dhcpEntries []interface{},
+	microVMGroupSubnet string,
+	setID vmconfig.VMSetID,
+) (*libvirt.Network, error) {
 	// Collect all DHCP entries in a single string to be
 	// formatted in network XML.
 	dhcpEntriesJoined := pulumi.All(dhcpEntries...).ApplyT(
@@ -134,9 +155,11 @@ func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, 
 			resources.DHCPEntries: dhcpEntriesJoined,
 		},
 	)
-	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network"), &libvirt.NetworkArgs{
+	network, err := libvirt.NewNetwork(ctx, resourceNamer.ResourceName("network", setID.String()), &libvirt.NetworkArgs{
 		Addresses: pulumi.StringArray{pulumi.String(microVMGroupSubnet)},
 		Mode:      pulumi.String("nat"),
+		// enable jumbo frames for the underlying interface. This is an optimization for NFS.
+		Mtu: pulumi.Int(9000),
 		Xml: libvirt.NetworkXmlArgs{
 			Xslt: netXML,
 		},
@@ -146,4 +169,84 @@ func generateNetworkResource(ctx *pulumi.Context, providerFn LibvirtProviderFn, 
 	}
 
 	return network, nil
+}
+
+type dhcpLease struct {
+	name string
+	ip   string
+	mac  string
+}
+
+// parseBootpDHCPLeases parses the dhcpd_leases file and returns a slice of dhcpLease structs.
+func parseBootpDHCPLeases() ([]dhcpLease, error) {
+	var leases []dhcpLease
+
+	file, err := os.Open("/var/db/dhcpd_leases")
+	if os.IsNotExist(err) {
+		return leases, nil
+		// Do not return error if file was not found, it only gets created when a lease is assigned.
+	} else if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	var parsingLease dhcpLease
+	for scanner.Scan() {
+		// Single lease format, for reference:
+		// {
+		// 	name=ddvm
+		// 	ip_address=192.168.64.3
+		// 	hw_address=1,28:21:40:26:78:37
+		// 	identifier=1,28:21:40:26:78:37
+		// 	lease=0x65ce3cb6
+		// }
+		line := strings.TrimSpace(scanner.Text())
+		if strings.HasPrefix(line, "name=") {
+			parsingLease.name = strings.TrimPrefix(line, "name=")
+		}
+		if strings.HasPrefix(line, "ip_address=") {
+			parsingLease.ip = strings.TrimPrefix(line, "ip_address=")
+		}
+		if strings.HasPrefix(line, "hw_address=") {
+			hwaddr := strings.TrimPrefix(line, "hw_address=")
+			parts := strings.Split(hwaddr, ",")
+
+			if len(parts) != 2 {
+				return nil, fmt.Errorf("parseBootpDHCPLeases: invalid hw_address format: %s", hwaddr)
+			}
+
+			parsingLease.mac = parts[1]
+		}
+		if line == "}" {
+			leases = append(leases, parsingLease)
+			parsingLease = dhcpLease{}
+		}
+	}
+
+	return leases, nil
+}
+
+// waitForBootpDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
+// returns that IP address.
+func waitForBootpDHCPLeases(mac string) (string, error) {
+	// The DHCP server will assign an IP address to the VM based on its MAC address, wait until it is assigned
+	// and then return the IP address.
+	maxWait := 5 * time.Minute
+	interval := 500 * time.Millisecond
+	for totalWait := 0 * time.Second; totalWait < maxWait; totalWait += interval {
+		leases, err := parseBootpDHCPLeases()
+
+		if err != nil {
+			return "", fmt.Errorf("waitForBootpDHCPLeases: error parsing leases: %s", err)
+		}
+
+		for _, lease := range leases {
+			if lease.mac == mac {
+				return lease.ip, nil
+			}
+		}
+		time.Sleep(interval)
+	}
+	return "", fmt.Errorf("waitForBootpDHCPLeases: timed out waiting for lease")
 }

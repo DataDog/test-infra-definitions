@@ -1,8 +1,11 @@
 package agent
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/Masterminds/semver"
 )
@@ -19,6 +22,11 @@ func dockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath, image
 		return e.AgentFullImagePath()
 	}
 
+	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
+	if e.PipelineID() != "" && e.CommitSHA() != "" {
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+	}
+
 	if repositoryPath == "" {
 		repositoryPath = defaultAgentImageRepo
 	}
@@ -33,6 +41,11 @@ func dockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath
 	// return cluster agent image path if defined
 	if e.ClusterAgentFullImagePath() != "" {
 		return e.ClusterAgentFullImagePath()
+	}
+
+	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
+	if e.PipelineID() != "" && e.CommitSHA() != "" {
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 	}
 
 	if repositoryPath == "" {

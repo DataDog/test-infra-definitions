@@ -7,6 +7,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -21,12 +22,16 @@ import (
 //   - [WithAgentConfig]
 //   - [WithSystemProbeConfig]
 //   - [WithSecurityAgentConfig]
-//   - [WithFile]
 //   - [WithIntegration]
+//   - [WithFile]
 //   - [WithTelemetry]
-//   - [WithFakeintake]
+//   - [WithPulumiResourceOptions]
+//   - [withIntakeHostname]
 //   - [WithIntakeHostname]
+//   - [WithFakeintake]
 //   - [WithLogs]
+//   - [WithAdditionalInstallParameters]
+//   - [WithSkipAPIKeyInConfig]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -43,6 +48,11 @@ type Params struct {
 	Integrations        map[string]*FileDefinition
 	Files               map[string]*FileDefinition
 	ExtraAgentConfig    []pulumi.StringInput
+	ResourceOptions     []pulumi.ResourceOption
+	// This is a list of additional installer flags that can be used to pass installer-specific
+	// parameters like the MSI flags.
+	AdditionalInstallParameters []string
+	SkipAPIKeyInConfig          bool
 }
 
 type Option = func(*Params) error
@@ -52,7 +62,7 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 		Integrations: make(map[string]*FileDefinition),
 		Files:        make(map[string]*FileDefinition),
 	}
-	defaultVersion := WithLatest()
+	defaultVersion := WithLatestNightly()
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
@@ -67,7 +77,15 @@ func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Major = "7"
-		p.Version.BetaChannel = false
+		p.Version.Channel = StableChannel
+		return nil
+	}
+}
+
+func WithLatestNightly() func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Major = "7"
+		p.Version.Channel = NightlyChannel
 		return nil
 	}
 }
@@ -110,11 +128,16 @@ func parseVersion(s string) (PackageVersion, error) {
 		}
 	}
 	version.Minor = strings.TrimPrefix(s, prefix)
-	version.BetaChannel = strings.Contains(s, "~")
+
+	version.Channel = StableChannel
+	if strings.Contains(s, "~") {
+		version.Channel = BetaChannel
+	}
+
 	return version, nil
 }
 
-// WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
+// WithAgentConfig sets the configuration of the Agent.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.AgentConfig = config
@@ -187,6 +210,13 @@ func WithTelemetry() func(*Params) error {
 	}
 }
 
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
+	return func(p *Params) error {
+		p.ResourceOptions = append(p.ResourceOptions, resources...)
+		return nil
+	}
+}
+
 func withIntakeHostname(hostname pulumi.StringInput) func(*Params) error {
 	return func(p *Params) error {
 		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:80
@@ -231,13 +261,32 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 //
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
-	return withIntakeHostname(fakeintake.Host)
+	return func(p *Params) error {
+		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
+		return withIntakeHostname(fakeintake.Host)(p)
+	}
 }
 
 // WithLogs enables the log agent
 func WithLogs() func(*Params) error {
 	return func(p *Params) error {
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.String("logs_enabled: true"))
+		return nil
+	}
+}
+
+// WithAdditionalInstallParameters passes a list of parameters to the underlying installer
+func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
+	return func(p *Params) error {
+		p.AdditionalInstallParameters = parameters
+		return nil
+	}
+}
+
+// WithSkipAPIKeyInConfig does not add the API key in the Agent configuration file.
+func WithSkipAPIKeyInConfig() func(*Params) error {
+	return func(p *Params) error {
+		p.SkipAPIKeyInConfig = true
 		return nil
 	}
 }

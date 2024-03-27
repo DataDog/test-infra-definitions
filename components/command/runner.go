@@ -44,6 +44,10 @@ func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCo
 	}
 }
 
+// Transformer is a function that can be used to modify the command name and args.
+// Examples: swapping `args.Delete` with `args.Create`, or adding `args.Triggers`, or editing the name
+type Transformer func(name string, args Args) (string, Args)
+
 type runnerConfiguration struct {
 	user       string
 	connection remote.ConnectionInput

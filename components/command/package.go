@@ -37,7 +37,7 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *GenericPackageManager) Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, checkBinary string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	opts = append(opts, m.opts...)
 	if m.updateCmd != "" {
 		updateDB, err := m.updateDB(opts)
@@ -47,18 +47,30 @@ func (m *GenericPackageManager) Ensure(packageRef string, opts ...pulumi.Resourc
 
 		opts = append(opts, utils.PulumiDependsOn(updateDB))
 	}
-	installCmd := fmt.Sprintf("%s %s", m.installCmd, packageRef)
-	cmd, err := m.runner.Command(
-		m.namer.ResourceName("install-"+packageRef, utils.StrHash(installCmd)),
-		&Args{
-			Create:      pulumi.String(installCmd),
-			Environment: m.env,
-			Sudo:        true,
-		},
-		opts...)
+	var cmdStr string
+	if checkBinary != "" {
+		cmdStr = fmt.Sprintf("bash -c 'command -v %s || %s %s'", checkBinary, m.installCmd, packageRef)
+	} else {
+		cmdStr = fmt.Sprintf("%s %s", m.installCmd, packageRef)
+	}
+
+	cmdName := m.namer.ResourceName("install-"+packageRef, utils.StrHash(cmdStr))
+	cmdArgs := Args{
+		Create:      pulumi.String(cmdStr),
+		Environment: m.env,
+		Sudo:        true,
+	}
+
+	// If a transform is provided, use it to modify the command name and args
+	if transform != nil {
+		cmdName, cmdArgs = transform(cmdName, cmdArgs)
+	}
+
+	cmd, err := m.runner.Command(cmdName, &cmdArgs, opts...)
 	if err != nil {
 		return nil, err
 	}
+
 	// Make sure the package manager isn't running in parallel
 	m.opts = append(m.opts, utils.PulumiDependsOn(cmd))
 	return cmd, nil

@@ -28,8 +28,6 @@ type HostAgent struct {
 	namer   namer.Namer
 	manager agentOSManager
 	host    *remoteComp.Host
-
-	// Currently we don't have anything to export or expose to other components?
 }
 
 func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
@@ -48,7 +46,8 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 			return err
 		}
 
-		err = comp.installAgent(e, params, pulumi.Parent(comp))
+		deps := append(params.ResourceOptions, pulumi.Parent(comp))
+		err = comp.installAgent(e, params, deps...)
 		if err != nil {
 			return err
 		}
@@ -63,7 +62,7 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 }
 
 func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
-	installCmdStr, err := h.manager.getInstallCommand(params.Version)
+	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
 		return err
 	}
@@ -81,7 +80,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	configFiles := make(map[string]pulumi.StringInput)
 
 	// Update core Agent
-	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, afterInstallOpts...)
+	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, params.SkipAPIKeyInConfig, afterInstallOpts...)
 	if err != nil {
 		return err
 	}
@@ -107,8 +106,20 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	}
 
 	// Restart the agent when the HostInstall itself is done, which is normally when all children are done
+	// Behind the scene `DependOn(h)` is transformed into `DependOn(<children>)`, the ComponentResource is skipped in the process.
+	// With resources, Pulumi works in the following order:
+	// Create -> Replace -> Delete.
+	// The `DependOn` order is evaluated separately for each of these phases.
+	// Thus, when an integration is deleted, the `Create` of `restartAgentServices` is done as there's no other `Create` from other resources to wait for.
+	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependecy on `Delete` is in reverse order.
+	//
+	// For this reason we have another `restartAgentServices` in `installIntegrationConfigsAndFiles` that is triggered when an integration is deleted.
 	_, err = h.manager.restartAgentServices(
-		pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)},
+		// Transformer used to add triggers to the restart command
+		func(name string, args command.Args) (string, command.Args) {
+			args.Triggers = pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)}
+			return name, args
+		},
 		utils.PulumiDependsOn(h),
 	)
 	return err
@@ -119,12 +130,15 @@ func (h *HostAgent) updateCoreAgentConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,
+	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, pulumi.StringInput, error) {
 	for _, extraConfig := range extraAgentConfig {
 		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
 	}
-	configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	if !skipAPIKeyInConfig {
+		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	}
 
 	cmd, err := h.updateConfig(configPath, configContent, opts...)
 	return cmd, configContent, err
@@ -155,6 +169,32 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	allCommands := make([]*remote.Command, 0)
 	var parts []string
 
+	// Build hash beforehand as we need to pass it to the restart command
+	for filePath, fileDef := range integrations {
+		parts = append(parts, filePath, fileDef.Content)
+	}
+	for fullPath, fileDef := range files {
+		parts = append(parts, fullPath, fileDef.Content)
+	}
+	hash := utils.StrHash(parts...)
+
+	// Restart the agent when an integration is removed
+	// See longer comment in `installAgent` for more details
+	restartCmd, err := h.manager.restartAgentServices(
+		// Use a transformer to inject triggers on intg hash and move `restart` command from `Create` to `Delete`
+		// so that it's run after the `Delete` commands of the integrations.
+		func(name string, args command.Args) (string, command.Args) {
+			args.Triggers = pulumi.Array{pulumi.String(hash)}
+			args.Delete = args.Create
+			args.Create = nil
+			return name + "-on-intg-removal", args
+		})
+	if err != nil {
+		return nil, "", err
+	}
+
+	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(restartCmd))
+
 	// filePath is absolute path from params.WithFile but relative from params.WithIntegration
 	for filePath, fileDef := range integrations {
 		configFolder := h.manager.getAgentConfigFolder()
@@ -165,7 +205,6 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 			return nil, "", err
 		}
 		allCommands = append(allCommands, cmd)
-		parts = append(parts, filePath, fileDef.Content)
 	}
 
 	for fullPath, fileDef := range files {
@@ -178,10 +217,9 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 			return nil, "", err
 		}
 		allCommands = append(allCommands, cmd)
-		parts = append(parts, fullPath, fileDef.Content)
 	}
 
-	return allCommands, utils.StrHash(parts...), nil
+	return allCommands, hash, nil
 }
 
 func (h *HostAgent) writeFileDefinition(

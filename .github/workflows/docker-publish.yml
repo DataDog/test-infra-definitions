@@ -13,11 +13,13 @@ on:
     tags:
       - v*.*.*
     paths:
+      - .github/workflows/docker-publish.yml
       - components/datadog/apps/*/images/**
   pull_request:
     branches:
       - main
     paths:
+      - .github/workflows/docker-publish.yml
       - components/datadog/apps/*/images/**
 
 env:
@@ -56,6 +58,12 @@ jobs:
             image: redis-client
           - app: tracegen
             image: tracegen
+          - app: npm-tools
+            image: go-httpbin
+          - app: npm-tools
+            image: npm-tools
+          - app: logger
+            image: logger
 
     steps:
       - name: Checkout repository

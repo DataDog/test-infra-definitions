@@ -25,6 +25,9 @@ const (
 	Efi           = "efi"
 	Format        = "format"
 	VCPU          = "vcpu"
+	CPUTune       = "cputune"
+	Hypervisor    = "hypervisor"
+	CommandLine   = "commandLine"
 )
 
 const (
@@ -84,6 +87,7 @@ type RecipeLibvirtDomainArgs struct {
 	ExtraKernelParams map[string]string
 	Machine           string
 	ConsoleType       string
+	Type              string
 }
 
 type RecipeLibvirtVolumeArgs struct {

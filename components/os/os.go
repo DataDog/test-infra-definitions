@@ -5,18 +5,22 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
+
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // Interfaces used by OS components
 type PackageManager interface {
-	Ensure(packageRef string, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	// Ensure ensures that a package is installed
+	// checkBinary is a binary that should be checked before running the install command, if it is not empty it will first run the `command -v checkBinary` command and if it fails it will run the installCmd,
+	// if it succeeds we consider the package is already installed
+	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 type ServiceManager interface {
 	// EnsureStarted starts or restarts (may be stop+start depending on implementation) the service if already running
-	EnsureRestarted(serviceName string, triggers pulumi.ArrayInput, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 // FileManager needs to be added here as well instead of the command package

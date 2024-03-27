@@ -153,3 +153,12 @@ aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs 
 # You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
 aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
 ```
+
+## Troubleshooting
+
+### Environment and configuration
+The `setup.debug` invoke task will check for common mistakes such as key unavailable in configured AWS region, ssh-agent not running, invalid key format, and more.
+```
+aws-vault exec sso-agent-sandbox-account-admin -- inv setup.debug
+aws-vault exec sso-agent-sandbox-account-admin -- inv setup --debug --no-interactive
+```

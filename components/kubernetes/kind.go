@@ -33,12 +33,12 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
-		curlCommand, err := packageManager.Ensure("curl", opts...)
+		curlCommand, err := packageManager.Ensure("curl", nil, "", opts...)
 		if err != nil {
 			return err
 		}
 
-		_, dockerInstallCmd, err := docker.NewManager(env, vm, true, opts...)
+		_, dockerInstallCmd, err := docker.NewManager(env, vm, opts...)
 		if err != nil {
 			return err
 		}
@@ -56,7 +56,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		kindInstall, err := runner.Command(
 			commonEnvironment.CommonNamer.ResourceName("kind-install"),
 			&command.Args{
-				Create: pulumi.Sprintf(`curl -Lo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
+				Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
 			},
 			opts...,
 		)

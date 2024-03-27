@@ -33,17 +33,18 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
+var _ config.CloudProviderEnvironment = (*Environment)(nil)
+
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	commonEnv, err := config.NewCommonEnvironment(ctx)
+	env := Environment{
+		Namer: namer.NewNamer(ctx, azNamerNamespace),
+	}
+	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
 	if err != nil {
 		return Environment{}, err
 	}
-
-	env := Environment{
-		CommonEnvironment: &commonEnv,
-		Namer:             namer.NewNamer(ctx, azNamerNamespace),
-		envDefault:        getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace)),
-	}
+	env.CommonEnvironment = &commonEnv
+	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace))
 
 	azureProvider, err := sdkazure.NewProvider(ctx, string(config.ProviderAzure), &sdkazure.ProviderArgs{
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
@@ -56,6 +57,11 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.RegisterProvider(config.ProviderAzure, azureProvider)
 
 	return env, nil
+}
+
+// Cross Cloud Provider config
+func (e *Environment) InternalRegistry() string {
+	return "none"
 }
 
 // Common

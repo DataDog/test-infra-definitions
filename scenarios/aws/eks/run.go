@@ -19,18 +19,15 @@ import (
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
-	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
-	awsIam "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
-	"github.com/pulumi/pulumi-eks/sdk/go/eks"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
-	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
+	awsEks "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/eks"
+	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
+	"github.com/pulumi/pulumi-eks/sdk/v2/go/eks"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
-
-// eksNodeSelector is the label used to select the node group for tracegen
-const eksNodeSelector = "eks.amazonaws.com/nodegroup"
 
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := resourcesAws.NewEnvironment(ctx)
@@ -136,8 +133,6 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = cluster.KubeconfigJson
 
 		nodeGroups := make([]pulumi.Resource, 0)
-		var cgroupV1Ng pulumi.StringOutput
-		var cgroupV2Ng pulumi.StringOutput
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {
 			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
@@ -145,8 +140,6 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
-			// The default AMI used for Amazon Linux 2 is using cgroupv1
-			cgroupV1Ng = ng.NodeGroup.NodeGroupName()
 		}
 
 		if awsEnv.EKSLinuxARMNodeGroup() {
@@ -155,7 +148,6 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
-			cgroupV1Ng = ng.NodeGroup.NodeGroupName()
 		}
 
 		if awsEnv.EKSBottlerocketNodeGroup() {
@@ -164,8 +156,6 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 			nodeGroups = append(nodeGroups, ng)
-			// Bottlerocket uses cgroupv2
-			cgroupV2Ng = ng.NodeGroup.NodeGroupName()
 		}
 
 		// Create unmanaged node groups
@@ -277,11 +267,7 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv1", pulumi.StringMap{eksNodeSelector: cgroupV1Ng}); err != nil {
-				return err
-			}
-
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen-cgroupv2", pulumi.StringMap{eksNodeSelector: cgroupV2Ng}); err != nil {
+			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen"); err != nil {
 				return err
 			}
 

@@ -27,23 +27,18 @@ type Manager struct {
 	opts []pulumi.ResourceOption
 }
 
-func NewManager(e config.CommonEnvironment, host *remoteComp.Host, installDocker bool, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
+func NewManager(e config.CommonEnvironment, host *remoteComp.Host, opts ...pulumi.ResourceOption) (*Manager, pulumi.Resource, error) {
 	manager := &Manager{
 		namer: e.CommonNamer.WithPrefix("docker"),
 		host:  host,
 		opts:  opts,
 	}
 
-	var err error
-	var installCmd pulumi.Resource
-	if installDocker {
-		installCmd, err = manager.install()
-		if err != nil {
-			return nil, nil, err
-		}
-
-		manager.opts = utils.MergeOptions(manager.opts, utils.PulumiDependsOn(installCmd))
+	installCmd, err := manager.install()
+	if err != nil {
+		return nil, nil, err
 	}
+	manager.opts = utils.MergeOptions(manager.opts, utils.PulumiDependsOn(installCmd))
 
 	composeCmd, err := manager.installCompose()
 	if err != nil {
@@ -126,7 +121,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 }
 
 func (d *Manager) install() (*remote.Command, error) {
-	dockerInstall, err := d.host.OS.PackageManager().Ensure("docker.io", nil, d.opts...)
+	dockerInstall, err := d.host.OS.PackageManager().Ensure("docker.io", nil, "docker", d.opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +154,7 @@ func (d *Manager) install() (*remote.Command, error) {
 }
 
 func (d *Manager) installCompose() (*remote.Command, error) {
-	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl -SL https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) -o /usr/local/bin/docker-compose && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
+	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl --retry 10 -fsSLo /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
 	return d.host.OS.Runner().Command(
 		d.namer.ResourceName("install-compose"),
 		&command.Args{

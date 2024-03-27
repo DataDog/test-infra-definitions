@@ -4,7 +4,7 @@ import (
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
-	sdkaws "github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
+	sdkaws "github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
@@ -32,6 +32,8 @@ const (
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
 	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
+	DDInfraEcsFakeintakeLBListenerArn       = "aws/ecs/fakeintakeLBListenerArn"
+	DDInfraEcsFakeintakeLBBaseHost          = "aws/ecs/fakeintakeLBBaseHost"
 	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
 	DDInfraEcsTaskRole                      = "aws/ecs/taskRole"
 	DDInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
@@ -188,6 +190,14 @@ func (e *Environment) ECSExecKMSKeyID() string {
 
 func (e *Environment) ECSFargateFakeintakeClusterArn() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
+}
+
+func (e *Environment) ECSFakeintakeLBListenerArn() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBListenerArn, e.envDefault.ddInfra.ecs.fakeintakeLBListenerArn)
+}
+
+func (e *Environment) ECSFakeintakeLBBaseHost() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBBaseHost, e.envDefault.ddInfra.ecs.fakeintakeLBBaseHostHeader)
 }
 
 func (e *Environment) ECSTaskExecutionRole() string {

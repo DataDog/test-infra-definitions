@@ -53,9 +53,10 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy the agent
 		if env.AgentDeploy() {
-			// On Kata nodes, AKS uses node-name (like aks-kata-21213134-vmss000000) as only SAN in Kubelet certificate
-			// However, the DNS name aks-kata-21213134-vmss000000 is not resolvable, so cannot be used to reach Kubelet
-			// Thus we need to use `tlsVerify: false` and `and `status.hostIP` as `host` in the Helm values
+			// On Kata nodes, AKS uses the node-name (like aks-kata-21213134-vmss000000) as the only SAN in the Kubelet
+			// certificate. However, the DNS name aks-kata-21213134-vmss000000 is not resolvable, so it cannot be used
+			// to reach the Kubelet. Thus we need to use `tlsVerify: false` and `and `status.hostIP` as `host` in
+			// the Helm values
 			customValues := `
 datadog:
   kubelet:

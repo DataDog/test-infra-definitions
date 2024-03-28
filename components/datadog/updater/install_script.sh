@@ -27,8 +27,6 @@ $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
 $sudo_cmd sh -c "echo 'api_key: $apikey' > $config_file"
 
-agent_major_version=7
-
 apt_url="apttesting.datad0g.com"
 apt_repo_version="${DD_TEST_APT_REPO_VERSION}"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"

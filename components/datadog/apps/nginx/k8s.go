@@ -31,7 +31,7 @@ func runtimeClassToPulumi(runtimeClass string) pulumi.StringInput {
 
 // K8sAppDefinition defines a Kubernetes application, with a deployment, a service, a pod disruption budget and an HPA.
 // It also creates a DatadogMetric and an HPA if dependsOnCrd is not nil.
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, runtimeClass string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, runtimeClass string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}

@@ -8,7 +8,6 @@ import (
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/lb"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -27,26 +26,6 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	}
 
 	opts = append(opts, pulumi.Parent(EcsFargateComponent))
-
-	nlb, err := lb.NewNetworkLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.NetworkLoadBalancerArgs{
-		Name:      e.CommonNamer.DisplayName(32, pulumi.String("aspnetsample"), pulumi.String("fg")),
-		SubnetIds: e.RandomSubnets(),
-		Internal:  pulumi.BoolPtr(true),
-		DefaultTargetGroup: &lb.TargetGroupArgs{
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String("aspnetsample"), pulumi.String("fg")),
-			Port:       pulumi.IntPtr(8080),
-			Protocol:   pulumi.StringPtr("TCP"),
-			TargetType: pulumi.StringPtr("ip"),
-			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-		},
-		Listener: &lb.ListenerArgs{
-			Port:     pulumi.IntPtr(8080),
-			Protocol: pulumi.StringPtr("TCP"),
-		},
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("aspnetsample"),
@@ -76,13 +55,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 				Condition:     pulumi.String("HEALTHY"),
 			},
 		},
-		PortMappings: ecs.TaskDefinitionPortMappingArray{
-			ecs.TaskDefinitionPortMappingArgs{
-				ContainerPort: pulumi.IntPtr(8080),
-				HostPort:      pulumi.IntPtr(8080),
-				Protocol:      pulumi.StringPtr("tcp"),
-			},
-		},
+		PortMappings: ecs.TaskDefinitionPortMappingArray{},
 	}
 
 	serverTaskDef, err := ecsClient.FargateWindowsTaskDefinitionWithAgent(e, "aspnet-fg-server", pulumi.String("aspnet-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"aspnetsample": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
@@ -97,18 +70,11 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
 			SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-			Subnets:        nlb.LoadBalancer.Subnets(),
+			Subnets:        e.RandomSubnets(),
 		},
 		TaskDefinition:            serverTaskDef.TaskDefinition.Arn(),
 		EnableExecuteCommand:      pulumi.BoolPtr(true),
 		ContinueBeforeSteadyState: pulumi.BoolPtr(true),
-		LoadBalancers: classicECS.ServiceLoadBalancerArray{
-			&classicECS.ServiceLoadBalancerArgs{
-				ContainerName:  pulumi.String("aspnetsample"),
-				ContainerPort:  pulumi.Int(8080),
-				TargetGroupArn: nlb.DefaultTargetGroup.Arn(),
-			},
-		},
 	}, opts...); err != nil {
 		return nil, err
 	}

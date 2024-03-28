@@ -14,8 +14,16 @@ func MergeYAMLString(oldValues string, newValues string) (string, error) {
 	var oldValuesYAML map[string]interface{}
 	var newValuesYAML map[string]interface{}
 
-	yaml.Unmarshal([]byte(oldValues), &oldValuesYAML)
-	yaml.Unmarshal([]byte(newValues), &newValuesYAML)
+	err := yaml.Unmarshal([]byte(oldValues), &oldValuesYAML)
+	if err != nil {
+		return "", err
+	}
+
+	err = yaml.Unmarshal([]byte(newValues), &newValuesYAML)
+
+	if err != nil {
+		return "", err
+	}
 
 	mergedValuesYAML := mergeMaps(oldValuesYAML, newValuesYAML)
 

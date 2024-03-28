@@ -2,7 +2,6 @@ package ecs
 
 import (
 	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
@@ -33,6 +32,37 @@ func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInpu
 		LoadBalancers:        lb,
 		TaskDefinition:       taskDefArn,
 		EnableExecuteCommand: pulumi.BoolPtr(true),
+	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
+}
+
+// FargateWindowsTaskDefinitionWithAgent creates a Fargate task definition with the Datadog agent and log router containers.
+// This is for Windows containers.
+func FargateWindowsTaskDefinitionWithAgent(
+	e aws.Environment,
+	name string,
+	family pulumi.StringInput,
+	cpu, memory int,
+	containers map[string]ecs.TaskDefinitionContainerDefinitionArgs,
+	apiKeySSMParamName pulumi.StringInput,
+	fakeintake *fakeintake.Fakeintake,
+	opts ...pulumi.ResourceOption,
+) (*ecs.FargateTaskDefinition, error) {
+	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake)
+	// aws-for-fluent-bit:windowsservercore-latest can only be used with cloudwatch logs.
+	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
+		Containers: containers,
+		Cpu:        pulumi.StringPtr(fmt.Sprintf("%d", cpu)),
+		Memory:     pulumi.StringPtr(fmt.Sprintf("%d", memory)),
+		ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
+			RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
+		},
+		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
+			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
+		},
+		Family: e.CommonNamer.DisplayName(255, family),
+		RuntimePlatform: classicECS.TaskDefinitionRuntimePlatformArgs{
+			OperatingSystemFamily: pulumi.String("WINDOWS_SERVER_2022_CORE"),
+		},
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 

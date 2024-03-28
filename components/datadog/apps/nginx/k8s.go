@@ -118,11 +118,13 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								HttpGet: &corev1.HTTPGetActionArgs{
 									Port: pulumi.Int(80),
 								},
+								TimeoutSeconds: pulumi.Int(5),
 							},
 							ReadinessProbe: &corev1.ProbeArgs{
 								HttpGet: &corev1.HTTPGetActionArgs{
 									Port: pulumi.Int(80),
 								},
+								TimeoutSeconds: pulumi.Int(5),
 							},
 							VolumeMounts: &corev1.VolumeMountArray{
 								&corev1.VolumeMountArgs{
@@ -371,7 +373,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),
-									"memory": pulumi.String("32Mi"),
+									"memory": pulumi.String("64Mi"),
 								},
 								Requests: pulumi.StringMap{
 									"cpu":    pulumi.String("10m"),

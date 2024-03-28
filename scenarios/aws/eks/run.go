@@ -20,13 +20,17 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 
 	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ec2"
+	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/eks"
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
-	// corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
-	// metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apiregistration/v1beta1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/yaml"
 )
 
 func Run(ctx *pulumi.Context) error {
@@ -81,7 +85,8 @@ func Run(ctx *pulumi.Context) error {
 
 		// Fargate Configuration
 		var fargateProfile pulumi.Input
-		if fargateNamespace := awsEnv.EKSFargateNamespace(); fargateNamespace != "" {
+		fargateNamespace := awsEnv.EKSFargateNamespace();
+		if fargateNamespace != "" {
 			fargateProfile = pulumi.Any(
 				eks.FargateProfile{
 					Selectors: []awsEks.FargateProfileSelector{
@@ -175,6 +180,107 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
+		serviceAccountArgs := corev1.ServiceAccountArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("datadog-agent"),
+				Namespace: pulumi.String(fargateNamespace),
+			},
+		}
+	
+		clusterRoleArgs := v1.ClusterRoleArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name: pulumi.String("datadog-agent"),
+			},
+			Rules: v1.PolicyRuleArray{
+				v1.PolicyRuleArgs{
+					ApiGroups: pulumi.StringArray{
+						pulumi.String(""),
+					},
+					Resources: pulumi.StringArray{
+						pulumi.String("nodes"),
+						pulumi.String("namespaces"),
+						pulumi.String("endpoints"),
+					},
+					Verbs: pulumi.StringArray{
+						pulumi.String("get"),
+						pulumi.String("list"),
+					},
+				},
+				v1.PolicyRuleArgs{ // Kubelet connectivity
+					ApiGroups: pulumi.StringArray{
+						pulumi.String(""),
+					},
+					Resources: pulumi.StringArray{
+						pulumi.String("nodes/metrics"),
+						pulumi.String("nodes/spec"),
+						pulumi.String("nodes/proxy"),
+						pulumi.String("nodes/stats"),
+						pulumi.String("nodes/pods"),
+						pulumi.String("nodes/healthz"),
+					},
+					Verbs: pulumi.StringArray{
+						pulumi.String("get"),
+					},
+				},
+			},
+		}
+	
+		clusterRoleBindingArgs := v1.ClusterRoleBindingArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name: pulumi.String("datadog-agent"),
+			},
+			RoleRef: v1.RoleRefArgs{
+				ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
+				Kind:     pulumi.String("ClusterRole"),
+				Name:     pulumi.String("datadog-agent"),
+			},
+			Subjects: v1.SubjectArray{
+				&v1.SubjectArgs{
+					Kind:      pulumi.String("ServiceAccount"),
+					Name:      pulumi.String("datadog-agent"),
+					Namespace: pulumi.String(fargateNamespace),
+				},
+			},
+		}
+
+		if _, err := corev1.NewServiceAccount(awsEnv.Ctx, "datadog-agent", &serviceAccountArgs, pulumi.Provider(eksKubeProvider)); err != nil {
+			return err
+		}
+	
+		if _, err := v1.NewClusterRole(awsEnv.Ctx, "datadog-agent", &clusterRoleArgs, pulumi.Provider(eksKubeProvider)); err != nil {
+			return err
+		}
+	
+		if _, err := v1.NewClusterRoleBinding(awsEnv.Ctx, "datadog-agent", &clusterRoleBindingArgs, pulumi.Provider(eksKubeProvider)); err != nil {
+			return err
+		}
+
+		// Deploy the Metrics Server using the components YAML file from the official repository.
+		v1beta1.NewAPIService(awsEnv.Ctx, "v1beta1MetricsServerAPIService", &v1beta1.APIServiceArgs{
+			Metadata: &metav1.ObjectMetaArgs{
+				Name: pulumi.String("v1beta1.metrics.k8s.io"),
+			},
+			Spec: &v1beta1.APIServiceSpecArgs{
+				Service: &v1beta1.ServiceReferenceArgs{
+					Name:      pulumi.String("metrics-server"), // Assuming the service is named 'metrics-server'
+					Namespace: pulumi.String("kube-system"),
+					Port:      pulumi.Int(443), // Default port for HTTPS
+				},
+				Group:                pulumi.String("apiregistration.k8s.io"),
+				Version:              pulumi.String("v1beta1"),
+				GroupPriorityMinimum: pulumi.Int(100),
+				VersionPriority:      pulumi.Int(100),
+			},
+		}, pulumi.Provider(eksKubeProvider))
+
+		_, err = yaml.NewConfigFile(awsEnv.Ctx, "metrics-server", &yaml.ConfigFileArgs{
+			File: "https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml",
+		}, pulumi.Provider(eksKubeProvider))
+
+		if err != nil {
+			return err
+		}
+
 		// Applying necessary Windows configuration if Windows nodes
 		// if awsEnv.EKSWindowsNodeGroup() {
 		// 	_, err := corev1.NewConfigMapPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
@@ -243,6 +349,18 @@ func Run(ctx *pulumi.Context) error {
 		// 	}
 		// }
 
+		var apiKeyParam *ssm.Parameter
+
+		apiKeyParam, err = ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
+			Name:      awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
+			Type:      ssm.ParameterTypeSecureString,
+			Overwrite: pulumi.Bool(true),
+			Value:     awsEnv.AgentAPIKey(),
+		}, awsEnv.WithProviders(config.ProviderAWS))
+		if err != nil {
+			return err
+		}
+
 		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
 			// if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
@@ -278,6 +396,14 @@ func Run(ctx *pulumi.Context) error {
 			// if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
 			// 	return err
 			// }
+			// TODO: fix how to get clusterName
+			var clusterName = "jennifer-chen-aws-eks"
+
+			if fargateNamespace := awsEnv.EKSFargateNamespace(); fargateNamespace != "" {
+				if _, err := nginx.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, fargateNamespace, clusterName, apiKeyParam.Name, dependsOnCrd, fakeIntake); err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil

@@ -106,6 +106,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			Name:  pulumi.String("DD_CRI_SOCKET_PATH"),
 			Value: pulumi.String("/host/var/run/containerd/containerd.sock"),
 		},
+		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ENABLED"),
+			Value: pulumi.String("true"),
+		},
 	}
 
 	if fakeIntake != nil {

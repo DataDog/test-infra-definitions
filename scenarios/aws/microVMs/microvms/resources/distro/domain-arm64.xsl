@@ -82,7 +82,6 @@
         </xsl:copy>
     </xsl:template>
 
-    <xsl:template match="features/acpi" />
     <xsl:template match="domain/devices/graphics" />
     <xsl:template match="domain/devices/audio" />
     <xsl:template match="domain/devices/video" />

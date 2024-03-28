@@ -1,0 +1,1 @@
+FROM networkstatic/nflow-generator

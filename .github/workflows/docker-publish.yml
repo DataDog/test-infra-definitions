@@ -64,6 +64,8 @@ jobs:
             image: npm-tools
           - app: logger
             image: logger
+          - app: netflow-generator
+            image: netflow-generator
 
     steps:
       - name: Checkout repository

@@ -20,6 +20,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const kataRuntimeClass = "kata-mshv-vm-isolation"
+
 func Run(ctx *pulumi.Context) error {
 	env, err := azure.NewEnvironment(ctx)
 	if err != nil {
@@ -51,14 +53,19 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy the agent
 		if env.AgentDeploy() {
+			// On Kata nodes, AKS uses the node-name (like aks-kata-21213134-vmss000000) as the only SAN in the Kubelet
+			// certificate. However, the DNS name aks-kata-21213134-vmss000000 is not resolvable, so it cannot be used
+			// to reach the Kubelet. Thus we need to use `tlsVerify: false` and `and `status.hostIP` as `host` in
+			// the Helm values
 			customValues := `
 datadog:
   kubelet:
     host:
       valueFrom:
         fieldRef:
-          fieldPath: spec.nodeName
+          fieldPath: status.hostIP
     hostCAPath: /etc/kubernetes/certs/kubeletserver.crt
+    tlsVerify: false
 providers:
   aks:
     enabled: true
@@ -88,7 +95,11 @@ providers:
 
 		// Deploy testing workload
 		if env.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-nginx", "", dependsOnCrd); err != nil {
+				return err
+			}
+
+			if _, err := nginx.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-nginx-kata", kataRuntimeClass, dependsOnCrd); err != nil {
 				return err
 			}
 

@@ -64,7 +64,7 @@ datadog:
         fieldRef:
           fieldPath: status.hostIP
     hostCAPath: /etc/kubernetes/certs/kubeletserver.crt
-	tlsVerify: false
+    tlsVerify: false
 providers:
   aks:
     enabled: true

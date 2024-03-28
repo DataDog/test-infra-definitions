@@ -10,4 +10,4 @@ require (
 )
 
 // Temporary replacement of the main branch until https://github.com/DataDog/datadog-go/pull/304 is released
-replace github.com/DataDog/datadog-go/v5 => github.com/DataDog/datadog-go/v5 v5.5.1-0.20240318112615-19bca2118b52
+replace github.com/DataDog/datadog-go/v5 => github.com/DataDog/datadog-go/v5 v5.5.1-0.20240327105053-fa1f6814eaf7

@@ -40,7 +40,7 @@ func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubePro
 			KubeProvider:              kubeProvider,
 			DeployWindows:             params.DeployWindows,
 			Namespace:                 params.Namespace,
-			ValuesYAML:                pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(params.HelmValues)},
+			ValuesYAML:                params.HelmValues,
 			Fakeintake:                params.FakeIntake,
 			AgentFullImagePath:        params.AgentFullImagePath,
 			ClusterAgentFullImagePath: params.ClusterAgentFullImagePath,

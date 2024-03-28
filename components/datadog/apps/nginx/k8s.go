@@ -231,10 +231,15 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
 								},
 								Target: &autoscalingv2beta2.MetricTargetArgs{
-									Type:         pulumi.String("AverageValue"),
-									AverageValue: pulumi.String("10"),
+									Type:  pulumi.String("Value"),
+									Value: pulumi.StringPtr("10"),
 								},
 							},
+						},
+					},
+					Behavior: &autoscalingv2beta2.HorizontalPodAutoscalerBehaviorArgs{
+						ScaleDown: &autoscalingv2beta2.HPAScalingRulesArgs{
+							StabilizationWindowSeconds: pulumi.IntPtr(0),
 						},
 					},
 				},
@@ -266,10 +271,15 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
 								},
 								Target: &autoscalingv2.MetricTargetArgs{
-									Type:         pulumi.String("AverageValue"),
-									AverageValue: pulumi.String("10"),
+									Type:  pulumi.String("Value"),
+									Value: pulumi.StringPtr("10"),
 								},
 							},
+						},
+					},
+					Behavior: &autoscalingv2.HorizontalPodAutoscalerBehaviorArgs{
+						ScaleDown: &autoscalingv2.HPAScalingRulesArgs{
+							StabilizationWindowSeconds: pulumi.IntPtr(0),
 						},
 					},
 				},

@@ -50,8 +50,8 @@ apt_repo_version="${DD_PIPELINE_ID}-u7-${ARCH}"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
 apt_trusted_d_keyring="/etc/apt/trusted.gpg.d/datadog-archive-keyring.gpg"
 
-yum_url="yumtesting.datad0g.com"
-yum_repo_version="pipeline-${DD_PIPELINE_ID}-u7"
+yum_url="yumtesting.datad0g.com/testing"
+yum_repo_version="${DD_PIPELINE_ID}-u7/7"
 
 DD_APT_INSTALL_ERROR_MSG=/tmp/ddog_install_error_msg
 MAX_RETRY_NB=10

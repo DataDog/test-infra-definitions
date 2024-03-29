@@ -105,6 +105,7 @@ if [ "${OS}" = "Debian" ]; then
     $sudo_cmd apt-get install -y --force-yes "datadog-updater" 2> >(tee /tmp/ddog_install_error_msg >&2)
 elif [ "${OS}" = "RedHat" ]; then
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
+    separator='\n       '
     for key_path in "${RPM_GPG_KEYS[@]}"; do
         gpgkeys="${gpgkeys:+"${gpgkeys}${separator}"}https://${keys_url}/${key_path}"
     done

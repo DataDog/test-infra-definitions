@@ -38,7 +38,7 @@ func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error 
 
 func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...dockeragentparams.Option) (*DockerAgent, error) {
 	return components.NewComponent(e, vm.Name(), func(comp *DockerAgent) error {
-		params, err := dockeragentparams.NewParams(options...)
+		params, err := dockeragentparams.NewParams(&e, options...)
 		if err != nil {
 			return err
 		}
@@ -86,8 +86,9 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 						"/sys/kernel/tracing:/sys/kernel/tracing",
 					},
 					Environment: map[string]any{
-						"DD_API_KEY":               apiKeyResolved,
-						"DD_PROCESS_AGENT_ENABLED": true,
+						"DD_API_KEY": apiKeyResolved,
+						// DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED is compatible with Agent 7.35+
+						"DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED": true,
 					},
 					Pid:   "host",
 					Ports: []string{"8125:8125/udp", "8126:8126/tcp"},

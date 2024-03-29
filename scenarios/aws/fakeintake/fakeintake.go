@@ -16,14 +16,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/acm"
-	calb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/alb"
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ecs"
-	clb "github.com/pulumi/pulumi-aws/sdk/v5/go/aws/lb"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
-	awsxEcs "github.com/pulumi/pulumi-awsx/sdk/go/awsx/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/go/awsx/lb"
-	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
+	clb "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/lb"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ssm"
+	awsxEcs "github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/cenkalti/backoff/v4"
@@ -33,8 +29,8 @@ const (
 	sleepInterval = 1 * time.Second
 	maxRetries    = 120
 	containerName = "fakeintake"
-	port          = 80
-	sslPort       = 443
+	httpPort      = 80
+	httpsPort     = 443
 )
 
 func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*fakeintake.Fakeintake, error) {
@@ -48,9 +44,10 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		opts := []pulumi.ResourceOption{pulumi.Parent(fi)}
 
 		apiKeyParam, err := ssm.NewParameter(e.Ctx, namer.ResourceName("agent", "apikey"), &ssm.ParameterArgs{
-			Name:  e.CommonNamer.DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
-			Type:  ssm.ParameterTypeSecureString,
-			Value: e.AgentAPIKey(),
+			Name:      e.CommonNamer.DisplayName(1011, pulumi.String(name), pulumi.String("apikey")),
+			Type:      ssm.ParameterTypeSecureString,
+			Value:     e.AgentAPIKey(),
+			Overwrite: pulumi.Bool(true),
 		}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
 		if err != nil {
 			return err
@@ -69,7 +66,16 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			return err
 		}
 
+		useLoadBalancer := false
 		if params.LoadBalancerEnabled {
+			if e.ECSFakeintakeLBListenerArn() != "" {
+				useLoadBalancer = true
+			} else {
+				e.Ctx.Log.Warn("Load balancer is enabled but no listener is defined, will not use LB", nil)
+			}
+		}
+
+		if useLoadBalancer {
 			err = fargateSvcLB(e, namer, taskDef, fi, opts...)
 		} else {
 			err = fargateSvcNoLB(e, namer, taskDef, fi, opts...)
@@ -114,7 +120,7 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 
 		// fail the deployment if the fakeintake is not healthy
 		e.Ctx.Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
-		healthURL := buildFakeIntakeURL("http", ipAddress, "/fakeintake/health", port)
+		healthURL := buildFakeIntakeURL("http", ipAddress, "/fakeintake/health", httpPort)
 		err = backoff.Retry(func() error {
 			e.Ctx.Log.Debug(fmt.Sprintf("getting fakeintake health at %s", healthURL), nil)
 			resp, err := http.Get(healthURL)
@@ -132,94 +138,59 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 			return nil, err
 		}
 
-		return []string{ipAddress, buildFakeIntakeURL("http", ipAddress, "", port)}, nil
+		return []string{ipAddress, buildFakeIntakeURL("http", ipAddress, "", httpPort)}, nil
 	}).(pulumi.StringArrayOutput)
 
+	fi.Scheme = "http"
+	fi.Port = httpPort
 	fi.Host = output.Index(pulumi.Int(0))
 	fi.URL = output.Index(pulumi.Int(1))
-	fi.Scheme = pulumi.String("http").ToStringOutput()
 
 	return err
 }
 
 func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.FargateTaskDefinition, fi *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) error {
-	alb, err := lb.NewApplicationLoadBalancer(e.Ctx, namer.ResourceName("lb"), &lb.ApplicationLoadBalancerArgs{
-		Name:           e.CommonNamer.DisplayName(32, pulumi.String(fi.Name())),
-		SubnetIds:      e.RandomSubnets(),
-		Internal:       pulumi.BoolPtr(!e.ECSServicePublicIP()),
-		SecurityGroups: pulumi.ToStringArray(e.DefaultSecurityGroups()),
-		DefaultTargetGroup: &lb.TargetGroupArgs{
-			HealthCheck: &clb.TargetGroupHealthCheckArgs{
-				Path: pulumi.StringPtr("/fakeintake/health"),
-			},
-			Name:       e.CommonNamer.DisplayName(32, pulumi.String("name")),
-			Port:       pulumi.IntPtr(port),
-			Protocol:   pulumi.StringPtr("HTTP"),
-			TargetType: pulumi.StringPtr("ip"),
-			VpcId:      pulumi.StringPtr(e.DefaultVPCID()),
-		},
-		Listener: &lb.ListenerArgs{
-			Port:     pulumi.IntPtr(port),
-			Protocol: pulumi.StringPtr("HTTP"),
-		},
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
-	if err != nil {
-		return err
-	}
-
-	key, err := tls.NewPrivateKey(e.Ctx, namer.ResourceName("key"), &tls.PrivateKeyArgs{
-		Algorithm: pulumi.String("RSA"),
-		RsaBits:   pulumi.IntPtr(4096),
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderTLS))...)
-	if err != nil {
-		return err
-	}
-
-	selfcert, err := tls.NewSelfSignedCert(e.Ctx, namer.ResourceName("cert"), &tls.SelfSignedCertArgs{
-		AllowedUses: pulumi.StringArray{
-			pulumi.String("server_auth"),
-		},
-		DnsNames: pulumi.StringArray{
-			alb.LoadBalancer.DnsName(),
-		},
-		PrivateKeyPem: key.PrivateKeyPem,
-		Subject: &tls.SelfSignedCertSubjectArgs{
-			CommonName: alb.LoadBalancer.DnsName(),
-		},
-		ValidityPeriodHours: pulumi.Int(24),
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderTLS))...)
-	if err != nil {
-		return err
-	}
-
-	cert, err := acm.NewCertificate(e.Ctx, namer.ResourceName("cert"), &acm.CertificateArgs{
-		CertificateBody: selfcert.CertPem,
-		PrivateKey:      key.PrivateKeyPem,
+	targetGroup, err := clb.NewTargetGroup(e.Ctx, namer.ResourceName("target-group"), &clb.TargetGroupArgs{
+		Port:          pulumi.Int(80),
+		Protocol:      pulumi.String("HTTP"),
+		TargetType:    pulumi.String("ip"),
+		IpAddressType: pulumi.String("ipv4"),
+		VpcId:         pulumi.StringPtr(e.DefaultVPCID()),
+		Name:          e.CommonNamer.DisplayName(32, pulumi.String("fakeintake")),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
 	if err != nil {
 		return err
 	}
 
-	if _, err = calb.NewListener(e.Ctx, namer.ResourceName("lb-https"), &calb.ListenerArgs{
-		LoadBalancerArn: alb.LoadBalancer.Arn(),
-		Port:            pulumi.IntPtr(sslPort),
-		Protocol:        pulumi.StringPtr("HTTPS"),
-		CertificateArn:  cert.Arn,
-		DefaultActions: calb.ListenerDefaultActionArray{
-			calb.ListenerDefaultActionArgs{
-				Type:           pulumi.String("forward"),
-				TargetGroupArn: alb.DefaultTargetGroup.Arn(),
+	// Hashing fakeintake resource name as prefix for Host header
+	hostPrefix := utils.StrHash(namer.ResourceName(e.Ctx.Stack()))
+	host := hostPrefix + e.ECSFakeintakeLBBaseHost()
+
+	_, err = clb.NewListenerRule(e.Ctx, namer.ResourceName(hostPrefix), &clb.ListenerRuleArgs{
+		ListenerArn: pulumi.String(e.ECSFakeintakeLBListenerArn()),
+		Conditions: clb.ListenerRuleConditionArray{
+			clb.ListenerRuleConditionArgs{
+				HostHeader: clb.ListenerRuleConditionHostHeaderArgs{
+					Values: pulumi.ToStringArray([]string{host}),
+				},
 			},
 		},
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...); err != nil {
+		Actions: clb.ListenerRuleActionArray{
+			clb.ListenerRuleActionArgs{
+				Type:           pulumi.String("forward"),
+				TargetGroupArn: targetGroup.Arn,
+			},
+		},
+	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
+	if err != nil {
 		return err
 	}
-	ipAdress := alb.LoadBalancer.DnsName()
+
 	balancerArray := classicECS.ServiceLoadBalancerArray{
 		&classicECS.ServiceLoadBalancerArgs{
 			ContainerName:  pulumi.String(containerName),
-			ContainerPort:  pulumi.Int(port),
-			TargetGroupArn: alb.DefaultTargetGroup.Arn(),
+			ContainerPort:  pulumi.Int(httpPort),
+			TargetGroupArn: targetGroup.Arn,
 		},
 	}
 
@@ -228,12 +199,10 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 		return err
 	}
 
-	fi.Host = ipAdress
-	fi.Scheme = pulumi.String("http").ToStringOutput()
-	fi.URL = ipAdress.ApplyT(func(ip string) string {
-		return buildFakeIntakeURL("http", ip, "", port)
-	}).(pulumi.StringOutput)
-
+	fi.Scheme = "https"
+	fi.Port = httpsPort
+	fi.Host = pulumi.String(host).ToStringOutput()
+	fi.URL = pulumi.String(fi.Scheme + "://" + host).ToStringOutput()
 	return nil
 }
 
@@ -251,8 +220,8 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 		},
 		PortMappings: awsxEcs.TaskDefinitionPortMappingArray{
 			awsxEcs.TaskDefinitionPortMappingArgs{
-				ContainerPort: pulumi.Int(port),
-				HostPort:      pulumi.Int(port),
+				ContainerPort: pulumi.Int(httpPort),
+				HostPort:      pulumi.Int(httpPort),
 				Protocol:      pulumi.StringPtr("tcp"),
 			},
 		},

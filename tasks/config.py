@@ -16,6 +16,7 @@ class Config(BaseModel, extra=Extra.forbid):
             keyPairName: Optional[str]
             publicKeyPath: Optional[str]
             privateKeyPath: Optional[str] = None
+            privateKeyPassword: Optional[str] = None
             account: Optional[str]
             teamTag: Optional[str]
 
@@ -31,6 +32,12 @@ class Config(BaseModel, extra=Extra.forbid):
             appKey: Optional[str]
 
         agent: Optional[Agent]
+
+        class Pulumi(BaseModel, extra=Extra.forbid):
+            logLevel: Optional[int] = None
+            logToStdErr: Optional[bool] = None
+
+        pulumi: Optional[Pulumi] = None
 
     configParams: Optional[Params] = None
 
@@ -61,6 +68,14 @@ class Config(BaseModel, extra=Extra.forbid):
         if self.configParams.agent is None:
             return default
         return self.configParams.agent
+
+    def get_pulumi(self) -> Params.Pulumi:
+        default = Config.Params.Pulumi(logLevel=None, logToStdErr=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.pulumi is None:
+            return default
+        return self.configParams.pulumi
 
     def get_stack_params(self) -> Dict[str, Dict[str, str]]:
         if self.stackParams is None:

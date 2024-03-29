@@ -2,8 +2,10 @@ import os
 import subprocess
 from typing import Any, Callable, Dict, List, Optional
 
+import boto3
 from invoke.context import Context
 from invoke.exceptions import Exit
+from invoke.tasks import task
 from pydantic import ValidationError
 
 from . import config, tool
@@ -29,6 +31,7 @@ def deploy(
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
     use_aws_vault: Optional[bool] = True,
+    deploy_job: Optional[str] = None,
 ) -> str:
     flags = extra_flags
     if flags is None:
@@ -59,6 +62,16 @@ def deploy(
     aws_account = cfg.get_aws().get_account()
     flags.setdefault("ddinfra:env", "aws/" + aws_account)
 
+    # Verify image deployed and not outdated in s3
+    if deploy_job is not None and pipeline_id is not None:
+        cmd = f'inv -e check-s3-image-exists --pipeline-id={pipeline_id} --deploy-job={deploy_job}'
+        cmd = tool.get_aws_wrapper(aws_account) + cmd
+        output = ctx.run(cmd, warn=True)
+
+        # The command already has a traceback
+        if not output or output.return_code != 0:
+            exit(1)
+
     if cfg.get_aws().teamTag is None or cfg.get_aws().teamTag == "":
         raise Exit(
             "Error in config, missing configParams.aws.teamTag. Run `inv setup` again and provide a valid team name"
@@ -80,7 +93,50 @@ def deploy(
     if app_key_required:
         flags["ddagent:appKey"] = _get_app_key(cfg)
 
-    return _deploy(ctx, stack_name, flags, debug, use_aws_vault)
+    return _deploy(
+        ctx, stack_name, flags, debug, use_aws_vault, cfg.get_pulumi().logLevel, cfg.get_pulumi().logToStdErr
+    )
+
+
+@task
+def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
+    """
+    Verify if an image exists in the s3 repository to create a vm
+    """
+    # Job to s3 directory mapping
+    deploy_job_to_s3 = {
+        # Deb
+        'deploy_deb_testing-a7_x64': f'apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a7-x86_64/7/binary-x86_64',
+        'deploy_deb_testing-a7_arm64': f'apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a7-arm64/7/binary-arm64',
+        'deploy_deb_testing-a6_x64': f'apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a6-x86_64/6/binary-x86_64',
+        'deploy_deb_testing-a6_arm64': f'apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a6-arm64/6/binary-arm64',
+        # Rpm
+        'deploy_rpm_testing-a7_x64': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/x86_64',
+        'deploy_rpm_testing-a7_arm64': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/aarch64',
+        'deploy_rpm_testing-a6_x64': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a6/6/x86_64',
+        'deploy_rpm_testing-a6_arm64': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a6/6/aarch64',
+        # Suse
+        'deploy_suse_rpm_testing_x64-a7': f'yumtesting.datad0g.com/suse/testing/pipeline-{pipeline_id}-a7/7/x86_64',
+        'deploy_suse_rpm_testing_arm64-a7': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/aarch64',
+        'deploy_suse_rpm_testing_x64-a6': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a6/6/x86_64',
+        'deploy_suse_rpm_testing_arm64-a6': f'yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a6/6/aarch64',
+        # Windows
+        'deploy_windows_testing-a7': f'dd-agent-mstesting/pipelines/A7/{pipeline_id}',
+        'deploy_windows_testing-a6': f'dd-agent-mstesting/pipelines/A6/{pipeline_id}',
+    }
+
+    bucket_path = deploy_job_to_s3[deploy_job]
+    delim = bucket_path.find('/')
+    bucket = bucket_path[:delim]
+    path = bucket_path[delim + 1 :]
+
+    s3 = boto3.client('s3')
+    response = s3.list_objects_v2(Bucket=bucket, Prefix=path)
+    exists = 'Contents' in response
+
+    assert (
+        exists
+    ), f'Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy'
 
 
 def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
@@ -112,6 +168,8 @@ def _deploy(
     flags: Dict[str, Any],
     debug: Optional[bool],
     use_aws_vault: Optional[bool],
+    log_level: Optional[int],
+    log_to_stderr: Optional[bool],
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     aws_account = flags["ddinfra:env"][len("aws/") :]
@@ -128,9 +186,18 @@ def _deploy(
         if value is not None and value != "":
             up_flags += f" -c {key}={value}"
 
-    if debug:
-        global_flags += " --logflow --logtostderr -v 3"
-        up_flags += " --debug"
+    should_log = debug or log_level is not None or log_to_stderr
+    if log_level is None:
+        log_level = 3
+    if log_to_stderr is None:
+        # default to true if debug is enabled
+        log_to_stderr = debug
+    if should_log:
+        if log_to_stderr:
+            global_flags += " --logtostderr"
+        global_flags += f" -v {log_level}"
+        if debug:
+            up_flags += " --debug"
 
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"

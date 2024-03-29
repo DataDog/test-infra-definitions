@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"fmt"
 	"path/filepath"
+	"runtime"
 	"time"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -36,6 +37,10 @@ type Instance struct {
 	libvirtURI    pulumi.StringOutput
 }
 
+func (i *Instance) IsMacOSHost() bool {
+	return runtime.GOOS == "darwin" && i.Arch == LocalVMSet
+}
+
 type sshKeyPair struct {
 	privateKey string
 	publicKey  string
@@ -59,11 +64,15 @@ var SSHKeyFileNames = map[string]string{
 	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
 }
 
-var GetWorkingDirectory func() string
+// GetWorkingDirectory is a function that returns the working directory for the kernel matrix testing, given the architecture (local or non-local).
+var GetWorkingDirectory func(string) string
 
-func getKernelVersionTestingWorkingDir(m *config.DDMicroVMConfig) func() string {
-	return func() string {
-		return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMWorkingDirectory, "/tmp")
+func getKernelVersionTestingWorkingDir(m *config.DDMicroVMConfig) func(string) string {
+	return func(arch string) string {
+		if arch == LocalVMSet {
+			return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMLocalWorkingDirectory, "/tmp")
+		}
+		return m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMRemoteWorkingDirectory, "/tmp")
 	}
 }
 
@@ -237,6 +246,8 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			}
 			waitFor = append(waitFor, shutdownTimerDone)
 		}
+	} else if runtime.GOOS == "darwin" {
+		url = pulumi.Sprintf("qemu:///system?socket=/opt/homebrew/var/run/libvirt/libvirt-sock")
 	} else {
 		url = pulumi.Sprintf("qemu:///system")
 	}
@@ -256,18 +267,20 @@ func exportVMInformation(ctx *pulumi.Context, instances map[string]*Instance, vm
 			if collection.instance.Arch != arch {
 				continue
 			}
-			for _, domain := range collection.domains {
-				var tags []pulumi.Output
-				for _, tag := range domain.vmset.Tags {
-					tags = append(tags, pulumi.ToOutput(tag))
+			for _, dls := range collection.domains {
+				for _, domain := range dls {
+					var tags []pulumi.Output
+					for _, tag := range domain.vmset.Tags {
+						tags = append(tags, pulumi.ToOutput(tag))
+					}
+					vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
+						"id":           pulumi.ToOutput(domain.domainID),
+						"ip":           pulumi.ToOutput(domain.ip),
+						"tag":          pulumi.ToOutput(domain.tag),
+						"vmset-tags":   pulumi.ToArrayOutput(tags),
+						"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(domain.vmset.Arch), "ddvm_rsa")),
+					}))
 				}
-				vms = append(vms, pulumi.ToMapOutput(map[string]pulumi.Output{
-					"id":           pulumi.ToOutput(domain.domainID),
-					"ip":           pulumi.ToOutput(domain.ip),
-					"tag":          pulumi.ToOutput(domain.tag),
-					"vmset-tags":   pulumi.ToArrayOutput(tags),
-					"ssh-key-path": pulumi.ToOutput(filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
-				}))
 			}
 		}
 
@@ -354,12 +367,15 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		return nil, err
 	}
 
-	if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {
-		return nil, err
-	}
+	shouldProvisionDomain := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionDomain, true)
+	if shouldProvisionDomain {
+		if _, err := provisionRemoteMicroVMs(vmCollections, instanceEnv); err != nil {
+			return nil, err
+		}
 
-	if _, err := provisionLocalMicroVMs(vmCollections); err != nil {
-		return nil, err
+		if _, err := provisionLocalMicroVMs(vmCollections); err != nil {
+			return nil, err
+		}
 	}
 
 	return &scenarioReady, nil
@@ -370,7 +386,7 @@ func RunAndReturnInstances(e commonConfig.CommonEnvironment) (*ScenarioDone, err
 }
 
 func Run(ctx *pulumi.Context) error {
-	commonEnv, err := commonConfig.NewCommonEnvironment(ctx)
+	commonEnv, err := commonConfig.NewCommonEnvironment(ctx, nil)
 	if err != nil {
 		return err
 	}

@@ -8,10 +8,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
-	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
-	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -21,11 +21,13 @@ const (
 )
 
 type HelmInstallationArgs struct {
-	KubeProvider  *kubernetes.Provider
-	Namespace     string
-	ValuesYAML    pulumi.AssetOrArchiveArrayInput
-	Fakeintake    *fakeintake.Fakeintake
-	DeployWindows bool
+	AgentFullImagePath        string
+	ClusterAgentFullImagePath string
+	KubeProvider              *kubernetes.Provider
+	Namespace                 string
+	ValuesYAML                pulumi.AssetOrArchiveArrayInput
+	Fakeintake                *fakeintake.Fakeintake
+	DeployWindows             bool
 }
 
 type HelmComponent struct {
@@ -101,9 +103,15 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	// Compute some values
 	agentImagePath := dockerAgentFullImagePath(&e, "", "")
+	if args.AgentFullImagePath != "" {
+		agentImagePath = args.AgentFullImagePath
+	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
 	clusterAgentImagePath := dockerClusterAgentFullImagePath(&e, "")
+	if args.ClusterAgentFullImagePath != "" {
+		clusterAgentImagePath = args.ClusterAgentFullImagePath
+	}
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := installName
@@ -113,7 +121,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(args.Fakeintake)
+	values.configureFakeintake(e, args.Fakeintake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -138,7 +146,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(args.Fakeintake)
+		values.configureFakeintake(e, args.Fakeintake)
 
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
 			RepoURL:     DatadogHelmRepo,
@@ -198,6 +206,9 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"enabled": pulumi.Bool(true),
 			},
 			"sbom": pulumi.Map{
+				"host": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+				},
 				"containerImage": pulumi.Map{
 					"enabled":                   pulumi.Bool(true),
 					"uncompressedLayersSupport": pulumi.Bool(true),
@@ -212,7 +223,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
@@ -221,7 +232,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
@@ -233,11 +244,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"priorityClassCreate": pulumi.Bool(true),
 			"podAnnotations": pulumi.StringMap{
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{
 						"openmetrics": map[string]interface{}{
-							"init_configs": []map[string]interface{}{},
+							"init_config": []map[string]interface{}{},
 							"instances": []map[string]interface{}{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",
@@ -341,9 +353,13 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {
 	if fakeintake == nil {
 		return
+	}
+
+	if fakeintake.Scheme != "https" {
+		e.Ctx.Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
 	}
 
 	additionalEndpointsEnvVar := pulumi.MapArray{
@@ -361,11 +377,11 @@ func (values HelmValues) configureFakeintake(fakeintake *fakeintake.Fakeintake) 
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"http://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
+			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
 		pulumi.Map{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),

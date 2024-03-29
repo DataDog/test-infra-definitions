@@ -11,6 +11,8 @@ import (
 	"sort"
 	"strings"
 
+	"golang.org/x/exp/slices"
+
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
@@ -30,18 +32,44 @@ func newWindowsManager(host *remoteComp.Host) agentOSManager {
 	return &agentWindowsManager{host: host}
 }
 
-func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion) (string, error) {
+func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
 	url, err := getAgentURL(version)
 	if err != nil {
 		return "", err
 	}
 
+	logFilePath := "C:\\install.log"
+	logParamIdx := slices.IndexFunc(additionalInstallParameters, func(s string) bool {
+		return strings.HasPrefix(s, "/log")
+	})
+	if logParamIdx < 0 {
+		additionalInstallParameters = append(additionalInstallParameters, fmt.Sprintf("/log %s", logFilePath))
+	} else {
+		// "/log C:\mycustomlog.txt" -> "C:\mycustomlog.txt"
+		paramParts := strings.Split(additionalInstallParameters[logParamIdx], " ")
+		if len(paramParts) != 2 {
+			return "", fmt.Errorf("/log parameter was malformed, must be '/log <path_to_log_file>'")
+		}
+		logFilePath = paramParts[1]
+	}
+
 	localFilename := `C:\datadog-agent.msi`
-	// Disable the progress as it slows down the download.
-	cmd := "$ProgressPreference = 'SilentlyContinue'"
-	cmd += fmt.Sprintf("; for ($i=0; $i -lt 3; $i++) { try { Invoke-WebRequest %v -OutFile %v; break } catch { if ($i -eq 2) { throw } } }", url, localFilename)
-	// Use `if ($?) { .. }` to get an error if the download fail.
-	cmd += fmt.Sprintf(`; if ($?) { Start-Process -Wait msiexec -ArgumentList '/qn /i %v APIKEY="%%v" SITE="datadoghq.com"'}`, localFilename)
+	cmd := fmt.Sprintf(`
+$ProgressPreference = 'SilentlyContinue';
+$ErrorActionPreference = 'Stop';
+for ($i=0; $i -lt 3; $i++) {
+	try {
+		(New-Object Net.WebClient).DownloadFile('%s','%s')
+	} catch {
+		if ($i -eq 2) {
+			throw
+		}
+	}
+};
+$exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s %s').ExitCode
+Get-Content %s
+Exit $exitCode 
+`, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "), logFilePath)
 	return cmd, nil
 }
 
@@ -72,7 +100,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		return getAgentURLFromPipelineID(version.PipelineID)
 	}
 
-	if version.BetaChannel {
+	if version.Channel == agentparams.BetaChannel {
 		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
 		if err != nil {
 			return "", err

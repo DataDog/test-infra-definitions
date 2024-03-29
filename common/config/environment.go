@@ -34,6 +34,7 @@ const (
 	DDAgentDeployParamName               = "deploy"
 	DDAgentVersionParamName              = "version"
 	DDAgentPipelineID                    = "pipeline_id"
+	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
@@ -58,8 +59,9 @@ const (
 type CommonEnvironment struct {
 	providerRegistry
 
-	Ctx         *pulumi.Context
-	CommonNamer namer.Namer
+	Ctx                      *pulumi.Context
+	CommonNamer              namer.Namer
+	CloudProviderEnvironment CloudProviderEnvironment
 
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
@@ -70,16 +72,21 @@ type CommonEnvironment struct {
 	username string
 }
 
-func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
+type CloudProviderEnvironment interface {
+	InternalRegistry() string
+}
+
+func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {
 	env := CommonEnvironment{
-		Ctx:                   ctx,
-		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
-		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
-		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
-		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
-		CommonNamer:           namer.NewNamer(ctx, ""),
-		providerRegistry:      newProviderRegistry(ctx),
+		Ctx:                      ctx,
+		InfraConfig:              sdkconfig.New(ctx, DDInfraConfigNamespace),
+		AgentConfig:              sdkconfig.New(ctx, DDAgentConfigNamespace),
+		TestingWorkloadConfig:    sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		DogstatsdConfig:          sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:            sdkconfig.New(ctx, DDUpdaterConfigNamespace),
+		CommonNamer:              namer.NewNamer(ctx, ""),
+		CloudProviderEnvironment: cloudProviderEnvironment,
+		providerRegistry:         newProviderRegistry(ctx),
 	}
 	// store username
 	user, err := user.Current()
@@ -169,6 +176,10 @@ func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
 }
 
+func (e *CommonEnvironment) CommitSHA() string {
+	return e.AgentConfig.Get(DDAgentCommitSHA)
+}
+
 func (e *CommonEnvironment) ClusterAgentVersion() string {
 	return e.AgentConfig.Get(DDClusterAgentVersionParamName)
 }
@@ -216,7 +227,7 @@ func (e *CommonEnvironment) DogstatsdDeploy() bool {
 }
 
 func (e *CommonEnvironment) DogstatsdFullImagePath() string {
-	return e.GetStringWithDefault(e.DogstatsdConfig, DDDogstatsdFullImagePathParamName, "gcr.io/datadoghq/dogstatsd")
+	return e.AgentConfig.Get(DDDogstatsdFullImagePathParamName)
 }
 
 // Updater namespace

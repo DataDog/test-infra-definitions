@@ -8,11 +8,12 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/ssm"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ssm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -102,9 +103,10 @@ func Run(ctx *pulumi.Context) error {
 			}
 		}
 		apiKeyParam, err = ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
-			Name:  awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
-			Type:  ssm.ParameterTypeSecureString,
-			Value: awsEnv.AgentAPIKey(),
+			Name:      awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
+			Type:      ssm.ParameterTypeSecureString,
+			Overwrite: pulumi.Bool(true),
+			Value:     awsEnv.AgentAPIKey(),
 		}, awsEnv.WithProviders(config.ProviderAWS))
 		if err != nil {
 			return err
@@ -142,6 +144,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if _, err := prometheus.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+			return err
+		}
+
+		if _, err := tracegen.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
 			return err
 		}
 	}

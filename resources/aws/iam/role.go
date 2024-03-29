@@ -3,7 +3,7 @@ package iam
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws/iam"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
 )
 
 const (

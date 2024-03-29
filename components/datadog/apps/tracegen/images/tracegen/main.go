@@ -4,7 +4,9 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"os"
 	"os/signal"
 	"strconv"
@@ -13,6 +15,7 @@ import (
 	"time"
 
 	"golang.org/x/time/rate"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/ext"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
@@ -24,13 +27,27 @@ func reportStats(done chan struct{}) {
 		select {
 		case <-done:
 			return
-		default:
-			time.Sleep(5 * time.Second)
+		case <-time.After(5 * time.Second):
 			tc := tracecount.Swap(0)
 			sc := spancount.Swap(0)
 			fmt.Printf("Finished %d traces/s, %d spans/second.\n", tc/5, sc/5)
 		}
 	}
+}
+
+// retrieveDDAgentHostECS retrieves the IP address of the ECS agent
+// https://docs.datadoghq.com/containers/amazon_ecs/apm/?tab=ec2metadataendpoint#code
+// We could use the ECS_CONTAINER_METADATA_FILE if the ECS Agent was configured to inject it.
+func retrieveDDAgentHostECS() (string, error) {
+	resp, err := http.Get("http://169.254.169.254/latest/meta-data/local-ipv4")
+	if err != nil {
+		return "", err
+	}
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	return string(bodyBytes), nil
 }
 
 func main() {
@@ -59,6 +76,19 @@ func main() {
 		}
 	}
 
+	var opts []tracer.StartOption
+	if v, ok := os.LookupEnv("ECS_AGENT_HOST"); ok && v == "true" {
+		host, err := retrieveDDAgentHostECS()
+		if err != nil {
+			panic(fmt.Sprintf("Failed to retrieve DD agent host: %v", err))
+		}
+		if host == "" {
+			panic("Failed to retrieve DD agent host: no IP address found")
+		}
+		os.Setenv("DD_AGENT_HOST", host)
+		opts = append(opts, tracer.WithAgentAddr(host))
+	}
+
 	tracer.Start()
 	defer tracer.Stop()
 
@@ -69,6 +99,7 @@ func main() {
 		<-sigs
 		close(done)
 		fmt.Println("Exiting tracegen.")
+		time.Sleep(10 * time.Second) // alow time for other goroutines to shut down.
 		os.Exit(0)
 	}()
 
@@ -87,14 +118,15 @@ func main() {
 	testStart := time.Now()
 	go reportStats(done)
 	fmt.Printf("Sending %v Traces/s, each with %d spans.\n", *tps, *spt)
+traceloop:
 	for {
 		select {
 		case <-done:
-			return
+			break traceloop
 		default:
 			istart := time.Now()
 			if *testDuration > 0 && istart.After(testStart.Add(*testDuration)) {
-				return
+				break traceloop
 			}
 			lim.WaitN(context.Background(), tperloop)
 			for sel := 0; sel < tperloop; sel++ {
@@ -107,6 +139,8 @@ func main() {
 			}
 		}
 	}
+	sp := tracer.StartSpan("poison_pill", tracer.Tag(ext.ManualKeep, true))
+	sp.Finish()
 }
 
 // genChain generates a trace with spans count of spans in it.

@@ -43,9 +43,10 @@ elif [ -f /etc/Eos-release ] || [ "$DISTRIBUTION" == "Arista" ]; then
 elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTION" == "openSUSE" ]; then
     OS="SUSE"
 fi
+ARCH=$(uname -m)
 
 apt_url="apttesting.datad0g.com"
-apt_repo_version="${DD_TEST_APT_REPO_VERSION}"
+apt_repo_version="${DD_PIPELINE_ID}-u7-${ARCH}"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
 apt_trusted_d_keyring="/etc/apt/trusted.gpg.d/datadog-archive-keyring.gpg"
 DD_APT_INSTALL_ERROR_MSG=/tmp/ddog_install_error_msg

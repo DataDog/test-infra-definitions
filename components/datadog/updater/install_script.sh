@@ -27,7 +27,22 @@ $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
 $sudo_cmd sh -c "echo 'api_key: $apikey' > $config_file"
 
+KNOWN_DISTRIBUTION="(Debian|Ubuntu|RedHat|CentOS|openSUSE|Amazon|Arista|SUSE|Rocky|AlmaLinux)"
 DISTRIBUTION=$(lsb_release -d 2>/dev/null | grep -Eo $KNOWN_DISTRIBUTION  || grep -Eo $KNOWN_DISTRIBUTION /etc/issue 2>/dev/null || grep -Eo $KNOWN_DISTRIBUTION /etc/Eos-release 2>/dev/null || grep -m1 -Eo $KNOWN_DISTRIBUTION /etc/os-release 2>/dev/null || uname -s)
+if [ -f /etc/debian_version ] || [ "$DISTRIBUTION" == "Debian" ] || [ "$DISTRIBUTION" == "Ubuntu" ]; then
+    OS="Debian"
+elif [ -f /etc/redhat-release ] || [ "$DISTRIBUTION" == "RedHat" ] || [ "$DISTRIBUTION" == "CentOS" ] || [ "$DISTRIBUTION" == "Amazon" ] || [ "$DISTRIBUTION" == "Rocky" ] || [ "$DISTRIBUTION" == "AlmaLinux" ]; then
+    OS="RedHat"
+# Some newer distros like Amazon may not have a redhat-release file
+elif [ -f /etc/system-release ] || [ "$DISTRIBUTION" == "Amazon" ]; then
+    OS="RedHat"
+# Arista is based off of Fedora14/18 but do not have /etc/redhat-release
+elif [ -f /etc/Eos-release ] || [ "$DISTRIBUTION" == "Arista" ]; then
+    OS="RedHat"
+# openSUSE and SUSE use /etc/SuSE-release or /etc/os-release
+elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTION" == "openSUSE" ]; then
+    OS="SUSE"
+fi
 
 apt_url="apttesting.datad0g.com"
 apt_repo_version="${DD_TEST_APT_REPO_VERSION}"

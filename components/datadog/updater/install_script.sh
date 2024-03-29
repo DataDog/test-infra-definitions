@@ -21,6 +21,10 @@ if [ "$UID" == "0" ]; then
 else
     sudo_cmd="sudo"
 fi
+$sudo_cmd mkdir -p /etc/datadog-agent
+$sudo_cmd touch $config_file
+$sudo_cmd chmod 644 $config_file
+$sudo_cmd sh -c "echo 'api_key: $apikey' > $config_file"
 
 agent_major_version=7
 

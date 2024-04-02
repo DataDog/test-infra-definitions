@@ -50,7 +50,7 @@ jobs:
           inv -e buildimages.update-test-infra-definitions --commit-sha ${{github.sha}}
 
       - name: create datadog-agent PR
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ steps.app-token.outputs.token }}
           base: main

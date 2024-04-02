@@ -21,6 +21,7 @@ if [ "$UID" == "0" ]; then
 else
     sudo_cmd="sudo"
 fi
+config_file="/etc/datadog-agent/datadog.yaml"
 $sudo_cmd mkdir -p /etc/datadog-agent
 $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file

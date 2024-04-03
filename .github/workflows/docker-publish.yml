@@ -66,6 +66,8 @@ jobs:
             image: logger
           - app: netflow-generator
             image: netflow-generator
+          - app: jmxfetch
+            image: jmx-test-app
 
     steps:
       - name: Checkout repository

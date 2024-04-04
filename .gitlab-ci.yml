@@ -76,9 +76,12 @@ bump-version-on-datadog-agent:
   before_script:
     - !reference [.get_github_token]
   script:
+    - export FAKETOKEN="fake-token"
     - git config --global user.email "$GITHUB_APP_ID+agent-platform-auto-pr[bot]@users.noreply.github.com"
     - git config --global user.name "agent-platform-auto-pr[bot]"
-    - git clone https://$GITHUB_TOKEN@github.com/DataDog/datadog-agent.git datadog-agent
+    # Set up the Git credential helper with your GitHub token
+    - git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password='${FAKETOKEN}'"; }; f'
+    - git clone https://github.com/DataDog/datadog-agent.git datadog-agent
     - cd datadog-agent
     - sudo mkdir -p -m 755 /etc/apt/keyrings && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
       && sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \

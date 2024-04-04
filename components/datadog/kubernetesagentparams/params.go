@@ -39,6 +39,8 @@ type Params struct {
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
 	HelmValues pulumi.AssetOrArchiveArray
+	// EnvironmentVariables is the environment variables to inject in the agents.
+	EnvironmentVariables map[string]string
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 	// FakeIntake is the fake intake to use for the agent installation.
@@ -51,7 +53,8 @@ type Option = func(*Params) error
 
 func NewParams(e config.CommonEnvironment, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace: defaultAgentNamespace,
+		Namespace:            defaultAgentNamespace,
+		EnvironmentVariables: map[string]string{},
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
@@ -74,6 +77,15 @@ func WithAgentFullImagePath(fullImagePath string) func(*Params) error {
 func WithClusterAgentFullImagePath(fullImagePath string) func(*Params) error {
 	return func(p *Params) error {
 		p.ClusterAgentFullImagePath = fullImagePath
+		return nil
+	}
+}
+
+func WithEnvironmentVariables(env map[string]string) func(*Params) error {
+	return func(p *Params) error {
+		for k, v := range env {
+			p.EnvironmentVariables[k] = v
+		}
 		return nil
 	}
 }

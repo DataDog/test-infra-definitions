@@ -25,6 +25,7 @@ type HelmInstallationArgs struct {
 	ClusterAgentFullImagePath string
 	KubeProvider              *kubernetes.Provider
 	Namespace                 string
+	EnvironmentVariables      map[string]string
 	ValuesYAML                pulumi.AssetOrArchiveArrayInput
 	Fakeintake                *fakeintake.Fakeintake
 	DeployWindows             bool
@@ -121,6 +122,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	values.configureImagePullSecret(imgPullSecret)
+	values.configureEnvVars(args.EnvironmentVariables)
 	values.configureFakeintake(e, args.Fakeintake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -347,6 +349,17 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 			}
 		}
 	}
+}
+
+func (values HelmValues) configureEnvVars(envVars map[string]string) {
+	envMapArray := pulumi.MapArray{}
+	for k, v := range envVars {
+		envMapArray = append(envMapArray, pulumi.Map{
+			"name":  pulumi.String(k),
+			"value": pulumi.String(v),
+		})
+	}
+	values["datadog"].(pulumi.Map)["env"] = envMapArray
 }
 
 func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {

@@ -41,6 +41,7 @@ func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubePro
 			DeployWindows:             params.DeployWindows,
 			Namespace:                 params.Namespace,
 			ValuesYAML:                params.HelmValues,
+			EnvironmentVariables:      params.EnvironmentVariables,
 			Fakeintake:                params.FakeIntake,
 			AgentFullImagePath:        params.AgentFullImagePath,
 			ClusterAgentFullImagePath: params.ClusterAgentFullImagePath,

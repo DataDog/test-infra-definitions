@@ -10,6 +10,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const localPort = 300080
+
 func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName string, kubeProvider *kubernetes.Provider) (*Fakeintake, error) {
 	return components.NewComponent(e, resourceName, func(comp *Fakeintake) error {
 		v1.NewDeployment(e.Ctx, resourceName, &v1.DeploymentArgs{
@@ -57,7 +59,7 @@ func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName strin
 				},
 				Ports: corev1.ServicePortArray{
 					&corev1.ServicePortArgs{
-						NodePort:   pulumi.Int(30080),
+						NodePort:   pulumi.Int(localPort),
 						Port:       pulumi.Int(80),
 						TargetPort: pulumi.Int(80),
 					},
@@ -70,7 +72,7 @@ func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName strin
 		comp.Scheme = "http"
 		comp.Host = pulumi.Sprintf("%s.default.svc.cluster.local", resourceName)
 		comp.URL = pulumi.Sprintf("%s://%s:%d", comp.Scheme, comp.Host, comp.Port)
-		comp.ClientURL = pulumi.Sprintf("http://localhost:30080")
+		comp.ClientURL = pulumi.Sprintf("http://localhost:%v", localPort)
 
 		return nil
 

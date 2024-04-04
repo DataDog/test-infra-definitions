@@ -3,7 +3,6 @@ variables:
   CI_IMAGE_REPO: "ci/${CI_PROJECT_NAME}"
   CI_REGISTRY_IMAGE: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner"
   CI_REGISTRY_IMAGE_TEST: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner-dev"
-  KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "test-infra-definitions"
 
 stages:
   - post-release
@@ -77,6 +76,8 @@ bump-version-on-datadog-agent:
   before_script:
     - !reference [.get_github_token]
   script:
+    - git config --global user.email "$GITHUB_APP_ID+agent-platform-auto-pr[bot]@users.noreply.github.com"
+    - git config --global user.name "agent-platform-auto-pr[bot]"
     - git clone https://$GITHUB_TOKEN@github.com/DataDog/datadog-agent.git datadog-agent
     - cd datadog-agent
     - sudo mkdir -p -m 755 /etc/apt/keyrings && wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
@@ -88,7 +89,6 @@ bump-version-on-datadog-agent:
     - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA
     - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab-ci.yml
     - git commit -m "[Auto] Bump test-infra-definitions to $CI_COMMIT_SHA"
-    - git push origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
 
 
 

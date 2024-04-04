@@ -114,7 +114,7 @@ providers:
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-mutated"); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
 				return err
 			}
 		}

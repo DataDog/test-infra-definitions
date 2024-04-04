@@ -14,7 +14,8 @@ const localPort = 30080
 
 func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName string, kubeProvider *kubernetes.Provider) (*Fakeintake, error) {
 	return components.NewComponent(e, resourceName, func(comp *Fakeintake) error {
-		v1.NewDeployment(e.Ctx, resourceName, &v1.DeploymentArgs{
+
+		_, err := v1.NewDeployment(e.Ctx, resourceName, &v1.DeploymentArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name: pulumi.String(resourceName),
 			},
@@ -49,7 +50,11 @@ func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName strin
 			},
 		}, pulumi.Provider(kubeProvider))
 
-		corev1.NewService(e.Ctx, resourceName, &corev1.ServiceArgs{
+		if err != nil {
+			return err
+		}
+
+		_, err = corev1.NewService(e.Ctx, resourceName, &corev1.ServiceArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name: pulumi.String(resourceName),
 			},
@@ -67,6 +72,9 @@ func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName strin
 				Type: pulumi.String("NodePort"),
 			},
 		}, pulumi.Provider(kubeProvider))
+		if err != nil {
+			return err
+		}
 
 		comp.Port = 80
 		comp.Scheme = "http"

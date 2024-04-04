@@ -117,6 +117,9 @@ func NewLocalKindCluster(env config.CommonEnvironment, resourceName, kindCluster
 		commonEnvironment := env
 
 		user, err := user.Current()
+		if err != nil {
+			return err
+		}
 
 		kindVersionConfig, err := getKindVersionConfig(kubeVersion)
 		if err != nil {

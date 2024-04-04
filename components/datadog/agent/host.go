@@ -62,7 +62,7 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 }
 
 func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
-	installCmdStr, err := h.manager.getInstallCommand(params.Version)
+	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
 		return err
 	}
@@ -80,7 +80,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 	configFiles := make(map[string]pulumi.StringInput)
 
 	// Update core Agent
-	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, afterInstallOpts...)
+	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, params.SkipAPIKeyInConfig, afterInstallOpts...)
 	if err != nil {
 		return err
 	}
@@ -130,12 +130,15 @@ func (h *HostAgent) updateCoreAgentConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,
+	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, pulumi.StringInput, error) {
 	for _, extraConfig := range extraAgentConfig {
 		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
 	}
-	configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	if !skipAPIKeyInConfig {
+		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	}
 
 	cmd, err := h.updateConfig(configPath, configContent, opts...)
 	return cmd, configContent, err

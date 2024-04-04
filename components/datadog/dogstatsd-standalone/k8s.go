@@ -7,11 +7,13 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
-	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/apps/v1"
-	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
-	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/rbac/v1"
+	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
+	schedulingv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/scheduling/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -23,14 +25,10 @@ const HostPort = 8128
 // It's not the default to avoid conflict with the agent.
 const Socket = "/var/run/datadog/dsd-standalone.socket"
 
-type K8sComponent struct {
-	pulumi.ResourceState
-}
-
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*K8sComponent, error) {
+func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
-	k8sComponent := &K8sComponent{}
+	k8sComponent := &componentskube.Workload{}
 	if err := e.Ctx.RegisterComponentResource("dd:dogstatsd-standalone", "dogstatsd", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
@@ -233,9 +231,18 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							},
 						},
 					},
+					PriorityClassName: pulumi.String("dogstatsd-standalone"),
 				},
 			},
 		},
+	}
+
+	priorityClassArgs := schedulingv1.PriorityClassArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name: pulumi.String("dogstatsd-standalone"),
+		},
+		PreemptionPolicy: pulumi.StringPtr("PreemptLowerPriority"),
+		Value:            pulumi.Int(1000000000),
 	}
 
 	serviceAccountArgs := corev1.ServiceAccountArgs{
@@ -302,6 +309,10 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	}
 
 	if _, err := v1.NewClusterRoleBinding(e.Ctx, "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := schedulingv1.NewPriorityClass(e.Ctx, "dogstatsd-standalone", &priorityClassArgs, opts...); err != nil {
 		return nil, err
 	}
 

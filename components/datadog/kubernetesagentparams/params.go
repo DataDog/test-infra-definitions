@@ -101,7 +101,7 @@ func WithNamespace(namespace string) func(*Params) error {
 // WithPulumiDependsOn sets the resources to depend on.
 func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
 	return func(p *Params) error {
-		p.PulumiResourceOptions = resources
+		p.PulumiResourceOptions = append(p.PulumiResourceOptions, resources...)
 		return nil
 	}
 }
@@ -114,10 +114,11 @@ func WithDeployWindows() func(*Params) error {
 	}
 }
 
-// WithHelmValues sets the Helm values to use for the agent installation.
+// WithHelmValues adds helm values to the agent installation. If used several times, the helm values are merged together
+// If the same values is defined several times the latter call will override the previous one.
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
-		p.HelmValues = pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(values)}
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))
 		return nil
 	}
 }
@@ -125,6 +126,7 @@ func WithHelmValues(values string) func(*Params) error {
 // WithFakeintake configures the Agent to use the given fake intake.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
+		p.PulumiResourceOptions = append(p.PulumiResourceOptions, utils.PulumiDependsOn(fakeintake))
 		p.FakeIntake = fakeintake
 		return nil
 	}

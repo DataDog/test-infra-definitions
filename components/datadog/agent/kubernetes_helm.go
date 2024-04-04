@@ -8,10 +8,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
-	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/core/v1"
-	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/helm/v3"
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -20,15 +20,24 @@ const (
 	DatadogHelmRepo = "https://helm.datadoghq.com"
 )
 
+// HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
 type HelmInstallationArgs struct {
-	AgentFullImagePath        string
+	// KubeProvider is the Kubernetes provider to use
+	KubeProvider *kubernetes.Provider
+	// Namespace is the namespace in which to install the agent
+	Namespace string
+	// ValuesYAML is used to provide installation-specific values
+	ValuesYAML pulumi.AssetOrArchiveArrayInput
+	// Fakeintake is used to configure the agent to send data to a fake intake
+	Fakeintake *fakeintake.Fakeintake
+	// DeployWindows is used to deploy the Windows agent
+	DeployWindows bool
+	// AgentFullImagePath is used to specify the full image path for the agent
+	AgentFullImagePath string
+	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
 	ClusterAgentFullImagePath string
-	KubeProvider              *kubernetes.Provider
-	Namespace                 string
-	EnvironmentVariables      map[string]string
-	ValuesYAML                pulumi.AssetOrArchiveArrayInput
-	Fakeintake                *fakeintake.Fakeintake
-	DeployWindows             bool
+	// EnvironmentVariables is used to specify environment variables to inject in the agents
+	EnvironmentVariables map[string]string
 }
 
 type HelmComponent struct {
@@ -208,6 +217,9 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"enabled": pulumi.Bool(true),
 			},
 			"sbom": pulumi.Map{
+				"host": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+				},
 				"containerImage": pulumi.Map{
 					"enabled":                   pulumi.Bool(true),
 					"uncompressedLayersSupport": pulumi.Bool(true),
@@ -222,7 +234,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
@@ -231,7 +243,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"init_config":    map[string]interface{}{},
 					"instances": []map[string]interface{}{
 						{
-							"periodic_refresh_seconds": 600,
+							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
@@ -243,11 +255,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"priorityClassCreate": pulumi.Bool(true),
 			"podAnnotations": pulumi.StringMap{
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{
 						"openmetrics": map[string]interface{}{
-							"init_configs": []map[string]interface{}{},
+							"init_config": []map[string]interface{}{},
 							"instances": []map[string]interface{}{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",

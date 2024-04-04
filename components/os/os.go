@@ -12,7 +12,10 @@ import (
 
 // Interfaces used by OS components
 type PackageManager interface {
-	Ensure(packageRef string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	// Ensure ensures that a package is installed
+	// checkBinary is a binary that should be checked before running the install command, if it is not empty it will first run the `command -v checkBinary` command and if it fails it will run the installCmd,
+	// if it succeeds we consider the package is already installed
+	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...pulumi.ResourceOption) (*remote.Command, error)
 }
 
 type ServiceManager interface {

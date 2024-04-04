@@ -3,14 +3,14 @@ package fakeintake
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v3/go/kubernetes"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const localPort = 300080
+const localPort = 30080
 
 func NewLocalKubernetesFakeintake(e config.CommonEnvironment, resourceName string, kubeProvider *kubernetes.Provider) (*Fakeintake, error) {
 	return components.NewComponent(e, resourceName, func(comp *Fakeintake) error {

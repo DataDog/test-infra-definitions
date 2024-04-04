@@ -1,7 +1,7 @@
 package aws
 
 import (
-	"github.com/pulumi/pulumi-aws/sdk/v5/go/aws"
+	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 )
 
 const (

@@ -72,7 +72,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	defaultPool := pools[resources.DefaultPool]
 	for _, k := range vmset.Kernels {
 		imageName := defaultPool.Name() + "-" + k.Tag
-		imagePath := filepath.Join(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)
+		imagePath := filepath.Join(GetWorkingDirectory(vmset.Arch), "rootfs", k.Dir)
 		vol := NewLibvirtVolume(
 			defaultPool,
 			filesystemImage{
@@ -141,7 +141,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 
 	baseVolumeMap := make(map[string][]LibvirtVolume)
 	imageName := vmset.Img.ImageName
-	path := filepath.Join(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)
+	path := filepath.Join(filepath.Join(GetWorkingDirectory(vmset.Arch), "rootfs"), imageName)
 	vol := NewLibvirtVolume(
 		pools[resources.DefaultPool],
 		filesystemImage{
@@ -279,7 +279,7 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 
 	if webDownload {
 		downloadWithCurlArgs := command.Args{
-			Create: pulumi.Sprintf("curl -s -Z --parallel-max %d %s", parallelDownloadMax, curlDownload.String()),
+			Create: pulumi.Sprintf("curl -fs --retry 3 -Z --parallel-max %d %s", parallelDownloadMax, curlDownload.String()),
 		}
 		downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl"), &downloadWithCurlArgs)
 		if err != nil {

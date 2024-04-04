@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
@@ -34,7 +35,7 @@ type Domain struct {
 	dhcpEntry   pulumi.StringOutput
 	domainArgs  *libvirt.DomainArgs
 	domainNamer namer.Namer
-	ip          string
+	ip          pulumi.StringOutput
 	mac         pulumi.StringOutput
 	lvDomain    *libvirt.Domain
 	tag         string
@@ -76,7 +77,7 @@ func generateMACAddress(e *config.CommonEnvironment, domainID string) (pulumi.St
 	return mac, err
 }
 
-func generateDHCPEntry(mac pulumi.StringOutput, ip, domainID string) pulumi.StringOutput {
+func generateDHCPEntry(mac pulumi.StringOutput, ip pulumi.StringOutput, domainID string) pulumi.StringOutput {
 	return pulumi.Sprintf(dhcpEntriesTemplate, mac, domainID, ip)
 }
 
@@ -103,6 +104,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	var err error
 
 	domain := new(Domain)
+
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
@@ -121,11 +123,48 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain.RecipeLibvirtDomainArgs.Vcpu = vcpu
 	domain.RecipeLibvirtDomainArgs.Memory = memory
 	domain.RecipeLibvirtDomainArgs.ConsoleType = set.ConsoleType
-	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(), "kernel-packages", kernel.Dir, "bzImage")
+	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(set.Arch), "kernel-packages", kernel.Dir, "bzImage")
 
 	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
-	varstore := filepath.Join(GetWorkingDirectory(), fmt.Sprintf("varstore.%s", domainName))
-	efi := filepath.Join(GetWorkingDirectory(), "efi.fd")
+	varstore := filepath.Join(GetWorkingDirectory(set.Arch), fmt.Sprintf("varstore.%s", domainName))
+	efi := filepath.Join(GetWorkingDirectory(set.Arch), "efi.fd")
+
+	// OS-dependent settings
+	var hypervisor string
+	var commandLine pulumi.StringInput = pulumi.String("")
+	var hostOS string
+	if set.Arch == LocalVMSet {
+		hostOS = runtime.GOOS
+	} else {
+		hostOS = "linux" // Remote VMs are always on Linux hosts
+	}
+
+	if hostOS == "linux" {
+		hypervisor = "kvm"
+	} else if hostOS == "darwin" {
+		hypervisor = "hvf"
+		// Network ID must be unique for each VMSet, as they must be on the same network.
+		// We use the VMSet ID to ensure uniqueness.
+		// We have to use QEMU network devices because libvirt does not support the macOS
+		// network devices.
+		netID := pulumi.Sprintf("net%s", set.ID)
+		qemuArgs := map[string]pulumi.StringInput{
+			"-netdev": pulumi.Sprintf("vmnet-shared,id=%s", netID),
+			// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI
+			// device and that information can be used by udev to rename the device, instead of having eth0.
+			// This makes the naming consistent across different execution environments and avoids
+			// problems (for example, DHCP is configured for interfaces starting with en*, so
+			// if we had eth0 we wouldn't have a network connection)
+			// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
+			"-device": pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac),
+		}
+
+		for k, v := range qemuArgs {
+			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
+			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
+		}
+	}
+
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
 		map[string]pulumi.StringInput{
 			resources.SharedFSMount: pulumi.String(sharedFSMountPoint),
@@ -135,6 +174,8 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 			resources.Efi:           pulumi.String(efi),
 			resources.VCPU:          pulumi.Sprintf("%d", vcpu),
 			resources.CPUTune:       pulumi.String(cputune),
+			resources.Hypervisor:    pulumi.String(hypervisor),
+			resources.CommandLine:   commandLine,
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine

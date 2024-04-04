@@ -21,6 +21,8 @@ scenario_name = "aws/dockervm"
         "architecture": doc.architecture,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
+        "interactive": doc.interactive,
+        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def create_docker(
@@ -32,6 +34,8 @@ def create_docker(
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
+    interactive: Optional[bool] = True,
+    use_aws_vault: Optional[bool] = True,
 ):
     """
     Create a docker environment.
@@ -51,14 +55,16 @@ def create_docker(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
+        use_aws_vault=use_aws_vault,
     )
 
-    tool.notify(ctx, "Your Docker environment is now created")
+    if interactive:
+        tool.notify(ctx, "Your Docker environment is now created")
 
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name, interactive)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     remoteHost = tool.RemoteHost("aws-vm", outputs)
     host = remoteHost.host
@@ -71,16 +77,30 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     )
     print(f"If you want to use docker context, you can run the following commands \n\n{command}")
 
-    input("Press a key to copy command to clipboard...")
-    pyperclip.copy(command)
+    if copy_to_clipboard:
+        input("Press a key to copy command to clipboard...")
+        pyperclip.copy(command)
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_docker(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "yes": doc.yes,
+        "use_aws_vault": doc.use_aws_vault,
+    }
+)
+def destroy_docker(
+    ctx: Context,
+    config_path: Optional[str] = None,
+    stack_name: Optional[str] = None,
+    yes: Optional[bool] = False,
+    use_aws_vault: Optional[bool] = True,
+):
     """
     Destroy an environment created by invoke create_docker.
     """
-    destroy(ctx, scenario_name, stack_name, force_yes=yes)
+    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
 
 
 def _get_architecture(architecture: Optional[str]) -> str:

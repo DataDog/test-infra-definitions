@@ -86,8 +86,9 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 						"/sys/kernel/tracing:/sys/kernel/tracing",
 					},
 					Environment: map[string]any{
-						"DD_API_KEY":               apiKeyResolved,
-						"DD_PROCESS_AGENT_ENABLED": true,
+						"DD_API_KEY": apiKeyResolved,
+						// DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED is compatible with Agent 7.35+
+						"DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED": true,
 					},
 					Pid:   "host",
 					Ports: []string{"8125:8125/udp", "8126:8126/tcp"},

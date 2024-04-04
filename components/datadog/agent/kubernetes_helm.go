@@ -203,6 +203,15 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			},
 			"apm": pulumi.Map{
 				"portEnabled": pulumi.Bool(true),
+				"instrumentation": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+					"enabledNamespaces": pulumi.Array{
+						pulumi.String("workload-mutated-lib-injection"),
+					},
+					"language_detection": pulumi.Map{
+						"enabled": pulumi.Bool(true),
+					},
+				},
 			},
 			"processAgent": pulumi.Map{
 				"processCollection": pulumi.Bool(true),
@@ -284,6 +293,14 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"useDatadogMetrics": pulumi.Bool(true),
 			},
 			"token": clusterAgentToken,
+			"env": pulumi.MapArray{
+				// This option is disabled by default and not exposed in the
+				// Helm chart yet, so we need to set the env.
+				pulumi.Map{
+					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
+					"value": pulumi.String("true"),
+				},
+			},
 		},
 		"clusterChecksRunner": pulumi.Map{
 			"enabled": pulumi.Bool(true),

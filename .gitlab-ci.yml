@@ -6,10 +6,10 @@ variables:
   KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "test-infra-definitions"
 
 stages:
+  - post-release
   - build
   - test
   - release
-  - post-release
 
 .get_github_token:
   - set +x

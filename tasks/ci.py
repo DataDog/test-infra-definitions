@@ -18,7 +18,7 @@ def create_pr(ctx, branch: str, new_commit_sha: str, old_commit_sha: str):
         print("GITHUB_TOKEN is not set")
         return
     
-    repo = Github(auth=Auth.Token(os.environ["FAKE_TOKEN"])).get_repo("DataDog/datadog-agent")
+    repo = Github(auth=Auth.Token(os.environ["GITHUB_TOKEN"])).get_repo("DataDog/datadog-agent")
     pr_body = f"""
     This PR was automatically created by the test-infra-definitions bump task.
     

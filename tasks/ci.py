@@ -9,10 +9,9 @@ COMMIT_TITLE_REGEX = re.compile(r"\[test-infra-definitions\]\[automated\] Bump t
 
 @task
 def create_pr_and_close_stale_ones(ctx, branch: str, new_commit_sha: str, old_commit_sha: str):
-    # if os.getenv("CI") != "true":
-    #     print("This task should only be run in CI")
-    #     return
-    # Create a PR
+    if os.getenv("CI") != "true":
+        print("This task should only be run in CI")
+        return
     if os.getenv("GITHUB_TOKEN") is None:
         print("GITHUB_TOKEN is not set")
         return

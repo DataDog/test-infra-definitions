@@ -63,3 +63,5 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
             print(f"PR {pr.html_url} has reviews, skipping...")
             continue
         print("Closing PR: ", pr.html_url)
+        pr.edit(state="closed")
+        pr.create_issue_comment(f"Closing PR since it is considered stale compared to {pr.html_url}. If you really want to merge this PR feel free to re-open it")

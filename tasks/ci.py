@@ -8,7 +8,7 @@ COMMIT_TITLE_REGEX = re.compile(r"\[test-infra-definitions\]\[automated\] Bump t
 
 
 @task
-def create_pr_and_close_stale_ones(ctx, branch: str, new_commit_sha: str, old_commit_sha: str):
+def create_bump_pr_and_close_stale_ones_on_datadog_agent(ctx, branch: str, new_commit_sha: str, old_commit_sha: str):
     if os.getenv("CI") != "true":
         print("This task should only be run in CI")
         return
@@ -36,12 +36,13 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
 
     print(f"PR created: {new_pr.html_url}")
 
-    print("Closing stale auto bump PRs...")
+    print("Looking for stale auto bump PRs...")
 
     issues = repo.get_issues(state="open", labels=["automatic/test-infra-bump"])
     prs = [
         issue.as_pull_request() for issue in issues if issue.pull_request is not None and issue.number != new_pr.number
     ]
+    closed_stale_prs = 0
     for pr in prs:
         pr_commit_sha_match = re.search(COMMIT_TITLE_REGEX, pr.title)
         if pr_commit_sha_match is None:
@@ -61,3 +62,6 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         pr.create_issue_comment(
             f"Closing PR since it is considered stale compared to {pr.html_url}. If you really want to merge this PR feel free to re-open it"
         )
+        closed_stale_prs += 1
+    print(f"Closed {closed_stale_prs} stale PRs")
+    

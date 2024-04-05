@@ -106,7 +106,7 @@ if [ "${OS}" = "Debian" ]; then
             break
         fi
     done
-    $sudo_cmd apt-get install -y --force-yes "datadog-updater" 2> >(tee /tmp/ddog_install_error_msg >&2)
+    $sudo_cmd apt-get install -y --force-yes "datadog-updater" || $sudo_cmd apt-get install -y --force-yes "datadog-installer"
 elif [ "${OS}" = "RedHat" ]; then
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
     separator='\n       '
@@ -115,6 +115,6 @@ elif [ "${OS}" = "RedHat" ]; then
     done
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/yum.repos.d/datadog.repo"
     $sudo_cmd yum -y clean metadata
-    $sudo_cmd yum -y install datadog-updater
+    $sudo_cmd yum -y install datadog-updater || $sudo_cmd yum -y install datadog-installer
 fi
 

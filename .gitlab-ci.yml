@@ -95,5 +95,5 @@ bump-version-on-datadog-agent:
     - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - popd 
     - pip install -r requirements.txt
-    - inv ci.create-pr --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
+    - inv ci.create-pr-and-close-stale-ones --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
 

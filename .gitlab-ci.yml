@@ -3,13 +3,12 @@ variables:
   CI_IMAGE_REPO: "ci/${CI_PROJECT_NAME}"
   CI_REGISTRY_IMAGE: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner"
   CI_REGISTRY_IMAGE_TEST: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner-dev"
-  KUBERNETES_SERVICE_ACCOUNT_OVERWRITE: "test-infra-definitions"
 
 stages:
   - build
   - test
   - release
-
+  - post-release
 
 build-runner-image:
   stage: build
@@ -20,6 +19,7 @@ build-runner-image:
   rules:
     - when: on_success
   before_script:
+    - set +x
     - export GITHUB_APP_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.github_app_id --with-decryption --query "Parameter.Value" --out text)
     - export GITHUB_INSTALLATION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.github_installation_id --with-decryption --query "Parameter.Value" --out text)
     - export GITHUB_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.github_private_key --with-decryption --query "Parameter.Value" --out text)
@@ -65,3 +65,38 @@ release-runner-image:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
+
+bump-version-on-datadog-agent:
+  stage: post-release
+  image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
+  tags: ["arch:amd64"]
+  needs: ["release-runner-image"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: on_success
+  before_script:
+    - set +x
+    - export GITHUB_APP_USER_ID=153269286 # Can be found on https://api.github.com/users/agent-platform-auto-pr[bot]
+    - export GITHUB_APP_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.platform-github-app-id --with-decryption --query "Parameter.Value" --out text)
+    - export GITHUB_INSTALLATION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.platform-github-app-installation-id --with-decryption --query "Parameter.Value" --out text)
+    - export GITHUB_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.platform-github-app-key --with-decryption --query "Parameter.Value" --out text)
+    - export JWT=$(.github/jwt.sh "$GITHUB_APP_ID" <(echo "$GITHUB_PRIVATE_KEY"))
+    - |
+      export GITHUB_TOKEN=`curl -s --fail --retry 10 -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $JWT" -H "X-GitHub-Api-Version: 2022-11-28" https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens | jq -r '.token'`
+  script:
+    - git config --global user.email "$GITHUB_APP_USER_ID+agent-platform-auto-pr[bot]@users.noreply.github.com"
+    - git config --global user.name "agent-platform-auto-pr[bot]"
+    # Set up the Git credential helper with your GitHub token
+    - git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password='${GITHUB_TOKEN}'"; }; f'
+    - git clone https://github.com/DataDog/datadog-agent.git datadog-agent
+    - pushd datadog-agent
+    - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
+    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA
+    - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab/common/test_infra_version.yml
+    - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
+    - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - popd 
+    - pip install -r requirements.txt
+    - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
+

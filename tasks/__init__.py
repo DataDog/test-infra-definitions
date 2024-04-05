@@ -1,8 +1,8 @@
 from invoke.collection import Collection
 
+import tasks.ci as ci
 import tasks.setup as setup
 import tasks.test as test
-import tasks.ci as ci
 from tasks.aks import create_aks, destroy_aks
 from tasks.deploy import check_s3_image_exists
 from tasks.docker import create_docker, destroy_docker

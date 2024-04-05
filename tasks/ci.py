@@ -1,8 +1,8 @@
 import os
 import re
-from invoke.tasks import task
 
-from github import Github, Auth
+from github import Auth, Github
+from invoke.tasks import task
 
 COMMIT_TITLE_REGEX = re.compile(r"\[test-infra-definitions\]\[automated\] Bump test-infra-definitions to ([a-z0-9]*)")
 

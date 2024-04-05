@@ -294,6 +294,10 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			},
 			"token": clusterAgentToken,
 			"env": pulumi.MapArray{
+				pulumi.Map{
+					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
+					"value": pulumi.String("5000"), // Unit is ms
+				},
 				// This option is disabled by default and not exposed in the
 				// Helm chart yet, so we need to set the env.
 				pulumi.Map{

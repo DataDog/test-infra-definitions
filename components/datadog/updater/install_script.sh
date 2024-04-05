@@ -43,7 +43,11 @@ elif [ -f /etc/Eos-release ] || [ "$DISTRIBUTION" == "Arista" ]; then
 elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTION" == "openSUSE" ]; then
     OS="SUSE"
 fi
+
 ARCH=$(uname -m)
+if [ "${ARCH}" = "aarch64" ]; then
+    ARCH="arm64"
+fi
 
 apt_url="apttesting.datad0g.com"
 apt_repo_version="${DD_PIPELINE_ID}-u7-${ARCH} 7"

@@ -93,13 +93,18 @@ bump-version-on-datadog-agent:
       && apt update \
       && apt install gh -y
     - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
     - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA
     - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab/common/test_infra_version.yml
     - git commit -m "[Auto] Bump test-infra-definitions to $CI_COMMIT_SHA"
     - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
-    - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
-    - | 
-      echo "Auto-generated PR to bump test-infra-definitions to $CI_COMMIT_SHA\n\n Here is the full changelog between the two version of test-infra-definitions: https://github.com/DataDog/test-infra-definitions/compare/$PREVIOUS_SHA..$CI_COMMIT_SHA \n\n\n :warning: This PR is opened with the \\\`qa/no-code-change\\\` and \\\`changelog/no-changelog\\\` labels by default. Please make sure this is appropriate" > pr_body.txt
-    - gh pr create --base main --head auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --title "[Auto] Bump test-infra-definitions to $CI_COMMIT_SHA" --body-file pr_body.txt --label "team/agent-developer-tools,changelog/no-changelog,qa/no-code-change,automatic/test-infra-bump" -d
+    - |
+      export PR_BODY="
+        Auto-generated PR to bump test-infra-definitions to $CI_COMMIT_SHA
+        Here is the full changelog between the two version of test-infra-definitions: https://github.com/DataDog/test-infra-definitions/compare/$PREVIOUS_SHA..$CI_COMMIT_SHA
+        
+        :warning: This PR is opened with the \\\`qa/no-code-change\\\` and \\\`changelog/no-changelog\\\` labels by default. Please make sure this is appropriate
+      "
+    - gh pr create --base main --head auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --title "[Auto] Bump test-infra-definitions to $CI_COMMIT_SHA" --body "$PR_BODY" --label "team/agent-developer-tools,changelog/no-changelog,qa/no-code-change,automatic/test-infra-bump" -d
 
 

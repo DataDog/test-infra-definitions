@@ -31,7 +31,7 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
 :warning: This PR is opened with the `qa/no-code-change` and `changelog/no-changelog` labels by default. Please make sure this is appropriate
     """
 
-    new_pr =repo.create_pull(title=f"[test-infra-definitions][automated] Bump test-infra-definitions to {new_commit_sha}", body=pr_body, head=branch, base="main", draft=True)
+    new_pr =repo.create_pull(title=f"[test-infra-definitions][automated] Bump test-infra-definitions to {new_commit_sha}", body=pr_body, head=branch, base="main")
     new_pr.add_to_labels("qa/no-code-change", "changelog/no-changelog", "automatic/test-infra-bump")
 
     print(f"PR created: {new_pr.html_url}")

@@ -86,7 +86,7 @@ bump-version-on-datadog-agent:
     # Set up the Git credential helper with your GitHub token
     - git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password='${GITHUB_TOKEN}'"; }; f'
     - git clone https://github.com/DataDog/datadog-agent.git datadog-agent
-    - cd datadog-agent
+    - pushd datadog-agent
     - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
     - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA

@@ -1,8 +1,5 @@
-import getpass
 import os
-import platform
 from io import StringIO
-from typing import Any, List, Optional, Union
 from invoke.tasks import task
 
 from github import Github

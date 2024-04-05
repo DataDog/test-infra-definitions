@@ -2,6 +2,7 @@ from invoke.collection import Collection
 
 import tasks.setup as setup
 import tasks.test as test
+import tasks.ci as ci
 from tasks.aks import create_aks, destroy_aks
 from tasks.deploy import check_s3_image_exists
 from tasks.docker import create_docker, destroy_docker
@@ -29,3 +30,4 @@ ns.add_task(retry_job)  # pyright: ignore [reportArgumentType]
 ns.add_task(check_s3_image_exists)  # pyright: ignore [reportArgumentType]
 ns.add_collection(setup)  # pyright: ignore [reportArgumentType]
 ns.add_collection(test)  # pyright: ignore [reportArgumentType]
+ns.add_collection(ci)  # pyright: ignore [reportArgumentType]

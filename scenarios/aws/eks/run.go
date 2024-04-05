@@ -3,16 +3,21 @@ package eks
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+
+	// "github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
-	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
+
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
+	// dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -24,8 +29,10 @@ import (
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/v2/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -132,39 +139,41 @@ func Run(ctx *pulumi.Context) error {
 		comp.ClusterName = cluster.EksCluster.Name()
 		comp.KubeConfig = cluster.KubeconfigJson
 
+		awsEnv.Ctx.Export("clusterName", cluster.EksCluster.Name())
+
 		nodeGroups := make([]pulumi.Resource, 0)
 		// Create managed node groups
-		// if awsEnv.EKSLinuxNodeGroup() {
-		// 	ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	nodeGroups = append(nodeGroups, ng)
-		// }
+		if awsEnv.EKSLinuxNodeGroup() {
+			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
+			if err != nil {
+				return err
+			}
+			nodeGroups = append(nodeGroups, ng)
+		}
 
-		// if awsEnv.EKSLinuxARMNodeGroup() {
-		// 	ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	nodeGroups = append(nodeGroups, ng)
-		// }
+		if awsEnv.EKSLinuxARMNodeGroup() {
+			ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
+			if err != nil {
+				return err
+			}
+			nodeGroups = append(nodeGroups, ng)
+		}
 
-		// if awsEnv.EKSBottlerocketNodeGroup() {
-		// 	ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	nodeGroups = append(nodeGroups, ng)
-		// }
+		if awsEnv.EKSBottlerocketNodeGroup() {
+			ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
+			if err != nil {
+				return err
+			}
+			nodeGroups = append(nodeGroups, ng)
+		}
 
-		// // Create unmanaged node groups
-		// if awsEnv.EKSWindowsNodeGroup() {
-		// 	_, err := localEks.NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// }
+		// Create unmanaged node groups
+		if awsEnv.EKSWindowsNodeGroup() {
+			_, err := localEks.NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
+			if err != nil {
+				return err
+			}
+		}
 
 		// Building Kubernetes provider
 		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
@@ -243,6 +252,18 @@ func Run(ctx *pulumi.Context) error {
 		// 	}
 		// }
 
+		// var apiKeyParam *ssm.Parameter
+
+		// apiKeyParam, err = ssm.NewParameter(ctx, awsEnv.Namer.ResourceName("agent-apikey"), &ssm.ParameterArgs{
+		// 	Name:      awsEnv.CommonNamer.DisplayName(1011, pulumi.String("agent-apikey")),
+		// 	Type:      ssm.ParameterTypeSecureString,
+		// 	Overwrite: pulumi.Bool(true),
+		// 	Value:     awsEnv.AgentAPIKey(),
+		// }, awsEnv.WithProviders(config.ProviderAWS))
+		if err != nil {
+			return err
+		}
+
 		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
 			// if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
@@ -278,6 +299,31 @@ func Run(ctx *pulumi.Context) error {
 			// if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated"); err != nil {
 			// 	return err
 			// }
+
+			if fargateNamespace := awsEnv.EKSFargateNamespace(); fargateNamespace != "" {
+				ns, err := corev1.NewNamespace(awsEnv.CommonEnvironment.Ctx, fargateNamespace, &corev1.NamespaceArgs{
+					Metadata: metav1.ObjectMetaArgs{
+						Name: pulumi.String(fargateNamespace),
+					},
+				}, pulumi.Provider(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider))
+
+				if err != nil {
+					return err
+				}
+
+				// start cluster agent
+				helmComponent, err := agent.EKSFargateHelmInstallation(*awsEnv.CommonEnvironment, eksKubeProvider, fargateNamespace, fakeIntake)
+				if err != nil {
+					return err
+				}
+
+				if _, err := nginx.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, fargateNamespace, dependsOnCrd, fakeIntake, pulumi.Provider(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), utils.PulumiDependsOn(ns), utils.PulumiDependsOn(helmComponent)); err != nil {
+					return err
+				}
+				if _, err := redis.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, fargateNamespace, dependsOnCrd, fakeIntake, pulumi.Provider(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), utils.PulumiDependsOn(ns), utils.PulumiDependsOn(helmComponent)); err != nil {
+					return err
+				}
+			}
 		}
 
 		return nil

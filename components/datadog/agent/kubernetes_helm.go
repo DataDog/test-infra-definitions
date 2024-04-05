@@ -36,6 +36,7 @@ type HelmInstallationArgs struct {
 	AgentFullImagePath string
 	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
 	ClusterAgentFullImagePath string
+	ClusterAgentToken         *random.RandomString
 }
 
 type HelmComponent struct {
@@ -59,17 +60,22 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		return nil, err
 	}
 	opts = append(opts, pulumi.Parent(helmComponent))
-
-	// Create fixed cluster agent token
-	randomClusterAgentToken, err := random.NewRandomString(e.Ctx, "datadog-cluster-agent-token", &random.RandomStringArgs{
-		Lower:   pulumi.Bool(true),
-		Upper:   pulumi.Bool(true),
-		Length:  pulumi.Int(32),
-		Numeric: pulumi.Bool(false),
-		Special: pulumi.Bool(false),
-	}, opts...)
-	if err != nil {
-		return nil, err
+	var randomClusterAgentToken *random.RandomString
+	if args.ClusterAgentToken == nil {
+		randomClusterAgentToken = args.ClusterAgentToken
+	} else {
+		// Create fixed cluster agent token
+		var err error
+		randomClusterAgentToken, err = random.NewRandomString(e.Ctx, "datadog-cluster-agent-token", &random.RandomStringArgs{
+			Lower:   pulumi.Bool(true),
+			Upper:   pulumi.Bool(true),
+			Length:  pulumi.Int(32),
+			Numeric: pulumi.Bool(false),
+			Special: pulumi.Bool(false),
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Create namespace if necessary
@@ -92,11 +98,14 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
 			"app-key": appKey,
+			"token":   randomClusterAgentToken.Result,
 		},
 	}, opts...)
+
 	if err != nil {
 		return nil, err
 	}
+
 	opts = append(opts, utils.PulumiDependsOn(secret))
 
 	// Create image pull secret if necessary

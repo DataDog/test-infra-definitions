@@ -64,4 +64,3 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         )
         closed_stale_prs += 1
     print(f"Closed {closed_stale_prs} stale PRs")
-    

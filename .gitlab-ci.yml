@@ -93,6 +93,7 @@ bump-version-on-datadog-agent:
     - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab/common/test_infra_version.yml
     - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - popd 
     - pip install PyGithub==1.59.1 # To remove
     - inv ci.create-pr --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
 

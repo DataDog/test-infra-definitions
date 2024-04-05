@@ -35,7 +35,7 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
     print(f"PR created: {new_pr.html_url}")
     print("Closing stale auto bump PRs...")
     issues = repo.get_issues(state="open", labels=["automatic/test-infra-bump"])
-    prs = [issue.as_pull_request() for issue in issues if issue.pull_request is not None]
+    prs = [issue.as_pull_request() for issue in issues if issue.pull_request is not None and issue.number != new_pr.number]
     for pr in prs:
         pr_commit_sha_match = re.search(COMMIT_TITLE_REGEX, pr.title)
         if pr_commit_sha_match is None:

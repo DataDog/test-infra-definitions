@@ -1,13 +1,8 @@
 import os
 import re
-from io import StringIO
 from invoke.tasks import task
 
 from github import Github, Auth
-from invoke.context import Context
-from invoke.exceptions import Exit
-from termcolor import colored
-
 
 COMMIT_TITLE_REGEX = re.compile(r"\[test-infra-definitions\]\[automated\] Bump test-infra-definitions to ([a-z0-9]*)")
 
@@ -51,7 +46,7 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
     for pr in prs:
         pr_commit_sha_match = re.search(COMMIT_TITLE_REGEX, pr.title)
         if pr_commit_sha_match is None:
-            print(f"No commit sha found in PR title:", pr.html_url)
+            print(f"No commit sha found in PR title: {pr.html_url}")
             continue
         pr_commit_sha = pr_commit_sha_match.group(1)
         res = ctx.run(f'git merge-base --is-ancestor {pr_commit_sha} {new_commit_sha}', warn=True, hide="both")

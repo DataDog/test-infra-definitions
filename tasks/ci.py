@@ -2,7 +2,7 @@ import os
 from io import StringIO
 from invoke.tasks import task
 
-from github import Github
+from github import Github, Auth
 from invoke.context import Context
 from invoke.exceptions import Exit
 from termcolor import colored
@@ -14,7 +14,11 @@ def create_pr(ctx, branch: str, new_commit_sha: str, old_commit_sha: str):
     #     print("This task should only be run in CI")
     #     return
     # Create a PR
-    repo = Github(os.getenv("FAKETOKEN")).get_repo("DataDog/datadog-agent")
+    if os.getenv("GITHUB_TOKEN") is None:
+        print("GITHUB_TOKEN is not set")
+        return
+    
+    repo = Github(auth=Auth.Token(os.environ["FAKE_TOKEN"])).get_repo("DataDog/datadog-agent")
     pr_body = f"""
     This PR was automatically created by the test-infra-definitions bump task.
     

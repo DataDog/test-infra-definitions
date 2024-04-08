@@ -254,6 +254,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					},
 				})),
 			},
+			"env": pulumi.MapArray{
+				pulumi.Map{
+					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
+					"value": pulumi.String("5000"), // Unit is ms
+				},
+			},
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{

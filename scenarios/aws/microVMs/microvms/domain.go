@@ -243,7 +243,7 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 						vol.Pool().Name(),
 						// adding the full domain ID causes the length of the resource name
 						// to go beyond the maximum size allowed by pulumi.
-						vol.FullResourceName("overlay", kernel.Tag, vcpu, memory),
+						vol.FullResourceName("overlay", kernel.Tag, fmt.Sprintf("%d-%d", vcpu, memory)),
 					)
 					if err != nil {
 						return []*Domain{}, 0, err

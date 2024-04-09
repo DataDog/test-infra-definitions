@@ -115,6 +115,6 @@ elif [ "${OS}" = "RedHat" ]; then
     done
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/yum.repos.d/datadog.repo"
     $sudo_cmd yum -y clean metadata
-    $sudo_cmd yum -y install datadog-updater || $sudo_cmd yum -y install datadog-installer
+    $sudo_cmd yum -y install datadog-updater || $sudo_cmd yum -y install datadog-installer
 fi
 

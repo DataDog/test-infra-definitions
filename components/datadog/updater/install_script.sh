@@ -45,10 +45,6 @@ elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTI
 fi
 
 ARCH=$(uname -m)
-if [ "${ARCH}" = "aarch64" ]; then
-    ARCH="arm64"
-fi
-
 apt_url="apttesting.datad0g.com"
 apt_repo_version="${DD_PIPELINE_ID}-u7-${ARCH} 7"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
@@ -62,6 +58,10 @@ MAX_RETRY_NB=10
 keys_url="keys.datadoghq.com"
 
 if [ "${OS}" = "Debian" ]; then
+    # small hack to match datadog-agent deb testing repo, and avoid breaking e2e tests
+    if [ "${ARCH}" = "aarch64" ]; then
+        ARCH="arm64"
+    fi
     printf "\033[34m\n* Installing APT package sources for Datadog\n\033[0m\n"
     $sudo_cmd sh -c "echo 'deb [signed-by=${apt_usr_share_keyring}] https://${apt_url}/ ${apt_repo_version}' > /etc/apt/sources.list.d/datadog.list"
     $sudo_cmd sh -c "chmod a+r /etc/apt/sources.list.d/datadog.list"

@@ -361,17 +361,6 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureEnvVars(envVars map[string]string) {
-	envMapArray := pulumi.MapArray{}
-	for k, v := range envVars {
-		envMapArray = append(envMapArray, pulumi.Map{
-			"name":  pulumi.String(k),
-			"value": pulumi.String(v),
-		})
-	}
-	values["datadog"].(pulumi.Map)["env"] = envMapArray
-}
-
 func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {
 	if fakeintake == nil {
 		return

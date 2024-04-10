@@ -36,8 +36,6 @@ type HelmInstallationArgs struct {
 	AgentFullImagePath string
 	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
 	ClusterAgentFullImagePath string
-	// EnvironmentVariables is used to specify environment variables to inject in the agents
-	EnvironmentVariables map[string]string
 }
 
 type HelmComponent struct {
@@ -131,7 +129,6 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureEnvVars(args.EnvironmentVariables)
 	values.configureFakeintake(e, args.Fakeintake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{

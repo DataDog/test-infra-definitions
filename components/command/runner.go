@@ -53,6 +53,9 @@ type runnerConfiguration struct {
 	connection remote.ConnectionInput
 }
 
+type RunnerInterface interface {
+	Command(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error)
+}
 type Runner struct {
 	e           config.CommonEnvironment
 	namer       namer.Namer
@@ -141,6 +144,9 @@ func NewLocalRunner(e config.CommonEnvironment, args LocalRunnerArgs) *LocalRunn
 	}
 
 	return localRunner
+}
+
+type Command struct {
 }
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {

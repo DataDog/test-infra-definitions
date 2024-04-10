@@ -9,8 +9,7 @@ import (
 type FakeintakeOutput struct { // nolint:revive, We want to keep the name as <Component>Output
 	components.JSONImporter
 
-	ClientURL string `json:"clientURL"`
-	URL       string `json:"url"`
+	URL string `json:"url"`
 }
 
 type Fakeintake struct {
@@ -22,8 +21,6 @@ type Fakeintake struct {
 	Host   pulumi.StringOutput
 	Scheme string // Scheme is a string as it's known in code and is useful to check HTTP/HTTPS
 	Port   uint32 // Same for Port
-	// ClientURL is the URL used by the fakeintake client. If empty, URL should be used.
-	ClientURL pulumi.StringOutput `pulumi:"clientURL"`
 
 	URL pulumi.StringOutput `pulumi:"url"`
 }

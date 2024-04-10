@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"fmt"
 
-	"os/user"
 	"regexp"
 	"strings"
 
@@ -116,18 +115,13 @@ func NewLocalKindCluster(env config.CommonEnvironment, resourceName, kindCluster
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
 
-		user, err := user.Current()
-		if err != nil {
-			return err
-		}
-
 		kindVersionConfig, err := getKindVersionConfig(kubeVersion)
 		if err != nil {
 			return err
 		}
 
 		runner := command.NewLocalRunner(env, command.LocalRunnerArgs{
-			User:      user.Username,
+			// User:      user.Username,
 			OSCommand: command.NewUnixOSCommand(),
 		})
 

@@ -21,7 +21,7 @@ type installerLabVMArgs struct {
 
 var installerLabVMs = []installerLabVMArgs{
 	{
-		name:         "ubuntu-22-arm64",
+		name:         "ubuntu-22",
 		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
@@ -29,16 +29,8 @@ var installerLabVMs = []installerLabVMArgs{
 		},
 	},
 	{
-		name:         "ubuntu-22-amd64",
-		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.AMD64Arch),
-		instanceType: "t4g.medium",
-		packageNames: []string{
-			"datadog-agent",
-		},
-	},
-	{
 		name:         "debian-12",
-		descriptor:   os.Debian12,
+		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
 			"datadog-agent",
@@ -46,15 +38,7 @@ var installerLabVMs = []installerLabVMArgs{
 	},
 	{
 		name:         "amazon-linux-2023",
-		descriptor:   os.AmazonLinux2023,
-		instanceType: "t4g.medium",
-		packageNames: []string{
-			"datadog-agent",
-		},
-	},
-	{
-		name:         "centos-7",
-		descriptor:   os.CentOS7,
+		descriptor:   os.NewDescriptorWithArch(os.AmazonLinux, "2023", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
 			"datadog-agent",
@@ -62,7 +46,7 @@ var installerLabVMs = []installerLabVMArgs{
 	},
 }
 
-const installerPath = "/opt/datadog-packages/installer_boot/bin/updater/updater"
+const installerPath = "/opt/datadog-installer/bin/installer/install"
 
 func Run(ctx *pulumi.Context) error {
 	env, err := aws.NewEnvironment(ctx)
@@ -74,8 +58,8 @@ func Run(ctx *pulumi.Context) error {
 		vm, err := ec2.NewVM(
 			env,
 			vmArgs.name,
-			ec2.WithAMI(env.InfraOSImageID(), vmArgs.descriptor, vmArgs.descriptor.Architecture),
 			ec2.WithInstanceType(vmArgs.instanceType),
+			ec2.WithOSArch(vmArgs.descriptor, vmArgs.descriptor.Architecture),
 		)
 		if err != nil {
 			return err

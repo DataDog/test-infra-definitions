@@ -10,11 +10,13 @@ scenario_name = "aws/installer"
 
 @task(
     help={
+        "debug": doc.debug,
         "pipeline_id": doc.pipeline_id,
     }
 )
 def create_installer_lab(
     ctx: Context,
+    debug: Optional[bool] = False,
     pipeline_id: Optional[str] = None,
 ):
     full_stack_name = deploy(
@@ -23,7 +25,7 @@ def create_installer_lab(
         stack_name="installer-lab",
         pipeline_id=pipeline_id,
         install_updater=True,
-        debug=True,
+        debug=debug,
     )
 
     print(f"Installer lab created: {full_stack_name}")

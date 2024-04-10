@@ -8,6 +8,7 @@ from .destroy import destroy
 
 scenario_name = "aws/installer"
 
+
 @task(
     help={
         "debug": doc.debug,
@@ -30,6 +31,7 @@ def create_installer_lab(
 
     print(f"Installer lab created: {full_stack_name}")
 
+
 @task(
     help={
         "yes": doc.yes,
@@ -39,11 +41,6 @@ def destroy_installer_lab(
     ctx: Context,
     yes: Optional[bool] = False,
 ):
-    destroy(
-        ctx,
-        scenario_name,
-        stack="installer-lab",
-        force_yes=yes
-    )
+    destroy(ctx, scenario_name, stack="installer-lab", force_yes=yes)
 
     print("Installer lab destroyed")

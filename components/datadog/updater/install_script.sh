@@ -45,10 +45,6 @@ elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTI
 fi
 
 ARCH=$(uname -m)
-if [ "${ARCH}" = "aarch64" ]; then
-    ARCH="arm64"
-fi
-
 apt_url="apttesting.datad0g.com"
 apt_repo_version="${DD_PIPELINE_ID}-i7-${ARCH} 7"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
@@ -62,6 +58,10 @@ MAX_RETRY_NB=10
 keys_url="keys.datadoghq.com"
 
 if [ "${OS}" = "Debian" ]; then
+    # small hack to match datadog-agent deb testing repo, and avoid breaking e2e tests
+    if [ "${ARCH}" = "aarch64" ]; then
+        ARCH="arm64"
+    fi
     printf "\033[34m\n* Installing APT package sources for Datadog\n\033[0m\n"
     $sudo_cmd sh -c "echo 'deb [signed-by=${apt_usr_share_keyring}] https://${apt_url}/ ${apt_repo_version}' > /etc/apt/sources.list.d/datadog.list"
     $sudo_cmd sh -c "chmod a+r /etc/apt/sources.list.d/datadog.list"
@@ -72,19 +72,6 @@ if [ "${OS}" = "Debian" ]; then
     # ensure that the _apt user used on Ubuntu/Debian systems to read GPG keyrings
     # can read our keyring
     $sudo_cmd chmod a+r $apt_usr_share_keyring
-
-    APT_GPG_KEYS=("DATADOG_APT_KEY_CURRENT.public" "DATADOG_APT_KEY_C0962C7D.public" "DATADOG_APT_KEY_F14F620E.public" "DATADOG_APT_KEY_382E94DE.public")
-    for key in "${APT_GPG_KEYS[@]}"; do
-        $sudo_cmd curl --retry 5 -o "/tmp/${key}" "https://${keys_url}/${key}"
-        $sudo_cmd cat "/tmp/${key}" | $sudo_cmd gpg --import --batch --no-default-keyring --keyring "$apt_usr_share_keyring"
-    done
-    release_version="$(grep VERSION_ID /etc/os-release | cut -d = -f 2 | xargs echo | cut -d "." -f 1)"
-    if { [ "$DISTRIBUTION" == "Debian" ] && [ "$release_version" -lt 9 ]; } || \
-       { [ "$DISTRIBUTION" == "Ubuntu" ] && [ "$release_version" -lt 16 ]; }; then
-        # copy with -a to preserve file permissions
-        $sudo_cmd cp -a $apt_usr_share_keyring $apt_trusted_d_keyring
-    fi
-
     for i in $(seq 1 $MAX_RETRY_NB); do
         printf "\033[34m\n* Installing apt-transport-https, curl and gnupg\n\033[0m\n"
         $sudo_cmd apt-get update || printf "\033[31m\"apt-get update\" failed, the script will not install the latest version of apt-transport-https.\033[0m\n"
@@ -106,6 +93,19 @@ if [ "${OS}" = "Debian" ]; then
             break
         fi
     done
+
+    APT_GPG_KEYS=("DATADOG_APT_KEY_CURRENT.public" "DATADOG_APT_KEY_C0962C7D.public" "DATADOG_APT_KEY_F14F620E.public" "DATADOG_APT_KEY_382E94DE.public")
+    for key in "${APT_GPG_KEYS[@]}"; do
+        $sudo_cmd curl --retry 5 -o "/tmp/${key}" "https://${keys_url}/${key}"
+        $sudo_cmd cat "/tmp/${key}" | $sudo_cmd gpg --import --batch --no-default-keyring --keyring "$apt_usr_share_keyring"
+    done
+    release_version="$(grep VERSION_ID /etc/os-release | cut -d = -f 2 | xargs echo | cut -d "." -f 1)"
+    if { [ "$DISTRIBUTION" == "Debian" ] && [ "$release_version" -lt 9 ]; } || \
+       { [ "$DISTRIBUTION" == "Ubuntu" ] && [ "$release_version" -lt 16 ]; }; then
+        # copy with -a to preserve file permissions
+        $sudo_cmd cp -a $apt_usr_share_keyring $apt_trusted_d_keyring
+    fi
+
     $sudo_cmd apt-get install -y --force-yes "datadog-updater" || $sudo_cmd apt-get install -y --force-yes "datadog-installer"
 elif [ "${OS}" = "RedHat" ]; then
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")

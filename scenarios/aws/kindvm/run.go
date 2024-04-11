@@ -116,7 +116,7 @@ agents:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-nginx", "", dependsOnCrd); err != nil {
 			return err
 		}
 
@@ -147,7 +147,7 @@ agents:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-mutated"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
 			return err
 		}
 	}

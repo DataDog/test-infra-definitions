@@ -108,7 +108,7 @@ func kataNodePool(e azure.Environment) containerservice.ManagedClusterAgentPoolP
 		Mode:            string(containerservice.AgentPoolModeSystem),
 		InstanceType:    e.DefaultInstanceType(),
 		OSType:          string(containerservice.OSTypeLinux),
-		NodeCount:       2,
+		NodeCount:       1,
 		WorkloadRuntime: kataRuntime,
 		OsSku:           kataSku,
 	})

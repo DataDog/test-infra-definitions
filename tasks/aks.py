@@ -56,7 +56,7 @@ def create_aks(
 
 def _show_connection_message(ctx: Context, full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    kubeconfig_output = yaml.safe_load(outputs["kubeconfig"])
+    kubeconfig_output = yaml.safe_load(outputs["dd-Cluster-az-aks"]["kubeConfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)
     kubeconfig = f"{full_stack_name}-config.yaml"
     f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)

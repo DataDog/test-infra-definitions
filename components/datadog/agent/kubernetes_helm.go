@@ -61,7 +61,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 	opts = append(opts, pulumi.Parent(helmComponent))
 	var randomClusterAgentToken *random.RandomString
-	if args.ClusterAgentToken == nil {
+	if args.ClusterAgentToken != nil {
 		randomClusterAgentToken = args.ClusterAgentToken
 	} else {
 		// Create fixed cluster agent token

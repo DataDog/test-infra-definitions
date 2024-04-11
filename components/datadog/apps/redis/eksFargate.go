@@ -25,7 +25,7 @@ type EKSFargateComponent struct {
 
 func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, dependsOnCrd pulumi.ResourceOption, fakeIntakeParam *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) (*EKSFargateComponent, error) {
 	eksFargateComponent := &EKSFargateComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", "redis", eksFargateComponent, opts...); err != nil {
+	if err := e.Ctx.RegisterComponentResource("dd:apps", "redis-fargate", eksFargateComponent, opts...); err != nil {
 		return nil, err
 	}
 
@@ -37,7 +37,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 	opts = append(opts, pulumi.Parent(eksFargateComponent))
 
 	// start redis pod
-	if _, err := appsv1.NewDeployment(e.Ctx, "redis", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, "redis-fargate", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("redis"),
 			Namespace: pulumi.String(namespace),
@@ -113,7 +113,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 	kubeThresholdVersion, _ := semver.NewVersion("1.21.0")
 
 	if kubeVersion.Compare(kubeThresholdVersion) < 0 {
-		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1beta1.PodDisruptionBudgetArgs{
+		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx, "redis-fargate", &policyv1beta1.PodDisruptionBudgetArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
 				Namespace: pulumi.String(namespace),
@@ -133,7 +133,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 			return nil, err
 		}
 	} else {
-		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "redis", &policyv1.PodDisruptionBudgetArgs{
+		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "redis-fargate", &policyv1.PodDisruptionBudgetArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
 				Namespace: pulumi.String(namespace),
@@ -155,7 +155,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 	}
 
 	if dependsOnCrd != nil {
-		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis", &ddv1alpha1.DatadogMetricArgs{
+		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis-fargate", &ddv1alpha1.DatadogMetricArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
 				Namespace: pulumi.String(namespace),
@@ -175,7 +175,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 		kubeThresholdVersion, _ = semver.NewVersion("1.23.0")
 
 		if kubeVersion.Compare(kubeThresholdVersion) < 0 {
-			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
+			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx, "redis-fargate", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Name:      pulumi.String("redis"),
 					Namespace: pulumi.String(namespace),
@@ -210,7 +210,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 				return nil, err
 			}
 		} else {
-			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis", &autoscalingv2.HorizontalPodAutoscalerArgs{
+			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "redis-fargate", &autoscalingv2.HorizontalPodAutoscalerArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Name:      pulumi.String("redis"),
 					Namespace: pulumi.String(namespace),
@@ -248,7 +248,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 
 	}
 
-	if _, err := corev1.NewService(e.Ctx, "redis", &corev1.ServiceArgs{
+	if _, err := corev1.NewService(e.Ctx, "redis-fargate", &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("redis"),
 			Namespace: pulumi.String(namespace),
@@ -273,7 +273,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "redis-query", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx, "redis-query-fargate", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("redis-query"),
 			Namespace: pulumi.String(namespace),

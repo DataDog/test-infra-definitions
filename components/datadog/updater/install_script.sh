@@ -83,7 +83,7 @@ if [ "${OS}" = "Debian" ]; then
         $sudo_cmd cp -a $apt_usr_share_keyring $apt_trusted_d_keyring
     fi
 
-    $sudo_cmd apt-get install -y --force-yes datadog-installer || true
+    $sudo_cmd apt-get install -y --force-yes datadog-installer
 elif [ "${OS}" = "RedHat" ]; then
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
     separator='\n       '

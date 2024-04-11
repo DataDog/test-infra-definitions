@@ -101,11 +101,9 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 			"token":   randomClusterAgentToken.Result,
 		},
 	}, opts...)
-
 	if err != nil {
 		return nil, err
 	}
-
 	opts = append(opts, utils.PulumiDependsOn(secret))
 
 	// Create image pull secret if necessary

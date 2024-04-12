@@ -96,7 +96,6 @@ elif [ "${OS}" = "RedHat" ]; then
     $sudo_cmd yum -y install datadog-installer
 elif [ "${OS}" = "SUSE" ]; then
     yum_url="yumtesting.datad0g.com/suse/testing"
-    yum_url="yumtesting.datad0g.com/testing"
     yum_repo_version="${DD_PIPELINE_ID}-i7/7"
 
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")

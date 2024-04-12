@@ -251,7 +251,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:  pulumi.String("dogstatsd-udp-contname-injected"),
+							Name:  pulumi.String("dogstatsd"),
 							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
@@ -276,7 +276,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								},
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("DD_ENTITY_ID"),
-									Value: pulumi.String("en-$(DD_INTERNAL_POD_UID)/dogstatsd-udp-contname-injected"),
+									Value: pulumi.String("en-$(DD_INTERNAL_POD_UID)/dogstatsd"),
 								},
 							},
 							Resources: &corev1.ResourceRequirementsArgs{

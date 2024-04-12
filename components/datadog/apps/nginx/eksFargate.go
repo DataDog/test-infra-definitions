@@ -42,10 +42,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app":                             pulumi.String("nginx"),
-				"agent.datadoghq.com/sidecar":     pulumi.String("fargate"),
-				"admission.datadoghq.com/enabled": pulumi.String("false"),
-				"injectSidecarPodLabel":           pulumi.String("true"),
+				"app": pulumi.String("nginx"),
 			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
@@ -60,7 +57,6 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 						"app":                             pulumi.String("nginx"),
 						"agent.datadoghq.com/sidecar":     pulumi.String("fargate"),
 						"admission.datadoghq.com/enabled": pulumi.String("false"),
-						"injectSidecarPodLabel":           pulumi.String("true"),
 					},
 					Annotations: pulumi.StringMap{
 						"ad.datadoghq.com/nginx.checks": pulumi.String(utils.JSONMustMarshal(

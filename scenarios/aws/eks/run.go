@@ -3,7 +3,6 @@ package eks
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
@@ -14,7 +13,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
-
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -26,12 +24,10 @@ import (
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/v2/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
-	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
-	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
-
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
-
+	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -137,9 +133,6 @@ func Run(ctx *pulumi.Context) error {
 		// Filling Kubernetes component from EKS cluster
 		comp.ClusterName = cluster.EksCluster.Name()
 		comp.KubeConfig = cluster.KubeconfigJson
-
-		awsEnv.Ctx.Export("clusterName", cluster.EksCluster.Name())
-
 		nodeGroups := make([]pulumi.Resource, 0)
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {

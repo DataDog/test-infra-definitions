@@ -42,10 +42,7 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 			Name:      pulumi.String("redis"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app":                             pulumi.String("redis"),
-				"agent.datadoghq.com/sidecar":     pulumi.String("fargate"),
-				"admission.datadoghq.com/enabled": pulumi.String("false"),
-				"injectSidecarPodLabel":           pulumi.String("true"),
+				"app": pulumi.String("redis"),
 			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
@@ -60,7 +57,6 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 						"app":                             pulumi.String("redis"),
 						"agent.datadoghq.com/sidecar":     pulumi.String("fargate"),
 						"admission.datadoghq.com/enabled": pulumi.String("false"),
-						"injectSidecarPodLabel":           pulumi.String("true"),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{

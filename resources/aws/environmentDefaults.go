@@ -53,6 +53,7 @@ type ddInfraECS struct {
 }
 
 type ddInfraEKS struct {
+	podSubnets                   []DDInfraEKSPodSubnets
 	allowedInboundSecurityGroups []string
 	allowedInboundPrefixList     []string
 	fargateNamespace             string
@@ -60,6 +61,11 @@ type ddInfraEKS struct {
 	linuxARMNodeGroup            bool
 	linuxBottlerocketNodeGroup   bool
 	windowsLTSCNodeGroup         bool
+}
+
+type DDInfraEKSPodSubnets struct {
+	AZ       string `json:"az"`
+	SubnetID string `json:"subnet"`
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
@@ -152,6 +158,20 @@ func agentSandboxDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				podSubnets: []DDInfraEKSPodSubnets{
+					{
+						AZ:       "us-east-1a",
+						SubnetID: "subnet-00e25575e94a910cd",
+					},
+					{
+						AZ:       "us-east-1b",
+						SubnetID: "subnet-0db790a218df28371",
+					},
+					{
+						AZ:       "us-east-1d",
+						SubnetID: "subnet-0c2f82474aaeb3588",
+					},
+				},
 				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,

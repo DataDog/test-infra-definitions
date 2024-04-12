@@ -45,13 +45,6 @@ apt_repo_version="${DD_PIPELINE_ID}-i7-${ARCH} 7"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
 apt_trusted_d_keyring="/etc/apt/trusted.gpg.d/datadog-archive-keyring.gpg"
 
-if [ "${OS}" = "SUSE" ]; then
-    yum_url="yumtesting.datad0g.com/suse/testing"
-else
-    yum_url="yumtesting.datad0g.com/testing"
-fi
-yum_repo_version="${DD_PIPELINE_ID}-i7/7"
-
 MAX_RETRY_NB=10
 keys_url="keys.datadoghq.com"
 
@@ -90,6 +83,9 @@ if [ "${OS}" = "Debian" ]; then
     $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update
     $sudo_cmd apt-get install -y --force-yes datadog-installer
 elif [ "${OS}" = "RedHat" ]; then
+    yum_url="yumtesting.datad0g.com/testing"
+    yum_repo_version="${DD_PIPELINE_ID}-i7/7"
+
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
     separator='\n       '
     for key_path in "${RPM_GPG_KEYS[@]}"; do
@@ -98,5 +94,17 @@ elif [ "${OS}" = "RedHat" ]; then
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/yum.repos.d/datadog.repo"
     $sudo_cmd yum -y clean metadata
     $sudo_cmd yum -y install datadog-installer
+elif [ "${OS}" = "SUSE" ]; then
+    yum_url="yumtesting.datad0g.com/suse/testing"
+    yum_repo_version="${DD_PIPELINE_ID}-i7/7"
+
+    RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
+    separator='\n       '
+    for key_path in "${RPM_GPG_KEYS[@]}"; do
+        gpgkeys="${gpgkeys:+"${gpgkeys}${separator}"}https://${keys_url}/${key_path}"
+    done
+    $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/zypp/repos.d/datadog.repo"
+    $sudo_cmd zypper refresh
+    $sudo_cmd zypper -y install datadog-installer
 fi
 

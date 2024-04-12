@@ -45,7 +45,11 @@ apt_repo_version="${DD_PIPELINE_ID}-i7-${ARCH} 7"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
 apt_trusted_d_keyring="/etc/apt/trusted.gpg.d/datadog-archive-keyring.gpg"
 
-yum_url="yumtesting.datad0g.com/testing"
+if [ "${OS}" = "SUSE" ]; then
+    yum_url="yumtesting.datad0g.com/suse/testing"
+else
+    yum_url="yumtesting.datad0g.com/testing"
+fi
 yum_repo_version="${DD_PIPELINE_ID}-i7/7"
 
 MAX_RETRY_NB=10

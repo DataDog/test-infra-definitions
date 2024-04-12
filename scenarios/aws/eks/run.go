@@ -408,11 +408,11 @@ clusterAgent:
 					return err
 				}
 
-				if _, err := nginx.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, fargateNamespace, nil, fakeIntake, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate, dependsOnCrd, dependsOnSecret); err != nil {
+				if _, err := nginx.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, fargateNamespace, nil, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate, dependsOnCrd, dependsOnSecret); err != nil {
 					return err
 				}
 
-				if _, err := redis.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, fargateNamespace, nil, fakeIntake, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate, dependsOnCrd, dependsOnSecret); err != nil {
+				if _, err := redis.EKSFargateAppDefinition(*awsEnv.CommonEnvironment, fargateNamespace, nil, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate, dependsOnCrd, dependsOnSecret); err != nil {
 					return err
 				}
 			}

@@ -5,7 +5,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	ddv1alpha1 "github.com/DataDog/test-infra-definitions/components/kubernetes/crds/kubernetes/datadoghq/v1alpha1"
 	"github.com/Masterminds/semver"
 
@@ -23,7 +22,7 @@ type EKSFargateComponent struct {
 	pulumi.ResourceState
 }
 
-func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, dependsOnCrd pulumi.ResourceOption, fakeIntakeParam *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) (*EKSFargateComponent, error) {
+func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*EKSFargateComponent, error) {
 	eksFargateComponent := &EKSFargateComponent{}
 	if err := e.Ctx.RegisterComponentResource("dd:apps", "redis-fargate", eksFargateComponent, opts...); err != nil {
 		return nil, err

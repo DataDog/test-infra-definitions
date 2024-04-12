@@ -28,9 +28,9 @@ func NewLocalDockerFakeintake(e config.CommonEnvironment, resourceName string) (
 			return err
 		}
 
-		localIp := getLocalIp()
+		localIP := getLocalIP()
 
-		comp.Host = pulumi.Sprintf(localIp.String())
+		comp.Host = pulumi.Sprintf(localIP.String())
 		comp.Port = hostPort
 		comp.Scheme = "http"
 		comp.URL = pulumi.Sprintf("%s://%s:%d", comp.Scheme, comp.Host, comp.Port)
@@ -39,7 +39,7 @@ func NewLocalDockerFakeintake(e config.CommonEnvironment, resourceName string) (
 	})
 }
 
-func getLocalIp() net.IP {
+func getLocalIP() net.IP {
 	conn, err := net.Dial("udp", "255.255.255.255:80") // initiate a connection to get the local address, the url does not need to exist
 	if err != nil {
 		log.Fatal(err)

@@ -17,6 +17,7 @@ type HostOutput struct {
 	OSFamily  os.Family `json:"osFamily"`
 	OSFlavor  os.Flavor `json:"osFlavor"`
 	OSVersion string    `json:"osVersion"`
+	AMI       string    `json:"ami"`
 }
 
 // Host represents a remote host (for instance, a VM)
@@ -32,6 +33,7 @@ type Host struct {
 	OSFamily     pulumi.IntOutput    `pulumi:"osFamily"`
 	OSFlavor     pulumi.IntOutput    `pulumi:"osFlavor"`
 	OSVersion    pulumi.StringOutput `pulumi:"osVersion"`
+	AMI          pulumi.StringOutput `pulumi:"ami"`
 }
 
 func (h *Host) Export(ctx *pulumi.Context, out *HostOutput) error {

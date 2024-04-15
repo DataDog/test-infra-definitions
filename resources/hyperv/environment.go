@@ -45,6 +45,10 @@ func (e *Environment) InternalRegistry() string {
 	return "none"
 }
 
+func (e *Environment) InternalDockerhubMirror() string {
+	return "none"
+}
+
 // Common
 func (e *Environment) DefaultPublicKeyPath() string {
 	return e.InfraConfig.Get(DDInfraDefaultPublicKeyPath)

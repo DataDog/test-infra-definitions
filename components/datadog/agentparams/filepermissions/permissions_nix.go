@@ -35,15 +35,15 @@ func (p *UnixPermissions) SetupPermissionsCommand(path string) string {
 	var commands []string
 
 	if p.Owner != "" {
-		commands = append(commands, fmt.Sprintf("chown %s %s", p.Owner, path))
+		commands = append(commands, fmt.Sprintf("sudo chown %s %s", p.Owner, path))
 	}
 
 	if p.Group != "" {
-		commands = append(commands, fmt.Sprintf("chgrp %s %s", p.Group, path))
+		commands = append(commands, fmt.Sprintf("sudo chgrp %s %s", p.Group, path))
 	}
 
 	if p.Permissions != "" {
-		commands = append(commands, fmt.Sprintf("chmod %s %s", p.Permissions, path))
+		commands = append(commands, fmt.Sprintf("sudo chmod %s %s", p.Permissions, path))
 	}
 
 	if len(commands) == 0 {
@@ -54,7 +54,7 @@ func (p *UnixPermissions) SetupPermissionsCommand(path string) string {
 
 // ResetPermissionsCommand returns a command that resets the owner, group, and permissions of a file to default.
 func (p *UnixPermissions) ResetPermissionsCommand(path string) string {
-	return fmt.Sprintf("sudo chown ubuntu:ubuntu %s && sudo chmod 644 %s", path, path)
+	return fmt.Sprintf("sudo chown $USER %s && sudo chmod 644 %s", path, path)
 }
 
 // WithOwner sets the owner of the file.

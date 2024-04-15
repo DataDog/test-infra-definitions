@@ -1,10 +1,6 @@
 package installer
 
 import (
-	"fmt"
-	"strings"
-
-	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/updater"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -46,8 +42,6 @@ var installerLabVMs = []installerLabVMArgs{
 	},
 }
 
-const installerPath = "/opt/datadog-installer/bin/installer/install"
-
 func Run(ctx *pulumi.Context) error {
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
@@ -69,25 +63,8 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Install the installer
-		_, err = updater.NewHostUpdater(env.CommonEnvironment, vm)
-		if err != nil {
-			return err
-		}
-
-		// Bootstrap the packages
-		bootstrapCommand := []string{}
-		for _, pkg := range vmArgs.packageNames {
-			bootstrapCommand = append(
-				bootstrapCommand,
-				fmt.Sprintf("%s bootstrap -P %s", installerPath, pkg),
-			)
-		}
-
-		_, err = vm.OS.Runner().Command(
-			env.CommonNamer.ResourceName("bootstrap"),
-			&command.Args{
-				Create: pulumi.Sprintf("bash -c %s", strings.Join(bootstrapCommand, " && ")),
-			},
+		_, err = updater.NewHostUpdaterWithPackages(
+			env.GetCommonEnvironment(), vm, vmArgs.packageNames,
 		)
 		if err != nil {
 			return err

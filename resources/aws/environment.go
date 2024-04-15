@@ -126,7 +126,7 @@ func (e *Environment) InternalRegistry() string {
 }
 
 func (e *Environment) InternalDockerhubMirror() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalRegistry, e.envDefault.ddInfra.defaultInternalRegistry)
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalDockerhubMirror, e.envDefault.ddInfra.defaultInternalDockerhubMirror)
 }
 
 // Common

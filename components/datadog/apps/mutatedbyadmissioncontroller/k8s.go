@@ -1,6 +1,8 @@
 package mutatedbyadmissioncontroller
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -131,7 +133,7 @@ func k8sDeploymentWithLibInjection(e config.CommonEnvironment, namespace string,
 						corev1.ContainerArgs{
 							Name: pulumi.String(name),
 							// Python is one of the languages supported by APM lib injection
-							Image: pulumi.String("python:3.12-slim"),
+							Image: pulumi.String(fmt.Sprintf("%s/libary/python:3.12-slim", e.CloudProviderEnvironment.InternalRegistry())),
 							Command: pulumi.ToStringArray([]string{
 								"python", "-c", "while True: import time; time.sleep(60)",
 							}),

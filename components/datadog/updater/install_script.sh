@@ -14,7 +14,7 @@ config_file="/etc/datadog-agent/datadog.yaml"
 $sudo_cmd mkdir -p /etc/datadog-agent
 $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
-$sudo_cmd sh -c "echo 'api_key: 0000000000000000' > $config_file"
+$sudo_cmd sh -c "echo '${AGENT_CONFIG}' > $config_file"
 
 ARCH=$(uname -m)
 KNOWN_DISTRIBUTION="(Debian|Ubuntu|RedHat|CentOS|openSUSE|Amazon|Arista|SUSE|Rocky|AlmaLinux)"

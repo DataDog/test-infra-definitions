@@ -154,3 +154,5 @@ agents:
 
 	return nil
 }
+
+func ConfigureECRCredentials()

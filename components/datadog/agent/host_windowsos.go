@@ -81,9 +81,8 @@ func (am *agentWindowsManager) restartAgentServices(transform command.Transforme
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
 	restartCmd := `
-$exitCode = (Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -PassThru -RedirectStandardError stderr.txt -ArgumentList restart-service)
+$exitCode = (Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -PassThru -RedirectStandardError stderr.txt -ArgumentList restart-service).ExitCode
 Get-Content stderr.txt
-Exit $exitCode
 `
 	cmdArgs := command.Args{
 		Create: pulumi.String(restartCmd),

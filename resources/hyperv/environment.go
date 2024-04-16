@@ -46,7 +46,7 @@ func (e *Environment) InternalRegistry() string {
 }
 
 func (e *Environment) InternalDockerhubMirror() string {
-	return "none"
+	return "registry-1.docker.io"
 }
 
 // Common

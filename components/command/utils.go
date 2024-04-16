@@ -12,7 +12,8 @@ func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
 		"wait-cloud-init",
 		&Args{
 			// `sudo` is required for amazon linux
-			Create: pulumi.String("cloud-init status --wait"),
+			// retry 5 times with exponential backoff as cloud-init may take some time to initialize
+			Create: pulumi.String("for i in 1 2 3 4 5; do cloud-init status --wait && break || sleep $((2**$i)); done"),
 			Sudo:   true,
 		})
 }

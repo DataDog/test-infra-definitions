@@ -54,7 +54,7 @@ func (p *UnixPermissions) SetupPermissionsCommand(path string) string {
 
 // ResetPermissionsCommand returns a command that resets the owner, group, and permissions of a file to default.
 func (p *UnixPermissions) ResetPermissionsCommand(path string) string {
-	return fmt.Sprintf("sudo chown $USER %s && sudo chmod 644 %s", path, path)
+	return fmt.Sprintf("sudo chown $USER:$(id -gn) %s && sudo chmod 644 %s", path, path)
 }
 
 // WithOwner sets the owner of the file.

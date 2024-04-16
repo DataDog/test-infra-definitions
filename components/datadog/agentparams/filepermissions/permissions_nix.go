@@ -49,7 +49,7 @@ func (p *UnixPermissions) SetupPermissionsCommand(path string) string {
 	if len(commands) == 0 {
 		return ""
 	}
-	return fmt.Sprintf(`sudo sh -c "%v"`, strings.Join(commands, " && "))
+	return strings.Join(commands, " && ")
 }
 
 // ResetPermissionsCommand returns a command that resets the owner, group, and permissions of a file to default.

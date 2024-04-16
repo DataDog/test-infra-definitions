@@ -25,7 +25,7 @@ func NewUnixPermissions(options ...UnixPermissionsOption) optional.Option[FilePe
 	p, err := common.ApplyOption(&UnixPermissions{}, options)
 
 	if err != nil {
-		return optional.NewNoneOption[FilePermissions]()
+		panic("Could not create UnixPermissions: " + err.Error())
 	}
 	return optional.NewOption[FilePermissions](p)
 }

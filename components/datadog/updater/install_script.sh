@@ -16,6 +16,8 @@ $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
 $sudo_cmd sh -c "echo '${AGENT_CONFIG}' > $config_file"
 
+INSTALLER_BIN="/opt/datadog-installer/bin/installer/installer"
+OCI_URL_PREFIX="oci://docker.io/datadog/"
 ARCH=$(uname -m)
 KNOWN_DISTRIBUTION="(Debian|Ubuntu|RedHat|CentOS|openSUSE|Amazon|Arista|SUSE|Rocky|AlmaLinux)"
 DISTRIBUTION=$(lsb_release -d 2>/dev/null | grep -Eo $KNOWN_DISTRIBUTION  || grep -Eo $KNOWN_DISTRIBUTION /etc/issue 2>/dev/null || grep -Eo $KNOWN_DISTRIBUTION /etc/Eos-release 2>/dev/null || grep -m1 -Eo $KNOWN_DISTRIBUTION /etc/os-release 2>/dev/null || uname -s)
@@ -82,6 +84,14 @@ if [ "${OS}" = "Debian" ]; then
 
     $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update
     $sudo_cmd apt-get install -y --force-yes datadog-installer
+
+    # Add packages
+    $sudo_cmd systemctl stop datadog-agent
+    for pkg in $PACKAGES; do
+        $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}:latest"
+    done
+    $sudo_cmd systemctl start datadog-agent
+
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"
     yum_repo_version="${DD_PIPELINE_ID}-i7/7"

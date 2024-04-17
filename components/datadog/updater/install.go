@@ -3,6 +3,7 @@ package updater
 import (
 	_ "embed"
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -28,9 +29,6 @@ type HostUpdater struct {
 	namer namer.Namer
 	host  *remoteComp.Host
 }
-
-const installerPath = "/opt/datadog-installer/bin/installer/installer"
-const latestOciUrlFormatString = "oci://docker.io/datadog/%s:latest"
 
 func (h *HostUpdater) Export(ctx *pulumi.Context, out *HostUpdaterOutput) error {
 	return components.Export(ctx, h, out)
@@ -93,16 +91,10 @@ func (h *HostUpdater) installUpdater(params *agentparams.Params, packages []stri
 		agentConfig = pulumi.Sprintf("%v\n%v", agentConfig, extraConfig)
 	}
 	agentConfig = pulumi.Sprintf("AGENT_CONFIG='%v'", agentConfig)
-	installCmdStr := pulumi.Sprintf(`export %v %v && bash -c %s`, pipelineID, agentConfig, installScript)
 
-	for _, pkg := range packages {
-		installCmdStr = pulumi.Sprintf(
-			"%v\nsudo %s bootstrap --url \"%s\"",
-			installCmdStr,
-			installerPath,
-			fmt.Sprintf(latestOciUrlFormatString, pkg),
-		)
-	}
+	packagesConfig := pulumi.Sprintf("PACKAGES=(\"%s\")", strings.Join(packages, "\",\""))
+
+	installCmdStr := pulumi.Sprintf(`export %v %v %v && bash -c %s`, pipelineID, packagesConfig, agentConfig, installScript)
 
 	_, err := h.host.OS.Runner().Command(
 		h.namer.ResourceName("install-updater"),

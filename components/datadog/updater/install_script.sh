@@ -85,12 +85,14 @@ if [ "${OS}" = "Debian" ]; then
     $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update
     $sudo_cmd apt-get install -y --force-yes datadog-installer
 
+    # Only for systemd
+    $sudo_cmd systemctl daemon-reload
+    $sudo_cmd systemctl stop datadog-installer
     # Add packages
     for pkg in $PACKAGES; do
-        $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}:latest"
+        $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
     done
-    $sudo_cmd systemctl restart datadog-agent
-
+    $sudo_cmd systemctl start datadog-installer
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"
     yum_repo_version="${DD_PIPELINE_ID}-i7/7"
@@ -116,4 +118,3 @@ elif [ "${OS}" = "SUSE" ]; then
     $sudo_cmd zypper refresh
     $sudo_cmd zypper -y install datadog-installer
 fi
-

@@ -22,7 +22,7 @@ var installerLabVMs = []installerLabVMArgs{
 		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
-			"agent-package-dev",
+			"agent-package-dev:latest",
 		},
 	},
 	{
@@ -30,7 +30,7 @@ var installerLabVMs = []installerLabVMArgs{
 		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
-			"agent-package-dev",
+			"agent-package-dev:latest",
 		},
 	},
 	{
@@ -38,7 +38,7 @@ var installerLabVMs = []installerLabVMArgs{
 		descriptor:   os.NewDescriptorWithArch(os.AmazonLinux, "2023", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
-			"agent-package-dev",
+			"agent-package-dev:latest",
 		},
 	},
 }

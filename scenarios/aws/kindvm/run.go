@@ -19,7 +19,6 @@ import (
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
@@ -172,13 +171,13 @@ agents:
 	return nil
 }
 
-func ConfigureECRCredentials(e aws.Environment, vm *remote.Host, arch os.Architecture, opts ...pulumi.ResourceOption) (*goremote.Command, error) {
+func ConfigureECRCredentials(e resAws.Environment, vm *remote.Host, arch os.Architecture, opts ...pulumi.ResourceOption) (*goremote.Command, error) {
 	architecture := "x86_64"
 	if arch == os.ARM64Arch {
 		architecture = "aarch64"
 	}
 
-	unzipInstallCommand, err := vm.OS.PackageManager().Ensure("unzip", nil, "")
+	unzipInstallCommand, err := vm.OS.PackageManager().Ensure("unzip", nil, "", opts...)
 	if err != nil {
 		return nil, err
 	}

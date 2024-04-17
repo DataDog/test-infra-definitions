@@ -64,8 +64,10 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 
 	switch vmArgs.osInfo.Family() { // nolint:exhaustive
 	case os.LinuxFamily:
+		// We need cloud-init as the init script may setup things or install packages, which will trigger conflict with our own package install calls.
 		amiInfo.readyFunc = command.WaitForCloudInit
 	case os.WindowsFamily, os.MacOSFamily:
+		// as cloud-init is only available on Linux, we use a simple echo command to check if we successfully connected to the instance
 		amiInfo.readyFunc = command.WaitForSuccessfulConnection
 	default:
 		return nil, fmt.Errorf("unsupported OS family %v", vmArgs.osInfo.Family())

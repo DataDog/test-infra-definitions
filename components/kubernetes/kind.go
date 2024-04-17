@@ -42,7 +42,6 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		if err != nil {
 			return err
 		}
-
 		opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerInstallCmd, curlCommand))
 
 		kindVersionConfig, err := getKindVersionConfig(kubeVersion)

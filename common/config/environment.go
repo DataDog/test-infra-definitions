@@ -74,6 +74,7 @@ type CommonEnvironment struct {
 
 type CloudProviderEnvironment interface {
 	InternalRegistry() string
+	InternalDockerhubMirror() string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {

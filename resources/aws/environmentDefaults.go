@@ -170,7 +170,7 @@ func agentQADefault() environmentDefault {
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-0097b9307ec2c8139",
-			defaultSubnets:                 []string{"subnet-0f1ca3e929eb3fb8b", "subnet-03061a1647c63c3c3", "subnet-071213aedb0e1ae54"},
+			defaultSubnets:                 []string{"subnet-0d8bd689da421970c", "subnet-06eecbdafc2dac21e", "subnet-09540c6dec9c38018"},
 			defaultSecurityGroups:          []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
 			defaultInstanceType:            "t3.medium",
 			defaultInstanceProfileName:     "ec2InstanceRole",

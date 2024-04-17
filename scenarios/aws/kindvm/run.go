@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -14,11 +15,16 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/docker"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/DataDog/test-infra-definitions/components/remote"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
+
+	goremote "github.com/pulumi/pulumi-command/sdk/go/command/remote"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -39,9 +45,20 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	// Install docker if not installed yet, we need it to configure docker credentials
+	_, dockerInstallCmd, err := docker.NewManager(*awsEnv.CommonEnvironment, vm)
+	if err != nil {
+		return err
+	}
+	// Configure ECR credentials for use in Kind
+	ecrLoginCommand, err := ConfigureECRCredentials(awsEnv, vm, osDesc.Architecture, utils.PulumiDependsOn(dockerInstallCmd))
+	if err != nil {
+		return err
+	}
+
 	kindClusterName := ctx.Stack()
 
-	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion())
+	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(ecrLoginCommand))
 	if err != nil {
 		return err
 	}
@@ -155,4 +172,54 @@ agents:
 	return nil
 }
 
-func ConfigureECRCredentials()
+func ConfigureECRCredentials(e aws.Environment, vm *remote.Host, arch os.Architecture, opts ...pulumi.ResourceOption) (*goremote.Command, error) {
+	architecture := "x86_64"
+	if arch == os.ARM64Arch {
+		architecture = "aarch64"
+	}
+
+	unzipInstallCommand, err := vm.OS.PackageManager().Ensure("unzip", nil, "")
+	if err != nil {
+		return nil, err
+	}
+
+	awsCliInstallCommand, err := vm.OS.Runner().Command(
+		e.CommonNamer.ResourceName("aws-cli-install"),
+		&command.Args{
+			Create: pulumi.Sprintf("command -v aws || curl 'https://awscli.amazonaws.com/awscli-exe-linux-%s.zip' -o 'awscliv2.zip' && unzip awscliv2.zip && sudo ./aws/install", architecture),
+		},
+		utils.PulumiDependsOn(unzipInstallCommand),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	ecrLoginCommand, err := vm.OS.Runner().Command(
+		e.CommonNamer.ResourceName("ecr-login"),
+		&command.Args{
+			Create: pulumi.Sprintf("aws ecr get-login-password | docker --config /tmp/kind-config login  --username AWS --password-stdin %s", e.CloudProviderEnvironment.InternalRegistry()),
+		},
+		utils.PulumiDependsOn(awsCliInstallCommand),
+	)
+
+	return ecrLoginCommand, err
+}
+
+func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.Command, error) {
+	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", nil, "")
+	if err != nil {
+		return nil, err
+	}
+
+	ecrConfigCommand, err := vm.OS.Runner().Command(
+		e.CommonNamer.ResourceName("ecr-config"),
+		&command.Args{
+			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
+			Sudo:   false,
+		}, utils.PulumiDependsOn(ecrCredsHelperInstall))
+	if err != nil {
+		return nil, err
+	}
+
+	return ecrConfigCommand, nil
+}

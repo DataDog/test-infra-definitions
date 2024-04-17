@@ -65,7 +65,10 @@ func Run(ctx *pulumi.Context) error {
 
 		// Install the installer
 		_, err = updater.NewHostUpdaterWithPackages(
-			env.GetCommonEnvironment(), vm, vmArgs.packageNames, withInstallerOption(env.AgentAPIKey()),
+			env.GetCommonEnvironment(),
+			vm,
+			vmArgs.packageNames,
+			withInstallerOption(env.AgentAPIKey(), env.Site()),
 		)
 		if err != nil {
 			return err
@@ -75,13 +78,14 @@ func Run(ctx *pulumi.Context) error {
 	return nil
 }
 
-func withInstallerOption(apiKey pulumi.StringOutput) func(*agentparams.Params) error {
+func withInstallerOption(apiKey pulumi.StringOutput, site string) func(*agentparams.Params) error {
 	return func(p *agentparams.Params) error {
 		datadogAgentConfig := pulumi.Sprintf(`
 api_key: %v
+site: %v
 updater:
     remote_updates: true
-`, apiKey)
+`, apiKey, site)
 
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, datadogAgentConfig)
 

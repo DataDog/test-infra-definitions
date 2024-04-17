@@ -86,11 +86,10 @@ if [ "${OS}" = "Debian" ]; then
     $sudo_cmd apt-get install -y --force-yes datadog-installer
 
     # Add packages
-    $sudo_cmd systemctl stop datadog-agent
     for pkg in $PACKAGES; do
         $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}:latest"
     done
-    $sudo_cmd systemctl start datadog-agent
+    $sudo_cmd systemctl restart datadog-agent
 
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"

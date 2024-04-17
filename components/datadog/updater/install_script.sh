@@ -104,7 +104,7 @@ elif [ "${OS}" = "SUSE" ]; then
         gpgkeys="${gpgkeys:+"${gpgkeys}${separator}"}https://${keys_url}/${key_path}"
     done
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/zypp/repos.d/datadog.repo"
-    $sudo_cmd zypper -n refresh
+    $sudo_cmd zypper -n --gpg-auto-import-keys refresh
     $sudo_cmd zypper -n install datadog-installer
 fi
 

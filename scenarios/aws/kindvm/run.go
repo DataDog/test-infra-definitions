@@ -204,22 +204,3 @@ func ConfigureECRCredentials(e aws.Environment, vm *remote.Host, arch os.Archite
 
 	return ecrLoginCommand, err
 }
-
-func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.Command, error) {
-	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", nil, "")
-	if err != nil {
-		return nil, err
-	}
-
-	ecrConfigCommand, err := vm.OS.Runner().Command(
-		e.CommonNamer.ResourceName("ecr-config"),
-		&command.Args{
-			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
-			Sudo:   false,
-		}, utils.PulumiDependsOn(ecrCredsHelperInstall))
-	if err != nil {
-		return nil, err
-	}
-
-	return ecrConfigCommand, nil
-}

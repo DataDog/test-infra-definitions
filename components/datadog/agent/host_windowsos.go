@@ -80,8 +80,24 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
+	cmd := fmt.Sprintf(`
+$tries = 0
+$sleepTime = 1
+while ($tries -lt 5) {
+ $exitCode = (Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -PassThru -RedirectStandardError stderr.txt -ArgumentList restart-service).ExitCode
+ if ($exitCode -eq 0) {
+	   break
+ }
+ Start-Sleep -Seconds $sleepTime
+ $sleepTime = $sleepTime * 2
+ $tries++ 
+ }
+ Get-Content stderr.txt
+ Exit $exitCode
+ `)
+
 	cmdArgs := command.Args{
-		Create: pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
+		Create: pulumi.String(cmd),
 	}
 
 	// If a transform is provided, use it to modify the command name and args

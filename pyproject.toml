@@ -4,7 +4,6 @@
 # character.
 
 [tool.ruff]
-# TODO: Some images still use python3.8 in the CI, such as datadog-agent-buildimages/docker_x64 or circleci
 target-version = "py38"
 line-length = 120
 

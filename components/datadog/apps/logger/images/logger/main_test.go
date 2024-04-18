@@ -27,7 +27,7 @@ func TestPostHandler(t *testing.T) {
 				  }
 				]
 			  }`),
-			expected: []string{"some text"},
+			expected: []string{"some text\n"},
 		},
 		{
 			name: "two messages",
@@ -41,7 +41,7 @@ func TestPostHandler(t *testing.T) {
 				  }
 				]
 			  }`),
-			expected: []string{"message ONE", "message TWO"},
+			expected: []string{"message ONE\n", "message TWO\n"},
 		}, {
 			name: "encoded",
 			jsonData: []byte(`{
@@ -52,7 +52,7 @@ func TestPostHandler(t *testing.T) {
 				  }
 				]
 			  }`),
-			expected: []string{"some text"},
+			expected: []string{"some text\n"},
 		},
 	}
 
@@ -114,7 +114,7 @@ func TestPostHandler_stderr(t *testing.T) {
 	if len(stderr.writen) != 1 {
 		t.Fatalf("expected 1 write, got %d", len(stderr.writen))
 	}
-	if string(stderr.writen[0]) != "some text" {
+	if string(stderr.writen[0]) != "some text\n" {
 		t.Fatalf("expected 'some text', got %s", (stderr.writen[0]))
 	}
 	if len(stdout.writen) != 0 {
@@ -208,14 +208,14 @@ func TestUDPSender(t *testing.T) {
 
 	actual := <-output
 
-	if actual != "message ONE" {
-		t.Fatalf("expected 'message ONE', got %s", actual)
+	if actual != "message ONE\n" {
+		t.Fatalf("expected 'message ONE\n', got '%s'", actual)
 	}
 
 	actual = <-output
 
-	if actual != "message TWO" {
-		t.Fatalf("expected 'message TWO', got %s", actual)
+	if actual != "message TWO\n" {
+		t.Fatalf("expected 'message TWO\n', got '%s'", actual)
 	}
 	close(stop)
 	wg.Wait()

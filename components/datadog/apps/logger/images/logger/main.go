@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -39,6 +40,7 @@ func main() {
 	flag.Bool("udp", false, "send logs via UDP")
 	flag.Bool("tcp", false, "send logs via TCP")
 	flag.String("target", "", "if sending logs via UDP or TCP, specify the target host:port")
+	flag.String("data", "", "path to JSON data file with messages to log")
 
 	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
 	pflag.Parse()
@@ -49,6 +51,7 @@ func main() {
 	useUDP := viper.GetBool("udp")
 	useTCP := viper.GetBool("tcp")
 	target := viper.GetString("target")
+	data := viper.GetString("data")
 
 	// Create a channel to listen for OS signals
 	sigCh := make(chan os.Signal, 1)
@@ -102,6 +105,9 @@ func main() {
 	// Start the server in a separate goroutine
 	go func() {
 		slog.Info("Starting server", "port", port)
+		if data != "" {
+			go logData(data, port)
+		}
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Error starting server: %s\n", err)
 		}
@@ -119,6 +125,30 @@ func main() {
 	} else {
 		slog.Info("Server shut down gracefully")
 	}
+}
+
+func logData(pathToData string, port int) {
+	slog.Info("Logging data", "data", pathToData)
+	// Read the JSON data file
+	f, err := os.Open(pathToData)
+	if err != nil {
+		slog.Error("Error opening data file", "error", err.Error())
+		return
+	}
+	defer f.Close()
+	bs, err := io.ReadAll(f)
+	if err != nil {
+		slog.Error("Error reading data file", "error", err.Error())
+		return
+	}
+	buf := bytes.NewBuffer(bs)
+	resp, err := http.Post(fmt.Sprintf("http://localhost:%v", port), "application/json", buf)
+	if err != nil {
+		slog.Error("Error sending POST request", "error", err.Error())
+		return
+	}
+	io.ReadAll(resp.Body)
+	resp.Body.Close()
 }
 
 type loggerHandler struct {
@@ -160,12 +190,11 @@ func (l *loggerHandler) handleRequest(w http.ResponseWriter, r *http.Request) {
 		} else {
 			output = message.Message
 		}
-		fmt.Println(output)
 		switch message.Output {
 		case "stderr":
-			io.WriteString(l.stderr, output)
+			io.WriteString(l.stderr, output+"\n")
 		default:
-			io.WriteString(l.stdout, output)
+			io.WriteString(l.stdout, output+"\n")
 		}
 	}
 }

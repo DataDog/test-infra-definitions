@@ -111,7 +111,7 @@ func WithDeployWindows() func(*Params) error {
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
 		var err error
-		p.HelmValues, err = utils.MergeYAMLString(p.HelmValues, values)
+		p.HelmValues, err = utils.MergeYAML(p.HelmValues, values)
 		return err
 	}
 }

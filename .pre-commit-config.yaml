@@ -13,18 +13,12 @@ repos:
       require_serial: true
       additional_dependencies: []
       minimum_pre_commit_version: '2.9.2'
-  - repo: https://github.com/pycqa/flake8
-    rev: "7.0.0"
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.3.5
     hooks:
-    - id: flake8
-  - repo: https://github.com/pycqa/isort
-    rev: "5.12.0"
-    hooks:
-      - id: isort
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.2.0
-    hooks:
-      - id: black
+      - id: ruff
+        args: [ --fix ]
+      - id: ruff-format
   - repo: https://github.com/jendrikseipp/vulture
     rev: 'v2.3'
     hooks:

@@ -27,6 +27,7 @@ const (
 //   - [WithNamespace]
 //   - [WithDeployWindows]
 //   - [WithFakeintake]
+//   - [WithoutLogsContainerCollectAll]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -45,6 +46,8 @@ type Params struct {
 	FakeIntake *fakeintake.Fakeintake
 	// DeployWindows is a flag to deploy the agent on Windows.
 	DeployWindows bool
+	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
+	DisableLogsContainerCollectAll bool
 }
 
 type Option = func(*Params) error
@@ -116,6 +119,14 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.PulumiResourceOptions = append(p.PulumiResourceOptions, utils.PulumiDependsOn(fakeintake))
 		p.FakeIntake = fakeintake
+		return nil
+	}
+}
+
+// WithoutLogsContainerCollectAll disables collection of logs from all containers by default.
+func WithoutLogsContainerCollectAll() func(*Params) error {
+	return func(p *Params) error {
+		p.DisableLogsContainerCollectAll = true
 		return nil
 	}
 }

@@ -13,6 +13,7 @@ import (
 
 const (
 	defaultAgentNamespace = "datadog"
+	defaultHostProcFSPath = "/proc"
 )
 
 // Params defines the parameters for the Kubernetes Agent installation.
@@ -45,13 +46,16 @@ type Params struct {
 	FakeIntake *fakeintake.Fakeintake
 	// DeployWindows is a flag to deploy the agent on Windows.
 	DeployWindows bool
+	// HostProcFSPath is the path to the host's /proc directory.
+	HostProcFSPath string
 }
 
 type Option = func(*Params) error
 
 func NewParams(e config.CommonEnvironment, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace: defaultAgentNamespace,
+		Namespace:      defaultAgentNamespace,
+		HostProcFSPath: defaultHostProcFSPath,
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
@@ -116,6 +120,14 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.PulumiResourceOptions = append(p.PulumiResourceOptions, utils.PulumiDependsOn(fakeintake))
 		p.FakeIntake = fakeintake
+		return nil
+	}
+}
+
+// WithHostProcFSPath sets the path to the host's /proc directory.
+func WithHostProcFSPath(hostProcFSPath string) func(*Params) error {
+	return func(p *Params) error {
+		p.HostProcFSPath = hostProcFSPath
 		return nil
 	}
 }

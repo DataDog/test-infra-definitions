@@ -36,6 +36,8 @@ type HelmInstallationArgs struct {
 	AgentFullImagePath string
 	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
 	ClusterAgentFullImagePath string
+	// HostProcFSPath is the path to the host's /proc directory
+	HostProcFSPath string
 }
 
 type HelmComponent struct {
@@ -127,7 +129,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		linuxInstallName += "-linux"
 	}
 
-	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
+	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, args.HostProcFSPath)
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake)
 
@@ -186,7 +188,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {
+func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, hostProcFSPath string) HelmValues {
 	return HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -259,6 +261,10 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
+				pulumi.Map{
+					"name":  pulumi.String("HOST_PROC"),
+					"value": pulumi.String("/host/root/proc"),
+				},
 			},
 		},
 		"agents": pulumi.Map{
@@ -285,6 +291,20 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 						},
 					}),
 				),
+			},
+			"volumes": pulumi.MapArray{
+				pulumi.Map{
+					"name": pulumi.String("host-root-proc"),
+					"hostPath": pulumi.Map{
+						"path": pulumi.String(hostProcFSPath),
+					},
+				},
+			},
+			"volumeMounts": pulumi.MapArray{
+				pulumi.Map{
+					"name":      pulumi.String("host-root-proc"),
+					"mountPath": pulumi.String("/host/root/proc"),
+				},
 			},
 		},
 		"clusterAgent": pulumi.Map{

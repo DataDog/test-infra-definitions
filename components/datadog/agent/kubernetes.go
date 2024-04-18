@@ -44,6 +44,7 @@ func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubePro
 			Fakeintake:                params.FakeIntake,
 			AgentFullImagePath:        params.AgentFullImagePath,
 			ClusterAgentFullImagePath: params.ClusterAgentFullImagePath,
+			HostProcFSPath:            params.HostProcFSPath,
 		}, params.PulumiResourceOptions...)
 		if err != nil {
 			return err

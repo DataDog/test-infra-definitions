@@ -6,21 +6,6 @@
 [tool.ruff]
 # TODO: Some images still use python3.8 in the CI, such as datadog-agent-buildimages/docker_x64 or circleci
 target-version = "py38"
-exclude = [
-    ".git",
-    ".github",
-    ".circleci",
-    "chocolatey",
-    "Dockerfiles",
-    "docs",
-    "google-marketplace",
-    "omnibus",
-    "pkg-config",
-    "releasenotes",
-    "vendor",
-    "venv",
-    "dev",
-]
 line-length = 120
 
 [tool.ruff.lint]

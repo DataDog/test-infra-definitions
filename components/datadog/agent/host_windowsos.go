@@ -84,8 +84,8 @@ func (am *agentWindowsManager) restartAgentServices(transform command.Transforme
 $tries = 0
 $sleepTime = 1
 while ($tries -lt 5) {
- $ "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" restart-service 2>>stderr.txt
- $exitCode = $?
+ & "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" restart-service 2>>stderr.txt
+ $exitCode = $LASTEXITCODE
  if ($exitCode -eq 0) {
 	   break
  }

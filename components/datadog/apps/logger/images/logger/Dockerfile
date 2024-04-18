@@ -11,7 +11,7 @@ RUN set -eu && \
 COPY . .
 ENV CGO_ENABLED=0
 RUN set -eu && \
-    env CGO_ENABLED=1 go test -v -race ./...; \
+    go test -v ./...; \
     go build -v -o /usr/local/bin/app ./...;
 
 # we want curl to also be available in the final image

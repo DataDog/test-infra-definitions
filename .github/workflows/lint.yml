@@ -61,5 +61,5 @@ jobs:
         run: pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/circleci.txt
       - name: Run linters
         run: |
-          ruff check .
+          ruff check tasks
           vulture --ignore-decorators @task --ignore-names 'test_*,Test*' tasks

@@ -5,35 +5,10 @@ variables:
   CI_REGISTRY_IMAGE_TEST: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner-dev"
 
 stages:
-  - no-op
   - build
   - test
   - release
   - post-release
-
-workflow:
-  rules:
-    - if: '$CI_COMMIT_BRANCH =~ /^mq-working-branch-/'
-      variables:
-        PIPELINE_TYPE: 'merge-queue'
-    - when: always
-
-.rule_no_run_in_mergequeue: &rule_no_run_in_mergequeue
-  if: '$PIPELINE_TYPE == "merge-queue"'
-  when: never
-
-.rule_run_in_mergequeue: &rule_run_in_mergequeue
-  if: '$PIPELINE_TYPE == "merge-queue"'
-  when: always
-
-no-op:
-  stage: no-op
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
-  tags: ["arch:amd64"]
-  script:
-    - echo "Mergequeue pipeline, no-op stage."
-  rules:
-    - *rule_run_in_mergequeue
 
 build-runner-image:
   stage: build
@@ -42,7 +17,6 @@ build-runner-image:
   variables:
     RELEASE_IMAGE: "false"
   rules:
-    - *rule_no_run_in_mergequeue
     - when: on_success
   before_script:
     - set +x
@@ -62,7 +36,6 @@ integration-testing:
   image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
   tags: ["arch:amd64"]
   rules:
-    - *rule_no_run_in_mergequeue
     - when: on_success
   before_script:
     # Setup AWS Credentials
@@ -92,7 +65,6 @@ release-runner-image:
   script:
     - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
   rules:
-    - *rule_no_run_in_mergequeue
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
 
@@ -102,7 +74,6 @@ bump-version-on-datadog-agent:
   tags: ["arch:amd64"]
   needs: ["release-runner-image"]
   rules:
-    - *rule_no_run_in_mergequeue
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
   before_script:

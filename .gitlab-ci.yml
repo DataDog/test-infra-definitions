@@ -28,6 +28,8 @@ workflow:
 
 no-op:
   stage: no-op
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
+  tags: ["arch:amd64"]
   script:
     - echo "Mergequeue pipeline, no-op stage."
   rules:

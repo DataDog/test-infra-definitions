@@ -3,6 +3,7 @@ package updater
 import (
 	_ "embed"
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -28,8 +29,6 @@ type HostUpdater struct {
 	namer namer.Namer
 	host  *remoteComp.Host
 }
-
-const installerPath = "/opt/datadog-installer/bin/installer/installer"
 
 func (h *HostUpdater) Export(ctx *pulumi.Context, out *HostUpdaterOutput) error {
 	return components.Export(ctx, h, out)
@@ -87,16 +86,20 @@ func NewHostUpdaterWithPackages(e *config.CommonEnvironment, host *remoteComp.Ho
 
 func (h *HostUpdater) installUpdater(params *agentparams.Params, packages []string, baseOpts ...pulumi.ResourceOption) error {
 	pipelineID := fmt.Sprintf("DD_PIPELINE_ID=%v", params.Version.PipelineID)
-	installCmdStr := fmt.Sprintf(`export %v && bash -c %s`, pipelineID, installScript)
-
-	for _, pkg := range packages {
-		installCmdStr = fmt.Sprintf("%s\nsudo %s bootstrap -P %s", installCmdStr, installerPath, pkg)
+	agentConfig := pulumi.Sprintf("")
+	for _, extraConfig := range params.ExtraAgentConfig {
+		agentConfig = pulumi.Sprintf("%v\n%v", agentConfig, extraConfig)
 	}
+	agentConfig = pulumi.Sprintf("AGENT_CONFIG='%v'", agentConfig)
+
+	packagesConfig := pulumi.Sprintf("PACKAGES=(\"%s\")", strings.Join(packages, "\",\""))
+
+	installCmdStr := pulumi.Sprintf(`export %v %v %v && bash -c %s`, pipelineID, packagesConfig, agentConfig, installScript)
 
 	_, err := h.host.OS.Runner().Command(
 		h.namer.ResourceName("install-updater"),
 		&command.Args{
-			Create: pulumi.Sprintf(installCmdStr),
+			Create: installCmdStr,
 		}, baseOpts...)
 	return err
 }

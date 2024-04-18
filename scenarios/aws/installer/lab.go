@@ -1,6 +1,7 @@
 package installer
 
 import (
+	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/updater"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -21,7 +22,7 @@ var installerLabVMs = []installerLabVMArgs{
 		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
-			"datadog-agent",
+			"agent-package-dev:latest",
 		},
 	},
 	{
@@ -29,7 +30,7 @@ var installerLabVMs = []installerLabVMArgs{
 		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
-			"datadog-agent",
+			"agent-package-dev:latest",
 		},
 	},
 	{
@@ -37,7 +38,7 @@ var installerLabVMs = []installerLabVMArgs{
 		descriptor:   os.NewDescriptorWithArch(os.AmazonLinux, "2023", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
-			"datadog-agent",
+			"agent-package-dev:latest",
 		},
 	},
 }
@@ -64,7 +65,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Install the installer
 		_, err = updater.NewHostUpdaterWithPackages(
-			env.GetCommonEnvironment(), vm, vmArgs.packageNames,
+			env.GetCommonEnvironment(), vm, vmArgs.packageNames, withInstallerOption(env.AgentAPIKey()),
 		)
 		if err != nil {
 			return err
@@ -72,4 +73,18 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	return nil
+}
+
+func withInstallerOption(apiKey pulumi.StringOutput) func(*agentparams.Params) error {
+	return func(p *agentparams.Params) error {
+		datadogAgentConfig := pulumi.Sprintf(`
+api_key: %v
+updater:
+    remote_updates: true
+`, apiKey)
+
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, datadogAgentConfig)
+
+		return nil
+	}
 }

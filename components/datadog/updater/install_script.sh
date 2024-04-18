@@ -14,8 +14,10 @@ config_file="/etc/datadog-agent/datadog.yaml"
 $sudo_cmd mkdir -p /etc/datadog-agent
 $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
-$sudo_cmd sh -c "echo 'api_key: 0000000000000000' > $config_file"
+$sudo_cmd sh -c "echo '${AGENT_CONFIG}' > $config_file"
 
+INSTALLER_BIN="/opt/datadog-installer/bin/installer/installer"
+OCI_URL_PREFIX="oci://docker.io/datadog/"
 ARCH=$(uname -m)
 KNOWN_DISTRIBUTION="(Debian|Ubuntu|RedHat|CentOS|openSUSE|Amazon|Arista|SUSE|Rocky|AlmaLinux)"
 DISTRIBUTION=$(lsb_release -d 2>/dev/null | grep -Eo $KNOWN_DISTRIBUTION  || grep -Eo $KNOWN_DISTRIBUTION /etc/issue 2>/dev/null || grep -Eo $KNOWN_DISTRIBUTION /etc/Eos-release 2>/dev/null || grep -m1 -Eo $KNOWN_DISTRIBUTION /etc/os-release 2>/dev/null || uname -s)
@@ -82,6 +84,15 @@ if [ "${OS}" = "Debian" ]; then
 
     $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update
     $sudo_cmd apt-get install -y --force-yes datadog-installer
+
+    # Only for systemd
+    $sudo_cmd systemctl daemon-reload
+    $sudo_cmd systemctl stop datadog-installer
+    # Add packages
+    for pkg in $PACKAGES; do
+        $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
+    done
+    $sudo_cmd systemctl start datadog-installer
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"
     yum_repo_version="${DD_PIPELINE_ID}-i7/7"
@@ -107,4 +118,3 @@ elif [ "${OS}" = "SUSE" ]; then
     $sudo_cmd zypper -n --gpg-auto-import-keys refresh
     $sudo_cmd zypper -n install datadog-installer
 fi
-

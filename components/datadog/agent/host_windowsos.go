@@ -80,6 +80,7 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
+	// Retry restart several time, workaround to https://datadoghq.atlassian.net/browse/WINA-747
 	cmd := `
 $tries = 0
 $sleepTime = 1

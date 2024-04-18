@@ -155,7 +155,7 @@ def _clean_known_hosts(host: str) -> None:
     Remove the host from the known_hosts file.
     """
     home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    with open(f"{home}/.ssh/known_hosts", "r") as f:
+    with open(f"{home}/.ssh/known_hosts") as f:
         lines = f.readlines()
     filtered_lines = [line for line in lines if not line.startswith(host)]
     with open(f"{home}/.ssh/known_hosts", "w") as f:

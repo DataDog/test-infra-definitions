@@ -3,23 +3,23 @@ package utils
 import "gopkg.in/yaml.v3"
 
 func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
-	if oldValues == "" {
-		return newValues, nil
+	if oldValuesYamlContent == "" {
+		return newValuesYamlContent, nil
 	}
 
-	if newValues == "" {
-		return oldValues, nil
+	if newValuesYamlContent == "" {
+		return oldValuesYamlContent, nil
 	}
 
 	var oldValuesYAML map[string]interface{}
 	var newValuesYAML map[string]interface{}
 
-	err := yaml.Unmarshal([]byte(oldValues), &oldValuesYAML)
+	err := yaml.Unmarshal([]byte(oldValuesYamlContent), &oldValuesYamlContent)
 	if err != nil {
 		return "", err
 	}
 
-	err = yaml.Unmarshal([]byte(newValues), &newValuesYAML)
+	err = yaml.Unmarshal([]byte(newValuesYamlContent), &newValuesYAML)
 
 	if err != nil {
 		return "", err

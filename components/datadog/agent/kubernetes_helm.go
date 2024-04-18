@@ -36,6 +36,8 @@ type HelmInstallationArgs struct {
 	AgentFullImagePath string
 	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
 	ClusterAgentFullImagePath string
+	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
+	DisableLogsContainerCollectAll bool
 }
 
 type HelmComponent struct {
@@ -127,7 +129,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		linuxInstallName += "-linux"
 	}
 
-	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
+	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake)
 
@@ -186,7 +188,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {
+func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
 	return HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
@@ -194,7 +196,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			"checksCardinality":    pulumi.String("high"),
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
-				"containerCollectAll": pulumi.Bool(true),
+				"containerCollectAll": pulumi.Bool(logsContainerCollectAll),
 			},
 			"dogstatsd": pulumi.Map{
 				"originDetection": pulumi.Bool(true),

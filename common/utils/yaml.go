@@ -2,7 +2,7 @@ package utils
 
 import "gopkg.in/yaml.v3"
 
-func MergeYAMLString(oldValues string, newValues string) (string, error) {
+func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
 	if oldValues == "" {
 		return newValues, nil
 	}

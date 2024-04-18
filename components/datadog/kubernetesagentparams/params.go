@@ -39,7 +39,7 @@ type Params struct {
 	// Namespace is the namespace to deploy the agent to.
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
-	HelmValues pulumi.AssetOrArchiveArray
+	HelmValues string
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 	// FakeIntake is the fake intake to use for the agent installation.
@@ -107,10 +107,12 @@ func WithDeployWindows() func(*Params) error {
 
 // WithHelmValues adds helm values to the agent installation. If used several times, the helm values are merged together
 // If the same values is defined several times the latter call will override the previous one.
+// TODO: If https://github.com/pulumi/pulumi-kubernetes/pull/2963 is merged we can revert https://github.com/DataDog/test-infra-definitions/pull/779
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
-		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))
-		return nil
+		var err error
+		p.HelmValues, err = utils.MergeYAML(p.HelmValues, values)
+		return err
 	}
 }
 

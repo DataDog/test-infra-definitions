@@ -17,6 +17,8 @@ build-runner-image:
   variables:
     RELEASE_IMAGE: "false"
   rules:
+    - if: $CI_COMMIT_BRANCH =~ /^mq-working-branch-/
+      when: never
     - when: on_success
   before_script:
     - set +x
@@ -35,6 +37,10 @@ integration-testing:
   stage: test
   image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
   tags: ["arch:amd64"]
+  rules:
+    - if: $CI_COMMIT_BRANCH =~ /^mq-working-branch-/
+      when: never
+    - when: on_success
   before_script:
     # Setup AWS Credentials
     - mkdir -p ~/.aws

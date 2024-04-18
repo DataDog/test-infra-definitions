@@ -28,6 +28,7 @@ const (
 	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
+	DDInfraDefaultInternalDockerhubMirror  = "aws/defaultInternalDockerhubMirror"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -122,6 +123,10 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 // Cross Cloud Provider config
 func (e *Environment) InternalRegistry() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalRegistry, e.envDefault.ddInfra.defaultInternalRegistry)
+}
+
+func (e *Environment) InternalDockerhubMirror() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalDockerhubMirror, e.envDefault.ddInfra.defaultInternalDockerhubMirror)
 }
 
 // Common

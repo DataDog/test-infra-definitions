@@ -61,6 +61,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	return k8sComponent, nil
 }
+
 func k8sDeploymentWithoutLibInjection(e config.CommonEnvironment, namespace string, name string, opts ...pulumi.ResourceOption) error {
 	_, err := appsv1.NewDeployment(e.Ctx, name, &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -131,7 +132,7 @@ func k8sDeploymentWithLibInjection(e config.CommonEnvironment, namespace string,
 						corev1.ContainerArgs{
 							Name: pulumi.String(name),
 							// Python is one of the languages supported by APM lib injection
-							Image: pulumi.String("python:3.12-slim"),
+							Image: pulumi.String("public.ecr.aws/docker/library/python:3.12-slim"), // TODO: Change to using private mirror
 							Command: pulumi.ToStringArray([]string{
 								"python", "-c", "while True: import time; time.sleep(60)",
 							}),

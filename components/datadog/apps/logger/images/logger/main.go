@@ -8,11 +8,15 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/spf13/pflag"
+	"github.com/spf13/viper"
 )
 
 type Message struct {
@@ -26,26 +30,78 @@ type Data struct {
 }
 
 func main() {
+	viper.AutomaticEnv()
+	viper.SetConfigFile(".env")
+	viper.ReadInConfig()
 
-	// Set port
-	port := flag.Int("port", 3333, "port to listen on")
+	// Set flags
+	flag.Int("port", 3333, "port to listen on")
+	flag.Bool("udp", false, "send logs via UDP")
+	flag.Bool("tcp", false, "send logs via TCP")
+	flag.String("target", "", "if sending logs via UDP or TCP, specify the target host:port")
+
+	pflag.CommandLine.AddGoFlagSet(flag.CommandLine)
+	pflag.Parse()
+	viper.BindPFlags(pflag.CommandLine)
+
+	// Get flags
+	port := viper.GetInt("port")
+	useUDP := viper.GetBool("udp")
+	useTCP := viper.GetBool("tcp")
+	target := viper.GetString("target")
 
 	// Create a channel to listen for OS signals
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	l := NewLoggerHandler(os.Stdout, os.Stderr)
+	var stdout, stderr io.Writer
+	if useUDP {
+		// Create a UDP sender
+		addr, err := net.ResolveUDPAddr("udp", target)
+		if err != nil {
+			slog.Error("Error resolving UDP address", err)
+			os.Exit(1)
+		}
+		c, err := net.DialUDP("udp", nil, addr)
+		if err != nil {
+			slog.Error("Error dialing UDP", err)
+			os.Exit(1)
+		}
+		defer c.Close()
+		stdout = c
+		stderr = c
+	} else if useTCP {
+		// Create a TCP sender
+		addr, err := net.ResolveTCPAddr("tcp", target)
+		if err != nil {
+			slog.Error("Error resolving TCP address", err)
+			os.Exit(1)
+		}
+		c, err := net.DialTCP("tcp", nil, addr)
+		if err != nil {
+			slog.Error("Error dialing TCP", err)
+			os.Exit(1)
+		}
+		defer c.Close()
+		stdout = c
+		stderr = c
+	} else {
+		stdout = os.Stdout
+		stderr = os.Stderr
+	}
+
+	l := NewLoggerHandler(stdout, stderr)
 	// Create an HTTP server
 	mux := http.NewServeMux()
 	mux.Handle("/", http.HandlerFunc(l.handleRequest))
 	server := &http.Server{
-		Addr:    fmt.Sprintf(":%d", *port),
+		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
 
 	// Start the server in a separate goroutine
 	go func() {
-		slog.Info("Starting server", "port", *port)
+		slog.Info("Starting server", "port", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Error starting server: %s\n", err)
 		}

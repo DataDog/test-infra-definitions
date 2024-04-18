@@ -3,10 +3,12 @@ package main
 import (
 	"bytes"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestPostHandler(t *testing.T) {
@@ -137,4 +139,84 @@ func NewWriterMock() *WriterMock {
 	return &WriterMock{
 		writen: make([][]byte, 0),
 	}
+}
+
+func TestUDPSender(t *testing.T) {
+	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("could not resolve UDP address: %v", err)
+	}
+
+	l, err := net.ListenUDP("udp4", addr)
+	if err != nil {
+		t.Fatalf("could not listen on UDP: %v", err)
+	}
+	l.SetDeadline(time.Now().Add(1 * time.Second))
+	defer l.Close()
+
+	stop := make(chan struct{})
+	output := make(chan string, 10)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		t.Log("Starting listener")
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				t.Log("Stopped listener")
+				return
+			default:
+				t.Log("Listening for messages")
+				buf := make([]byte, 1024)
+				n, _, err := l.ReadFromUDP(buf)
+				if err != nil {
+					return
+				}
+				output <- string(buf[:n])
+			}
+		}
+	}()
+
+	c, err := net.DialUDP("udp", nil, l.LocalAddr().(*net.UDPAddr))
+	if err != nil {
+		t.Fatalf("could not dial UDP: %v", err)
+	}
+	defer c.Close()
+
+	lh := NewLoggerHandler(c, c)
+	svr := httptest.NewServer(http.HandlerFunc(lh.handleRequest))
+	defer svr.Close()
+
+	jsonData := []byte(`{
+		"data": [
+		  {
+			"message": "message ONE"
+		  },
+		  {
+			"message": "message TWO"
+		  }
+		]
+	  }`)
+	t.Log("Stopping listener")
+	res, err := http.Post(svr.URL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatalf("could not send POST request: %v", err)
+	}
+	io.ReadAll(res.Body)
+	res.Body.Close()
+
+	actual := <-output
+
+	if actual != "message ONE" {
+		t.Fatalf("expected 'message ONE', got %s", actual)
+	}
+
+	actual = <-output
+
+	if actual != "message TWO" {
+		t.Fatalf("expected 'message TWO', got %s", actual)
+	}
+	close(stop)
+	wg.Wait()
 }

@@ -158,20 +158,6 @@ func agentSandboxDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
-				podSubnets: []DDInfraEKSPodSubnets{
-					{
-						AZ:       "us-east-1a",
-						SubnetID: "subnet-00e25575e94a910cd",
-					},
-					{
-						AZ:       "us-east-1b",
-						SubnetID: "subnet-0db790a218df28371",
-					},
-					{
-						AZ:       "us-east-1d",
-						SubnetID: "subnet-0c2f82474aaeb3588",
-					},
-				},
 				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,
@@ -216,6 +202,20 @@ func agentQADefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				podSubnets: []DDInfraEKSPodSubnets{
+					{
+						AZ:       "us-east-1a",
+						SubnetID: "subnet-02cef8d896085b24b",
+					},
+					{
+						AZ:       "us-east-1b",
+						SubnetID: "subnet-0950e55ed25f3bdc0",
+					},
+					{
+						AZ:       "us-east-1d",
+						SubnetID: "subnet-0190651c83b3ebbbe",
+					},
+				},
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
 				fargateNamespace:             "fargate",

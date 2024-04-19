@@ -26,6 +26,24 @@ var installerLabVMs = []installerLabVMArgs{
 		},
 	},
 	{
+		name:         "ubuntu-20",
+		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "20.04", os.ARM64Arch),
+		instanceType: "t4g.medium",
+		packageNames: []string{
+			"agent-package-dev:latest",
+		},
+	},
+	{
+		name:         "ubuntu-22-all-packages",
+		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
+		instanceType: "t4g.medium",
+		packageNames: []string{
+			"agent-package-dev:latest",
+			"apm-inject-package-dev:latest",
+			"apm-library-java-package-dev:latest",
+		},
+	},
+	{
 		name:         "debian-12",
 		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
 		instanceType: "t4g.medium",

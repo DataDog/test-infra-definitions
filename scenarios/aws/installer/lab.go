@@ -34,8 +34,16 @@ var installerLabVMs = []installerLabVMArgs{
 		},
 	},
 	{
-		name:         "amazon-linux-2023",
-		descriptor:   os.NewDescriptorWithArch(os.AmazonLinux, "2023", os.ARM64Arch),
+		name:         "debian-12-small",
+		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
+		instanceType: "t4g.small",
+		packageNames: []string{
+			"agent-package-dev:latest",
+		},
+	},
+	{
+		name:         "suse-15",
+		descriptor:   os.NewDescriptorWithArch(os.Suse, "15-sp4", os.ARM64Arch),
 		instanceType: "t4g.medium",
 		packageNames: []string{
 			"agent-package-dev:latest",
@@ -68,7 +76,7 @@ func Run(ctx *pulumi.Context) error {
 			env.GetCommonEnvironment(),
 			vm,
 			vmArgs.packageNames,
-			withInstallerOption(env.AgentAPIKey(), env.Site()),
+			withInstallerOption(env.AgentAPIKey(), vm.Name(), env.Site()),
 		)
 		if err != nil {
 			return err
@@ -78,14 +86,17 @@ func Run(ctx *pulumi.Context) error {
 	return nil
 }
 
-func withInstallerOption(apiKey pulumi.StringOutput, site string) func(*agentparams.Params) error {
+func withInstallerOption(
+	apiKey pulumi.StringOutput, hostname string, site string,
+) func(*agentparams.Params) error {
 	return func(p *agentparams.Params) error {
 		datadogAgentConfig := pulumi.Sprintf(`
 api_key: %v
+hostname: %v
 site: %v
 updater:
     remote_updates: true
-`, apiKey, site)
+`, apiKey, hostname, site)
 
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, datadogAgentConfig)
 

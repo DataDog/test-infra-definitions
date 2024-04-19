@@ -14,12 +14,14 @@ scenario_name = "aws/installer"
     help={
         "debug": doc.debug,
         "pipeline_id": doc.pipeline_id,
+        "site": doc.site,
     }
 )
 def create_installer_lab(
     ctx: Context,
     debug: Optional[bool] = False,
     pipeline_id: Optional[str] = None,
+    site: Optional[str] = "datad0g.com",
 ):
     full_stack_name = deploy(
         ctx,
@@ -28,6 +30,7 @@ def create_installer_lab(
         pipeline_id=pipeline_id,
         install_updater=True,
         debug=debug,
+        extra_flags={"ddagent:site": site},
     )
 
     print(f"Installer lab created: {full_stack_name}")

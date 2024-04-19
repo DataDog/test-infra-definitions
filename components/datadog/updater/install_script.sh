@@ -86,13 +86,19 @@ if [ "${OS}" = "Debian" ]; then
     $sudo_cmd apt-get install -y --force-yes datadog-installer
 
     # Only for systemd
-    $sudo_cmd systemctl daemon-reload
-    $sudo_cmd systemctl stop datadog-installer
+    exit_status=0
+    $sudo_cmd systemctl status datadog-installer || exit_status=$?
+    if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
+        $sudo_cmd systemctl daemon-reload
+        $sudo_cmd systemctl stop datadog-installer
+    fi
     # Add packages
     for pkg in $PACKAGES; do
         $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
     done
-    $sudo_cmd systemctl start datadog-installer
+    if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
+        $sudo_cmd systemctl start datadog-installer
+    fi
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"
     yum_repo_version="${DD_PIPELINE_ID}-i7/7"

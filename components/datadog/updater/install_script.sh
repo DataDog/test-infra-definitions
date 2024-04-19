@@ -14,7 +14,7 @@ config_file="/etc/datadog-agent/datadog.yaml"
 $sudo_cmd mkdir -p /etc/datadog-agent
 $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
-$sudo_cmd sh -c "echo '${AGENT_CONFIG}' > $config_file"
+$sudo_cmd sh -c "echo '${AGENT_CONFIG:-api_key: 000000000}' > $config_file" # We at least need the api_key field in the config
 
 INSTALLER_BIN="/opt/datadog-installer/bin/installer/installer"
 OCI_URL_PREFIX="oci://docker.io/datadog/"

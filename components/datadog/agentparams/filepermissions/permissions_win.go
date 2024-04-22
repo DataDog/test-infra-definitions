@@ -44,7 +44,7 @@ func (p *WindowsPermissions) SetupPermissionsCommand(path string) string {
 
 // ResetPermissionsCommand returns a command that resets the owner, group, and permissions of a file to default.
 func (p *WindowsPermissions) ResetPermissionsCommand(path string) string {
-	return fmt.Sprintf("icacls “%[1]v” /inheritance:e /t /c /l; icacls “%[1]v” /reset /t /c /l;", path)
+	return fmt.Sprintf("icacls “%v” /reset /t /c /l;", path)
 }
 
 // WithIcaclsCommand sets the icacls command to use.

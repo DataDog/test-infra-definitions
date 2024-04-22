@@ -236,7 +236,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			// The fake intake keeps payloads only for a hardcoded period of 15 minutes.
 			// https://github.com/DataDog/datadog-agent/blob/34922393ce47261da9835d7bf62fb5e090e5fa55/test/fakeintake/server/server.go#L81
 			// So, we need `container_image` and `sbom` checks to resubmit their payloads more frequently than that.
-			"confd": pulumi.Map{
+			"confd": pulumi.StringMap{
 				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
 					"ad_identifiers": []string{"_container_image"},
 					"init_config":    map[string]interface{}{},
@@ -256,8 +256,8 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					},
 				})),
 			},
-			"env": pulumi.MapArray{
-				pulumi.Map{
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
@@ -288,6 +288,44 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					}),
 				),
 			},
+			"containers": pulumi.Map{
+				"agent": pulumi.Map{
+					"resources": pulumi.StringMapMap{
+						"requests": pulumi.StringMap{
+							"cpu":    pulumi.String("300m"),
+							"memory": pulumi.String("500Mi"),
+						},
+						"limits": pulumi.StringMap{
+							"cpu":    pulumi.String("500m"),
+							"memory": pulumi.String("700Mi"),
+						},
+					},
+				},
+				"processAgent": pulumi.Map{
+					"resources": pulumi.StringMapMap{
+						"requests": pulumi.StringMap{
+							"cpu":    pulumi.String("30m"),
+							"memory": pulumi.String("130Mi"),
+						},
+						"limits": pulumi.StringMap{
+							"cpu":    pulumi.String("50m"),
+							"memory": pulumi.String("150Mi"),
+						},
+					},
+				},
+				"traceAgent": pulumi.Map{
+					"resources": pulumi.StringMapMap{
+						"requests": pulumi.StringMap{
+							"cpu":    pulumi.String("10m"),
+							"memory": pulumi.String("100Mi"),
+						},
+						"limits": pulumi.StringMap{
+							"cpu":    pulumi.String("50m"),
+							"memory": pulumi.String("130Mi"),
+						},
+					},
+				},
+			},
 		},
 		"clusterAgent": pulumi.Map{
 			"enabled": pulumi.Bool(true),
@@ -301,14 +339,24 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"useDatadogMetrics": pulumi.Bool(true),
 			},
 			"token": clusterAgentToken,
-			"env": pulumi.MapArray{
-				pulumi.Map{
+			"resources": pulumi.StringMapMap{
+				"requests": pulumi.StringMap{
+					"cpu":    pulumi.String("20m"),
+					"memory": pulumi.String("70Mi"),
+				},
+				"limits": pulumi.StringMap{
+					"cpu":    pulumi.String("50m"),
+					"memory": pulumi.String("100Mi"),
+				},
+			},
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
 				// This option is disabled by default and not exposed in the
 				// Helm chart yet, so we need to set the env.
-				pulumi.Map{
+				pulumi.StringMap{
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
@@ -320,6 +368,16 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"repository":    pulumi.String(agentImagePath),
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"resources": pulumi.StringMapMap{
+				"requests": pulumi.StringMap{
+					"cpu":    pulumi.String("10m"),
+					"memory": pulumi.String("100Mi"),
+				},
+				"limits": pulumi.StringMap{
+					"cpu":    pulumi.String("50m"),
+					"memory": pulumi.String("130Mi"),
+				},
 			},
 		},
 	}
@@ -399,44 +457,44 @@ func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeint
 		e.Ctx.Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
 	}
 
-	additionalEndpointsEnvVar := pulumi.MapArray{
-		pulumi.Map{
+	additionalEndpointsEnvVar := pulumi.StringMapArray{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
 			"value": pulumi.String("true"),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
 			"value": pulumi.String("true"),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
 			"value": pulumi.String("true"),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
-		pulumi.Map{
+		pulumi.StringMap{
 			"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
 			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
 		},
@@ -446,7 +504,7 @@ func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeint
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
 		} else {
-			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.MapArray), additionalEndpointsEnvVar...)
+			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
 		}
 	}
 }

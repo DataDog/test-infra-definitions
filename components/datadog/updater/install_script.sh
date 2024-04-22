@@ -93,7 +93,7 @@ if [ "${OS}" = "Debian" ]; then
         $sudo_cmd systemctl stop datadog-installer
     fi
     # Add packages
-    for pkg in $PACKAGES; do
+    for pkg in ${PACKAGES[@]}; do
         $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
     done
     if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
@@ -132,7 +132,7 @@ elif [ "${OS}" = "SUSE" ]; then
         $sudo_cmd systemctl stop datadog-installer
     fi
     # Add packages
-    for pkg in $PACKAGES; do
+    for pkg in ${PACKAGES[@]}; do
         $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
     done
     if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist

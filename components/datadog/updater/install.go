@@ -92,7 +92,7 @@ func (h *HostUpdater) installUpdater(params *agentparams.Params, packages []stri
 	}
 	agentConfig = pulumi.Sprintf("AGENT_CONFIG='%v'", agentConfig)
 
-	packagesConfig := pulumi.Sprintf("PACKAGES=(\"%s\")", strings.Join(packages, "\",\""))
+	packagesConfig := pulumi.Sprintf("PACKAGES=(\"%s\")", strings.Join(packages, "\" \""))
 
 	installCmdStr := pulumi.Sprintf(`export %v %v %v && bash -c %s`, pipelineID, packagesConfig, agentConfig, installScript)
 

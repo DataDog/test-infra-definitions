@@ -43,7 +43,7 @@ func getLocalIP() net.IP {
 	// Open a connection to an external valid URL to  
 	// get the local address from the connection instance
 	// The URL does not need to exist
-	conn, err := net.Dial("udp", "255.255.255.255:80") 
+	conn, err := net.Dial("udp", "8.8.8.8:80") 
 	if err != nil {
 		log.Fatal(err)
 	}

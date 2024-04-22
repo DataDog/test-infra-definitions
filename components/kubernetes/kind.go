@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	kindReadinessWait     = "60s"
-	kindNodeImageRegistry = "kindest/node"
+	kindReadinessWait = "60s"
+	kindNodeImageName = "kindest/node"
 )
 
 //go:embed kind-cluster.yaml
@@ -72,7 +72,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s:%s", kindNodeImageRegistry, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.CloudProviderEnvironment.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", resourceName),
 			&command.Args{

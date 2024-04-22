@@ -31,3 +31,4 @@ clean_known_hosts: str = "Clean the host from ssh known_hosts file after destroy
 instance_type: str = "The instance type to use (default is t3.medium for aws or Standard_B4ms for azure)"
 no_verify: str = "Do not verify deploy jobs before creating vm"
 debug: str = "Check for common errors in your environment setup and configuration (defualt False)"
+site: str = "Datadog site to contact (default 'datad0g.com')"

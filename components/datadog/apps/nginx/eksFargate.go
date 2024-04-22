@@ -270,6 +270,11 @@ func EKSFargateAppDefinition(e config.CommonEnvironment, namespace string, depen
 							},
 						},
 					},
+					Behavior: &autoscalingv2.HorizontalPodAutoscalerBehaviorArgs{
+						ScaleDown: &autoscalingv2.HPAScalingRulesArgs{
+							StabilizationWindowSeconds: pulumi.IntPtr(0),
+						},
+					},
 				},
 			}, append(opts, utils.PulumiDependsOn(ddm))...); err != nil {
 				return nil, err

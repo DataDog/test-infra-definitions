@@ -45,7 +45,7 @@ type activeDirectoryContext struct {
 // NewActiveDirectory creates a new instance of an Active Directory domain deployment
 // Example usage:
 //
-//	activeDirectoryComp, activeDirectoryResources, err := activedirectory.NewActiveDirectory(pulumiContext, awsEnv.CommonEnvironment, host,
+//	activeDirectoryComp, activeDirectoryResources, err := activedirectory.NewActiveDirectory(pulumiContext, &awsEnv, host,
 //		activedirectory.WithDomainController("datadogqa.lab", "Test1234#"),
 //	    activedirectory.WithDomainUser("datadogqa.lab\\ddagentuser", "Test5678#"),
 //	)
@@ -56,7 +56,7 @@ type activeDirectoryContext struct {
 //	if err != nil {
 //		return err
 //	}
-func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *remote.Host, options ...Option) (*Component, []pulumi.Resource, error) {
+func NewActiveDirectory(ctx *pulumi.Context, e config.Env, host *remote.Host, options ...Option) (*Component, []pulumi.Resource, error) {
 	if host.OS.Descriptor().Family() != os.WindowsFamily {
 		// Print flavor in case OS family don't match, as it's more precise than the family (and the .String() conversion already exists).
 		return nil, nil, fmt.Errorf("wrong Operating System family, expected Windows, got %s", host.OS.Descriptor().Flavor.String())
@@ -74,7 +74,7 @@ func NewActiveDirectory(ctx *pulumi.Context, e *config.CommonEnvironment, host *
 	}
 
 	domainControllerComp, err := components.NewComponent(*e, host.Name(), func(comp *Component) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 		adCtx.comp = comp
 

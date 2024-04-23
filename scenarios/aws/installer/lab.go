@@ -91,7 +91,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Install the installer
 		_, err = updater.NewHostUpdaterWithPackages(
-			env.GetCommonEnvironment(),
+			&env,
 			vm,
 			vmArgs.packageNames,
 			withInstallerOption(env.AgentAPIKey(), vm.Name(), env.Site()),

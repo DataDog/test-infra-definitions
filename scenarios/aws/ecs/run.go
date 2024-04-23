@@ -89,7 +89,7 @@ func Run(ctx *pulumi.Context) error {
 	var fakeIntake *fakeintakeComp.Fakeintake
 	// Create task and service
 	if awsEnv.AgentDeploy() {
-		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+		if awsEnv.AgentUseFakeintake() {
 			fakeIntakeOptions := []fakeintake.Option{}
 			if awsEnv.InfraShouldDeployFakeintakeWithLB() {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())

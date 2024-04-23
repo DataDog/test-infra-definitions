@@ -92,12 +92,12 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 
 		env.CommonEnvironment = &commonEnv
 	}
-	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
+	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
-			Tags: env.CommonEnvironment.ResourcesTags(),
+			Tags: env.ResourcesTags(),
 		},
 		SkipCredentialsValidation: pulumi.BoolPtr(false),
 		SkipMetadataApiCheck:      pulumi.BoolPtr(false),

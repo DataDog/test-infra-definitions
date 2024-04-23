@@ -14,11 +14,11 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, testURL string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, testURL string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", "npm-tools", k8sComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", "npm-tools", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
@@ -35,7 +35,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "curl-dig", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), "curl-dig", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("curl-dig"),
 			Namespace: pulumi.String(namespace),

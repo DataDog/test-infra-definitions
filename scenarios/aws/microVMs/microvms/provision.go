@@ -48,7 +48,7 @@ func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]stri
 	var config strings.Builder
 	for _, subnet := range subnets {
 		pattern := getMicroVMGroupSubnetPattern(subnet)
-		fmt.Fprintf(&config, "Host %s\nIdentityFile %s\nUser root\nStrictHostKeyChecking no\n", pattern, filepath.Join(GetWorkingDirectory(), "ddvm_rsa"))
+		fmt.Fprintf(&config, "Host %s\nIdentityFile %s\nUser root\nStrictHostKeyChecking no\n", pattern, filepath.Join(GetWorkingDirectory(instance.Arch), "ddvm_rsa"))
 	}
 	args := command.Args{
 		Create: pulumi.Sprintf(`echo -e "%s" | tee /home/ubuntu/.ssh/config && chmod 600 /home/ubuntu/.ssh/config`, config.String()),
@@ -62,7 +62,7 @@ func setupMicroVMSSHConfig(instance *Instance, subnets map[vmconfig.VMSetID]stri
 
 func readMicroVMSSHKey(instance *Instance, depends []pulumi.Resource) (pulumi.StringOutput, []pulumi.Resource, error) {
 	args := command.Args{
-		Create: pulumi.Sprintf("cat %s", filepath.Join(GetWorkingDirectory(), "ddvm_rsa")),
+		Create: pulumi.Sprintf("cat %s", filepath.Join(GetWorkingDirectory(instance.Arch), "ddvm_rsa")),
 	}
 	done, err := instance.runner.RemoteCommand(instance.instanceNamer.ResourceName("read-microvm-ssh-key"), &args, pulumi.DependsOn(depends))
 	if err != nil {
@@ -126,7 +126,7 @@ func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer
 		}
 
 		args := command.Args{
-			Create: pulumi.Sprintf("echo -e '{\n\t\"data-root\":\"%s\"\n}' > /etc/docker/daemon.json && sudo systemctl restart docker", d.Mountpoint),
+			Create: pulumi.Sprintf("mkdir -p /etc/docker && echo -e '{\n\t\"data-root\":\"%s\"\n}' > /etc/docker/daemon.json && sudo systemctl restart docker", d.Mountpoint),
 			Sudo:   true,
 		}
 		done, err := runner.Command(namer.ResourceName("set-docker-data-root"), &args, pulumi.DependsOn(depends))
@@ -140,6 +140,19 @@ func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer
 	}
 
 	return waitFor, nil
+}
+
+func enableNFSConnKiller(runner *Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	args := command.Args{
+		Create: pulumi.Sprintf("systemctl enable --now kill-dead-nfs-connections.timer"),
+		Sudo:   true,
+	}
+	done, err := runner.Command(namer.ResourceName("enable-nfs-conn-killer"), &args, pulumi.DependsOn(depends))
+	if err != nil {
+		return nil, err
+	}
+
+	return []pulumi.Resource{done}, nil
 }
 
 // This function provisions the metal instance for setting up libvirt based micro-vms.
@@ -218,13 +231,13 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 					return nil, err
 				}
 
-				pc := createProxyConnection(pulumi.String(domain.ip), "root", microVMSSHKey, conn.ToConnectionOutput())
+				pc := createProxyConnection(domain.ip, "root", microVMSSHKey, conn.ToConnectionOutput())
 				remoteRunner, err := command.NewRunner(
 					collection.instance.e,
 					command.RunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     pc,
-						ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.ip),
+						ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.domainID),
 						OSCommand:      command.NewUnixOSCommand(),
 					},
 				)
@@ -275,7 +288,7 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 				}
 
 				// create new ssh connection to build proxy
-				conn, err := remoteComp.NewConnection(pulumi.String(domain.ip), "root", filepath.Join(GetWorkingDirectory(), "ddvm_rsa"), "", "")
+				conn, err := remoteComp.NewConnection(domain.ip, "root", filepath.Join(GetWorkingDirectory(domain.vmset.Arch), "ddvm_rsa"), "", "")
 				if err != nil {
 					return nil, err
 				}
@@ -293,6 +306,14 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 					return nil, err
 				}
 				microVMRunner := NewRunner(WithRemoteRunner(remoteRunner))
+
+				if collection.instance.IsMacOSHost() {
+					nfsConnKillerDone, err := enableNFSConnKiller(microVMRunner, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+					if err != nil {
+						return nil, err
+					}
+					waitFor = append(waitFor, nfsConnKillerDone...)
+				}
 
 				mountDisksDone, err := mountMicroVMDisks(microVMRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 				if err != nil {

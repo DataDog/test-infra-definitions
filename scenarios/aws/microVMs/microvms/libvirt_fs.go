@@ -72,7 +72,7 @@ func NewLibvirtFSDistroRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	defaultPool := pools[resources.DefaultPool]
 	for _, k := range vmset.Kernels {
 		imageName := defaultPool.Name() + "-" + k.Tag
-		imagePath := filepath.Join(filepath.Join(GetWorkingDirectory(), "rootfs"), k.Dir)
+		imagePath := filepath.Join(GetWorkingDirectory(vmset.Arch), "rootfs", k.Dir)
 		vol := NewLibvirtVolume(
 			defaultPool,
 			filesystemImage{
@@ -141,7 +141,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 
 	baseVolumeMap := make(map[string][]LibvirtVolume)
 	imageName := vmset.Img.ImageName
-	path := filepath.Join(filepath.Join(GetWorkingDirectory(), "rootfs"), imageName)
+	path := filepath.Join(filepath.Join(GetWorkingDirectory(vmset.Arch), "rootfs"), imageName)
 	vol := NewLibvirtVolume(
 		pools[resources.DefaultPool],
 		filesystemImage{

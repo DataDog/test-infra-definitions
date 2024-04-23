@@ -169,7 +169,7 @@ func Run(ctx *pulumi.Context) error {
 		// Building Kubernetes provider
 		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx(), awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 			EnableServerSideApply: pulumi.BoolPtr(true),
-			Kubeconfig:            utils.KubeconfigToJSON(cluster.Kubeconfig),
+			Kubeconfig:            cluster.KubeconfigJson,
 		}, awsEnv.WithProviders(config.ProviderAWS), pulumi.DependsOn(nodeGroups))
 		if err != nil {
 			return err
@@ -245,7 +245,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-nginx", "", dependsOnCrd); err != nil {
 				return err
 			}
 
@@ -275,7 +275,7 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-mutated"); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
 				return err
 			}
 		}

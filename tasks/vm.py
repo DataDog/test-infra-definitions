@@ -31,6 +31,7 @@ scenario_name = "aws/vm"
         "interactive": doc.interactive,
         "use_aws_vault": doc.use_aws_vault,
         "instance_type": doc.instance_type,
+        "no_verify": doc.no_verify,
     }
 )
 def create_vm(
@@ -50,6 +51,7 @@ def create_vm(
     use_aws_vault: Optional[bool] = True,
     interactive: Optional[bool] = True,
     instance_type: Optional[str] = None,
+    no_verify: Optional[bool] = False,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -57,6 +59,7 @@ def create_vm(
 
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
+    deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
     extra_flags["ddinfra:osDescriptor"] = f"{os_family}::{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
@@ -88,6 +91,7 @@ def create_vm(
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
         use_aws_vault=use_aws_vault,
+        deploy_job=deploy_job,
     )
 
     if interactive:
@@ -151,7 +155,7 @@ def _clean_known_hosts(host: str) -> None:
     Remove the host from the known_hosts file.
     """
     home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    with open(f"{home}/.ssh/known_hosts", "r") as f:
+    with open(f"{home}/.ssh/known_hosts") as f:
         lines = f.readlines()
     filtered_lines = [line for line in lines if not line.startswith(host)]
     with open(f"{home}/.ssh/known_hosts", "w") as f:

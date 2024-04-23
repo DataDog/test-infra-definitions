@@ -18,8 +18,8 @@ import (
 )
 
 const (
-	kindReadinessWait     = "60s"
-	kindNodeImageRegistry = "kindest/node"
+	kindReadinessWait = "60s"
+	kindNodeImageName = "kindest/node"
 )
 
 //go:embed kind-cluster.yaml
@@ -33,17 +33,12 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
-		curlCommand, err := packageManager.Ensure("curl", nil, opts...)
+		curlCommand, err := packageManager.Ensure("curl", nil, "", opts...)
 		if err != nil {
 			return err
 		}
 
-		shouldInstallDocker := true
-		// docker is installed by default on Amazon Linux ECS
-		if vm.OS.Descriptor().Flavor == os.AmazonLinuxECS {
-			shouldInstallDocker = false
-		}
-		_, dockerInstallCmd, err := docker.NewManager(env, vm, shouldInstallDocker, opts...)
+		_, dockerInstallCmd, err := docker.NewManager(env, vm, opts...)
 		if err != nil {
 			return err
 		}
@@ -77,7 +72,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s:%s", kindNodeImageRegistry, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.CloudProviderEnvironment.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{

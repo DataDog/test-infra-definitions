@@ -4,12 +4,14 @@ import (
 	"fmt"
 	"path"
 
+	"github.com/DataDog/datadog-agent/pkg/util/optional"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
+	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -80,7 +82,7 @@ func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, bas
 	configFiles := make(map[string]pulumi.StringInput)
 
 	// Update core Agent
-	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, afterInstallOpts...)
+	_, content, err := h.updateCoreAgentConfig(env, "datadog.yaml", pulumi.String(params.AgentConfig), params.ExtraAgentConfig, params.SkipAPIKeyInConfig, afterInstallOpts...)
 	if err != nil {
 		return err
 	}
@@ -130,12 +132,15 @@ func (h *HostAgent) updateCoreAgentConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,
+	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, pulumi.StringInput, error) {
 	for _, extraConfig := range extraAgentConfig {
 		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
 	}
-	configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	if !skipAPIKeyInConfig {
+		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	}
 
 	cmd, err := h.updateConfig(configPath, configContent, opts...)
 	return cmd, configContent, err
@@ -197,7 +202,7 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 		configFolder := h.manager.getAgentConfigFolder()
 		fullPath := path.Join(configFolder, filePath)
 
-		cmd, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, opts...)
+		cmd, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, fileDef.Permissions, opts...)
 		if err != nil {
 			return nil, "", err
 		}
@@ -209,7 +214,7 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 			return nil, "", fmt.Errorf("failed to write file: \"%s\" is not an absolute filepath", fullPath)
 		}
 
-		cmd, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, opts...)
+		cmd, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, fileDef.Permissions, opts...)
 		if err != nil {
 			return nil, "", err
 		}
@@ -223,6 +228,7 @@ func (h *HostAgent) writeFileDefinition(
 	fullPath string,
 	content string,
 	useSudo bool,
+	perms optional.Option[perms.FilePermissions],
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, error) {
 	// create directory, if it does not exist
@@ -235,5 +241,20 @@ func (h *HostAgent) writeFileDefinition(
 	if err != nil {
 		return nil, err
 	}
+
+	// Set permissions if any
+	if value, found := perms.Get(); found {
+		if cmd := value.SetupPermissionsCommand(fullPath); cmd != "" {
+			return h.host.OS.Runner().Command(
+				h.namer.ResourceName("set-permissions-"+fullPath, utils.StrHash(cmd)),
+				&command.Args{
+					Create: pulumi.String(cmd),
+					Delete: pulumi.String(value.ResetPermissionsCommand(fullPath)),
+					Update: pulumi.String(value.ResetPermissionsCommand(fullPath)),
+				},
+				utils.PulumiDependsOn(copyCmd))
+		}
+	}
+
 	return copyCmd, nil
 }

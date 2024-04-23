@@ -5,9 +5,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/DataDog/datadog-agent/pkg/util/optional"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -22,18 +24,23 @@ import (
 //   - [WithAgentConfig]
 //   - [WithSystemProbeConfig]
 //   - [WithSecurityAgentConfig]
-//   - [WithFile]
 //   - [WithIntegration]
+//   - [WithFile]
 //   - [WithTelemetry]
-//   - [WithFakeintake]
+//   - [WithPulumiResourceOptions]
+//   - [withIntakeHostname]
 //   - [WithIntakeHostname]
+//   - [WithFakeintake]
 //   - [WithLogs]
+//   - [WithAdditionalInstallParameters]
+//   - [WithSkipAPIKeyInConfig]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type FileDefinition struct {
-	Content string
-	UseSudo bool
+	Content     string
+	UseSudo     bool
+	Permissions optional.Option[perms.FilePermissions]
 }
 
 type Params struct {
@@ -48,6 +55,7 @@ type Params struct {
 	// This is a list of additional installer flags that can be used to pass installer-specific
 	// parameters like the MSI flags.
 	AdditionalInstallParameters []string
+	SkipAPIKeyInConfig          bool
 }
 
 type Option = func(*Params) error
@@ -57,7 +65,7 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 		Integrations: make(map[string]*FileDefinition),
 		Files:        make(map[string]*FileDefinition),
 	}
-	defaultVersion := WithLatest()
+	defaultVersion := WithLatestNightly()
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
@@ -72,7 +80,15 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 func WithLatest() func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Major = "7"
-		p.Version.BetaChannel = false
+		p.Version.Channel = StableChannel
+		return nil
+	}
+}
+
+func WithLatestNightly() func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Major = "7"
+		p.Version.Channel = NightlyChannel
 		return nil
 	}
 }
@@ -115,11 +131,16 @@ func parseVersion(s string) (PackageVersion, error) {
 		}
 	}
 	version.Minor = strings.TrimPrefix(s, prefix)
-	version.BetaChannel = strings.Contains(s, "~")
+
+	version.Channel = StableChannel
+	if strings.Contains(s, "~") {
+		version.Channel = BetaChannel
+	}
+
 	return version, nil
 }
 
-// WithAgentConfig sets the configuration of the Agent. `{{API_KEY}}` can be used as a placeholder for the API key.
+// WithAgentConfig sets the configuration of the Agent.
 func WithAgentConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		p.AgentConfig = config
@@ -157,10 +178,16 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 
 // WithFile adds a file with contents to the install at the given path. This should only be used when the agent needs to be restarted after writing the file.
 func WithFile(absolutePath string, content string, useSudo bool) func(*Params) error {
+	return WithFileWithPermissions(absolutePath, content, useSudo, optional.NewNoneOption[perms.FilePermissions]())
+}
+
+// WithFileWithPermissions adds a file like WithFile but we can predefine the permissions of the file.
+func WithFileWithPermissions(absolutePath string, content string, useSudo bool, perms optional.Option[perms.FilePermissions]) func(*Params) error {
 	return func(p *Params) error {
 		p.Files[absolutePath] = &FileDefinition{
-			Content: content,
-			UseSudo: useSudo,
+			Content:     content,
+			UseSudo:     useSudo,
+			Permissions: perms,
 		}
 		return nil
 	}
@@ -261,6 +288,14 @@ func WithLogs() func(*Params) error {
 func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
 	return func(p *Params) error {
 		p.AdditionalInstallParameters = parameters
+		return nil
+	}
+}
+
+// WithSkipAPIKeyInConfig does not add the API key in the Agent configuration file.
+func WithSkipAPIKeyInConfig() func(*Params) error {
+	return func(p *Params) error {
+		p.SkipAPIKeyInConfig = true
 		return nil
 	}
 }

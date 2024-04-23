@@ -44,6 +44,7 @@ const (
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
+	DDAgentSite                          = "site"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -118,6 +119,7 @@ type CloudEnv interface {
 
 type CloudProviderEnvironment interface {
 	InternalRegistry() string
+	InternalDockerhubMirror() string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
@@ -265,6 +267,10 @@ func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
 
 func (e *CommonEnvironment) AgentUseFakeintake() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
+}
+
+func (e *CommonEnvironment) Site() string {
+	return e.AgentConfig.Get(DDAgentSite)
 }
 
 // Testing workload namespace

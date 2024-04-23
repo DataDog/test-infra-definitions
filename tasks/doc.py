@@ -6,13 +6,11 @@ install_workload: str = f"Install test workload (default {tool.get_default_workl
 pipeline_id: str = (
     "The pipeline id of the custom Agent build for example '16497585' (may be taken form the gitlab url)'"
 )
+job_name: str = "Name of the job within the agent pipeline for example 'deploy_deb_testing-a7_x64'"
 agent_version: str = "The version of the Agent for example '7.42.0~rc.1-1' or '6.39.0 (default `latest`)'"
 container_agent_version: str = "The container version of the Agent for example '7.45.0-rc.3' (default `latest`)'"
 stack_name: str = "An optional name for the stack. This parameter is useful when you need to create several environments. Note: 'invoke destroy' may not work properly"
 debug: str = "Launch pulumi with debug mode. Default False"
-stack_name: str = (
-    "An optional name for the stack. This parameter is useful when you need to create several environments."
-)
 os_family: str = (
     f"The operating system. Possible values are {tool.get_os_families()}. Default '{tool.get_default_os_family()}'"
 )
@@ -31,4 +29,6 @@ config_path: str = "Specify a custom config path to use"
 use_loadBalancer: str = "Use a loadBalancer to instantiate the fakeintake (default False)"
 clean_known_hosts: str = "Clean the host from ssh known_hosts file after destroying the VM (default True)"
 instance_type: str = "The instance type to use (default is t3.medium for aws or Standard_B4ms for azure)"
+no_verify: str = "Do not verify deploy jobs before creating vm"
 debug: str = "Check for common errors in your environment setup and configuration (defualt False)"
+site: str = "Datadog site to contact (default 'datad0g.com')"

@@ -11,12 +11,14 @@ const (
 	ddMicroVMX86LibvirtSSHKeyFile = "libvirtSSHKeyFileX86"
 	ddMicroVMArmLibvirtSSHKeyFile = "libvirtSSHKeyFileArm"
 
-	DDMicroVMProvisionEC2Instance = "provision"
-	DDMicroVMX86AmiID             = "x86AmiID"
-	DDMicroVMArm64AmiID           = "arm64AmiID"
-	DDMicroVMConfigFile           = "microVMConfigFile"
-	DDMicroVMWorkingDirectory     = "workingDir"
-	DDMicroVMShutdownPeriod       = "shutdownPeriod"
+	DDMicroVMProvisionEC2Instance   = "provision-instance"
+	DDMicroVMProvisionDomain        = "provision-microvms"
+	DDMicroVMX86AmiID               = "x86AmiID"
+	DDMicroVMArm64AmiID             = "arm64AmiID"
+	DDMicroVMConfigFile             = "microVMConfigFile"
+	DDMicroVMLocalWorkingDirectory  = "localWorkingDir"
+	DDMicroVMRemoteWorkingDirectory = "remoteWorkingDir"
+	DDMicroVMShutdownPeriod         = "shutdownPeriod"
 )
 
 var SSHKeyConfigNames = map[string]string{

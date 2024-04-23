@@ -11,4 +11,5 @@
 
 *                                       @DataDog/agent-e2e-testing
 /scenarios/aws/microVMs/                @DataDog/ebpf-platform
+/scenarios/aws/installer/               @DataDog/fleet
 /components/datadog/apps/tracegen       @DataDog/agent-apm

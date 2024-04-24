@@ -107,6 +107,12 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
+	if len(domain.domainID) >= 64 {
+		// Apparently dnsmasq silently ignores entries with names longer than 63 characters, so static IPs don't get assigned correclty
+		// and we can't connect to the VMs. We check for that case and fail loudly here instead.
+		return nil, fmt.Errorf("domain ID length %s exceeds 63 characters, this can cause problems with some libvirt components", domain.domainID)
+	}
+
 	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
 	domain.tag = kernel.Tag
 	// copy the vmset tag. The pointer refers to

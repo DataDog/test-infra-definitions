@@ -24,6 +24,7 @@ import (
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/v2/go/eks"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -102,7 +103,7 @@ func Run(ctx *pulumi.Context) error {
 			Fargate:                      fargateProfile,
 			ClusterSecurityGroup:         clusterSG,
 			NodeAssociatePublicIpAddress: pulumi.BoolRef(false),
-			PrivateSubnetIds:             awsEnv.RandomSubnets(),
+			PrivateSubnetIds:             pulumi.ToStringArray(awsEnv.DefaultSubnets()),
 			VpcId:                        pulumi.StringPtr(awsEnv.DefaultVPCID()),
 			SkipDefaultNodeGroup:         pulumi.BoolRef(true),
 			// The content of the aws-auth map is the merge of `InstanceRoles` and `RoleMappings`.
@@ -128,18 +129,86 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
+		// Building Kubernetes provider
+		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
+			Kubeconfig:            cluster.KubeconfigJson,
+			EnableServerSideApply: pulumi.BoolPtr(true),
+			DeleteUnreachable:     pulumi.BoolPtr(true),
+		}, awsEnv.WithProviders(config.ProviderAWS))
+		if err != nil {
+			return err
+		}
+
 		// Filling Kubernetes component from EKS cluster
 		comp.ClusterName = cluster.EksCluster.Name()
 		comp.KubeConfig = cluster.KubeconfigJson
+		comp.KubeProvider = eksKubeProvider
 
-		nodeGroups := make([]pulumi.Resource, 0)
+		// Create configuration for POD subnets if any
+		workloadDeps := make([]pulumi.Resource, 0)
+		if podSubnets := awsEnv.EKSPODSubnets(); len(podSubnets) > 0 {
+			eniConfigs, err := localEks.NewENIConfigs(awsEnv, comp.KubeProvider, podSubnets, awsEnv.DefaultSecurityGroups())
+			if err != nil {
+				return err
+			}
+
+			// Setting AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG is mandatory for EKS CNI to work with ENIConfig CRD
+			dsPatch, err := appsv1.NewDaemonSetPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-custom-network"), &appsv1.DaemonSetPatchArgs{
+				Metadata: metav1.ObjectMetaPatchArgs{
+					Namespace: pulumi.String("kube-system"),
+					Name:      pulumi.String("aws-node"),
+					Annotations: pulumi.StringMap{
+						"pulumi.com/patchForce": pulumi.String("true"),
+					},
+				},
+				Spec: appsv1.DaemonSetSpecPatchArgs{
+					Template: corev1.PodTemplateSpecPatchArgs{
+						Spec: corev1.PodSpecPatchArgs{
+							Containers: corev1.ContainerPatchArray{
+								corev1.ContainerPatchArgs{
+									Name: pulumi.StringPtr("aws-node"),
+									Env: corev1.EnvVarPatchArray{
+										corev1.EnvVarPatchArgs{
+											Name:  pulumi.String("AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG"),
+											Value: pulumi.String("true"),
+										},
+										corev1.EnvVarPatchArgs{
+											Name:  pulumi.String("ENI_CONFIG_LABEL_DEF"),
+											Value: pulumi.String("topology.kubernetes.io/zone"),
+										},
+										corev1.EnvVarPatchArgs{
+											Name:  pulumi.String("ENABLE_PREFIX_DELEGATION"),
+											Value: pulumi.String("true"),
+										},
+										corev1.EnvVarPatchArgs{
+											Name:  pulumi.String("WARM_IP_TARGET"),
+											Value: pulumi.String("1"),
+										},
+										corev1.EnvVarPatchArgs{
+											Name:  pulumi.String("MINIMUM_IP_TARGET"),
+											Value: pulumi.String("1"),
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}, pulumi.Provider(eksKubeProvider), utils.PulumiDependsOn(eniConfigs))
+			if err != nil {
+				return err
+			}
+
+			workloadDeps = append(workloadDeps, eniConfigs, dsPatch)
+		}
+
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {
 			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
 			if err != nil {
 				return err
 			}
-			nodeGroups = append(nodeGroups, ng)
+			workloadDeps = append(workloadDeps, ng)
 		}
 
 		if awsEnv.EKSLinuxARMNodeGroup() {
@@ -147,7 +216,7 @@ func Run(ctx *pulumi.Context) error {
 			if err != nil {
 				return err
 			}
-			nodeGroups = append(nodeGroups, ng)
+			workloadDeps = append(workloadDeps, ng)
 		}
 
 		if awsEnv.EKSBottlerocketNodeGroup() {
@@ -155,7 +224,7 @@ func Run(ctx *pulumi.Context) error {
 			if err != nil {
 				return err
 			}
-			nodeGroups = append(nodeGroups, ng)
+			workloadDeps = append(workloadDeps, ng)
 		}
 
 		// Create unmanaged node groups
@@ -166,16 +235,8 @@ func Run(ctx *pulumi.Context) error {
 			}
 		}
 
-		// Building Kubernetes provider
-		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
-			EnableServerSideApply: pulumi.BoolPtr(true),
-			Kubeconfig:            cluster.KubeconfigJson,
-		}, awsEnv.WithProviders(config.ProviderAWS), pulumi.DependsOn(nodeGroups))
-		if err != nil {
-			return err
-		}
-
 		// Applying necessary Windows configuration if Windows nodes
+		// Custom networking is not available for Windows nodes, using normal subnets IPs
 		if awsEnv.EKSWindowsNodeGroup() {
 			_, err := corev1.NewConfigMapPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
 				Metadata: metav1.ObjectMetaPatchArgs{
@@ -193,8 +254,6 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 		}
-
-		var dependsOnCrd pulumi.ResourceOption
 
 		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
@@ -215,13 +274,15 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Deploy the agent
+		dependsOnSetup := utils.PulumiDependsOn(workloadDeps...)
+		var dependsOnCrd pulumi.ResourceOption
 		if awsEnv.AgentDeploy() {
 			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
 				KubeProvider:  eksKubeProvider,
 				Namespace:     "datadog",
 				Fakeintake:    fakeIntake,
 				DeployWindows: awsEnv.EKSWindowsNodeGroup(),
-			}, nil)
+			}, dependsOnSetup)
 			if err != nil {
 				return err
 			}
@@ -238,7 +299,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy standalone dogstatsd
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, "", dependsOnSetup); err != nil {
 				return err
 			}
 		}
@@ -253,29 +314,29 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-cpustress"); err != nil {
+			if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-cpustress", dependsOnSetup); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnSetup); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnSetup); err != nil {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen"); err != nil {
+			if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-tracegen", dependsOnSetup); err != nil {
 				return err
 			}
 
-			if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus"); err != nil {
+			if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-prometheus", dependsOnSetup); err != nil {
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, eksKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnSetup); err != nil {
 				return err
 			}
 		}

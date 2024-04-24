@@ -60,7 +60,7 @@ func TestPostHandler(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			stdout := NewWriterMock()
 			stderr := NewWriterMock()
-			l := NewLoggerHandler(stdout, stderr)
+			l := NewLoggerHandler(&MockDialer{stdout: stdout, stderr: stderr})
 			svr := httptest.NewServer(http.HandlerFunc(l.handleRequest))
 			defer svr.Close()
 
@@ -91,7 +91,7 @@ func TestPostHandler(t *testing.T) {
 func TestPostHandler_stderr(t *testing.T) {
 	stdout := NewWriterMock()
 	stderr := NewWriterMock()
-	l := NewLoggerHandler(stdout, stderr)
+	l := NewLoggerHandler(&MockDialer{stdout: stdout, stderr: stderr})
 	svr := httptest.NewServer(http.HandlerFunc(l.handleRequest))
 	defer svr.Close()
 	jsonData := []byte(`{
@@ -141,6 +141,18 @@ func NewWriterMock() *WriterMock {
 	}
 }
 
+type MockDialer struct {
+	stdout, stderr *WriterMock
+}
+
+func (m *MockDialer) Dial() (io.Writer, io.Writer, error) {
+	return m.stdout, m.stderr, nil
+}
+
+func (m *MockDialer) Close() error {
+	return nil
+}
+
 func TestUDPSender(t *testing.T) {
 	addr, err := net.ResolveUDPAddr("udp", "127.0.0.1:0")
 	if err != nil {
@@ -184,7 +196,7 @@ func TestUDPSender(t *testing.T) {
 	}
 	defer c.Close()
 
-	lh := NewLoggerHandler(c, c)
+	lh := NewLoggerHandler(&udpDialer{target: c.RemoteAddr().String()})
 	svr := httptest.NewServer(http.HandlerFunc(lh.handleRequest))
 	defer svr.Close()
 

@@ -158,6 +158,20 @@ func agentSandboxDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				podSubnets: []DDInfraEKSPodSubnets{
+					{
+						AZ:       "us-east-1a",
+						SubnetID: "subnet-0159c891fdb0ab50b",
+					},
+					{
+						AZ:       "us-east-1b",
+						SubnetID: "subnet-01cb353bec8f2b3e6",
+					},
+					{
+						AZ:       "us-east-1d",
+						SubnetID: "subnet-0ba7fbd4fed03bbdd",
+					},
+				},
 				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
 				fargateNamespace:             "fargate",
 				linuxNodeGroup:               true,

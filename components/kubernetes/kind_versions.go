@@ -77,7 +77,7 @@ func getKindVersionConfig(kubeVersion string) (*kindConfig, error) {
 
 // kubeSupportedVersions returns a comma-separated list of supported kubernetes versions
 func kubeSupportedVersions() []string {
-	versions := make([]string, 0)
+	versions := make([]string, 0, len(kubeToKindVersion))
 
 	for kubeVersion := range kubeToKindVersion {
 		versions = append(versions, kubeVersion)

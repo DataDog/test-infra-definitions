@@ -72,7 +72,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.CloudProviderEnvironment.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{

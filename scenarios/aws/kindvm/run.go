@@ -46,7 +46,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, awsEnv.CommonNamer().ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}

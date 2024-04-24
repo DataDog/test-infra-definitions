@@ -61,7 +61,7 @@ func NewHostUpdater(e config.Env, host *remoteComp.Host, options ...agentparams.
 
 // NewHostUpdaterWithPacakges creates a new instance of a on-host Updater with packages bootstrap
 func NewHostUpdaterWithPackages(e config.Env, host *remoteComp.Host, packages []string, options ...agentparams.Option) (*HostUpdater, error) {
-	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostUpdater) error {
+	hostInstallComp, err := components.NewComponent(e, host.Name(), func(comp *HostUpdater) error {
 		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 

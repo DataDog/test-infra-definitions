@@ -114,12 +114,8 @@ type Env interface {
 	CloudEnv
 }
 type CloudEnv interface {
-	InternalRegistry() string
-}
-
-type CloudProviderEnvironment interface {
-	InternalRegistry() string
 	InternalDockerhubMirror() string
+	InternalRegistry() string
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {

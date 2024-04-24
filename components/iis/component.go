@@ -62,7 +62,7 @@ func NewServer(ctx *pulumi.Context, e *config.CommonEnvironment, host *remote.Ho
 	}
 
 	iisComponent, err := components.NewComponent(*e, host.Name(), func(comp *Component) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 
 		installIISCommand, err := host.OS.Runner().Command(comp.namer.ResourceName("install-iis"), &command.Args{

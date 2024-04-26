@@ -261,6 +261,14 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_TELEMETRY_ENABLED"),
+					"value": pulumi.String("true"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
+					"value": pulumi.String("*"),
+				},
 			},
 		},
 		"agents": pulumi.Map{
@@ -274,7 +282,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{
 						"openmetrics": map[string]interface{}{
-							"init_config": []map[string]interface{}{},
+							"init_config": map[string]interface{}{},
 							"instances": []map[string]interface{}{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",

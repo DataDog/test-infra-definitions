@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/ecsagentparams"
@@ -85,7 +87,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Add: pulumi.ToStringArray([]string{"SYS_ADMIN", "SYS_RESOURCE", "SYS_PTRACE", "NET_ADMIN", "NET_BROADCAST", "NET_RAW", "IPC_LOCK", "CHOWN"}),
 			},
 		},
-		Environment: append(append(ecs.TaskDefinitionKeyValuePairArray{
+		Environment: append(append(append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_APM_ENABLED"),
 				Value: pulumi.StringPtr("true"),
@@ -136,7 +138,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED"),
 				Value: pulumi.StringPtr("true"),
 			},
-		}, ecsAgentAdditionalEndpointsEnv(params)...), ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
+		}, ecsAgentAdditionalEndpointsEnv(params)...), ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...), ecsAgentAdditionalEnvFromConfig(e)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
 				Name:      pulumi.String("DD_API_KEY"),
@@ -245,6 +247,10 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 			Value: pulumi.Sprintf("https://%s", fakeintake.Host),
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_DD_URL"),
+			Value: pulumi.Sprintf("https://%s", fakeintake.Host),
+		},
+		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_ADDITIONAL_ENDPOINTS"),
 			Value: pulumi.Sprintf(`{"https://%s": ["FAKEAPIKEY"]}`, fakeintake.Host),
 		},
@@ -257,4 +263,19 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 			Value: pulumi.StringPtr("true"),
 		},
 	}
+}
+
+func ecsAgentAdditionalEnvFromConfig(e config.CommonEnvironment) []ecs.TaskDefinitionKeyValuePairInput {
+	extraEnvVars := e.AgentExtraEnvVars()
+	extraEnvVarsList := strings.Split(extraEnvVars, ",")
+	options := make([]ecs.TaskDefinitionKeyValuePairInput, len(extraEnvVarsList))
+
+	for _, envVar := range extraEnvVarsList {
+		envVarSplit := strings.Split(envVar, "=")
+		options = append(options, ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr(envVarSplit[0]),
+			Value: pulumi.StringPtr(envVarSplit[1]),
+		})
+	}
+	return options
 }

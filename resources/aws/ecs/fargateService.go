@@ -3,15 +3,16 @@ package ecs
 import (
 	"fmt"
 
+	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
-	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
-	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
-	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type Instance struct {
@@ -46,7 +47,7 @@ func FargateTaskDefinitionWithAgent(
 	fakeintake *fakeintake.Fakeintake,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, "", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{

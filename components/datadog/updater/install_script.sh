@@ -16,12 +16,12 @@ $sudo_cmd touch $config_file
 $sudo_cmd chmod 644 $config_file
 $sudo_cmd sh -c "echo '${AGENT_CONFIG:-api_key: 000000000}' > $config_file" # We at least need the api_key field in the config
 
-# Bootstrap pipeline version of the installer
+# Bootstrap pipeline version of the installer using the QA registry
 DD_INSTALLER_REGISTRY_AUTH="ecr"
 DD_INSTALLER_REGISTRY="669783387624.dkr.ecr.us-east-1.amazonaws.com"
 DD_INSTALLER_BOOTSTRAP_VERSION="${DD_PIPELINE_ID}"
 
-INSTALLER_BIN="/opt/datadog-installer/bin/installer/installer"
+INSTALLER_BIN="/opt/datadog-packages/datadog-installer/bin/installer/installer"
 OCI_URL_PREFIX="oci://docker.io/datadog/"
 ARCH=$(uname -m)
 KNOWN_DISTRIBUTION="(Debian|Ubuntu|RedHat|CentOS|openSUSE|Amazon|Arista|SUSE|Rocky|AlmaLinux)"
@@ -89,7 +89,7 @@ if [ "${OS}" = "Debian" ]; then
 
     $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update
     $sudo_cmd apt-get install -y --force-yes datadog-installer
-    $sudo_cmd DD_INSTALLER_REGISTRY=${DD_INSTALLER_REGISTRY} DD_INSTALLER_BOOTSTRAP_VERSION=${DD_INSTALLER_BOOTSTRAP_VERSION} DD_INSTALLER_REGISTRY_AUTH=${DD_INSTALLER_REGISTRY_AUTH} $INSTALLER_BIN bootstrap
+    $sudo_cmd DD_INSTALLER_REGISTRY="${DD_INSTALLER_REGISTRY}" DD_INSTALLER_BOOTSTRAP_VERSION="${DD_INSTALLER_BOOTSTRAP_VERSION}" DD_INSTALLER_REGISTRY_AUTH="${DD_INSTALLER_REGISTRY_AUTH}" /opt/datadog-installer/bin/installer/installer bootstrap
 
     # Only for systemd
     exit_status=0
@@ -117,7 +117,7 @@ elif [ "${OS}" = "RedHat" ]; then
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/yum.repos.d/datadog.repo"
     $sudo_cmd yum -y clean metadata
     $sudo_cmd yum -y install datadog-installer
-    $sudo_cmd DD_INSTALLER_REGISTRY=${DD_INSTALLER_REGISTRY} DD_INSTALLER_BOOTSTRAP_VERSION=${DD_INSTALLER_BOOTSTRAP_VERSION} DD_INSTALLER_REGISTRY_AUTH=${DD_INSTALLER_REGISTRY_AUTH} $INSTALLER_BIN bootstrap
+    $sudo_cmd DD_INSTALLER_REGISTRY="${DD_INSTALLER_REGISTRY}" DD_INSTALLER_BOOTSTRAP_VERSION="${DD_INSTALLER_BOOTSTRAP_VERSION}" DD_INSTALLER_REGISTRY_AUTH="${DD_INSTALLER_REGISTRY_AUTH}" /opt/datadog-installer/bin/installer/installer bootstrap
 
 elif [ "${OS}" = "SUSE" ]; then
     yum_url="yumtesting.datad0g.com/suse/testing"
@@ -131,7 +131,7 @@ elif [ "${OS}" = "SUSE" ]; then
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/zypp/repos.d/datadog.repo"
     $sudo_cmd zypper -n --gpg-auto-import-keys refresh
     $sudo_cmd zypper -n install datadog-installer
-    $sudo_cmd DD_INSTALLER_REGISTRY=${DD_INSTALLER_REGISTRY} DD_INSTALLER_BOOTSTRAP_VERSION=${DD_INSTALLER_BOOTSTRAP_VERSION} DD_INSTALLER_REGISTRY_AUTH=${DD_INSTALLER_REGISTRY_AUTH} $INSTALLER_BIN bootstrap
+    $sudo_cmd DD_INSTALLER_REGISTRY="${DD_INSTALLER_REGISTRY}" DD_INSTALLER_BOOTSTRAP_VERSION="${DD_INSTALLER_BOOTSTRAP_VERSION}" DD_INSTALLER_REGISTRY_AUTH="${DD_INSTALLER_REGISTRY_AUTH}" /opt/datadog-installer/bin/installer/installer bootstrap
 
 
     # Only for systemd

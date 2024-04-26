@@ -292,7 +292,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"agent": pulumi.Map{
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{
-							"cpu":    pulumi.String("600m"),
+							"cpu":    pulumi.String("400m"),
 							"memory": pulumi.String("500Mi"),
 						},
 						"limits": pulumi.StringMap{

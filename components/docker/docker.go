@@ -116,7 +116,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 			Environment: envVars,
 			Triggers:    runCommandTriggers,
 		},
-		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps))...,
+		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))...,
 	)
 }
 

@@ -5,7 +5,6 @@ import "github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 type ComposeInlineManifest struct {
 	Name    string
 	Content pulumi.StringInput
-	Hash    pulumi.StringInput
 }
 
 type ComposeManifest struct {

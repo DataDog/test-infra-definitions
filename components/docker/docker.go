@@ -87,7 +87,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 	}
 
 	var remoteComposePaths []string
-	runCommandTriggers := pulumi.Array{envVars}
+	manifestHashes := map[string]pulumi.StringOutput{}
 	runCommandDeps := make([]pulumi.Resource, 0)
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
@@ -102,9 +102,23 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		if err != nil {
 			return nil, err
 		}
+		manifestHashes[manifest.Name] = manifest.Content.ToStringOutput().ApplyT(func(content string) string {
+			manifestHash := utils.StrHash(content)
+			return manifestHash
+		}).(pulumi.StringOutput)
 
 		runCommandDeps = append(runCommandDeps, writeCommand)
-		runCommandTriggers = append(runCommandTriggers, manifest.Content)
+	}
+
+	mergedEnvVars := pulumi.StringMap{}
+	for k, v := range envVars {
+		mergedEnvVars[k] = v
+	}
+
+	// We include the file hashs in the environment variables to trigger a new run when the manifest changes
+	// This is a workaround to avoid a force replace with Triggers when the content of the manifest changes
+	for k, v := range manifestHashes {
+		mergedEnvVars[k] = v
 	}
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
@@ -113,8 +127,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		&command.Args{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
-			Environment: envVars,
-			Triggers:    runCommandTriggers,
+			Environment: mergedEnvVars,
 		},
 		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))...,
 	)

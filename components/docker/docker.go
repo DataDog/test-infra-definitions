@@ -115,7 +115,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		mergedEnvVars[k] = v
 	}
 
-	// We include the file hashs in the environment variables to trigger a new run when the manifest changes
+	// We include the file hashes in the environment variables to trigger an update when the manifest changes
 	// This is a workaround to avoid a force replace with Triggers when the content of the manifest changes
 	for k, v := range manifestHashes {
 		mergedEnvVars[k] = v

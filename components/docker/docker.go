@@ -118,8 +118,8 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 	// We include the file hashes in the environment variables to trigger an update when the manifest changes
 	// This is a workaround to avoid a force replace with Triggers when the content of the manifest changes
 	for k, v := range manifestHashes {
-		formatted_name := strings.ReplaceAll(strings.ToUpper(k), "-", "_")
-		mergedEnvVars[formatted_name] = v
+		formattedName := strings.ReplaceAll(strings.ToUpper(k), "-", "_")
+		mergedEnvVars[formattedName] = v
 	}
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")

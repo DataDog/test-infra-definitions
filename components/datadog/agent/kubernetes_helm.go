@@ -129,7 +129,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		linuxInstallName += "-linux"
 	}
 
-	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
+	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake)
 

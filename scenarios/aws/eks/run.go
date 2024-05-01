@@ -237,12 +237,13 @@ clusterAgent:
 `
 
 			helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
-				KubeProvider:      eksKubeProvider,
-				Namespace:         "datadog",
-				ValuesYAML:        pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(fargateInjectionCustomValues)},
-				Fakeintake:        fakeIntake,
-				DeployWindows:     awsEnv.EKSWindowsNodeGroup(),
-				ClusterAgentToken: randomClusterAgentToken,
+				KubeProvider:                   eksKubeProvider,
+				Namespace:                      "datadog",
+				ValuesYAML:                     pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(fargateInjectionCustomValues)},
+				Fakeintake:                     fakeIntake,
+				DeployWindows:                  awsEnv.EKSWindowsNodeGroup(),
+				ClusterAgentToken:              randomClusterAgentToken,
+				EnableSidecarProfileFakeIntake: true,
 			}, nil)
 			if err != nil {
 				return err

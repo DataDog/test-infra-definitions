@@ -39,6 +39,8 @@ type HelmInstallationArgs struct {
 	ClusterAgentToken         *random.RandomString
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
+	// EnableSidecarProfile is used to determine if fake intake for a sidecar profile should be configured
+	EnableSidecarProfileFakeIntake bool
 }
 
 type HelmComponent struct {
@@ -138,7 +140,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 
 	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake)
+	values.configureFakeintake(e, args.Fakeintake, args.EnableSidecarProfileFakeIntake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -163,7 +165,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake)
+		values.configureFakeintake(e, args.Fakeintake, args.EnableSidecarProfileFakeIntake)
 
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
 			RepoURL:     DatadogHelmRepo,
@@ -455,7 +457,7 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake, enableProfileFakeIntake bool) {
 	if fakeintake == nil {
 		return
 	}
@@ -512,6 +514,18 @@ func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeint
 			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
 		} else {
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
+		}
+	}
+
+	if enableProfileFakeIntake {
+		values["clusterAgent"].(pulumi.Map)["admissionController"] = pulumi.Map{
+			"agentSidecarInjection": pulumi.Map{
+				"profiles": pulumi.Array{
+					pulumi.Map{
+						"env": additionalEndpointsEnvVar,
+					},
+				},
+			},
 		}
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
-	ddv1alpha1 "github.com/DataDog/test-infra-definitions/components/kubernetes/crds/kubernetes/datadoghq/v1alpha1"
 	"github.com/Masterminds/semver"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -17,6 +16,7 @@ import (
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	policyv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/policy/v1"
 	policyv1beta1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/policy/v1beta1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/yaml"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -157,16 +157,22 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	}
 
 	if dependsOnCrd != nil {
-		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "redis", &ddv1alpha1.DatadogMetricArgs{
-			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("redis"),
-				Namespace: pulumi.String(namespace),
-				Labels: pulumi.StringMap{
-					"app": pulumi.String("redis"),
+		ddm, err := yaml.NewConfigGroup(e.Ctx, "redis", &yaml.ConfigGroupArgs{
+			Objs: []map[string]any{
+				{
+					"apiVersion": "datadoghq.com/v1alpha1",
+					"kind":       "DatadogMetric",
+					"metadata": map[string]any{
+						"name":      "redis",
+						"namespace": namespace,
+						"labels": map[string]string{
+							"app": "redis",
+						},
+					},
+					"spec": map[string]any{
+						"query": fmt.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace),
+					},
 				},
-			},
-			Spec: &ddv1alpha1.DatadogMetricSpecArgs{
-				Query: pulumi.String(fmt.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace)),
 			},
 		}, append(opts, dependsOnCrd)...)
 		if err != nil {

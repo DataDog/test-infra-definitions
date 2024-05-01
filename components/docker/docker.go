@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	composeVersion = "v2.12.2"
+	composeVersion = "v2.27.0"
 	defaultTimeout = 300
 )
 

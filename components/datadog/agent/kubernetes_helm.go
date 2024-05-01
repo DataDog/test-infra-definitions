@@ -270,6 +270,14 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_TELEMETRY_ENABLED"),
+					"value": pulumi.String("true"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
+					"value": pulumi.String("*"),
+				},
 			},
 		},
 		"agents": pulumi.Map{
@@ -283,7 +291,7 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
 					map[string]interface{}{
 						"openmetrics": map[string]interface{}{
-							"init_config": []map[string]interface{}{},
+							"init_config": map[string]interface{}{},
 							"instances": []map[string]interface{}{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",
@@ -301,11 +309,11 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"agent": pulumi.Map{
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{
-							"cpu":    pulumi.String("300m"),
+							"cpu":    pulumi.String("400m"),
 							"memory": pulumi.String("500Mi"),
 						},
 						"limits": pulumi.StringMap{
-							"cpu":    pulumi.String("500m"),
+							"cpu":    pulumi.String("1000m"),
 							"memory": pulumi.String("700Mi"),
 						},
 					},
@@ -313,12 +321,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 				"processAgent": pulumi.Map{
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{
-							"cpu":    pulumi.String("30m"),
-							"memory": pulumi.String("130Mi"),
-						},
-						"limits": pulumi.StringMap{
 							"cpu":    pulumi.String("50m"),
 							"memory": pulumi.String("150Mi"),
+						},
+						"limits": pulumi.StringMap{
+							"cpu":    pulumi.String("200m"),
+							"memory": pulumi.String("200Mi"),
 						},
 					},
 				},
@@ -326,11 +334,11 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{
 							"cpu":    pulumi.String("10m"),
-							"memory": pulumi.String("100Mi"),
+							"memory": pulumi.String("120Mi"),
 						},
 						"limits": pulumi.StringMap{
-							"cpu":    pulumi.String("50m"),
-							"memory": pulumi.String("130Mi"),
+							"cpu":    pulumi.String("200m"),
+							"memory": pulumi.String("200Mi"),
 						},
 					},
 				},
@@ -350,12 +358,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			"token": clusterAgentToken,
 			"resources": pulumi.StringMapMap{
 				"requests": pulumi.StringMap{
-					"cpu":    pulumi.String("20m"),
-					"memory": pulumi.String("70Mi"),
+					"cpu":    pulumi.String("50m"),
+					"memory": pulumi.String("150Mi"),
 				},
 				"limits": pulumi.StringMap{
-					"cpu":    pulumi.String("50m"),
-					"memory": pulumi.String("100Mi"),
+					"cpu":    pulumi.String("200m"),
+					"memory": pulumi.String("200Mi"),
 				},
 			},
 			"env": pulumi.StringMapArray{
@@ -380,12 +388,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 			},
 			"resources": pulumi.StringMapMap{
 				"requests": pulumi.StringMap{
-					"cpu":    pulumi.String("10m"),
-					"memory": pulumi.String("100Mi"),
+					"cpu":    pulumi.String("20m"),
+					"memory": pulumi.String("300Mi"),
 				},
 				"limits": pulumi.StringMap{
-					"cpu":    pulumi.String("50m"),
-					"memory": pulumi.String("130Mi"),
+					"cpu":    pulumi.String("200m"),
+					"memory": pulumi.String("400Mi"),
 				},
 			},
 		},

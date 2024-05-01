@@ -136,6 +136,14 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 				Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_COLLECTION_ENABLED"),
 				Value: pulumi.StringPtr("true"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_TELEMETRY_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_TELEMETRY_CHECKS"),
+				Value: pulumi.StringPtr("*"),
+			},
 		}, ecsAgentAdditionalEndpointsEnv(params)...), ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
@@ -198,7 +206,7 @@ func ecsLinuxAgentSingleContainerDefinition(e config.CommonEnvironment, apiKeySS
 			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 				map[string]interface{}{
 					"openmetrics": map[string]interface{}{
-						"init_configs": []map[string]interface{}{},
+						"init_config": map[string]interface{}{},
 						"instances": []map[string]interface{}{
 							{
 								"openmetrics_endpoint": "http://localhost:5000/telemetry",

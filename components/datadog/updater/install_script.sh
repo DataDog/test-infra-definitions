@@ -10,14 +10,7 @@ if [ "$UID" == "0" ]; then
 else
     sudo_cmd="sudo"
 fi
-config_file="/etc/datadog-agent/datadog.yaml"
-$sudo_cmd mkdir -p /etc/datadog-agent
-$sudo_cmd touch $config_file
-$sudo_cmd chmod 644 $config_file
-$sudo_cmd sh -c "echo '${AGENT_CONFIG:-api_key: 000000000}' > $config_file" # We at least need the api_key field in the config
 
-INSTALLER_BIN="/opt/datadog-installer/bin/installer/installer"
-OCI_URL_PREFIX="oci://docker.io/datadog/"
 ARCH=$(uname -m)
 KNOWN_DISTRIBUTION="(Debian|Ubuntu|RedHat|CentOS|openSUSE|Amazon|Arista|SUSE|Rocky|AlmaLinux)"
 DISTRIBUTION=$(lsb_release -d 2>/dev/null | grep -Eo $KNOWN_DISTRIBUTION  || grep -Eo $KNOWN_DISTRIBUTION /etc/issue 2>/dev/null || grep -Eo $KNOWN_DISTRIBUTION /etc/Eos-release 2>/dev/null || grep -m1 -Eo $KNOWN_DISTRIBUTION /etc/os-release 2>/dev/null || uname -s)
@@ -84,21 +77,6 @@ if [ "${OS}" = "Debian" ]; then
 
     $sudo_cmd DEBIAN_FRONTEND=noninteractive apt-get update
     $sudo_cmd apt-get install -y --force-yes datadog-installer
-
-    # Only for systemd
-    exit_status=0
-    $sudo_cmd systemctl status datadog-installer || exit_status=$?
-    if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
-        $sudo_cmd systemctl daemon-reload
-        $sudo_cmd systemctl stop datadog-installer
-    fi
-    # Add packages
-    for pkg in ${PACKAGES[@]}; do
-        $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
-    done
-    if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
-        $sudo_cmd systemctl start datadog-installer
-    fi
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"
     yum_repo_version="${DD_PIPELINE_ID}-i7/7"
@@ -123,19 +101,4 @@ elif [ "${OS}" = "SUSE" ]; then
     $sudo_cmd sh -c "echo -e '[datadog]\nname = Datadog, Inc.\nbaseurl = https://${yum_url}/${yum_repo_version}/${ARCH}/\nenabled=1\ngpgcheck=1\nrepo_gpgcheck=1\npriority=1\ngpgkey=${gpgkeys}' > /etc/zypp/repos.d/datadog.repo"
     $sudo_cmd zypper -n --gpg-auto-import-keys refresh
     $sudo_cmd zypper -n install datadog-installer
-
-    # Only for systemd
-    exit_status=0
-    $sudo_cmd systemctl status datadog-installer || exit_status=$?
-    if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
-        $sudo_cmd systemctl daemon-reload
-        $sudo_cmd systemctl stop datadog-installer
-    fi
-    # Add packages
-    for pkg in ${PACKAGES[@]}; do
-        $sudo_cmd $INSTALLER_BIN bootstrap --url "${OCI_URL_PREFIX}${pkg}"
-    done
-    if [ $exit_status -ne 4 ]; then # Status 4 means the unit does not exist
-        $sudo_cmd systemctl start datadog-installer
-    fi
 fi

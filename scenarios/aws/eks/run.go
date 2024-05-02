@@ -235,18 +235,6 @@ func Run(ctx *pulumi.Context) error {
 			}
 		}
 
-<<<<<<< HEAD
-		// Building Kubernetes provider
-		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx(), awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
-			EnableServerSideApply: pulumi.BoolPtr(true),
-			Kubeconfig:            cluster.KubeconfigJson,
-		}, awsEnv.WithProviders(config.ProviderAWS), pulumi.DependsOn(nodeGroups))
-		if err != nil {
-			return err
-		}
-
-=======
->>>>>>> 5942f13180e52b20deef05de8873186eca24b1d3
 		// Applying necessary Windows configuration if Windows nodes
 		// Custom networking is not available for Windows nodes, using normal subnets IPs
 		if awsEnv.EKSWindowsNodeGroup() {

@@ -78,7 +78,7 @@ def create_vm(
         else:
             extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
 
-    if ssh_user is not None:
+    if ssh_user:
         extra_flags["ddinfra:sshUser"] = ssh_user
 
     full_stack_name = deploy(

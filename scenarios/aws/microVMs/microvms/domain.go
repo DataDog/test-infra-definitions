@@ -20,6 +20,7 @@ import (
 const (
 	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
 	sharedFSMountPoint  = "/opt/kernel-version-testing"
+	maxDomainIDLength   = 64
 )
 
 func getNextVMIP(ip *net.IP) net.IP {
@@ -107,6 +108,12 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
+	if len(domain.domainID) >= maxDomainIDLength {
+		// Apparently dnsmasq silently ignores entries with names longer than 63 characters, so static IPs don't get assigned correctly
+		// and we can't connect to the VMs. We check for that case and fail loudly here instead.
+		return nil, fmt.Errorf("%s domain ID length exceeds 63 characters, this can cause problems with some libvirt components", domain.domainID)
+	}
+
 	domain.domainNamer = libvirtResourceNamer(e.Ctx(), domain.domainID)
 	domain.tag = kernel.Tag
 	// copy the vmset tag. The pointer refers to

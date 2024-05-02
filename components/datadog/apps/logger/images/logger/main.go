@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -28,6 +29,65 @@ type Message struct {
 
 type Data struct {
 	Data []Message `json:"data"`
+}
+
+type Dialer interface {
+	Dial() (io.Writer, io.Writer, error)
+	Close() error
+}
+
+type tcpDialer struct {
+	target string
+	c      *net.TCPConn
+}
+
+func (t *tcpDialer) Dial() (io.Writer, io.Writer, error) {
+	// Create a TCP sender
+	addr, err := net.ResolveTCPAddr("tcp", t.target)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	t.c, err = net.DialTCP("tcp", nil, addr)
+	if err != nil {
+		return nil, nil, err
+	}
+	return t.c, t.c, nil
+}
+
+func (t *tcpDialer) Close() error {
+	return t.c.Close()
+}
+
+type udpDialer struct {
+	target string
+	c      *net.UDPConn
+}
+
+func (u *udpDialer) Dial() (io.Writer, io.Writer, error) {
+	addr, err := net.ResolveUDPAddr("udp", u.target)
+	if err != nil {
+		return nil, nil, err
+	}
+	u.c, err = net.DialUDP("udp", nil, addr)
+	if err != nil {
+		return nil, nil, err
+	}
+	return u.c, u.c, nil
+}
+
+func (u *udpDialer) Close() error {
+	return u.c.Close()
+}
+
+type stdoutDialer struct{}
+
+func (s *stdoutDialer) Dial() (io.Writer, io.Writer, error) {
+	return os.Stdout, os.Stderr, nil
+}
+
+func (s *stdoutDialer) Close() error {
+	return nil
 }
 
 func main() {
@@ -57,45 +117,21 @@ func main() {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	var stdout, stderr io.Writer
+	var dialer Dialer
 	if useUDP {
-		// Create a UDP sender
-		addr, err := net.ResolveUDPAddr("udp", target)
-		if err != nil {
-			slog.Error("Error resolving UDP address", err)
-			os.Exit(1)
-		}
-		c, err := net.DialUDP("udp", nil, addr)
-		if err != nil {
-			slog.Error("Error dialing UDP", err)
-			os.Exit(1)
-		}
-		defer c.Close()
-		stdout = c
-		stderr = c
+		dialer = &udpDialer{target: target}
 	} else if useTCP {
-		// Create a TCP sender
-		addr, err := net.ResolveTCPAddr("tcp", target)
-		if err != nil {
-			slog.Error("Error resolving TCP address", err)
-			os.Exit(1)
-		}
-		c, err := net.DialTCP("tcp", nil, addr)
-		if err != nil {
-			slog.Error("Error dialing TCP", err)
-			os.Exit(1)
-		}
-		defer c.Close()
-		stdout = c
-		stderr = c
+		dialer = &tcpDialer{target: target}
 	} else {
-		stdout = os.Stdout
-		stderr = os.Stderr
+		dialer = &stdoutDialer{}
 	}
 
-	l := NewLoggerHandler(stdout, stderr)
+	l := NewLoggerHandler(dialer)
 	// Create an HTTP server
 	mux := http.NewServeMux()
+	mux.Handle("/healthz", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
 	mux.Handle("/", http.HandlerFunc(l.handleRequest))
 	server := &http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
@@ -153,6 +189,19 @@ func logData(pathToData string, port int) {
 
 type loggerHandler struct {
 	stdout, stderr io.Writer
+	dialer         Dialer
+	connected      atomic.Bool
+}
+
+func (l *loggerHandler) Connect() error {
+	stdout, stderr, err := l.dialer.Dial()
+	if err != nil {
+		return err
+	}
+	l.stdout = stdout
+	l.stderr = stderr
+	l.connected.Store(true)
+	return nil
 }
 
 func (l *loggerHandler) handleRequest(w http.ResponseWriter, r *http.Request) {
@@ -160,6 +209,15 @@ func (l *loggerHandler) handleRequest(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		slog.Warn("Method not allowed", "method", r.Method)
 		return
+	}
+
+	// Check if the server is connected
+	if l.connected.Load() == false {
+		if err := l.Connect(); err != nil {
+			http.Error(w, "Error connecting to server", http.StatusInternalServerError)
+			slog.Error("Error connecting to server", "error", err.Error())
+			return
+		}
 	}
 
 	// Read the request body
@@ -199,8 +257,8 @@ func (l *loggerHandler) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func NewLoggerHandler(stdout, stderr io.Writer) *loggerHandler {
-	return &loggerHandler{stdout: stdout, stderr: stderr}
+func NewLoggerHandler(dialer Dialer) *loggerHandler {
+	return &loggerHandler{dialer: dialer}
 }
 
 func decodeBase64(encoded string) (string, error) {

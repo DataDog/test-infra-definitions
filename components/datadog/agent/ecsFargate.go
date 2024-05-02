@@ -32,6 +32,14 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
 				Value: pulumi.StringPtr("high"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_TELEMETRY_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_TELEMETRY_CHECKS"),
+				Value: pulumi.StringPtr("*"),
+			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
@@ -59,7 +67,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 				map[string]interface{}{
 					"openmetrics": map[string]interface{}{
-						"init_configs": []map[string]interface{}{},
+						"init_config": map[string]interface{}{},
 						"instances": []map[string]interface{}{
 							{
 								"openmetrics_endpoint": "http://localhost:5000/telemetry",

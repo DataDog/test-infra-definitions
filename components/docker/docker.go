@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	composeVersion = "v2.12.2"
+	composeVersion = "v2.27.0"
 	defaultTimeout = 300
 )
 
@@ -85,9 +85,8 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 	if err != nil {
 		return nil, err
 	}
-
 	var remoteComposePaths []string
-	runCommandTriggers := pulumi.Array{envVars}
+	var manifestContents pulumi.StringArray
 	runCommandDeps := make([]pulumi.Resource, 0)
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
@@ -102,10 +101,18 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		if err != nil {
 			return nil, err
 		}
+		manifestContents = append(manifestContents, manifest.Content)
 
 		runCommandDeps = append(runCommandDeps, writeCommand)
-		runCommandTriggers = append(runCommandTriggers, manifest.Content)
 	}
+	contentHash := manifestContents.ToStringArrayOutput().ApplyT(func(inputs []string) string {
+		mergedContent := strings.Join(inputs, "\n")
+		return utils.StrHash(mergedContent)
+	}).(pulumi.StringOutput)
+
+	// We include a hash of the manifests content in the environment variables to trigger an update when a manifest changes
+	// This is a workaround to avoid a force replace with Triggers when the content of the manifest changes
+	envVars["CONTENT_HASH"] = contentHash
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 	return d.host.OS.Runner().Command(
@@ -114,7 +121,6 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
 			Environment: envVars,
-			Triggers:    runCommandTriggers,
 		},
 		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))...,
 	)

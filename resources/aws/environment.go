@@ -46,6 +46,7 @@ const (
 	DDInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
 
 	// AWS EKS
+	DDInfraEKSPODSubnets                   = "aws/eks/podSubnets"
 	DDInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
 	DDInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
 	DDInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
@@ -238,6 +239,12 @@ func (e *Environment) ECSLinuxBottlerocketNodeGroup() bool {
 
 func (e *Environment) ECSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsWindowsLTSCNodeGroup, e.envDefault.ddInfra.ecs.windowsLTSCNodeGroup)
+}
+
+func (e *Environment) EKSPODSubnets() []DDInfraEKSPodSubnets {
+	var arr []DDInfraEKSPodSubnets
+	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEKSPODSubnets, arr, e.envDefault.ddInfra.eks.podSubnets)
+	return resObj.([]DDInfraEKSPodSubnets)
 }
 
 func (e *Environment) EKSAllowedInboundSecurityGroups() []string {

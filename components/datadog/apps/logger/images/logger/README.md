@@ -38,4 +38,11 @@ The following is the payload that the service accepts. The service will walk thr
 * If `encoded` set to `true` then the service will assume it `base64` encoded and will decode it before logging it.
 * If `output` set to `stderr` then the service will write it to `stderr`.
 
-You can test this by `go run main.go` and then running `curl -X POST -H "Content-Type: application/json" -d @../../example_payload.json localhost:3333`
+You can test this by `go run main.go` and then running `curl -H "Content-Type: application/json" -d @../../example_payload.json localhost:3333` or use the script `send-message.sh` (post the argument/text given to it).
+
+The script `send-message.sh` will automatically create a valid payload that is then posted to logger service run. It is also include in the final docker image as `/usr/local/bin/send-message.sh` which means you can quickly post messages to a running container:
+
+```
+docker run --rm -d --name logger logger
+docker exec -it logger /usr/local/bin/send-message.sh "Bob!"
+```

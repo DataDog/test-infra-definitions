@@ -85,9 +85,8 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 	if err != nil {
 		return nil, err
 	}
-
 	var remoteComposePaths []string
-	manifestHashes := map[string]pulumi.StringOutput{}
+	var manifestContents pulumi.StringArray
 	runCommandDeps := make([]pulumi.Resource, 0)
 	for _, manifest := range composeManifests {
 		remoteComposePath := path.Join(composePath, fmt.Sprintf("docker-compose-%s.yml", manifest.Name))
@@ -102,25 +101,18 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		if err != nil {
 			return nil, err
 		}
-		manifestHashes[manifest.Name] = manifest.Content.ToStringOutput().ApplyT(func(content string) string {
-			manifestHash := utils.StrHash(content)
-			return manifestHash
-		}).(pulumi.StringOutput)
+		manifestContents = append(manifestContents, manifest.Content)
 
 		runCommandDeps = append(runCommandDeps, writeCommand)
 	}
+	contentHash := manifestContents.ToStringArrayOutput().ApplyT(func(inputs []string) string {
+		mergedContent := strings.Join(inputs, "\n")
+		return utils.StrHash(mergedContent)
+	}).(pulumi.StringOutput)
 
-	mergedEnvVars := pulumi.StringMap{}
-	for k, v := range envVars {
-		mergedEnvVars[k] = v
-	}
-
-	// We include the file hashes in the environment variables to trigger an update when the manifest changes
+	// We include a hash of the manifest contents in the environment variables to trigger an update when a manifest changes
 	// This is a workaround to avoid a force replace with Triggers when the content of the manifest changes
-	for k, v := range manifestHashes {
-		formattedName := strings.ReplaceAll(strings.ToUpper(k), "-", "_")
-		mergedEnvVars[formattedName] = v
-	}
+	envVars["CONTENT_HASH"] = contentHash
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
 	return d.host.OS.Runner().Command(
@@ -128,7 +120,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		&command.Args{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
-			Environment: mergedEnvVars,
+			Environment: envVars,
 		},
 		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))...,
 	)

@@ -32,6 +32,7 @@ scenario_name = "aws/vm"
         "use_aws_vault": doc.use_aws_vault,
         "instance_type": doc.instance_type,
         "no_verify": doc.no_verify,
+        "ssh_user": doc.ssh_user,
     }
 )
 def create_vm(
@@ -52,6 +53,7 @@ def create_vm(
     interactive: Optional[bool] = True,
     instance_type: Optional[str] = None,
     no_verify: Optional[bool] = False,
+    ssh_user: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -75,6 +77,9 @@ def create_vm(
             extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
         else:
             extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
+
+    if ssh_user is not None:
+        extra_flags["ddinfra:sshUser"] = ssh_user
 
     full_stack_name = deploy(
         ctx,

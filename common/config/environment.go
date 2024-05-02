@@ -29,6 +29,7 @@ const (
 	DDInfraOSImageID                        = "osImageID"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
+	DDInfraSSHUser                          = "sshUser"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -139,6 +140,10 @@ func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
 		e.Ctx.Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
 	}
 	return tags
+}
+
+func (e *CommonEnvironment) InfraSSHUser() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraSSHUser, "")
 }
 
 func EnvVariableResourceTags() map[string]string {

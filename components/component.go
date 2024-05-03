@@ -77,17 +77,31 @@ func (c *Component) registerOutputs(ctx *pulumi.Context, self pulumi.ComponentRe
 				continue
 			}
 
-			if !field.Type.Implements(reflect.TypeOf((*pulumi.Input)(nil)).Elem()) {
-				return fmt.Errorf("trying to export a field that is not a pulumi.Output, field name: %s", field.Name)
+			if !isExportable(field.Type) {
+				return fmt.Errorf("trying to export a field that is not a pulumi.Input nor a component, field name: %s", field.Name)
 			}
 
 			if _, set := c.outputs[exportFieldName]; set {
 				return fmt.Errorf("cannot export field: %s as key %s is already used", field.Name, exportFieldName)
 			}
 
-			if fieldValue := compValue.FieldByIndex(field.Index).Interface(); fieldValue != nil {
-				c.outputs[exportFieldName] = fieldValue.(pulumi.Input)
+			fieldValue := compValue.FieldByIndex(field.Index).Interface()
+			if fieldValue == nil {
+				fmt.Printf("field %s is nil, skipping it\n", field.Name)
+				continue
 			}
+
+			// if field is a component, let's export its outputs
+			if field.Type.Implements(reflect.TypeOf((*component)(nil)).Elem()) {
+				if reflect.ValueOf(fieldValue).IsNil() {
+					fmt.Printf("component field %s is nil, skipping it\n", field.Name)
+					continue
+				}
+				c.outputs[exportFieldName] = fieldValue.(component).getOutputs().ToMapOutput()
+				continue
+			}
+
+			c.outputs[exportFieldName] = fieldValue.(pulumi.Input)
 		}
 	}
 
@@ -132,4 +146,10 @@ func NewComponent[C component](e config.CommonEnvironment, name string, builder 
 	}
 
 	return comp, comp.registerOutputs(e.Ctx, comp)
+}
+
+// isExportable checks if a field is exportable
+// a field is exportable if it is a pulumi.Input or a component
+func isExportable(fieldType reflect.Type) bool { //nolint:unused, used through the `component` interface
+	return fieldType.Implements(reflect.TypeOf((*pulumi.Input)(nil)).Elem()) || fieldType.Implements(reflect.TypeOf((*component)(nil)).Elem())
 }

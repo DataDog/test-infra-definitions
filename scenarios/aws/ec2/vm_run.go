@@ -89,8 +89,11 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	manager, _, err := docker.NewManager(*env.CommonEnvironment, vm, utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	manager, err := docker.NewManager(*env.CommonEnvironment, vm, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
+		return err
+	}
+	if err := manager.Export(ctx, nil); err != nil {
 		return err
 	}
 

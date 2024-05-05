@@ -120,9 +120,6 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			if err := fakeintake.Export(env.Ctx, nil); err != nil {
 				return err
 			}
-			if err != nil {
-				return err
-			}
 
 			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
 		}
@@ -132,8 +129,11 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, dockeragentparams.WithEnvironmentVariables(pulumi.StringMap{"HOST_IP": vm.Address}))
 		}
 
-		_, err = agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
+		dockerAgent, err := agent.NewDockerAgent(*env.CommonEnvironment, vm, manager, agentOptions...)
 		if err != nil {
+			return err
+		}
+		if err := dockerAgent.Export(env.Ctx, nil); err != nil {
 			return err
 		}
 	}

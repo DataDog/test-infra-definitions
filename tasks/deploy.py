@@ -94,7 +94,14 @@ def deploy(
         flags["ddagent:appKey"] = _get_app_key(cfg)
 
     return _deploy(
-        ctx, stack_name, flags, debug, use_aws_vault, cfg.get_pulumi().logLevel, cfg.get_pulumi().logToStdErr
+        ctx,
+        stack_name,
+        flags,
+        debug,
+        use_aws_vault,
+        cfg.get_pulumi().logLevel,
+        cfg.get_pulumi().logToStdErr,
+        cfg.get_pulumi().verboseProgressStreams,
     )
 
 
@@ -168,6 +175,7 @@ def _deploy(
     use_aws_vault: Optional[bool],
     log_level: Optional[int],
     log_to_stderr: Optional[bool],
+    verbose_progress_streams: Optional[bool],
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     aws_account = flags["ddinfra:env"][len("aws/") :]
@@ -196,6 +204,8 @@ def _deploy(
         global_flags += f" -v {log_level}"
         if debug:
             up_flags += " --debug"
+    if verbose_progress_streams is not None and not verbose_progress_streams:
+        up_flags += " --suppress-progress"
 
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"

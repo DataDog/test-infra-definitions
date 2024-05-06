@@ -58,6 +58,7 @@ func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *do
 		// Fill component
 		comp.DockerManager = manager
 		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
+
 		return nil
 	})
 }

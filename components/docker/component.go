@@ -41,7 +41,7 @@ func NewManager(e config.CommonEnvironment, host *remoteComp.Host, opts ...pulum
 	return components.NewComponent(e, host.Name(), func(comp *Manager) error {
 		comp.namer = e.CommonNamer.WithPrefix("docker")
 		comp.Host = host
-		comp.opts = opts
+		comp.opts = append(opts, pulumi.Parent(comp))
 
 		installCmd, err := comp.install()
 		if err != nil {

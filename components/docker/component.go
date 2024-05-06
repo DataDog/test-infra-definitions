@@ -38,7 +38,7 @@ type Manager struct {
 }
 
 func NewManager(e config.CommonEnvironment, host *remoteComp.Host, opts ...pulumi.ResourceOption) (*Manager, error) {
-	return components.NewComponent(e, host.Name()+"-dockerManager", func(comp *Manager) error {
+	return components.NewComponent(e, host.Name(), func(comp *Manager) error {
 		comp.namer = e.CommonNamer.WithPrefix("docker")
 		comp.Host = host
 		comp.opts = opts

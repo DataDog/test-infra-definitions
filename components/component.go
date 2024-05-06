@@ -121,6 +121,9 @@ func Export(ctx *pulumi.Context, c component, imp Importable) error {
 
 // Create any component type and register it as a Pulumi component
 // Passing a nil `builder` is valid and will only produce an empty component.
+// `name` is used with the reflected component type name to create a unique key
+// for the component instance.
+// For example, if the component type is `DockerAgent`, the key will be `dd-DockerAgent-<name>`
 func NewComponent[C component](e config.CommonEnvironment, name string, builder func(comp C) error, opts ...pulumi.ResourceOption) (C, error) {
 	var comp C
 

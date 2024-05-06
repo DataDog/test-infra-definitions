@@ -36,7 +36,7 @@ class Config(BaseModel, extra=Extra.forbid):
         class Pulumi(BaseModel, extra=Extra.forbid):
             logLevel: Optional[int] = None
             logToStdErr: Optional[bool] = None
-            verboseProgressStreams: Optional[bool] = None # noqa
+            verboseProgressStreams: Optional[bool] = None  # noqa
 
         pulumi: Optional[Pulumi] = None
 

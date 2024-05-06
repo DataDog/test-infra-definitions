@@ -90,7 +90,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		return nil, err
 	}
 
-	if _, err := corev1.NewService(e.Ctx, "logger", &corev1.ServiceArgs{
+	if _, err := corev1.NewService(e.Ctx(), "logger", &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("logger"),
 			Namespace: pulumi.String(namespace),

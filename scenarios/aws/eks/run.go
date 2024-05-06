@@ -130,7 +130,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Building Kubernetes provider
-		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
+		eksKubeProvider, err := kubernetes.NewProvider(awsEnv.Ctx(), awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 			Kubeconfig:            cluster.KubeconfigJson,
 			EnableServerSideApply: pulumi.BoolPtr(true),
 			DeleteUnreachable:     pulumi.BoolPtr(true),
@@ -153,7 +153,7 @@ func Run(ctx *pulumi.Context) error {
 			}
 
 			// Setting AWS_VPC_K8S_CNI_CUSTOM_NETWORK_CFG is mandatory for EKS CNI to work with ENIConfig CRD
-			dsPatch, err := appsv1.NewDaemonSetPatch(awsEnv.Ctx, awsEnv.Namer.ResourceName("eks-custom-network"), &appsv1.DaemonSetPatchArgs{
+			dsPatch, err := appsv1.NewDaemonSetPatch(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-custom-network"), &appsv1.DaemonSetPatchArgs{
 				Metadata: metav1.ObjectMetaPatchArgs{
 					Namespace: pulumi.String("kube-system"),
 					Name:      pulumi.String("aws-node"),

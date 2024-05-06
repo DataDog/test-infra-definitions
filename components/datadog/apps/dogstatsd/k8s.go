@@ -227,7 +227,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, fmt.Sprintf("dogstatsd-udp-contname-injected-%d", statsdPort), &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-udp-contname-injected-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-udp-contname-injected"),
 			Namespace: pulumi.String(namespace),

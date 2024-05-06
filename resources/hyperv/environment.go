@@ -23,7 +23,7 @@ type Environment struct {
 	Namer namer.Namer
 }
 
-var _ config.CloudProviderEnvironment = (*Environment)(nil)
+var _ config.Env = (*Environment)(nil)
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{

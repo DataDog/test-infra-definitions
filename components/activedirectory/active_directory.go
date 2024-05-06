@@ -2,6 +2,7 @@ package activedirectory
 
 import (
 	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -73,7 +74,7 @@ func NewActiveDirectory(ctx *pulumi.Context, e config.Env, host *remote.Host, op
 		pulumiContext: ctx,
 	}
 
-	domainControllerComp, err := components.NewComponent(*e, host.Name(), func(comp *Component) error {
+	domainControllerComp, err := components.NewComponent(e, host.Name(), func(comp *Component) error {
 		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 		adCtx.comp = comp

@@ -22,7 +22,7 @@ type HelmComponent struct {
 	IstioIngressHelmReleaseStatus kubeHelm.ReleaseStatusOutput
 }
 
-func NewHelmInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:istio", "istio", helmComponent, opts...); err != nil {
 		return nil, err

@@ -55,9 +55,7 @@ class Config(BaseModel, extra=Extra.forbid):
         return self.options
 
     def get_aws(self) -> Params.Aws:
-        default = Config.Params.Aws(
-            keyPairName=None, publicKeyPath=None, account=None, teamTag=None
-        )
+        default = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
         if self.configParams is None:
             return default
         if self.configParams.aws is None:

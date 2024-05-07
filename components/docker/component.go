@@ -41,7 +41,7 @@ func NewManager(e config.CommonEnvironment, host *remoteComp.Host, opts ...pulum
 	return components.NewComponent(e, host.Name(), func(comp *Manager) error {
 		comp.namer = e.CommonNamer.WithPrefix("docker")
 		comp.Host = host
-		comp.opts = append(opts, pulumi.Parent(comp))
+		comp.opts = opts
 
 		installCmd, err := comp.install()
 		if err != nil {
@@ -141,7 +141,8 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 }
 
 func (d *Manager) install() (*remote.Command, error) {
-	dockerInstall, err := d.Host.OS.PackageManager().Ensure("docker.io", nil, "docker", d.opts...)
+	opts := append(d.opts, pulumi.Parent(d))
+	dockerInstall, err := d.Host.OS.PackageManager().Ensure("docker.io", nil, "docker", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +153,7 @@ func (d *Manager) install() (*remote.Command, error) {
 			Create: pulumi.String("whoami"),
 			Sudo:   false,
 		},
-		utils.MergeOptions(d.opts, utils.PulumiDependsOn(dockerInstall))...,
+		utils.MergeOptions(opts, utils.PulumiDependsOn(dockerInstall))...,
 	)
 	if err != nil {
 		return nil, err
@@ -164,7 +165,7 @@ func (d *Manager) install() (*remote.Command, error) {
 			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami.Stdout),
 			Sudo:   true,
 		},
-		utils.MergeOptions(d.opts, utils.PulumiDependsOn(whoami))...,
+		utils.MergeOptions(opts, utils.PulumiDependsOn(whoami))...,
 	)
 	if err != nil {
 		return nil, err
@@ -174,6 +175,7 @@ func (d *Manager) install() (*remote.Command, error) {
 }
 
 func (d *Manager) installCompose() (*remote.Command, error) {
+	opts := append(d.opts, pulumi.Parent(d))
 	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl --retry 10 -fsSLo /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
 	return d.Host.OS.Runner().Command(
 		d.namer.ResourceName("install-compose"),
@@ -181,5 +183,5 @@ func (d *Manager) installCompose() (*remote.Command, error) {
 			Create: installCompose,
 			Sudo:   true,
 		},
-		d.opts...)
+		opts...)
 }

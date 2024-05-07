@@ -51,7 +51,7 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(e *config.CommonEnvironment, options ...Option) (*Params, error) {
+func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
 		AgentServiceEnvironment: pulumi.Map{},
 		EnvironmentVariables:    pulumi.StringMap{},

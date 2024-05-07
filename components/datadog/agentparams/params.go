@@ -60,7 +60,7 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
+func NewParams(env config.Env, options ...Option) (*Params, error) {
 	p := &Params{
 		Integrations: make(map[string]*FileDefinition),
 		Files:        make(map[string]*FileDefinition),

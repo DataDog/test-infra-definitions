@@ -50,20 +50,20 @@ type HelmComponent struct {
 	WindowsHelmReleaseStatus kubeHelm.ReleaseStatusOutput
 }
 
-func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	installName := "dda"
 	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
 		return nil, err
 	}
 	opts = append(opts, pulumi.Parent(helmComponent))
 
 	// Create fixed cluster agent token
-	randomClusterAgentToken, err := random.NewRandomString(e.Ctx, "datadog-cluster-agent-token", &random.RandomStringArgs{
+	randomClusterAgentToken, err := random.NewRandomString(e.Ctx(), "datadog-cluster-agent-token", &random.RandomStringArgs{
 		Lower:   pulumi.Bool(true),
 		Upper:   pulumi.Bool(true),
 		Length:  pulumi.Int(32),
@@ -75,7 +75,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	// Create namespace if necessary
-	ns, err := corev1.NewNamespace(e.Ctx, args.Namespace, &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx(), args.Namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String(args.Namespace),
 		},
@@ -86,7 +86,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
 	// Create secret if necessary
-	secret, err := corev1.NewSecret(e.Ctx, "datadog-credentials", &corev1.SecretArgs{
+	secret, err := corev1.NewSecret(e.Ctx(), "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
 			Name:      pulumi.Sprintf("%s-datadog-credentials", installName),
@@ -112,13 +112,13 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(&e, "", "")
+	agentImagePath := dockerAgentFullImagePath(e, "", "")
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
-	clusterAgentImagePath := dockerClusterAgentFullImagePath(&e, "")
+	clusterAgentImagePath := dockerClusterAgentFullImagePath(e, "")
 	if args.ClusterAgentFullImagePath != "" {
 		clusterAgentImagePath = args.ClusterAgentFullImagePath
 	}
@@ -179,7 +179,7 @@ func NewHelmInstallation(e config.CommonEnvironment, args HelmInstallationArgs, 
 		})
 	}
 
-	if err := e.Ctx.RegisterResourceOutputs(helmComponent, resourceOutputs); err != nil {
+	if err := e.Ctx().RegisterResourceOutputs(helmComponent, resourceOutputs); err != nil {
 		return nil, err
 	}
 
@@ -456,13 +456,13 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(e config.CommonEnvironment, fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake) {
 	if fakeintake == nil {
 		return
 	}
 
 	if fakeintake.Scheme != "https" {
-		e.Ctx.Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
+		e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
 	}
 
 	additionalEndpointsEnvVar := pulumi.StringMapArray{

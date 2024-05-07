@@ -91,7 +91,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 
 	for _, pool := range vm.pools {
 		libvirtPoolReady, err := pool.SetupLibvirtPool(
-			vm.instance.e.Ctx,
+			vm.instance.e.Ctx(),
 			vm.instance.runner,
 			vm.libvirtProviderFn,
 			vm.instance.Arch == LocalVMSet,
@@ -104,7 +104,7 @@ func (vm *VMCollection) SetupCollectionFilesystems(depends []pulumi.Resource) ([
 	}
 
 	for _, set := range vm.vmsets {
-		fs, err := newLibvirtFS(vm.instance.e.Ctx, &set, vm.pools)
+		fs, err := newLibvirtFS(vm.instance.e.Ctx(), &set, vm.pools)
 		if err != nil {
 			return nil, err
 		}
@@ -152,7 +152,7 @@ func (vm *VMCollection) SetupCollectionDomainConfigurations(depends []pulumi.Res
 		if !ok {
 			return nil, fmt.Errorf("failed to find filesystem for vmset %s", set.ID)
 		}
-		domains, cpusAssigned, err = GenerateDomainConfigurationsForVMSet(vm.instance.e.CommonEnvironment, vm.libvirtProviderFn, depends, &set, fs, cpusAssigned)
+		domains, cpusAssigned, err = GenerateDomainConfigurationsForVMSet(vm.instance.e, vm.libvirtProviderFn, depends, &set, fs, cpusAssigned)
 		if err != nil {
 			return nil, err
 		}
@@ -199,7 +199,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 
 	for setID, domains := range vm.domains {
 		network, err := generateNetworkResource(
-			vm.instance.e.Ctx,
+			vm.instance.e.Ctx(),
 			vm.libvirtProviderFn,
 			depends,
 			vm.instance.instanceNamer,
@@ -224,7 +224,7 @@ func (vm *VMCollection) SetupCollectionNetwork(depends []pulumi.Resource) error 
 		}
 
 		// set iptable rules for allowing ports to access NFS server
-		_, err = allowNFSPortsForBridge(vm.instance.e.Ctx, vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer, vm.subnets[setID])
+		_, err = allowNFSPortsForBridge(vm.instance.e.Ctx(), vm.instance.Arch == LocalVMSet, network.Bridge, vm.instance.runner, vm.instance.instanceNamer, vm.subnets[setID])
 		if err != nil {
 			return err
 		}
@@ -238,7 +238,7 @@ func buildLibvirtProviderFn(collection *VMCollection, depends []pulumi.Resource)
 	return func() (*libvirt.Provider, error) {
 		collection.initLibvirtProvider.Do(func() {
 			collection.provider, err = libvirt.NewProvider(
-				collection.instance.e.Ctx,
+				collection.instance.e.Ctx(),
 				collection.instance.instanceNamer.ResourceName("libvirt-provider"),
 				&libvirt.ProviderArgs{
 					Uri: collection.instance.libvirtURI,
@@ -306,7 +306,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 		addVMSets(vmsets, collection)
 
 		// builds pools once sets have been mapped
-		if err := buildCollectionPools(instance.e.Ctx, collection); err != nil {
+		if err := buildCollectionPools(instance.e.Ctx(), collection); err != nil {
 			return vmCollections, waitFor, err
 		}
 
@@ -433,7 +433,7 @@ func LaunchVMCollections(vmCollections []*VMCollection, depends []pulumi.Resourc
 		}
 		for _, dls := range collection.domains {
 			for _, domain := range dls {
-				d, err := libvirt.NewDomain(collection.instance.e.Ctx,
+				d, err := libvirt.NewDomain(collection.instance.e.Ctx(),
 					domain.domainNamer.ResourceName(domain.domainID),
 					domain.domainArgs,
 					pulumi.Provider(provider),

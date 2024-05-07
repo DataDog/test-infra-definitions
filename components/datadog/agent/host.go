@@ -37,9 +37,9 @@ func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
 }
 
 // NewHostAgent creates a new instance of a on-host Agent
-func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
-	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostAgent) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+func NewHostAgent(e config.Env, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
+	hostInstallComp, err := components.NewComponent(e, host.Name(), func(comp *HostAgent) error {
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 		comp.manager = getOSManager(host)
 
@@ -63,7 +63,7 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 	return hostInstallComp, nil
 }
 
-func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
+func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
 	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 }
 
 func (h *HostAgent) updateCoreAgentConfig(
-	env *config.CommonEnvironment,
+	env config.Env,
 	configPath string,
 	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,

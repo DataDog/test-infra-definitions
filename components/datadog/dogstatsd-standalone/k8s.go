@@ -25,18 +25,18 @@ const HostPort = 8128
 // It's not the default to avoid conflict with the agent.
 const Socket = "/var/run/datadog/dsd-standalone.socket"
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
-	if err := e.Ctx.RegisterComponentResource("dd:dogstatsd-standalone", "dogstatsd", k8sComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:dogstatsd-standalone", "dogstatsd", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
 	ns, err := corev1.NewNamespace(
-		e.Ctx,
+		e.Ctx(),
 		namespace,
 		&corev1.NamespaceArgs{
 			Metadata: metav1.ObjectMetaArgs{
@@ -150,7 +150,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd-standalone"),
-							Image: pulumi.String(dockerDogstatsdFullImagePath(&e, "gcr.io/datadoghq/dogstatsd")),
+							Image: pulumi.String(dockerDogstatsdFullImagePath(e, "gcr.io/datadoghq/dogstatsd")),
 							Ports: corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
 									ContainerPort: pulumi.Int(8125),
@@ -300,23 +300,23 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		},
 	}
 
-	if _, err := corev1.NewServiceAccount(e.Ctx, "dogstatsd-standalone", &serviceAccountArgs, opts...); err != nil {
+	if _, err := corev1.NewServiceAccount(e.Ctx(), "dogstatsd-standalone", &serviceAccountArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := v1.NewClusterRole(e.Ctx, "dogstatsd-standalone", &clusterRoleArgs, opts...); err != nil {
+	if _, err := v1.NewClusterRole(e.Ctx(), "dogstatsd-standalone", &clusterRoleArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := v1.NewClusterRoleBinding(e.Ctx, "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
+	if _, err := v1.NewClusterRoleBinding(e.Ctx(), "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := schedulingv1.NewPriorityClass(e.Ctx, "dogstatsd-standalone", &priorityClassArgs, opts...); err != nil {
+	if _, err := schedulingv1.NewPriorityClass(e.Ctx(), "dogstatsd-standalone", &priorityClassArgs, opts...); err != nil {
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDaemonSet(e.Ctx, "dogstatsd-standalone", &daemonSetArgs, opts...); err != nil {
+	if _, err := appsv1.NewDaemonSet(e.Ctx(), "dogstatsd-standalone", &daemonSetArgs, opts...); err != nil {
 		return nil, err
 	}
 

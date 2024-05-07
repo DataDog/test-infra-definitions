@@ -34,7 +34,7 @@ func NewENIConfigs(e aws.Environment, provider *kubernetes.Provider, subnets []a
 		})
 	}
 
-	return yaml.NewConfigGroup(e.Ctx, e.Namer.ResourceName("eks-eni-configs"), &yaml.ConfigGroupArgs{
+	return yaml.NewConfigGroup(e.Ctx(), e.Namer.ResourceName("eks-eni-configs"), &yaml.ConfigGroupArgs{
 		Objs: objects,
 	}, utils.MergeOptions(opts, pulumi.Providers(provider))...)
 }

@@ -16,7 +16,7 @@ const (
 	defaultAgentImageTag         = "latest"
 )
 
-func dockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath, imageTag string) string {
+func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
@@ -37,7 +37,7 @@ func dockerAgentFullImagePath(e *config.CommonEnvironment, repositoryPath, image
 	return utils.BuildDockerImagePath(repositoryPath, imageTag)
 }
 
-func dockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
+func dockerClusterAgentFullImagePath(e config.Env, repositoryPath string) string {
 	// return cluster agent image path if defined
 	if e.ClusterAgentFullImagePath() != "" {
 		return e.ClusterAgentFullImagePath()
@@ -55,7 +55,7 @@ func dockerClusterAgentFullImagePath(e *config.CommonEnvironment, repositoryPath
 	return utils.BuildDockerImagePath(repositoryPath, dockerAgentImageTag(e, config.ClusterAgentSemverVersion))
 }
 
-func dockerAgentImageTag(e *config.CommonEnvironment, semverVersion func(*config.CommonEnvironment) (*semver.Version, error)) string {
+func dockerAgentImageTag(e config.Env, semverVersion func(config.Env) (*semver.Version, error)) string {
 	// default tag
 	agentImageTag := defaultAgentImageTag
 
@@ -64,7 +64,7 @@ func dockerAgentImageTag(e *config.CommonEnvironment, semverVersion func(*config
 	if agentVersion != nil && err == nil {
 		agentImageTag = agentVersion.String()
 	} else {
-		e.Ctx.Log.Debug("Unable to parse agent version, using latest", nil)
+		e.Ctx().Log.Debug("Unable to parse agent version, using latest", nil)
 	}
 
 	return agentImageTag

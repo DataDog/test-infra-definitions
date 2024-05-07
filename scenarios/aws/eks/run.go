@@ -258,8 +258,7 @@ func Run(ctx *pulumi.Context) error {
 		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.AgentUseFakeintake() {
 			fakeIntakeOptions := []fakeintake.Option{
-				fakeintake.WithCPU(1024),
-				fakeintake.WithMemory(6144),
+				fakeintake.WithMemory(2048),
 			}
 			if awsEnv.InfraShouldDeployFakeintakeWithLB() {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())

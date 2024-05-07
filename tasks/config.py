@@ -36,7 +36,7 @@ class Config(BaseModel, extra=Extra.forbid):
         class Pulumi(BaseModel, extra=Extra.forbid):
             logLevel: Optional[int] = None
             logToStdErr: Optional[bool] = None
-            verboseProgressStreams: Optional[bool] = None  # noqa
+            verboseProgressStreams: Optional[bool] = None  # noqa used in e2e tests
 
         pulumi: Optional[Pulumi] = None
 
@@ -71,7 +71,11 @@ class Config(BaseModel, extra=Extra.forbid):
         return self.configParams.agent
 
     def get_pulumi(self) -> Params.Pulumi:
-        default = Config.Params.Pulumi(logLevel=None, logToStdErr=None)
+        default = Config.Params.Pulumi(
+            logLevel=None,
+            logToStdErr=None,
+            verboseProgressStreams=None,
+        )
         if self.configParams is None:
             return default
         if self.configParams.pulumi is None:

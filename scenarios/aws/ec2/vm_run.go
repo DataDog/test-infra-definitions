@@ -48,8 +48,12 @@ func VMRun(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
 
-		_, err = agent.NewHostAgent(&env, vm, agentOptions...)
-		return err
+		agent, err := agent.NewHostAgent(&env, vm, agentOptions...)
+		if err != nil {
+			return err
+		}
+
+		return agent.Export(ctx, nil)
 	}
 
 	if env.UpdaterDeploy() {
@@ -85,8 +89,11 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 		return err
 	}
 
-	manager, _, err := docker.NewManager(&env, vm, utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	manager, err := docker.NewManager(&env, vm, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
+		return err
+	}
+	if err := manager.Export(ctx, nil); err != nil {
 		return err
 	}
 
@@ -113,9 +120,6 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			if err := fakeintake.Export(env.Ctx(), nil); err != nil {
 				return err
 			}
-			if err != nil {
-				return err
-			}
 
 			agentOptions = append(agentOptions, dockeragentparams.WithFakeintake(fakeintake))
 		}
@@ -125,8 +129,11 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, dockeragentparams.WithEnvironmentVariables(pulumi.StringMap{"HOST_IP": vm.Address}))
 		}
 
-		_, err = agent.NewDockerAgent(&env, vm, manager, agentOptions...)
+		dockerAgent, err := agent.NewDockerAgent(&env, vm, manager, agentOptions...)
 		if err != nil {
+			return err
+		}
+		if err := dockerAgent.Export(env.Ctx(), nil); err != nil {
 			return err
 		}
 	}

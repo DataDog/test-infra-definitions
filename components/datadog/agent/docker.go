@@ -21,7 +21,8 @@ const (
 type DockerAgentOutput struct {
 	components.JSONImporter
 
-	ContainerName string `json:"containerName"`
+	DockerManager docker.ManagerOutput `json:"dockerManager"`
+	ContainerName string               `json:"containerName"`
 }
 
 // DockerAgent is a Docker installer on a remote Host
@@ -29,6 +30,7 @@ type DockerAgent struct {
 	pulumi.ResourceState
 	components.Component
 
+	DockerManager *docker.Manager     `pulumi:"dockerManager"`
 	ContainerName pulumi.StringOutput `pulumi:"containerName"`
 }
 
@@ -54,7 +56,9 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 		}
 
 		// Fill component
+		comp.DockerManager = manager
 		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
+
 		return nil
 	})
 }

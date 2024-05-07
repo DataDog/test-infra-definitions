@@ -124,7 +124,7 @@ func Export(ctx *pulumi.Context, c component, imp Importable) error {
 // `name` is used with the reflected component type name to create a unique key
 // for the component instance.
 // For example, if the component type is `DockerAgent`, the key will be `dd-DockerAgent-<name>`
-func NewComponent[C component](e config.CommonEnvironment, name string, builder func(comp C) error, opts ...pulumi.ResourceOption) (C, error) {
+func NewComponent[C component](e config.Env, name string, builder func(comp C) error, opts ...pulumi.ResourceOption) (C, error) {
 	var comp C
 
 	compType := reflect.TypeOf(comp)
@@ -135,8 +135,8 @@ func NewComponent[C component](e config.CommonEnvironment, name string, builder 
 	compName := reflect.TypeOf(comp).Elem().Name()
 	comp = reflect.New(compType.Elem()).Interface().(C)
 
-	comp.init(name, e.CommonNamer.ResourceName("dd", compName, name))
-	err := e.Ctx.RegisterComponentResource(fmt.Sprintf("dd:%s", compName), e.CommonNamer.ResourceName(name), comp, opts...)
+	comp.init(name, e.CommonNamer().ResourceName("dd", compName, name))
+	err := e.Ctx().RegisterComponentResource(fmt.Sprintf("dd:%s", compName), e.CommonNamer().ResourceName(name), comp, opts...)
 	if err != nil {
 		return comp, err
 	}
@@ -148,7 +148,7 @@ func NewComponent[C component](e config.CommonEnvironment, name string, builder 
 		}
 	}
 
-	return comp, comp.registerOutputs(e.Ctx, comp)
+	return comp, comp.registerOutputs(e.Ctx(), comp)
 }
 
 // isExportable checks if a field is exportable

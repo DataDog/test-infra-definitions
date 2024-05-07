@@ -3,6 +3,7 @@ package iis
 
 import (
 	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
@@ -50,7 +51,7 @@ func (c *Component) Export(ctx *pulumi.Context, out *Output) error {
 //		return err
 //	}
 //	err = iisServer.Export(ctx, env.IISServer)
-func NewServer(ctx *pulumi.Context, e *config.CommonEnvironment, host *remote.Host, options ...Option) (*Component, error) {
+func NewServer(ctx *pulumi.Context, e config.Env, host *remote.Host, options ...Option) (*Component, error) {
 	if host.OS.Descriptor().Family() != os.WindowsFamily {
 		// Print flavor in case OS family don't match, as it's more precise than the family (and the .String() conversion already exists).
 		return nil, fmt.Errorf("wrong Operating System family, expected Windows, got %s", host.OS.Descriptor().Flavor.String())
@@ -61,8 +62,8 @@ func NewServer(ctx *pulumi.Context, e *config.CommonEnvironment, host *remote.Ho
 		return nil, err
 	}
 
-	iisComponent, err := components.NewComponent(*e, host.Name(), func(comp *Component) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+	iisComponent, err := components.NewComponent(e, host.Name(), func(comp *Component) error {
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 
 		installIISCommand, err := host.OS.Runner().Command(comp.namer.ResourceName("install-iis"), &command.Args{

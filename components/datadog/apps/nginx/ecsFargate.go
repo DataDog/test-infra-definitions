@@ -21,7 +21,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	EcsFargateComponent := &EcsFargateComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", namer.ResourceName("grp"), EcsFargateComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("grp"), EcsFargateComponent, opts...); err != nil {
 		return nil, err
 	}
 
@@ -94,9 +94,9 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		return nil, err
 	}
 
-	if _, err := ecs.NewFargateService(e.Ctx, namer.ResourceName("server"), &ecs.FargateServiceArgs{
+	if _, err := ecs.NewFargateService(e.Ctx(), namer.ResourceName("server"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         e.CommonNamer.DisplayName(255, pulumi.String("nginx"), pulumi.String("fg")),
+		Name:         e.CommonNamer().DisplayName(255, pulumi.String("nginx"), pulumi.String("fg")),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),

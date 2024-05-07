@@ -19,7 +19,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// From here forward to whatever you want with your VM, it's the same as any other VM
-	_, err = agent.NewHostAgent(env.CommonEnvironment, vm)
+	_, err = agent.NewHostAgent(&env, vm)
 	if err != nil {
 		return err
 	}

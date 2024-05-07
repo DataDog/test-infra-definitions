@@ -10,7 +10,7 @@ import (
 )
 
 // InitHost initializes all fields of a Host component with the given connection and OS descriptor.
-func InitHost(e config.CommonEnvironment, conn remote.ConnectionOutput, osDesc os.Descriptor, osUser string, readyFunc command.ReadyFunc, host *Host) error {
+func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, osUser string, readyFunc command.ReadyFunc, host *Host) error {
 	// Determine OSCommand implementation
 	var osCommand command.OSCommand
 	if osDesc.Family() == os.WindowsFamily {

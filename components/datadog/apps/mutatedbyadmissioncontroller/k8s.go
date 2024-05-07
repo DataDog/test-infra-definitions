@@ -21,17 +21,17 @@ import (
 // Lib injection can be enabled or disabled by namespace. We use 2 separate
 // namespaces so that we can test mutation with and without lib injection
 // separately.
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespaceWithoutLibInjection string, namespaceWithLibInjection string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespaceWithoutLibInjection string, namespaceWithLibInjection string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", "mutated", k8sComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", "mutated", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
-	nsWithoutLibInjection, err := corev1.NewNamespace(e.Ctx, namespaceWithoutLibInjection, &corev1.NamespaceArgs{
+	nsWithoutLibInjection, err := corev1.NewNamespace(e.Ctx(), namespaceWithoutLibInjection, &corev1.NamespaceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespaceWithoutLibInjection),
 		},
@@ -40,7 +40,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	nsWithLibInjection, err := corev1.NewNamespace(e.Ctx, namespaceWithLibInjection, &corev1.NamespaceArgs{
+	nsWithLibInjection, err := corev1.NewNamespace(e.Ctx(), namespaceWithLibInjection, &corev1.NamespaceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespaceWithLibInjection),
 		},
@@ -62,8 +62,8 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	return k8sComponent, nil
 }
 
-func k8sDeploymentWithoutLibInjection(e config.CommonEnvironment, namespace string, name string, opts ...pulumi.ResourceOption) error {
-	_, err := appsv1.NewDeployment(e.Ctx, name, &appsv1.DeploymentArgs{
+func k8sDeploymentWithoutLibInjection(e config.Env, namespace string, name string, opts ...pulumi.ResourceOption) error {
+	_, err := appsv1.NewDeployment(e.Ctx(), name, &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String(name),
 			Namespace: pulumi.String(namespace),
@@ -99,13 +99,13 @@ func k8sDeploymentWithoutLibInjection(e config.CommonEnvironment, namespace stri
 	return err
 }
 
-func k8sDeploymentWithLibInjection(e config.CommonEnvironment, namespace string, name string, withLibAnnotation bool, opts ...pulumi.ResourceOption) error {
+func k8sDeploymentWithLibInjection(e config.Env, namespace string, name string, withLibAnnotation bool, opts ...pulumi.ResourceOption) error {
 	annotations := pulumi.StringMap{}
 	if withLibAnnotation {
 		annotations["admission.datadoghq.com/python-lib.version"] = pulumi.String("v2.7.3")
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, name, &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), name, &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String(name),
 			Namespace: pulumi.String(namespace),

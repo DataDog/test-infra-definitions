@@ -22,16 +22,16 @@ type HelmComponent struct {
 	IstioIngressHelmReleaseStatus kubeHelm.ReleaseStatusOutput
 }
 
-func NewHelmInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	helmComponent := &HelmComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:istio", "istio", helmComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:istio", "istio", helmComponent, opts...); err != nil {
 		return nil, err
 	}
 	opts = append(opts, pulumi.Parent(helmComponent))
 	optsRoot := opts
 
 	// Create namespace if necessary
-	ns, err := corev1.NewNamespace(e.Ctx, "istio-system", &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx(), "istio-system", &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String("istio-system"),
 		},
@@ -69,7 +69,7 @@ func NewHelmInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOpti
 	}
 	helmComponent.IstiodHelmReleaseStatus = istiod.Status
 
-	nsIngress, err := corev1.NewNamespace(e.Ctx, "istio-ingress", &corev1.NamespaceArgs{
+	nsIngress, err := corev1.NewNamespace(e.Ctx(), "istio-ingress", &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String("istio-ingress"),
 		},
@@ -90,11 +90,11 @@ func NewHelmInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOpti
 	helmComponent.IstioIngressHelmReleaseStatus = istioIngress.Status
 
 	// patch the default namespace to inject istio by default
-	defaultNs, err := corev1.GetNamespace(e.Ctx, "default", pulumi.ID("default"), nil, append(optsRoot, utils.PulumiDependsOn(istioIngress))...)
+	defaultNs, err := corev1.GetNamespace(e.Ctx(), "default", pulumi.ID("default"), nil, append(optsRoot, utils.PulumiDependsOn(istioIngress))...)
 	if err != nil {
 		return nil, err
 	}
-	_, err = corev1.NewNamespacePatch(e.Ctx, "default", &corev1.NamespacePatchArgs{
+	_, err = corev1.NewNamespacePatch(e.Ctx(), "default", &corev1.NamespacePatchArgs{
 		Metadata: metav1.ObjectMetaPatchArgs{
 			Name: defaultNs.Metadata.Name(),
 			Labels: pulumi.StringMap{
@@ -112,7 +112,7 @@ func NewHelmInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOpti
 		"IstioIngressHelmReleaseStatus": istioIngress.Status,
 	}
 
-	if err := e.Ctx.RegisterResourceOutputs(helmComponent, resourceOutputs); err != nil {
+	if err := e.Ctx().RegisterResourceOutputs(helmComponent, resourceOutputs); err != nil {
 		return nil, err
 	}
 
@@ -121,13 +121,13 @@ func NewHelmInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOpti
 
 func NewHttpbinServiceInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) (*corev1.Service, error) {
 	// deploy httpbin on default namespace
-	httpbinServiceAccount, err := corev1.NewServiceAccount(e.Ctx, "httpbin", &corev1.ServiceAccountArgs{
+	httpbinServiceAccount, err := corev1.NewServiceAccount(e.Ctx(), "httpbin", &corev1.ServiceAccountArgs{
 		Metadata: metav1.ObjectMetaArgs{Name: pulumi.String("httpbin")},
 	}, opts...)
 	if err != nil {
 		return nil, err
 	}
-	httpbinDeploy, err := appsv1.NewDeployment(e.Ctx, "httpbin", &appsv1.DeploymentArgs{
+	httpbinDeploy, err := appsv1.NewDeployment(e.Ctx(), "httpbin", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String("httpbin"),
 		},
@@ -167,7 +167,7 @@ func NewHttpbinServiceInstallation(e config.CommonEnvironment, opts ...pulumi.Re
 		return nil, err
 	}
 
-	httpbinService, err := corev1.NewService(e.Ctx, "httpbin", &corev1.ServiceArgs{
+	httpbinService, err := corev1.NewService(e.Ctx(), "httpbin", &corev1.ServiceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String("httpbin"),
 			Labels: pulumi.StringMap{
@@ -197,7 +197,7 @@ func NewHttpbinServiceInstallation(e config.CommonEnvironment, opts ...pulumi.Re
 
 func NewHttpbinGatewayRoutesInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) error {
 	// create the gateway
-	httpbinGateway, err := apiext.NewCustomResource(e.Ctx, "gateway", &apiext.CustomResourceArgs{
+	httpbinGateway, err := apiext.NewCustomResource(e.Ctx(), "gateway", &apiext.CustomResourceArgs{
 		ApiVersion: pulumi.String("networking.istio.io/v1alpha3"),
 		Kind:       pulumi.String("Gateway"),
 		Metadata: &metav1.ObjectMetaArgs{
@@ -226,7 +226,7 @@ func NewHttpbinGatewayRoutesInstallation(e config.CommonEnvironment, opts ...pul
 	}
 
 	// configure routes
-	virtualService, err := apiext.NewCustomResource(e.Ctx, "virtualservice", &apiext.CustomResourceArgs{
+	virtualService, err := apiext.NewCustomResource(e.Ctx(), "virtualservice", &apiext.CustomResourceArgs{
 		ApiVersion: pulumi.String("networking.istio.io/v1alpha3"),
 		Kind:       pulumi.String("VirtualService"),
 		Metadata: &metav1.ObjectMetaArgs{
@@ -269,13 +269,13 @@ func NewHttpbinGatewayRoutesInstallation(e config.CommonEnvironment, opts ...pul
 		return err
 	}
 
-	lbService, err := corev1.GetService(e.Ctx, "istio-ingress", pulumi.ID("istio-ingress/istio-ingress"), nil,
+	lbService, err := corev1.GetService(e.Ctx(), "istio-ingress", pulumi.ID("istio-ingress/istio-ingress"), nil,
 		append(opts, utils.PulumiDependsOn(virtualService))...)
 	if err != nil {
 		return err
 	}
 
-	e.Ctx.Export("serviceExternalIP", lbService.Status.LoadBalancer().Ingress())
+	e.Ctx().Export("serviceExternalIP", lbService.Status.LoadBalancer().Ingress())
 
 	return nil
 }

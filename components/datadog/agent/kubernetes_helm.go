@@ -56,7 +56,7 @@ type HelmComponent struct {
 func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
-	installName := "dda"
+	baseName := "dda"
 	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
@@ -97,7 +97,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	secret, err := corev1.NewSecret(e.Ctx(), "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
-			Name:      pulumi.Sprintf("%s-datadog-credentials", installName),
+			Name:      pulumi.Sprintf("%s-datadog-credentials", baseName),
 		},
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
@@ -133,12 +133,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
-	linuxInstallName := installName
-	if args.DeployWindows {
-		linuxInstallName += "-linux"
-	}
-
-	values := buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
+	linuxInstallName := baseName + "-linux"
+	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake, args.EnableSidecarProfileFakeIntake)
 
@@ -163,14 +159,15 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	if args.DeployWindows {
-		values := buildWindowsHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
+		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
 		values.configureFakeintake(e, args.Fakeintake, args.EnableSidecarProfileFakeIntake)
 
+		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
 			RepoURL:     DatadogHelmRepo,
 			ChartName:   "datadog",
-			InstallName: installName + "-windows",
+			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
 			ValuesYAML:  args.ValuesYAML,
 			Values:      pulumi.Map(values),
@@ -197,11 +194,11 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
+func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
 	return HelmValues{
 		"datadog": pulumi.Map{
-			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
-			"appKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
+			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"checksCardinality":    pulumi.String("high"),
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
@@ -400,12 +397,12 @@ func buildLinuxHelmValues(installName, agentImagePath, agentImageTag, clusterAge
 	}
 }
 
-func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _, _ string) HelmValues {
+func buildWindowsHelmValues(baseName string, agentImagePath, agentImageTag, _, _ string) HelmValues {
 	return HelmValues{
 		"targetSystem": pulumi.String("windows"),
 		"datadog": pulumi.Map{
-			"apiKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
-			"appKeyExistingSecret": pulumi.String(installName + "-datadog-credentials"),
+			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"checksCardinality":    pulumi.String("high"),
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
@@ -439,8 +436,8 @@ func buildWindowsHelmValues(installName string, agentImagePath, agentImageTag, _
 		},
 		"existingClusterAgent": pulumi.Map{
 			"join":                 pulumi.Bool(true),
-			"serviceName":          pulumi.String(installName + "-linux-datadog-cluster-agent"),
-			"tokenSecretName":      pulumi.String(installName + "-linux-datadog-cluster-agent"),
+			"serviceName":          pulumi.String(baseName + "-linux-datadog-cluster-agent"),
+			"tokenSecretName":      pulumi.String(baseName + "-linux-datadog-cluster-agent"),
 			"clusterchecksEnabled": pulumi.Bool(false),
 		},
 		"clusterChecksRunner": pulumi.Map{

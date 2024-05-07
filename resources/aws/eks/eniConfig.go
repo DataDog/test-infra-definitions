@@ -3,10 +3,8 @@ package eks
 import (
 	"fmt"
 
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/yaml"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -14,7 +12,7 @@ import (
 // NewENIConfigs creates ENIConfig CRDs to allow usage of custom networkwing for EKS pods when using AWS VPC CNI Plugin (default).
 // https://docs.aws.amazon.com/eks/latest/userguide/cni-custom-network.html
 // ENI = Elastic Network Interface (basically, a virtual network card)
-func NewENIConfigs(e aws.Environment, provider *kubernetes.Provider, subnets []aws.DDInfraEKSPodSubnets, securityGroups []string, opts ...pulumi.ResourceOption) (*yaml.ConfigGroup, error) {
+func NewENIConfigs(e aws.Environment, subnets []aws.DDInfraEKSPodSubnets, securityGroups []string, opts ...pulumi.ResourceOption) (*yaml.ConfigGroup, error) {
 	if len(subnets) == 0 {
 		return nil, fmt.Errorf("subnets must not be empty")
 	}
@@ -34,7 +32,5 @@ func NewENIConfigs(e aws.Environment, provider *kubernetes.Provider, subnets []a
 		})
 	}
 
-	return yaml.NewConfigGroup(e.Ctx(), e.Namer.ResourceName("eks-eni-configs"), &yaml.ConfigGroupArgs{
-		Objs: objects,
-	}, utils.MergeOptions(opts, pulumi.Providers(provider))...)
+	return yaml.NewConfigGroup(e.Ctx(), e.Namer.ResourceName("eks-eni-configs"), &yaml.ConfigGroupArgs{Objs: objects}, opts...)
 }

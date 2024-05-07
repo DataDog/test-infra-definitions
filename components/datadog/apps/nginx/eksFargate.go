@@ -22,7 +22,7 @@ type EKSFargateComponent struct {
 	pulumi.ResourceState
 }
 
-func EKSFargateAppDefinition(e config.Env, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*EKSFargateComponent, error) {
+func EKSFargateAppDefinition(e config.Env, namespace string, withDatadogAutoscaling bool, opts ...pulumi.ResourceOption) (*EKSFargateComponent, error) {
 	eksFargateComponent := &EKSFargateComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:apps", "nginx-fargate", eksFargateComponent, opts...); err != nil {
 		return nil, err
@@ -179,7 +179,7 @@ func EKSFargateAppDefinition(e config.Env, namespace string, dependsOnCrd pulumi
 		}
 	}
 
-	if dependsOnCrd != nil {
+	if withDatadogAutoscaling {
 		ddm, err := yaml.NewConfigGroup(e.Ctx(), namespace+"/nginx", &yaml.ConfigGroupArgs{
 			Objs: []map[string]any{
 				{
@@ -197,7 +197,7 @@ func EKSFargateAppDefinition(e config.Env, namespace string, dependsOnCrd pulumi
 					},
 				},
 			},
-		}, append(opts, dependsOnCrd)...)
+		}, opts...)
 		if err != nil {
 			return nil, err
 		}

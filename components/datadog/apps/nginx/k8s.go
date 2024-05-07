@@ -31,7 +31,7 @@ func runtimeClassToPulumi(runtimeClass string) pulumi.StringInput {
 
 // K8sAppDefinition defines a Kubernetes application, with a deployment, a service, a pod disruption budget and an HPA.
 // It also creates a DatadogMetric and an HPA if dependsOnCrd is not nil.
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, runtimeClass string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, runtimeClass string, withDatadogAutoscaling bool, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
@@ -201,7 +201,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		}
 	}
 
-	if dependsOnCrd != nil {
+	if withDatadogAutoscaling {
 		ddm, err := yaml.NewConfigGroup(e.Ctx(), namespace+"/nginx", &yaml.ConfigGroupArgs{
 			Objs: []map[string]any{
 				{
@@ -219,7 +219,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					},
 				},
 			},
-		}, append(opts, dependsOnCrd)...)
+		}, opts...)
 		if err != nil {
 			return nil, err
 		}

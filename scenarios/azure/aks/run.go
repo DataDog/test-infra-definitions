@@ -95,15 +95,15 @@ providers:
 
 		// Deploy testing workload
 		if env.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(&env, aksKubeProvider, "workload-nginx", "", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&env, aksKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
 				return err
 			}
 
-			if _, err := nginx.K8sAppDefinition(&env, aksKubeProvider, "workload-nginx-kata", kataRuntimeClass, dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&env, aksKubeProvider, "workload-nginx-kata", kataRuntimeClass, true, dependsOnCrd); err != nil {
 				return err
 			}
 
-			if _, err := redis.K8sAppDefinition(&env, aksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+			if _, err := redis.K8sAppDefinition(&env, aksKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
 				return err
 			}
 

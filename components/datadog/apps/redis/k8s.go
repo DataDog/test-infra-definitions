@@ -20,7 +20,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, withDatadogAutoscaling bool, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
@@ -156,7 +156,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		}
 	}
 
-	if dependsOnCrd != nil {
+	if withDatadogAutoscaling {
 		ddm, err := yaml.NewConfigGroup(e.Ctx(), "redis", &yaml.ConfigGroupArgs{
 			Objs: []map[string]any{
 				{
@@ -174,7 +174,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					},
 				},
 			},
-		}, append(opts, dependsOnCrd)...)
+		}, opts...)
 		if err != nil {
 			return nil, err
 		}

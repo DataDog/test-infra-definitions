@@ -106,18 +106,9 @@ func Run(ctx *pulumi.Context) error {
 			PrivateSubnetIds:             pulumi.ToStringArray(awsEnv.DefaultSubnets()),
 			VpcId:                        pulumi.StringPtr(awsEnv.DefaultVPCID()),
 			SkipDefaultNodeGroup:         pulumi.BoolRef(true),
-			// The content of the aws-auth map is the merge of `InstanceRoles` and `RoleMappings`.
-			// For managed node groups, we push the value in `InstanceRoles`.
-			// For unmanaged node groups, we push the value in `RoleMappings`
-			RoleMappings: eks.RoleMappingArray{
-				eks.RoleMappingArgs{
-					Groups:   pulumi.ToStringArray([]string{"system:bootstrappers", "system:nodes", "eks:kube-proxy-windows"}),
-					Username: pulumi.String("system:node:{{EC2PrivateDNSName}}"),
-					RoleArn:  windowsNodeRole.Arn,
-				},
-			},
 			InstanceRoles: awsIam.RoleArray{
 				linuxNodeRole,
+				windowsNodeRole,
 			},
 			ServiceRole: clusterRole,
 		}, pulumi.Timeouts(&pulumi.CustomTimeouts{
@@ -144,10 +135,13 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = cluster.KubeconfigJson
 		comp.KubeProvider = eksKubeProvider
 
-		// Create configuration for POD subnets if any
+		// Deps for nodes and workloads
+		nodeDeps := make([]pulumi.Resource, 0)
 		workloadDeps := make([]pulumi.Resource, 0)
+
+		// Create configuration for POD subnets if any
 		if podSubnets := awsEnv.EKSPODSubnets(); len(podSubnets) > 0 {
-			eniConfigs, err := localEks.NewENIConfigs(awsEnv, comp.KubeProvider, podSubnets, awsEnv.DefaultSecurityGroups())
+			eniConfigs, err := localEks.NewENIConfigs(awsEnv, podSubnets, awsEnv.DefaultSecurityGroups(), pulumi.Provider(eksKubeProvider))
 			if err != nil {
 				return err
 			}
@@ -199,12 +193,12 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
-			workloadDeps = append(workloadDeps, eniConfigs, dsPatch)
+			nodeDeps = append(nodeDeps, eniConfigs, dsPatch)
 		}
 
 		// Create managed node groups
 		if awsEnv.EKSLinuxNodeGroup() {
-			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole)
+			ng, err := localEks.NewLinuxNodeGroup(awsEnv, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...))
 			if err != nil {
 				return err
 			}
@@ -212,7 +206,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if awsEnv.EKSLinuxARMNodeGroup() {
-			ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole)
+			ng, err := localEks.NewLinuxARMNodeGroup(awsEnv, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...))
 			if err != nil {
 				return err
 			}
@@ -220,25 +214,17 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if awsEnv.EKSBottlerocketNodeGroup() {
-			ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole)
+			ng, err := localEks.NewBottlerocketNodeGroup(awsEnv, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...))
 			if err != nil {
 				return err
 			}
 			workloadDeps = append(workloadDeps, ng)
 		}
 
-		// Create unmanaged node groups
 		if awsEnv.EKSWindowsNodeGroup() {
-			_, err := localEks.NewWindowsUnmanagedNodeGroup(awsEnv, cluster, windowsNodeRole)
-			if err != nil {
-				return err
-			}
-		}
-
-		// Applying necessary Windows configuration if Windows nodes
-		// Custom networking is not available for Windows nodes, using normal subnets IPs
-		if awsEnv.EKSWindowsNodeGroup() {
-			_, err := corev1.NewConfigMapPatch(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
+			// Applying necessary Windows configuration if Windows nodes
+			// Custom networking is not available for Windows nodes, using normal subnets IPs
+			winCNIPatch, err := corev1.NewConfigMapPatch(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-cni-cm"), &corev1.ConfigMapPatchArgs{
 				Metadata: metav1.ObjectMetaPatchArgs{
 					Namespace: pulumi.String("kube-system"),
 					Name:      pulumi.String("amazon-vpc-cni"),
@@ -253,8 +239,16 @@ func Run(ctx *pulumi.Context) error {
 			if err != nil {
 				return err
 			}
+
+			nodeDeps = append(nodeDeps, winCNIPatch)
+			ng, err := localEks.NewWindowsNodeGroup(awsEnv, cluster, windowsNodeRole, utils.PulumiDependsOn(nodeDeps...))
+			if err != nil {
+				return err
+			}
+			workloadDeps = append(workloadDeps, ng)
 		}
 
+		// Create fakeintake if needed
 		var fakeIntake *fakeintakeComp.Fakeintake
 		if awsEnv.AgentUseFakeintake() {
 			fakeIntakeOptions := []fakeintake.Option{
@@ -273,15 +267,16 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		// Deploy the agent
-		dependsOnSetup := utils.PulumiDependsOn(workloadDeps...)
-		var dependsOnCrd pulumi.ResourceOption
+		workloadWithCRDDeps := make([]pulumi.Resource, 0, len(workloadDeps))
+		copy(workloadWithCRDDeps, workloadDeps)
+
 		if awsEnv.AgentDeploy() {
 			helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
 				KubeProvider:  eksKubeProvider,
 				Namespace:     "datadog",
 				Fakeintake:    fakeIntake,
 				DeployWindows: awsEnv.EKSWindowsNodeGroup(),
-			}, dependsOnSetup)
+			}, utils.PulumiDependsOn(workloadDeps...))
 			if err != nil {
 				return err
 			}
@@ -293,49 +288,49 @@ func Run(ctx *pulumi.Context) error {
 				ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
 			}
 
-			dependsOnCrd = utils.PulumiDependsOn(helmComponent)
+			workloadWithCRDDeps = append(workloadWithCRDDeps, helmComponent)
 		}
 
 		// Deploy standalone dogstatsd
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, "", dependsOnSetup); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, eksKubeProvider, "dogstatsd-standalone", fakeIntake, true, "", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 		}
 
 		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-nginx", "", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-nginx", "", true, utils.PulumiDependsOn(workloadWithCRDDeps...)); err != nil {
 				return err
 			}
 
-			if _, err := redis.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+			if _, err := redis.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-redis", true, utils.PulumiDependsOn(workloadWithCRDDeps...)); err != nil {
 				return err
 			}
 
-			if _, err := cpustress.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-cpustress", dependsOnSetup); err != nil {
+			if _, err := cpustress.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-cpustress", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnSetup); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnSetup); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 
-			if _, err := tracegen.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-tracegen", dependsOnSetup); err != nil {
+			if _, err := tracegen.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-tracegen", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 
-			if _, err := prometheus.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-prometheus", dependsOnSetup); err != nil {
+			if _, err := prometheus.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-prometheus", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnSetup); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-mutated", "workload-mutated-lib-injection", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
 			}
 		}

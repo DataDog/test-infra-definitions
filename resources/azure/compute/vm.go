@@ -46,7 +46,7 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 }
 
 func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, pulumi.StringOutput, error) {
-	windowsAdminPassword, err := random.NewRandomPassword(e.Ctx, e.Namer.ResourceName(name, "admin-password"), &random.RandomPasswordArgs{
+	windowsAdminPassword, err := random.NewRandomPassword(e.Ctx(), e.Namer.ResourceName(name, "admin-password"), &random.RandomPasswordArgs{
 		Length:  pulumi.Int(20),
 		Special: pulumi.Bool(true),
 	})
@@ -88,7 +88,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		return nil, nil, nil, err
 	}
 
-	publicIP, err := network.NewPublicIPAddress(e.Ctx, e.Namer.ResourceName(name), &network.PublicIPAddressArgs{
+	publicIP, err := network.NewPublicIPAddress(e.Ctx(), e.Namer.ResourceName(name), &network.PublicIPAddressArgs{
 		PublicIpAddressName:      e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName:        pulumi.String(e.DefaultResourceGroup()),
 		PublicIPAllocationMethod: pulumi.String(network.IPAllocationMethodStatic),
@@ -98,7 +98,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		return nil, nil, nil, err
 	}
 
-	nwInt, err := network.NewNetworkInterface(e.Ctx, e.Namer.ResourceName(name), &network.NetworkInterfaceArgs{
+	nwInt, err := network.NewNetworkInterface(e.Ctx(), e.Namer.ResourceName(name), &network.NetworkInterfaceArgs{
 		NetworkInterfaceName: e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName:    pulumi.String(e.DefaultResourceGroup()),
 		IpConfigurations: network.NetworkInterfaceIPConfigurationArray{
@@ -119,7 +119,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		return nil, nil, nil, err
 	}
 
-	vm, err := compute.NewVirtualMachine(e.Ctx, e.Namer.ResourceName(name), &compute.VirtualMachineArgs{
+	vm, err := compute.NewVirtualMachine(e.Ctx(), e.Namer.ResourceName(name), &compute.VirtualMachineArgs{
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
 		VmName:            e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		HardwareProfile: compute.HardwareProfileArgs{

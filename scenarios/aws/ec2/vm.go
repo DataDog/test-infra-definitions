@@ -32,8 +32,13 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		return nil, err
 	}
 
+	sshUser := amiInfo.defaultUser
+	if infraSSHUser := e.InfraSSHUser(); infraSSHUser != "" {
+		sshUser = infraSSHUser
+	}
+
 	// Create the EC2 instance
-	return components.NewComponent(*e.CommonEnvironment, e.Namer.ResourceName(name), func(c *remote.Host) error {
+	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		instanceArgs := ec2.InstanceArgs{
 			AMI:             amiInfo.id,
 			InstanceType:    vmArgs.instanceType,
@@ -48,12 +53,12 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		}
 
 		// Create connection
-		conn, err := remote.NewConnection(instance.PrivateIp, amiInfo.defaultUser, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(instance.PrivateIp, sshUser, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
 		if err != nil {
 			return err
 		}
 
-		return remote.InitHost(*e.CommonEnvironment, conn.ToConnectionOutput(), *vmArgs.osInfo, amiInfo.defaultUser, amiInfo.readyFunc, c)
+		return remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, sshUser, amiInfo.readyFunc, c)
 	})
 }
 
@@ -64,7 +69,7 @@ func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.
 	}
 
 	ecrConfigCommand, err := vm.OS.Runner().Command(
-		e.CommonNamer.ResourceName("ecr-config"),
+		e.CommonNamer().ResourceName("ecr-config"),
 		&command.Args{
 			Create: pulumi.Sprintf("mkdir -p ~/.docker && echo '{\"credsStore\": \"ecr-login\"}' > ~/.docker/config.json"),
 			Sudo:   false,

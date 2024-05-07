@@ -20,6 +20,8 @@ import (
 
 type HostAgentOutput struct {
 	components.JSONImporter
+
+	Host remoteComp.HostOutput `json:"host"`
 }
 
 // HostAgent is an installer for the Agent on a remote host
@@ -29,7 +31,8 @@ type HostAgent struct {
 
 	namer   namer.Namer
 	manager agentOSManager
-	host    *remoteComp.Host
+
+	Host *remoteComp.Host `pulumi:"host"`
 }
 
 func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
@@ -37,10 +40,10 @@ func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
 }
 
 // NewHostAgent creates a new instance of a on-host Agent
-func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
-	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostAgent) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
-		comp.host = host
+func NewHostAgent(e config.Env, host *remoteComp.Host, options ...agentparams.Option) (*HostAgent, error) {
+	hostInstallComp, err := components.NewComponent(e, host.Name(), func(comp *HostAgent) error {
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
+		comp.Host = host
 		comp.manager = getOSManager(host)
 
 		params, err := agentparams.NewParams(e, options...)
@@ -63,13 +66,13 @@ func NewHostAgent(e *config.CommonEnvironment, host *remoteComp.Host, options ..
 	return hostInstallComp, nil
 }
 
-func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
+func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
 	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
 		return err
 	}
 
-	installCmd, err := h.host.OS.Runner().Command(
+	installCmd, err := h.Host.OS.Runner().Command(
 		h.namer.ResourceName("install-agent"),
 		&command.Args{
 			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
@@ -128,7 +131,7 @@ func (h *HostAgent) installAgent(env *config.CommonEnvironment, params *agentpar
 }
 
 func (h *HostAgent) updateCoreAgentConfig(
-	env *config.CommonEnvironment,
+	env config.Env,
 	configPath string,
 	configContent pulumi.StringInput,
 	extraAgentConfig []pulumi.StringInput,
@@ -155,7 +158,7 @@ func (h *HostAgent) updateConfig(
 
 	configFullPath := path.Join(h.manager.getAgentConfigFolder(), configPath)
 
-	copyCmd, err := h.host.OS.FileManager().CopyInlineFile(configContent, configFullPath, true, opts...)
+	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(configContent, configFullPath, true, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -210,7 +213,7 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	}
 
 	for fullPath, fileDef := range files {
-		if !h.host.OS.FileManager().IsPathAbsolute(fullPath) {
+		if !h.Host.OS.FileManager().IsPathAbsolute(fullPath) {
 			return nil, "", fmt.Errorf("failed to write file: \"%s\" is not an absolute filepath", fullPath)
 		}
 
@@ -232,12 +235,12 @@ func (h *HostAgent) writeFileDefinition(
 	opts ...pulumi.ResourceOption,
 ) (*remote.Command, error) {
 	// create directory, if it does not exist
-	dirCommand, err := h.host.OS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
+	dirCommand, err := h.Host.OS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	copyCmd, err := h.host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, useSudo, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
+	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, useSudo, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +248,7 @@ func (h *HostAgent) writeFileDefinition(
 	// Set permissions if any
 	if value, found := perms.Get(); found {
 		if cmd := value.SetupPermissionsCommand(fullPath); cmd != "" {
-			return h.host.OS.Runner().Command(
+			return h.Host.OS.Runner().Command(
 				h.namer.ResourceName("set-permissions-"+fullPath, utils.StrHash(cmd)),
 				&command.Args{
 					Create: pulumi.String(cmd),

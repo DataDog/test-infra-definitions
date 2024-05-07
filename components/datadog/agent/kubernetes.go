@@ -29,7 +29,7 @@ func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput
 	return components.Export(ctx, h, out)
 }
 
-func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
+func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
 		params, err := kubernetesagentparams.NewParams(e, options...)
 		if err != nil {
@@ -37,13 +37,14 @@ func NewKubernetesAgent(e config.CommonEnvironment, resourceName string, kubePro
 		}
 
 		helmComponent, err := NewHelmInstallation(e, HelmInstallationArgs{
-			KubeProvider:              kubeProvider,
-			DeployWindows:             params.DeployWindows,
-			Namespace:                 params.Namespace,
-			ValuesYAML:                pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(params.HelmValues)},
-			Fakeintake:                params.FakeIntake,
-			AgentFullImagePath:        params.AgentFullImagePath,
-			ClusterAgentFullImagePath: params.ClusterAgentFullImagePath,
+			KubeProvider:                   kubeProvider,
+			DeployWindows:                  params.DeployWindows,
+			Namespace:                      params.Namespace,
+			ValuesYAML:                     pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(params.HelmValues)},
+			Fakeintake:                     params.FakeIntake,
+			AgentFullImagePath:             params.AgentFullImagePath,
+			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
+			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
 		}, params.PulumiResourceOptions...)
 		if err != nil {
 			return err

@@ -21,7 +21,8 @@ const (
 type DockerAgentOutput struct {
 	components.JSONImporter
 
-	ContainerName string `json:"containerName"`
+	DockerManager docker.ManagerOutput `json:"dockerManager"`
+	ContainerName string               `json:"containerName"`
 }
 
 // DockerAgent is a Docker installer on a remote Host
@@ -29,6 +30,7 @@ type DockerAgent struct {
 	pulumi.ResourceState
 	components.Component
 
+	DockerManager *docker.Manager     `pulumi:"dockerManager"`
 	ContainerName pulumi.StringOutput `pulumi:"containerName"`
 }
 
@@ -36,9 +38,9 @@ func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error 
 	return components.Export(ctx, h, out)
 }
 
-func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *docker.Manager, options ...dockeragentparams.Option) (*DockerAgent, error) {
+func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, options ...dockeragentparams.Option) (*DockerAgent, error) {
 	return components.NewComponent(e, vm.Name(), func(comp *DockerAgent) error {
-		params, err := dockeragentparams.NewParams(&e, options...)
+		params, err := dockeragentparams.NewParams(e, options...)
 		if err != nil {
 			return err
 		}
@@ -54,7 +56,9 @@ func NewDockerAgent(e config.CommonEnvironment, vm *remoteComp.Host, manager *do
 		}
 
 		// Fill component
+		comp.DockerManager = manager
 		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
+
 		return nil
 	})
 }

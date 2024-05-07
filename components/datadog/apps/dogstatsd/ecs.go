@@ -19,14 +19,14 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	ecsComponent := &EcsComponent{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
-	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("uds"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-uds")),
+	if _, err := ecs.NewEC2Service(e.Ctx(), namer.ResourceName("uds"), &ecs.EC2ServiceArgs{
+		Name:                 e.CommonNamer().DisplayName(255, pulumi.String("dogstatsd-uds")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -59,7 +59,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("none"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-uds-ec2")),
+			Family:      e.CommonNamer().DisplayName(255, pulumi.String("dogstatsd-uds-ec2")),
 			Volumes: classicECS.TaskDefinitionVolumeArray{
 				classicECS.TaskDefinitionVolumeArgs{
 					Name:     pulumi.String("dd-sockets"),
@@ -71,8 +71,8 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 		return nil, err
 	}
 
-	if _, err := ecs.NewEC2Service(e.Ctx, namer.ResourceName("udp"), &ecs.EC2ServiceArgs{
-		Name:                 e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-udp")),
+	if _, err := ecs.NewEC2Service(e.Ctx(), namer.ResourceName("udp"), &ecs.EC2ServiceArgs{
+		Name:                 e.CommonNamer().DisplayName(255, pulumi.String("dogstatsd-udp")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),
 		EnableExecuteCommand: pulumi.BoolPtr(true),
@@ -98,7 +98,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 			},
 			NetworkMode: pulumi.StringPtr("bridge"),
-			Family:      e.CommonNamer.DisplayName(255, pulumi.String("dogstatsd-udp-ec2")),
+			Family:      e.CommonNamer().DisplayName(255, pulumi.String("dogstatsd-udp-ec2")),
 		},
 	}, opts...); err != nil {
 		return nil, err

@@ -35,9 +35,9 @@ func (h *HostUpdater) Export(ctx *pulumi.Context, out *HostUpdaterOutput) error 
 }
 
 // NewHostUpdater creates a new instance of a on-host Updater
-func NewHostUpdater(e *config.CommonEnvironment, host *remoteComp.Host, options ...agentparams.Option) (*HostUpdater, error) {
-	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostUpdater) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+func NewHostUpdater(e config.Env, host *remoteComp.Host, options ...agentparams.Option) (*HostUpdater, error) {
+	hostInstallComp, err := components.NewComponent(e, host.Name(), func(comp *HostUpdater) error {
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 
 		params, err := agentparams.NewParams(e, options...)
@@ -60,9 +60,9 @@ func NewHostUpdater(e *config.CommonEnvironment, host *remoteComp.Host, options 
 }
 
 // NewHostUpdaterWithPacakges creates a new instance of a on-host Updater with packages bootstrap
-func NewHostUpdaterWithPackages(e *config.CommonEnvironment, host *remoteComp.Host, packages []string, options ...agentparams.Option) (*HostUpdater, error) {
-	hostInstallComp, err := components.NewComponent(*e, host.Name(), func(comp *HostUpdater) error {
-		comp.namer = e.CommonNamer.WithPrefix(comp.Name())
+func NewHostUpdaterWithPackages(e config.Env, host *remoteComp.Host, packages []string, options ...agentparams.Option) (*HostUpdater, error) {
+	hostInstallComp, err := components.NewComponent(e, host.Name(), func(comp *HostUpdater) error {
+		comp.namer = e.CommonNamer().WithPrefix(comp.Name())
 		comp.host = host
 
 		params, err := agentparams.NewParams(e, options...)

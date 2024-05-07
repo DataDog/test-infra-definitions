@@ -67,12 +67,11 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
-var _ config.CloudProviderEnvironment = (*Environment)(nil)
+var _ config.Env = (*Environment)(nil)
 
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
-		awsEnv.CommonEnvironment.CloudProviderEnvironment = awsEnv
 	}
 }
 
@@ -87,19 +86,19 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx, &env)
+		commonEnv, err := config.NewCommonEnvironment(ctx)
 		if err != nil {
 			return Environment{}, err
 		}
 
 		env.CommonEnvironment = &commonEnv
 	}
-	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
+	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
-			Tags: env.CommonEnvironment.ResourcesTags(),
+			Tags: env.ResourcesTags(),
 		},
 		SkipCredentialsValidation: pulumi.BoolPtr(false),
 		SkipMetadataApiCheck:      pulumi.BoolPtr(false),
@@ -109,7 +108,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
-	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
+	shuffle, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
 		Inputs:      pulumi.ToStringArray(env.DefaultSubnets()),
 		ResultCount: pulumi.IntPtr(2),
 	}, env.WithProviders(config.ProviderRandom))

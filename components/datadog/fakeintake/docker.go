@@ -1,7 +1,6 @@
 package fakeintake
 
 import (
-	"log"
 	"net"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -28,7 +27,7 @@ func NewLocalDockerFakeintake(e config.CommonEnvironment, resourceName string) (
 			return err
 		}
 
-		localIP := getLocalIP()
+		localIP, err := getLocalIP()
 
 		comp.Host = pulumi.Sprintf(localIP.String())
 		comp.Port = hostPort
@@ -39,17 +38,17 @@ func NewLocalDockerFakeintake(e config.CommonEnvironment, resourceName string) (
 	})
 }
 
-func getLocalIP() net.IP {
+func getLocalIP() (net.IP, error) {
 	// Open a connection to an external valid URL to
 	// get the local address from the connection instance
 	// The URL does not need to exist
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 	defer conn.Close()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 
-	return localAddr.IP
+	return localAddr.IP, nil
 }

@@ -20,13 +20,15 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const kataRuntimeClass = "kata-mshv-vm-isolation"
+
 func Run(ctx *pulumi.Context) error {
 	env, err := azure.NewEnvironment(ctx)
 	if err != nil {
 		return err
 	}
 
-	clusterComp, err := components.NewComponent(*env.CommonEnvironment, env.Namer.ResourceName("aks"), func(comp *kubeComp.Cluster) error {
+	clusterComp, err := components.NewComponent(&env, env.Namer.ResourceName("aks"), func(comp *kubeComp.Cluster) error {
 		cluster, kubeConfig, err := aks.NewCluster(env, "aks", nil)
 		if err != nil {
 			return err
@@ -37,7 +39,7 @@ func Run(ctx *pulumi.Context) error {
 		comp.KubeConfig = kubeConfig
 
 		// Building Kubernetes provider
-		aksKubeProvider, err := kubernetes.NewProvider(env.Ctx, env.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
+		aksKubeProvider, err := kubernetes.NewProvider(env.Ctx(), env.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 			EnableServerSideApply: pulumi.BoolPtr(true),
 			Kubeconfig:            utils.KubeConfigYAMLToJSON(kubeConfig),
 		}, env.WithProviders(config.ProviderAzure))
@@ -51,20 +53,25 @@ func Run(ctx *pulumi.Context) error {
 
 		// Deploy the agent
 		if env.AgentDeploy() {
+			// On Kata nodes, AKS uses the node-name (like aks-kata-21213134-vmss000000) as the only SAN in the Kubelet
+			// certificate. However, the DNS name aks-kata-21213134-vmss000000 is not resolvable, so it cannot be used
+			// to reach the Kubelet. Thus we need to use `tlsVerify: false` and `and `status.hostIP` as `host` in
+			// the Helm values
 			customValues := `
 datadog:
   kubelet:
     host:
       valueFrom:
         fieldRef:
-          fieldPath: spec.nodeName
+          fieldPath: status.hostIP
     hostCAPath: /etc/kubernetes/certs/kubeletserver.crt
+    tlsVerify: false
 providers:
   aks:
     enabled: true
 `
 
-			helmComponent, err := agent.NewHelmInstallation(*env.CommonEnvironment, agent.HelmInstallationArgs{
+			helmComponent, err := agent.NewHelmInstallation(&env, agent.HelmInstallationArgs{
 				KubeProvider: aksKubeProvider,
 				Namespace:    "datadog",
 				ValuesYAML:   pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(customValues)},
@@ -81,40 +88,44 @@ providers:
 
 		// Deploy standalone dogstatsd
 		if env.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(&env, aksKubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
 				return err
 			}
 		}
 
 		// Deploy testing workload
 		if env.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&env, aksKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
 				return err
 			}
 
-			if _, err := redis.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+			if _, err := nginx.K8sAppDefinition(&env, aksKubeProvider, "workload-nginx-kata", kataRuntimeClass, true, dependsOnCrd); err != nil {
 				return err
 			}
 
-			if _, err := cpustress.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-cpustress"); err != nil {
+			if _, err := redis.K8sAppDefinition(&env, aksKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
+				return err
+			}
+
+			if _, err := cpustress.K8sAppDefinition(&env, aksKubeProvider, "workload-cpustress"); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&env, aksKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
 				return err
 			}
 
 			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&env, aksKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 				return err
 			}
 
-			if _, err := prometheus.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-prometheus"); err != nil {
+			if _, err := prometheus.K8sAppDefinition(&env, aksKubeProvider, "workload-prometheus"); err != nil {
 				return err
 			}
 
-			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*env.CommonEnvironment, aksKubeProvider, "workload-mutated"); err != nil {
+			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&env, aksKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
 				return err
 			}
 		}

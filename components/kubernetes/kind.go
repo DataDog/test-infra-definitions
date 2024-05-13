@@ -19,15 +19,15 @@ import (
 )
 
 const (
-	kindReadinessWait     = "60s"
-	kindNodeImageRegistry = "kindest/node"
+	kindReadinessWait = "60s"
+	kindNodeImageName = "kindest/node"
 )
 
 //go:embed kind-cluster.yaml
 var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine.
-func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, resourceName, func(clusterComp *Cluster) error {
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 
@@ -39,11 +39,11 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 			return err
 		}
 
-		_, dockerInstallCmd, err := docker.NewManager(env, vm, opts...)
+		dockerManager, err := docker.NewManager(env, vm, opts...)
 		if err != nil {
 			return err
 		}
-		opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerInstallCmd, curlCommand))
+		opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerManager, curlCommand))
 
 		kindVersionConfig, err := getKindVersionConfig(kubeVersion)
 		if err != nil {
@@ -55,7 +55,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 			kindArch = "amd64"
 		}
 		kindInstall, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-install"),
+			commonEnvironment.CommonNamer().ResourceName("kind-install"),
 			&command.Args{
 				Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
 			},
@@ -73,9 +73,9 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s:%s", kindNodeImageRegistry, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
@@ -88,7 +88,7 @@ func NewKindCluster(env config.CommonEnvironment, vm *remote.Host, resourceName,
 		}
 
 		kubeConfigCmd, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-kubeconfig", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig", resourceName),
 			&command.Args{
 				Create: pulumi.Sprintf("kind get kubeconfig --name %s", kindClusterName),
 			},

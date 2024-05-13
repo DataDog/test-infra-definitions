@@ -41,7 +41,12 @@ func Run(ctx *pulumi.Context) error {
 
 	kindClusterName := ctx.Stack()
 
-	kindCluster, err := localKubernetes.NewKindCluster(*awsEnv.CommonEnvironment, vm, awsEnv.CommonNamer.ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion())
+	installEcrCredsHelperCmd, err := ec2.InstallECRCredentialsHelper(awsEnv, vm)
+	if err != nil {
+		return err
+	}
+
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, awsEnv.CommonNamer().ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -51,8 +56,9 @@ func Run(ctx *pulumi.Context) error {
 
 	// Building Kubernetes provider
 	kindKubeProvider, err := kubernetes.NewProvider(ctx, awsEnv.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
-		EnableServerSideApply: pulumi.BoolPtr(true),
 		Kubeconfig:            kindCluster.KubeConfig,
+		EnableServerSideApply: pulumi.BoolPtr(true),
+		DeleteUnreachable:     pulumi.BoolPtr(true),
 	})
 	if err != nil {
 		return err
@@ -61,19 +67,18 @@ func Run(ctx *pulumi.Context) error {
 	var dependsOnCrd pulumi.ResourceOption
 
 	var fakeIntake *fakeintakeComp.Fakeintake
-	if awsEnv.GetCommonEnvironment().AgentUseFakeintake() {
+	if awsEnv.AgentUseFakeintake() {
 		fakeIntakeOptions := []fakeintake.Option{
-			fakeintake.WithCPU(1024),
-			fakeintake.WithMemory(6144),
+			fakeintake.WithMemory(2048),
 		}
-		if awsEnv.GetCommonEnvironment().InfraShouldDeployFakeintakeWithLB() {
+		if awsEnv.InfraShouldDeployFakeintakeWithLB() {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 		}
 
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
-		if err := fakeIntake.Export(awsEnv.Ctx, nil); err != nil {
+		if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 	}
@@ -89,7 +94,7 @@ agents:
   useHostNetwork: true
 `, kindClusterName)
 
-		helmComponent, err := agent.NewHelmInstallation(*awsEnv.CommonEnvironment, agent.HelmInstallationArgs{
+		helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
 			KubeProvider: kindKubeProvider,
 			Namespace:    "datadog",
 			ValuesYAML: pulumi.AssetOrArchiveArray{
@@ -109,45 +114,45 @@ agents:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName); err != nil {
 			return err
 		}
 	}
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-nginx", dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-redis", dependsOnCrd); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
 			return err
 		}
 
-		if _, err := cpustress.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-cpustress"); err != nil {
+		if _, err := cpustress.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
 
 		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
 			return err
 		}
 
 		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
 			return err
 		}
 
 		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel
-		if _, err := tracegen.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-tracegen"); err != nil {
+		if _, err := tracegen.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-tracegen"); err != nil {
 			return err
 		}
 
-		if _, err := prometheus.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-prometheus"); err != nil {
+		if _, err := prometheus.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-prometheus"); err != nil {
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(*awsEnv.CommonEnvironment, kindKubeProvider, "workload-mutated"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
 			return err
 		}
 	}

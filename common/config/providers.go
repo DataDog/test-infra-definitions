@@ -55,6 +55,12 @@ func dummyProvidersFactory() map[ProviderID]func(ctx *pulumi.Context, name strin
 	}
 }
 
+type provider interface {
+	WithProvider(providerID ProviderID) pulumi.InvokeOption
+	WithProviders(providerID ...ProviderID) pulumi.ResourceOption
+	RegisterProvider(providerID ProviderID, provider pulumi.ProviderResource)
+	GetProvider(providerID ProviderID) pulumi.ProviderResource
+}
 type providerRegistry struct {
 	ctx       *pulumi.Context
 	providers map[ProviderID]pulumi.ProviderResource

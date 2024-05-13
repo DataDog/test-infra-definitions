@@ -32,6 +32,7 @@ scenario_name = "aws/vm"
         "use_aws_vault": doc.use_aws_vault,
         "instance_type": doc.instance_type,
         "no_verify": doc.no_verify,
+        "ssh_user": doc.ssh_user,
     }
 )
 def create_vm(
@@ -52,6 +53,7 @@ def create_vm(
     interactive: Optional[bool] = True,
     instance_type: Optional[str] = None,
     no_verify: Optional[bool] = False,
+    ssh_user: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on the cloud.
@@ -75,6 +77,9 @@ def create_vm(
             extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
         else:
             extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
+
+    if ssh_user:
+        extra_flags["ddinfra:sshUser"] = ssh_user
 
     full_stack_name = deploy(
         ctx,
@@ -155,7 +160,7 @@ def _clean_known_hosts(host: str) -> None:
     Remove the host from the known_hosts file.
     """
     home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    with open(f"{home}/.ssh/known_hosts", "r") as f:
+    with open(f"{home}/.ssh/known_hosts") as f:
         lines = f.readlines()
     filtered_lines = [line for line in lines if not line.startswith(host)]
     with open(f"{home}/.ssh/known_hosts", "w") as f:

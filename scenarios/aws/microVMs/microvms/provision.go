@@ -126,7 +126,7 @@ func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer
 		}
 
 		args := command.Args{
-			Create: pulumi.Sprintf("echo -e '{\n\t\"data-root\":\"%s\"\n}' > /etc/docker/daemon.json && sudo systemctl restart docker", d.Mountpoint),
+			Create: pulumi.Sprintf("mkdir -p /etc/docker && echo -e '{\n\t\"data-root\":\"%s\"\n}' > /etc/docker/daemon.json && sudo systemctl restart docker", d.Mountpoint),
 			Sudo:   true,
 		}
 		done, err := runner.Command(namer.ResourceName("set-docker-data-root"), &args, pulumi.DependsOn(depends))
@@ -233,7 +233,7 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 
 				pc := createProxyConnection(domain.ip, "root", microVMSSHKey, conn.ToConnectionOutput())
 				remoteRunner, err := command.NewRunner(
-					*collection.instance.e.CommonEnvironment,
+					collection.instance.e,
 					command.RunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     pc,
@@ -294,7 +294,7 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 				}
 
 				remoteRunner, err := command.NewRunner(
-					*collection.instance.e.CommonEnvironment,
+					*collection.instance.e,
 					command.RunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     conn,

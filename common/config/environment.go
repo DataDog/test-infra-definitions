@@ -29,6 +29,7 @@ const (
 	DDInfraOSImageID                        = "osImageID"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
+	DDInfraSSHUser                          = "sshUser"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -44,6 +45,7 @@ const (
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
+	DDAgentSite                          = "site"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -59,9 +61,8 @@ const (
 type CommonEnvironment struct {
 	providerRegistry
 
-	Ctx                      *pulumi.Context
-	CommonNamer              namer.Namer
-	CloudProviderEnvironment CloudProviderEnvironment
+	ctx         *pulumi.Context
+	commonNamer namer.Namer
 
 	InfraConfig           *sdkconfig.Config
 	AgentConfig           *sdkconfig.Config
@@ -72,21 +73,62 @@ type CommonEnvironment struct {
 	username string
 }
 
-type CloudProviderEnvironment interface {
+type Env interface {
+	provider
+
+	Ctx() *pulumi.Context
+	CommonNamer() namer.Namer
+
+	InfraShouldDeployFakeintakeWithLB() bool
+	InfraEnvironmentNames() []string
+	InfraOSDescriptor() string
+	InfraOSImageID() string
+	KubernetesVersion() string
+	DefaultResourceTags() map[string]string
+	ExtraResourcesTags() map[string]string
+	ResourcesTags() pulumi.StringMap
+
+	AgentDeploy() bool
+	AgentVersion() string
+	PipelineID() string
+	CommitSHA() string
+	ClusterAgentVersion() string
+	AgentFullImagePath() string
+	ClusterAgentFullImagePath() string
+	ImagePullRegistry() string
+	ImagePullUsername() string
+	ImagePullPassword() pulumi.StringOutput
+	AgentAPIKey() pulumi.StringOutput
+	AgentAPPKey() pulumi.StringOutput
+	AgentUseFakeintake() bool
+	TestingWorkloadDeploy() bool
+	DogstatsdDeploy() bool
+	DogstatsdFullImagePath() string
+	UpdaterDeploy() bool
+
+	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
+	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
+	GetStringWithDefault(config *sdkconfig.Config, paramName string, defaultValue string) string
+	GetObjectWithDefault(config *sdkconfig.Config, paramName string, outputValue, defaultValue interface{}) interface{}
+	GetIntWithDefault(config *sdkconfig.Config, paramName string, defaultValue int) int
+
+	CloudEnv
+}
+type CloudEnv interface {
+	InternalDockerhubMirror() string
 	InternalRegistry() string
 }
 
-func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudProviderEnvironment) (CommonEnvironment, error) {
+func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	env := CommonEnvironment{
-		Ctx:                      ctx,
-		InfraConfig:              sdkconfig.New(ctx, DDInfraConfigNamespace),
-		AgentConfig:              sdkconfig.New(ctx, DDAgentConfigNamespace),
-		TestingWorkloadConfig:    sdkconfig.New(ctx, DDTestingWorkloadNamespace),
-		DogstatsdConfig:          sdkconfig.New(ctx, DDDogstatsdNamespace),
-		UpdaterConfig:            sdkconfig.New(ctx, DDUpdaterConfigNamespace),
-		CommonNamer:              namer.NewNamer(ctx, ""),
-		CloudProviderEnvironment: cloudProviderEnvironment,
-		providerRegistry:         newProviderRegistry(ctx),
+		ctx:                   ctx,
+		InfraConfig:           sdkconfig.New(ctx, DDInfraConfigNamespace),
+		AgentConfig:           sdkconfig.New(ctx, DDAgentConfigNamespace),
+		TestingWorkloadConfig: sdkconfig.New(ctx, DDTestingWorkloadNamespace),
+		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
+		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
+		commonNamer:           namer.NewNamer(ctx, ""),
+		providerRegistry:      newProviderRegistry(ctx),
 	}
 	// store username
 	user, err := user.Current()
@@ -102,6 +144,14 @@ func NewCommonEnvironment(ctx *pulumi.Context, cloudProviderEnvironment CloudPro
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
 	return env, nil
+}
+
+func (e *CommonEnvironment) Ctx() *pulumi.Context {
+	return e.ctx
+}
+
+func (e *CommonEnvironment) CommonNamer() namer.Namer {
+	return e.commonNamer
 }
 
 // Infra namespace
@@ -124,7 +174,7 @@ func (e *CommonEnvironment) InfraOSImageID() string {
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.26")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.29")
 }
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
@@ -134,9 +184,13 @@ func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
 func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
 	tags, err := tagListToKeyValueMap(e.GetStringListWithDefault(e.InfraConfig, DDInfraExtraResourcesTags, []string{}))
 	if err != nil {
-		e.Ctx.Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("error in extra resources tags : %v", err), nil)
 	}
 	return tags
+}
+
+func (e *CommonEnvironment) InfraSSHUser() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraSSHUser, "")
 }
 
 func EnvVariableResourceTags() map[string]string {
@@ -216,6 +270,10 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
 }
 
+func (e *CommonEnvironment) Site() string {
+	return e.AgentConfig.Get(DDAgentSite)
+}
+
 // Testing workload namespace
 func (e *CommonEnvironment) TestingWorkloadDeploy() bool {
 	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployParamName, true)
@@ -243,7 +301,7 @@ func (e *CommonEnvironment) GetBoolWithDefault(config *sdkconfig.Config, paramNa
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -256,7 +314,7 @@ func (e *CommonEnvironment) GetStringListWithDefault(config *sdkconfig.Config, p
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -269,7 +327,7 @@ func (e *CommonEnvironment) GetStringWithDefault(config *sdkconfig.Config, param
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -282,7 +340,7 @@ func (e *CommonEnvironment) GetObjectWithDefault(config *sdkconfig.Config, param
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue
@@ -295,7 +353,7 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	if !errors.Is(err, sdkconfig.ErrMissingVar) {
-		e.Ctx.Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
+		e.Ctx().Log.Error(fmt.Sprintf("Parameter %s not parsable, err: %v, will use default value: %v", paramName, err, defaultValue), nil)
 	}
 
 	return defaultValue

@@ -268,7 +268,11 @@ def ssh_fingerprint_to_bytes(fingerprint: str) -> bytes:
     return base64.b64decode(out + '==')
 
 
-KeyFingerprint = NamedTuple('KeyFingerprint', [('md5', str), ('sha1', str), ('sha256', str)])
+# noqa: because vulture thinks this is unused
+class KeyFingerprint(NamedTuple):
+    md5: str  # noqa
+    sha1: str  # noqa
+    sha256: str  # noqa
 
 
 class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint)])):

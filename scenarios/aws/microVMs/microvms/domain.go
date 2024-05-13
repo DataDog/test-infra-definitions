@@ -20,6 +20,7 @@ import (
 const (
 	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
 	sharedFSMountPoint  = "/opt/kernel-version-testing"
+	maxDomainIDLength   = 64
 )
 
 func getNextVMIP(ip *net.IP) net.IP {
@@ -47,7 +48,7 @@ func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) str
 	// is expected in the consumers of this framework
 	return fmt.Sprintf("%s-%s-%s-ddvm-%d-%d", arch, tag, vmsetTags, vcpu, memory)
 }
-func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
+func generateNewUnicastMac(e config.Env, domainID string) (pulumi.StringOutput, error) {
 	r := utils.NewRandomGenerator(e, domainID)
 
 	pulumiRandStr, err := r.RandomString(domainID, 6, true)
@@ -68,8 +69,8 @@ func generateNewUnicastMac(e config.CommonEnvironment, domainID string) (pulumi.
 	return macAddr, nil
 }
 
-func generateMACAddress(e *config.CommonEnvironment, domainID string) (pulumi.StringOutput, error) {
-	mac, err := generateNewUnicastMac(*e, domainID)
+func generateMACAddress(e config.Env, domainID string) (pulumi.StringOutput, error) {
+	mac, err := generateNewUnicastMac(e, domainID)
 	if err != nil {
 		return mac, err
 	}
@@ -100,14 +101,20 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
 }
 
-func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
+func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
 
 	setTags := strings.Join(set.Tags, "-")
 	domain.domainID = generateDomainIdentifier(vcpu, memory, setTags, kernel.Tag, set.Arch)
-	domain.domainNamer = libvirtResourceNamer(e.Ctx, domain.domainID)
+	if len(domain.domainID) >= maxDomainIDLength {
+		// Apparently dnsmasq silently ignores entries with names longer than 63 characters, so static IPs don't get assigned correctly
+		// and we can't connect to the VMs. We check for that case and fail loudly here instead.
+		return nil, fmt.Errorf("%s domain ID length exceeds 63 characters, this can cause problems with some libvirt components", domain.domainID)
+	}
+
+	domain.domainNamer = libvirtResourceNamer(e.Ctx(), domain.domainID)
 	domain.tag = kernel.Tag
 	// copy the vmset tag. The pointer refers to
 	// a local variable and can change causing an incorrect mapping
@@ -125,7 +132,7 @@ func newDomainConfiguration(e *config.CommonEnvironment, set *vmconfig.VMSet, vc
 	domain.RecipeLibvirtDomainArgs.ConsoleType = set.ConsoleType
 	domain.RecipeLibvirtDomainArgs.KernelPath = filepath.Join(GetWorkingDirectory(set.Arch), "kernel-packages", kernel.Dir, "bzImage")
 
-	domainName := libvirtResourceName(e.Ctx.Stack(), domain.domainID)
+	domainName := libvirtResourceName(e.Ctx().Stack(), domain.domainID)
 	varstore := filepath.Join(GetWorkingDirectory(set.Arch), fmt.Sprintf("varstore.%s", domainName))
 	efi := filepath.Join(GetWorkingDirectory(set.Arch), "efi.fd")
 
@@ -217,7 +224,7 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
-func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
+func GenerateDomainConfigurationsForVMSet(e config.Env, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
 	var domains []*Domain
 	var cpuTuneXML string
 
@@ -236,12 +243,14 @@ func GenerateDomainConfigurationsForVMSet(e *config.CommonEnvironment, providerF
 				for _, vol := range libvirtVolumes {
 					lastDisk = getVolumeDiskTarget(vol.Mountpoint() == RootMountpoint, lastDisk)
 					rootVolume, err := setupDomainVolume(
-						e.Ctx,
+						e.Ctx(),
 						providerFn,
 						depends,
 						vol.Key(),
 						vol.Pool().Name(),
-						vol.FullResourceName("final-overlay", kernel.Tag),
+						// adding the full domain ID causes the length of the resource name
+						// to go beyond the maximum size allowed by pulumi.
+						vol.FullResourceName("overlay", kernel.Tag, fmt.Sprintf("%d-%d", vcpu, memory)),
 					)
 					if err != nil {
 						return []*Domain{}, 0, err

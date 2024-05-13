@@ -110,7 +110,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		panic("no aws environment setup")
 	}
 
-	namer := namer.NewNamer(awsEnv.Ctx, fmt.Sprintf("%s-%s", awsEnv.Ctx.Stack(), arch))
+	namer := namer.NewNamer(awsEnv.Ctx(), fmt.Sprintf("%s-%s", awsEnv.Ctx().Stack(), arch))
 	if arch == ec2.AMD64Arch {
 		instanceType = awsEnv.DefaultInstanceType()
 		ami = m.GetStringWithDefault(m.MicroVMConfig, config.DDMicroVMX86AmiID, "")
@@ -134,9 +134,9 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewHostAgent(awsEnv.CommonEnvironment, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
+		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
 		if err != nil {
-			awsEnv.Ctx.Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
+			awsEnv.Ctx().Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}
 	}
 
@@ -149,12 +149,12 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 }
 
 func newInstance(instanceEnv *InstanceEnvironment, arch string, m config.DDMicroVMConfig) (*Instance, error) {
-	name := instanceEnv.Ctx.Stack() + "-" + arch
+	name := instanceEnv.Ctx().Stack() + "-" + arch
 	if arch != LocalVMSet {
 		return newMetalInstance(instanceEnv, name, arch, m)
 	}
 
-	namer := namer.NewNamer(instanceEnv.Ctx, fmt.Sprintf("%s-%s", instanceEnv.Ctx.Stack(), arch))
+	namer := namer.NewNamer(instanceEnv.Ctx(), fmt.Sprintf("%s-%s", instanceEnv.Ctx().Stack(), arch))
 	return &Instance{
 		e:             instanceEnv,
 		Arch:          arch,
@@ -193,7 +193,7 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 	var url pulumi.StringOutput
 	var err error
 
-	env := *instance.e.CommonEnvironment
+	env := *instance.e
 	osCommand := command.NewUnixOSCommand()
 	localRunner := command.NewLocalRunner(env, command.LocalRunnerArgs{
 		OSCommand: osCommand,
@@ -327,7 +327,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 	// loop checks for this.
 	for arch := range archs {
 		if arch != LocalVMSet {
-			awsEnv, err := aws.NewEnvironment(instanceEnv.Ctx, aws.WithCommonEnvironment(&e))
+			awsEnv, err := aws.NewEnvironment(instanceEnv.Ctx(), aws.WithCommonEnvironment(&e))
 			if err != nil {
 				return nil, err
 			}
@@ -346,7 +346,7 @@ func run(e commonConfig.CommonEnvironment) (*ScenarioDone, error) {
 		instances[arch] = instance
 	}
 
-	defer exportVMInformation(instanceEnv.Ctx, instances, &vmCollections)
+	defer exportVMInformation(instanceEnv.Ctx(), instances, &vmCollections)
 
 	for _, instance := range instances {
 		configureDone, err := configureInstance(instance, &m)
@@ -386,7 +386,7 @@ func RunAndReturnInstances(e commonConfig.CommonEnvironment) (*ScenarioDone, err
 }
 
 func Run(ctx *pulumi.Context) error {
-	commonEnv, err := commonConfig.NewCommonEnvironment(ctx, nil)
+	commonEnv, err := commonConfig.NewCommonEnvironment(ctx)
 	if err != nil {
 		return err
 	}

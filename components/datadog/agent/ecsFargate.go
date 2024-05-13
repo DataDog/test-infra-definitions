@@ -9,9 +9,9 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
+func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		image = dockerAgentFullImagePath(&e, "public.ecr.aws/datadog/agent", "latest")
+		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest")
 	}
 
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
@@ -31,6 +31,14 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
 				Value: pulumi.StringPtr("high"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_TELEMETRY_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_TELEMETRY_CHECKS"),
+				Value: pulumi.StringPtr("*"),
 			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
@@ -59,7 +67,7 @@ func ECSFargateLinuxContainerDefinition(e config.CommonEnvironment, image string
 			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 				map[string]interface{}{
 					"openmetrics": map[string]interface{}{
-						"init_configs": []map[string]interface{}{},
+						"init_config": map[string]interface{}{},
 						"instances": []map[string]interface{}{
 							{
 								"openmetrics_endpoint": "http://localhost:5000/telemetry",

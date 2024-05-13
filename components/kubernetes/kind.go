@@ -110,7 +110,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 	}, opts...)
 }
 
-func NewLocalKindCluster(env config.CommonEnvironment, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, resourceName, func(clusterComp *Cluster) error {
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
@@ -135,9 +135,9 @@ func NewLocalKindCluster(env config.CommonEnvironment, resourceName, kindCluster
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s:%s", kindNodeImageRegistry, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InfraOSDescriptor(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-create-cluster", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
@@ -150,7 +150,7 @@ func NewLocalKindCluster(env config.CommonEnvironment, resourceName, kindCluster
 		}
 
 		kubeConfigCmd, err := runner.Command(
-			commonEnvironment.CommonNamer.ResourceName("kind-kubeconfig", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig", resourceName),
 			&command.Args{
 				Create: pulumi.Sprintf("kind get kubeconfig --name %s", kindClusterName),
 			},

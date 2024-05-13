@@ -11,10 +11,10 @@ import (
 
 const hostPort = 30080
 
-func NewLocalDockerFakeintake(e config.CommonEnvironment, resourceName string) (*Fakeintake, error) {
+func NewLocalDockerFakeintake(e config.Env, resourceName string) (*Fakeintake, error) {
 	return components.NewComponent(e, resourceName, func(comp *Fakeintake) error {
 
-		_, err := docker.NewContainer(e.Ctx, e.CommonNamer.ResourceName("local-docker-container"), &docker.ContainerArgs{
+		_, err := docker.NewContainer(e.Ctx(), e.CommonNamer().ResourceName("local-docker-container"), &docker.ContainerArgs{
 			Image: pulumi.String("public.ecr.aws/datadog/fakeintake:latest"),
 			Ports: docker.ContainerPortArray{
 				&docker.ContainerPortArgs{
@@ -28,6 +28,9 @@ func NewLocalDockerFakeintake(e config.CommonEnvironment, resourceName string) (
 		}
 
 		localIP, err := getLocalIP()
+		if err != nil {
+			return err
+		}
 
 		comp.Host = pulumi.Sprintf(localIP.String())
 		comp.Port = hostPort

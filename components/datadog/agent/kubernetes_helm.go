@@ -485,7 +485,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 		},
 		pulumi.StringMap{
 			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": "%t"}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
 		},
 		pulumi.StringMap{
 			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),

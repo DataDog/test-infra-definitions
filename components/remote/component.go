@@ -12,6 +12,7 @@ type HostOutput struct {
 	components.JSONImporter
 
 	Address   string    `json:"address"`
+	Port      int       `json:"port"`
 	Username  string    `json:"username"`
 	Password  string    `json:"password,omitempty"`
 	OSFamily  os.Family `json:"osFamily"`
@@ -26,12 +27,13 @@ type Host struct {
 
 	OS os.OS
 
-	Address      pulumi.StringOutput `pulumi:"address"`
-	Username     pulumi.StringOutput `pulumi:"username"`
-	Architecture pulumi.StringOutput `pulumi:"architecture"`
-	OSFamily     pulumi.IntOutput    `pulumi:"osFamily"`
-	OSFlavor     pulumi.IntOutput    `pulumi:"osFlavor"`
-	OSVersion    pulumi.StringOutput `pulumi:"osVersion"`
+	Address      pulumi.StringOutput     `pulumi:"address"`
+	Port         pulumi.Float64PtrOutput `pulumi:"port"`
+	Username     pulumi.StringOutput     `pulumi:"username"`
+	Architecture pulumi.StringOutput     `pulumi:"architecture"`
+	OSFamily     pulumi.IntOutput        `pulumi:"osFamily"`
+	OSFlavor     pulumi.IntOutput        `pulumi:"osFlavor"`
+	OSVersion    pulumi.StringOutput     `pulumi:"osVersion"`
 }
 
 func (h *Host) Export(ctx *pulumi.Context, out *HostOutput) error {

@@ -3,9 +3,8 @@ package docker
 import (
 	"fmt"
 
-	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -15,14 +14,23 @@ type VMArgs struct {
 	// Attributes you need when you will actually create the VM
 }
 
-func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*remote.Host, error) {
-	hostImage, err := docker.NewRemoteImage(e.Ctx(), fmt.Sprintf("%v-image", args.Name), &docker.RemoteImageArgs{
-		Name: pulumi.String("geerlingguy/docker-ubuntu2204-ansible:latest"),
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
-	if err != nil {
-		return nil, err
-	}
+func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*docker.Container, error) {
+	//hostImage, err := docker.NewRemoteImage(e.Ctx(), fmt.Sprintf("%v-image", args.Name), &docker.RemoteImageArgs{
+	//	Name: pulumi.String("fake-host"),
+	//}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
+	//if err != nil {
+	//	return nil, err
+	//}
 
+	// TODO: Fix as current hack due to fact not published images yet
+	hostImage, err := docker.NewImage(e.Ctx(), fmt.Sprintf("%v-image", args.Name), &docker.ImageArgs{
+		Build: &docker.DockerBuildArgs{
+			Context:    pulumi.String("/data/dev/DataDog/test-infra-definitions/scenarios/local/docker/containers"),
+			Dockerfile: pulumi.String("/data/dev/DataDog/test-infra-definitions/scenarios/local/docker/containers/Dockerfile"),
+		},
+		SkipPush:  pulumi.Bool(true),
+		ImageName: pulumi.String("fake-host"),
+	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
 	// Create a Docker network
 	network, err := docker.NewNetwork(e.Ctx(), "network", &docker.NetworkArgs{
 		Name: pulumi.String(fmt.Sprintf("local-e2e-%v", e.Ctx().Stack())),
@@ -32,9 +40,9 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*re
 	}
 
 	// Create Agent container
-	_, err = docker.NewContainer(e.Ctx(), "agent-container", &docker.ContainerArgs{
+	instance, err := docker.NewContainer(e.Ctx(), "agent-container", &docker.ContainerArgs{
 		Name:         pulumi.String(fmt.Sprintf("agent-%v", e.Ctx().Stack())),
-		Image:        hostImage.RepoDigest,
+		Image:        hostImage.ImageName,
 		CgroupnsMode: pulumi.String("host"),
 		Privileged:   pulumi.Bool(true),
 		Mounts: docker.ContainerMountArray{
@@ -47,6 +55,13 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*re
 		},
 		Rm:          pulumi.Bool(true),
 		StopTimeout: pulumi.IntPtr(5),
+		Ports: docker.ContainerPortArray{
+			&docker.ContainerPortArgs{
+				External: pulumi.Int(3333),
+				Internal: pulumi.Int(22),
+				Protocol: pulumi.String("tcp"),
+			},
+		},
 		NetworksAdvanced: &docker.ContainerNetworksAdvancedArray{
 			&docker.ContainerNetworksAdvancedArgs{
 				Name: network.Name,
@@ -59,5 +74,5 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*re
 	if err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return instance, nil
 }

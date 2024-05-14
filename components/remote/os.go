@@ -33,6 +33,7 @@ func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, 
 
 	// Fill the exported fields component
 	host.Address = conn.Host()
+	host.Port = conn.Port()
 	host.Username = pulumi.String(osUser).ToStringOutput()
 	host.Architecture = pulumi.String(osDesc.Architecture).ToStringOutput()
 	host.OSFamily = pulumi.Int(osDesc.Family()).ToIntOutput()

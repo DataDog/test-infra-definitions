@@ -58,7 +58,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install lint python requirements
-        run: pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/circleci.txt
+        run: pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements.txt
       - name: Run linters
         run: |
           ruff format --check tasks

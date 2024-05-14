@@ -2,8 +2,10 @@ package docker
 
 import (
 	"fmt"
-	"github.com/DataDog/test-infra-definitions/common/config"
+
+	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
+
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )

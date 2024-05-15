@@ -1,8 +1,8 @@
 package docker
 
 import (
-	config "github.com/DataDog/test-infra-definitions/common/config"
-
+	"fmt"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -11,7 +11,8 @@ import (
 type Environment struct {
 	*config.CommonEnvironment
 
-	Namer namer.Namer
+	Namer         namer.Namer
+	dockerNetwork *docker.Network
 }
 
 var _ config.Env = (*Environment)(nil)
@@ -33,6 +34,16 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		return Environment{}, err
 	}
 	env.RegisterProvider(config.ProviderDocker, dockerProvider)
+
+	// Create a Docker network
+	dn, err := docker.NewNetwork(ctx, "network", &docker.NetworkArgs{
+		Name: pulumi.String(fmt.Sprintf("local-e2e-%v", ctx.Stack())),
+	}, env.WithProviders(config.ProviderDocker))
+	if err != nil {
+		return Environment{}, err
+	}
+
+	env.dockerNetwork = dn
 
 	return env, nil
 }

@@ -31,13 +31,6 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		SkipPush:  pulumi.Bool(true),
 		ImageName: pulumi.String("fake-host"),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
-	// Create a Docker network
-	network, err := docker.NewNetwork(e.Ctx(), "network", &docker.NetworkArgs{
-		Name: pulumi.String(fmt.Sprintf("local-e2e-%v", e.Ctx().Stack())),
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
-	if err != nil {
-		return nil, err
-	}
 
 	// Create Agent container
 	instance, err := docker.NewContainer(e.Ctx(), "agent-container", &docker.ContainerArgs{
@@ -64,7 +57,7 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		},
 		NetworksAdvanced: &docker.ContainerNetworksAdvancedArray{
 			&docker.ContainerNetworksAdvancedArgs{
-				Name: network.Name,
+				Name: e.dockerNetwork.Name,
 				Aliases: pulumi.StringArray{
 					pulumi.String("agent"),
 				},

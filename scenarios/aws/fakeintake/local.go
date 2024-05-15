@@ -38,6 +38,11 @@ func NewLocalInstance(e docker.Environment, name string, option ...Option) (*fak
 			Rm:          pulumi.Bool(false),
 			StopTimeout: pulumi.IntPtr(5),
 			Hostname:    pulumi.String("fakeintake"),
+			Ports: pdocker.ContainerPortArray{
+				&pdocker.ContainerPortArgs{
+					Internal: pulumi.Int(80),
+				},
+			},
 			NetworksAdvanced: &pdocker.ContainerNetworksAdvancedArray{
 				&pdocker.ContainerNetworksAdvancedArgs{
 					Name: e.DockerNetwork.Name,
@@ -51,6 +56,9 @@ func NewLocalInstance(e docker.Environment, name string, option ...Option) (*fak
 		fi.Scheme = "http"
 		fi.Port = 80
 		fi.Host = fiContainer.Hostname
+		fi.ClientURL = fiContainer.Ports.Index(pulumi.Int(0)).ApplyT(func(v pdocker.ContainerPort) pulumi.StringOutput {
+			return pulumi.Sprintf("%s://localhost:%d", fi.Scheme, *v.External)
+		}).(pulumi.StringOutput)
 		fi.URL = fi.Host.ApplyT(func(v string) pulumi.StringOutput {
 			return pulumi.Sprintf("%s://%s", fi.Scheme, v)
 		}).(pulumi.StringOutput)

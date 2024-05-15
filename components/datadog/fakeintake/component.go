@@ -9,7 +9,8 @@ import (
 type FakeintakeOutput struct { // nolint:revive, We want to keep the name as <Component>Output
 	components.JSONImporter
 
-	URL string `json:"url"`
+	URL       string `json:"url"`
+	ClientURL string `json:"clientUrl"`
 }
 
 type Fakeintake struct {
@@ -22,7 +23,8 @@ type Fakeintake struct {
 	Scheme string // Scheme is a string as it's known in code and is useful to check HTTP/HTTPS
 	Port   uint32 // Same for Port
 
-	URL pulumi.StringOutput `pulumi:"url"`
+	URL       pulumi.StringOutput `pulumi:"url"`
+	ClientURL pulumi.StringOutput `pulumi:"clientUrl"`
 }
 
 func (fi *Fakeintake) Export(ctx *pulumi.Context, out *FakeintakeOutput) error {

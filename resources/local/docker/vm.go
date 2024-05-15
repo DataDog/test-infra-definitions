@@ -32,6 +32,9 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		SkipPush:  pulumi.Bool(true),
 		ImageName: pulumi.String("fake-host"),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
+	if err != nil {
+		return nil, err
+	}
 
 	// Create Agent container
 	instance, err := docker.NewContainer(e.Ctx(), "agent-container", &docker.ContainerArgs{
@@ -51,7 +54,6 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		StopTimeout: pulumi.IntPtr(5),
 		Ports: docker.ContainerPortArray{
 			&docker.ContainerPortArgs{
-				External: pulumi.Int(3333), // TODO: make random
 				Internal: pulumi.Int(22),
 				Protocol: pulumi.String("tcp"),
 			},

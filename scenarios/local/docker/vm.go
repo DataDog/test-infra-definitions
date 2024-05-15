@@ -8,6 +8,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/local/docker"
 
 	premote "github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	pdocker "github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -18,14 +19,20 @@ func NewVM(e docker.Environment, name string) (*remote.Host, error) {
 			Name: name,
 		}
 		// Create the Docker instance
-		_, err := docker.NewInstance(e, instanceArgs, pulumi.Parent(comp))
+		agentHost, err := docker.NewInstance(e, instanceArgs, pulumi.Parent(comp))
 		if err != nil {
 			return err
 		}
 
+		// Get SSH port for Agent in container
+		sshPort := agentHost.Ports.Index(pulumi.Int(0)).ApplyT(func(v pdocker.ContainerPort) pulumi.Float64PtrOutput {
+			m := float64(*v.External)
+			return pulumi.Float64Ptr(m).ToFloat64PtrOutput()
+		}).(pulumi.Float64PtrOutput)
+
 		conn := &premote.ConnectionArgs{
 			Host:           pulumi.String("localhost"),
-			Port:           pulumi.Float64Ptr(3333), // TODO: make dynamic
+			Port:           sshPort,
 			Password:       pulumi.String("root123"),
 			User:           pulumi.String("root"),
 			PerDialTimeout: pulumi.IntPtr(5),

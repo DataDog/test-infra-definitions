@@ -36,7 +36,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.RegisterProvider(config.ProviderDocker, dockerProvider)
 
 	// Create a Docker network
-	dn, err := docker.NewNetwork(ctx, "network", &docker.NetworkArgs{
+	dn, err := docker.NewNetwork(ctx, fmt.Sprintf("%v-network", ctx.Stack()), &docker.NetworkArgs{
 		Name: pulumi.String(fmt.Sprintf("local-e2e-%v", ctx.Stack())),
 		IpamConfigs: docker.NetworkIpamConfigArray{
 			docker.NetworkIpamConfigArgs{

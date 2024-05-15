@@ -12,7 +12,7 @@ type Environment struct {
 	*config.CommonEnvironment
 
 	Namer         namer.Namer
-	dockerNetwork *docker.Network
+	DockerNetwork *docker.Network
 }
 
 var _ config.Env = (*Environment)(nil)
@@ -38,12 +38,19 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	// Create a Docker network
 	dn, err := docker.NewNetwork(ctx, "network", &docker.NetworkArgs{
 		Name: pulumi.String(fmt.Sprintf("local-e2e-%v", ctx.Stack())),
+		IpamConfigs: docker.NetworkIpamConfigArray{
+			docker.NetworkIpamConfigArgs{
+				Gateway: pulumi.String("169.254.169.1"),
+				Subnet:  pulumi.String("169.254.169.0/24"),
+			},
+		},
+		IpamDriver: pulumi.String("default"),
 	}, env.WithProviders(config.ProviderDocker))
 	if err != nil {
 		return Environment{}, err
 	}
 
-	env.dockerNetwork = dn
+	env.DockerNetwork = dn
 
 	return env, nil
 }

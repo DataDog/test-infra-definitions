@@ -27,6 +27,7 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		Build: &docker.DockerBuildArgs{
 			Context:    pulumi.String("/data/dev/DataDog/test-infra-definitions/scenarios/local/docker/containers"),
 			Dockerfile: pulumi.String("/data/dev/DataDog/test-infra-definitions/scenarios/local/docker/containers/Dockerfile"),
+			Platform:   pulumi.String("linux/arm64"),
 		},
 		SkipPush:  pulumi.Bool(true),
 		ImageName: pulumi.String("fake-host"),
@@ -57,7 +58,7 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		},
 		NetworksAdvanced: &docker.ContainerNetworksAdvancedArray{
 			&docker.ContainerNetworksAdvancedArgs{
-				Name: e.dockerNetwork.Name,
+				Name: e.DockerNetwork.Name,
 				Aliases: pulumi.StringArray{
 					pulumi.String("agent"),
 				},

@@ -53,11 +53,11 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 				Type:     pulumi.String("bind"),
 			},
 		},
-		Rm:          pulumi.Bool(true),
+		Rm:          pulumi.Bool(false),
 		StopTimeout: pulumi.IntPtr(5),
 		Ports: docker.ContainerPortArray{
 			&docker.ContainerPortArgs{
-				External: pulumi.Int(3333),
+				External: pulumi.Int(3333), // TODO: make random
 				Internal: pulumi.Int(22),
 				Protocol: pulumi.String("tcp"),
 			},

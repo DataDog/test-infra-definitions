@@ -299,3 +299,11 @@ func WithSkipAPIKeyInConfig() func(*Params) error {
 		return nil
 	}
 }
+
+// WithHostname sets the Agent's hostname
+func WithHostname(hostname string) func(*Params) error {
+	return func(p *Params) error {
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.Sprintf("hostname: %s", hostname))
+		return nil
+	}
+}

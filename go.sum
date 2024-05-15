@@ -207,10 +207,10 @@ github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 h1:vkHw5I/plNdTr435
 github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231/go.mod h1:murToZ2N9hNJzewjHBgfFdXhZKjY3z5cYC1VXk+lbFE=
 github.com/pulumi/esc v0.8.2 h1:+PZg+qAWW9SYrRCHex36QNueAWdxz9b7hi/q/Zb31V0=
 github.com/pulumi/esc v0.8.2/go.mod h1:v5VAPxYDa9DRwvubbzKt4ZYf5y0esWC2ccSp/AT923I=
-github.com/pulumi/pulumi-aws/sdk/v6 v6.25.0 h1:KstWR3AnkXD72ow0xxOzsAkihF+KdzddapHUy0CK2mU=
-github.com/pulumi/pulumi-aws/sdk/v6 v6.25.0/go.mod h1:Ar4SJq3jbKLps3879H5ZvwUt/VnFp/GKbWw1mhjeQek=
-github.com/pulumi/pulumi-awsx/sdk/v2 v2.5.0 h1:sCzgswv1p7G8RUkvUjDgDnrdi7vBRxTtA8Hwtoqabsc=
-github.com/pulumi/pulumi-awsx/sdk/v2 v2.5.0/go.mod h1:lv+hzv8kilWjMNOPcJS8cddJa51d3IdCOPY7cNd2NuU=
+github.com/pulumi/pulumi-aws/sdk/v6 v6.32.0 h1:Lrh2HiUJvlXpXCjWG7SOjJOTAkF6JdnvXvIaXcKuxmA=
+github.com/pulumi/pulumi-aws/sdk/v6 v6.32.0/go.mod h1:sIRGiNHIQNbfxV294D44laQv791coNsyWA6TjY0uqD4=
+github.com/pulumi/pulumi-awsx/sdk/v2 v2.10.0 h1:m4xk5t7aCGQJHwi1fu5r0yjhJBHbqslhdlbyig5mo2c=
+github.com/pulumi/pulumi-awsx/sdk/v2 v2.10.0/go.mod h1:NbKrInXLDAIpj23fSMscy/tTyZj4Dg+YUcKCNNAMgmQ=
 github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0 h1:Zv5fc3sEUpTJs6CKGgq15p/V+qcpehPyBV0gt/v4Hjk=
 github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0/go.mod h1:7qUlHbil4nHAX6L4uLMsZ2CLIOsIimpOfz2gYSjyTRc=
 github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.30.0 h1:uQK4DBsG/xKburzd5+D4AZq9nS8KnNL5cBlo+aq0ESo=

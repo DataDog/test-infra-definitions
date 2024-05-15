@@ -12,8 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.25.0
-	github.com/pulumi/pulumi-awsx/sdk/v2 v2.5.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.32.0
+	github.com/pulumi/pulumi-awsx/sdk/v2 v2.10.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0

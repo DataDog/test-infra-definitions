@@ -1,4 +1,8 @@
-FROM geerlingguy/docker-ubuntu2204-ansible:latest
+# syntax=docker/dockerfile:1
+
+ARG FLAVOR=ubuntu2204
+
+FROM geerlingguy/docker-${FLAVOR}-ansible:latest
 
 COPY allow_root.conf /etc/ssh/sshd_config.d/allow_root.conf
 

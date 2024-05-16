@@ -48,7 +48,7 @@ var defaultUsers = map[os.Flavor]string{
 // Note that you may get this error in some cases:
 // OptInRequired: In order to use this AWS Marketplace product you need to accept terms and subscribe
 // This means that you need to go to the AWS Marketplace and accept the terms of the AMI.
-func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
+func resolveOS(e aws.Environment, vmArgs *VmArgs) (*amiInformation, error) {
 	if vmArgs.ami == "" {
 		var err error
 		vmArgs.ami, err = amiResolvers[vmArgs.osInfo.Flavor](e, vmArgs.osInfo)

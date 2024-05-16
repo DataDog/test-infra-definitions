@@ -2,6 +2,7 @@ package docker
 
 import (
 	"fmt"
+	"github.com/DataDog/test-infra-definitions/components/os"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -12,6 +13,7 @@ import (
 type VMArgs struct {
 	Name string
 	// Attributes you need when you will actually create the VM
+	OsInfo *os.Descriptor
 }
 
 func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*docker.Container, error) {
@@ -22,12 +24,25 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 	//	return nil, err
 	//}
 
+	var family string
+	switch *args.OsInfo {
+	case os.Ubuntu2204:
+		family = "ubuntu"
+	case os.AmazonLinux2:
+		family = "amazonlinux"
+	case os.AmazonLinux2023:
+		family = "amazonlinux"
+	default:
+		family = "ubuntu"
+	}
+
+	_ = e.Ctx().Log.Info(fmt.Sprintf("Running with container of type '%s'", family), nil)
+
 	// TODO: Fix as current hack due to fact not published images yet
 	hostImage, err := docker.NewImage(e.Ctx(), fmt.Sprintf("%v-image", args.Name), &docker.ImageArgs{
 		Build: &docker.DockerBuildArgs{
-			Context:    pulumi.String("/data/dev/DataDog/test-infra-definitions/scenarios/local/docker/containers"),
-			Dockerfile: pulumi.String("/data/dev/DataDog/test-infra-definitions/scenarios/local/docker/containers/Dockerfile"),
-			Platform:   pulumi.String("linux/arm64"),
+			Context:    pulumi.String("/data/dev/DataDog/test-infra-definitions/resources/local/docker/containers"),
+			Dockerfile: pulumi.Sprintf("/data/dev/DataDog/test-infra-definitions/resources/local/docker/containers/Dockerfile.%s", family),
 		},
 		SkipPush:  pulumi.Bool(true),
 		ImageName: pulumi.String("fake-host"),

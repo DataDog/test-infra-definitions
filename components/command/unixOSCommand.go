@@ -100,7 +100,7 @@ func (fs unixOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string
 		return nil, err
 	}
 
-	_, err = fs.copyRemoteFile(runner, tempRemotePath, remotePath, true, pulumi.DependsOn([]pulumi.Resource{tempCopyFile}))
+	_, err = fs.copyRemoteFile(runner, tempRemotePath, remotePath, true, utils.PulumiDependsOn(tempCopyFile))
 	if err != nil {
 		return nil, err
 	}

@@ -55,6 +55,12 @@ func NewManager(e config.Env, host *remoteComp.Host, opts ...pulumi.ResourceOpti
 		}
 		comp.opts = utils.MergeOptions(comp.opts, utils.PulumiDependsOn(composeCmd))
 
+		ensureRunningCmd, err := comp.ensureRunning()
+		if err != nil {
+			return err
+		}
+		comp.opts = utils.MergeOptions(comp.opts, utils.PulumiDependsOn(ensureRunningCmd))
+
 		return nil
 	}, opts...)
 }
@@ -182,6 +188,18 @@ func (d *Manager) installCompose() (*remote.Command, error) {
 		d.namer.ResourceName("install-compose"),
 		&command.Args{
 			Create: installCompose,
+			Sudo:   true,
+		},
+		opts...)
+}
+
+func (d *Manager) ensureRunning() (*remote.Command, error) {
+	opts := append(d.opts, pulumi.Parent(d))
+	ensureRunning := pulumi.Sprintf("systemctl enable --now docker")
+	return d.Host.OS.Runner().Command(
+		d.namer.ResourceName("ensure-docker-running"),
+		&command.Args{
+			Create: ensureRunning,
 			Sudo:   true,
 		},
 		opts...)

@@ -86,14 +86,6 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 	return strings.HasPrefix(path, "/")
 }
 
-func (fs unixOSCommand) CopyRemoteFile(runner *Runner, source string, destination string, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	backupPath := destination + "." + backupExtension
-	copyCommand := fmt.Sprintf(`cp '%v' '%v'`, source, destination)
-	createCommand := fmt.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
-	deleteCommand := fmt.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
-	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(source)), createCommand, deleteCommand, sudo, opts...)
-}
-
 func (fs unixOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
 	tempRemotePath := filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(localPath))
 
@@ -108,7 +100,7 @@ func (fs unixOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string
 		return nil, err
 	}
 
-	_, err = runner.osCommand.CopyRemoteFile(runner, tempRemotePath, remotePath, true, pulumi.DependsOn([]pulumi.Resource{tempCopyFile}))
+	_, err = fs.copyRemoteFile(runner, tempRemotePath, remotePath, true, pulumi.DependsOn([]pulumi.Resource{tempCopyFile}))
 	if err != nil {
 		return nil, err
 	}
@@ -135,4 +127,12 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool,
 		}).(pulumi.StringOutput)
 	}
 	return formattedCommand
+}
+
+func (fs unixOSCommand) copyRemoteFile(runner *Runner, source string, destination string, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	backupPath := destination + "." + backupExtension
+	copyCommand := fmt.Sprintf(`cp '%v' '%v'`, source, destination)
+	createCommand := fmt.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
+	deleteCommand := fmt.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
+	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(source)), createCommand, deleteCommand, sudo, opts...)
 }

@@ -35,13 +35,6 @@ type OSCommand interface {
 
 	IsPathAbsolute(path string) bool
 
-	CopyRemoteFile(
-		runner *Runner,
-		source string,
-		destination string,
-		sudo bool,
-		opts ...pulumi.ResourceOption) (*remote.Command, error)
-
 	NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error)
 }
 

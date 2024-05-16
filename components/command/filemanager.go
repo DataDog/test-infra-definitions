@@ -169,10 +169,6 @@ func (fm *FileManager) CopyFSFolder(
 	return fileResources, nil
 }
 
-func (fm *FileManager) CopyRemoteFile(source string, destination string, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.command.CopyRemoteFile(fm.runner, source, destination, sudo, opts...)
-}
-
 // When copying foo/bar to /tmp the result folder is /tmp/bar
 // This function remove the root prefix from the path (`foo` in this case)
 func getDestinationPath(folder string, rootFolder string) (string, error) {

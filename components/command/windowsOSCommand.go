@@ -3,7 +3,6 @@ package command
 import (
 	"fmt"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"path/filepath"
 	"strings"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -13,15 +12,6 @@ import (
 var _ OSCommand = (*windowsOSCommand)(nil)
 
 type windowsOSCommand struct{}
-
-func (fs windowsOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
-		Connection: runner.config.connection,
-		LocalPath:  pulumi.String(localPath),
-		RemotePath: pulumi.String(remotePath),
-		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
-	}, utils.MergeOptions(runner.options, opts...)...)
-}
 
 func NewWindowsOSCommand() OSCommand {
 	return windowsOSCommand{}
@@ -106,14 +96,11 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	return false
 }
 
-func (fs windowsOSCommand) CopyRemoteFile(runner *Runner, source string, destination string, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	backupPath := destination + "." + backupExtension
-	backupCommand := fmt.Sprintf("if (Test-Path -Path '%v') { Move-Item -Force -Path '%v' -Destination '%v'}", destination, destination, backupPath)
-	createCommand := fmt.Sprintf(`%v; Copy-Item -Path '%v' -Destination '%v'`, backupCommand, source, destination)
-
-	deleteMoveCommand := fmt.Sprintf(`Move-Item -Force -Path '%v' -Destination '%v'`, backupPath, destination)
-	deleteRemoveCommand := fmt.Sprintf(`Remove-Item -Force -Path '%v'`, destination)
-	deleteCommand := fmt.Sprintf("if (Test-Path -Path '%v') { %v } else { %v }", backupPath, deleteMoveCommand, deleteRemoveCommand)
-
-	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(source)), createCommand, deleteCommand, sudo, opts...)
+func (fs windowsOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
+		Connection: runner.config.connection,
+		LocalPath:  pulumi.String(localPath),
+		RemotePath: pulumi.String(remotePath),
+		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
+	}, utils.MergeOptions(runner.options, opts...)...)
 }

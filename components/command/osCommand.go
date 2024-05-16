@@ -34,6 +34,15 @@ type OSCommand interface {
 		user string) pulumi.StringInput
 
 	IsPathAbsolute(path string) bool
+
+	CopyRemoteFile(
+		runner *Runner,
+		source string,
+		destination string,
+		sudo bool,
+		opts ...pulumi.ResourceOption) (*remote.Command, error)
+
+	NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error)
 }
 
 // ------------------------------
@@ -94,4 +103,21 @@ func buildCommandString(
 	}).(pulumi.StringOutput)
 
 	return fct(envVarsStr)
+}
+
+func copyRemoteFile(
+	runner *Runner,
+	name string,
+	createCommand string,
+	deleteCommand string,
+	useSudo bool,
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
+	return runner.Command(name,
+		&Args{
+			Create:   pulumi.String(createCommand),
+			Delete:   pulumi.String(deleteCommand),
+			Sudo:     useSudo,
+			Triggers: pulumi.Array{pulumi.String(createCommand), pulumi.String(deleteCommand), pulumi.BoolPtr(useSudo)},
+		}, opts...)
 }

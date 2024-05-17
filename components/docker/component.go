@@ -109,7 +109,6 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		writeCommand, err := d.Host.OS.FileManager().CopyInlineFile(
 			manifest.Content,
 			remoteComposePath,
-			false,
 			utils.MergeOptions(d.opts, utils.PulumiDependsOn(homeCmd))...,
 		)
 		if err != nil {

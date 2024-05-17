@@ -39,7 +39,7 @@ def check_xslt(_, xslt, replacements=None, xml="domain"):
     else:
         raise Exit(f"Could not find XML file {xml}")
 
-    with open(xml_path, "r") as f:
+    with open(xml_path) as f:
         base_xml = f.read()
 
     parser = etree.XMLParser(remove_blank_text=True)
@@ -61,7 +61,7 @@ def check_xslt(_, xslt, replacements=None, xml="domain"):
         key, value = repl.split("=")
         default_replacements[key] = value
 
-    with open(xslt, "r") as f:
+    with open(xslt) as f:
         data = f.read()
 
     for key, value in default_replacements.items():

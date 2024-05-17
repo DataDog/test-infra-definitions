@@ -6,7 +6,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
-	ddv1alpha1 "github.com/DataDog/test-infra-definitions/components/kubernetes/crds/kubernetes/datadoghq/v1alpha1"
 
 	"github.com/Masterminds/semver"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -17,14 +16,27 @@ import (
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	policyv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/policy/v1"
 	policyv1beta1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/policy/v1beta1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/yaml"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provider, namespace string, dependsOnCrd pulumi.ResourceOption, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+// runtimeClassToPulumi converts a runtime class name to a pulumi.StringInput.
+// If runtimeClass is empty, it returns nil.
+func runtimeClassToPulumi(runtimeClass string) pulumi.StringInput {
+	if runtimeClass == "" {
+		return nil
+	}
+	return pulumi.String(runtimeClass)
+}
+
+// K8sAppDefinition defines a Kubernetes application, with a deployment, a service, a pod disruption budget and an HPA.
+// It also creates a DatadogMetric and an HPA if dependsOnCrd is not nil.
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, runtimeClass string, withDatadogAutoscaling bool, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
-	if err := e.Ctx.RegisterComponentResource("dd:apps", "nginx", k8sComponent, opts...); err != nil {
+	// The pulumi component resource names need to be unique. We adopt a naming convention of `namespace/componentName`.
+	if err := e.Ctx().RegisterComponentResource("dd:apps", namespace+"/nginx", k8sComponent, opts...); err != nil {
 		return nil, err
 	}
 
@@ -35,7 +47,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
-	ns, err := corev1.NewNamespace(e.Ctx, namespace, &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespace),
 		},
@@ -46,7 +58,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "nginx", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
@@ -106,11 +118,13 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 								HttpGet: &corev1.HTTPGetActionArgs{
 									Port: pulumi.Int(80),
 								},
+								TimeoutSeconds: pulumi.Int(5),
 							},
 							ReadinessProbe: &corev1.ProbeArgs{
 								HttpGet: &corev1.HTTPGetActionArgs{
 									Port: pulumi.Int(80),
 								},
+								TimeoutSeconds: pulumi.Int(5),
 							},
 							VolumeMounts: &corev1.VolumeMountArray{
 								&corev1.VolumeMountArgs{
@@ -134,6 +148,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							EmptyDir: &corev1.EmptyDirVolumeSourceArgs{},
 						},
 					},
+					RuntimeClassName: runtimeClassToPulumi(runtimeClass),
 				},
 			},
 		},
@@ -145,7 +160,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 	kubeThresholdVersion, _ := semver.NewVersion("1.21.0")
 
 	if kubeVersion.Compare(kubeThresholdVersion) < 0 {
-		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx, "nginx", &policyv1beta1.PodDisruptionBudgetArgs{
+		if _, err := policyv1beta1.NewPodDisruptionBudget(e.Ctx(), namespace+"/nginx", &policyv1beta1.PodDisruptionBudgetArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("nginx"),
 				Namespace: pulumi.String(namespace),
@@ -165,7 +180,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 			return nil, err
 		}
 	} else {
-		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx, "nginx", &policyv1.PodDisruptionBudgetArgs{
+		if _, err := policyv1.NewPodDisruptionBudget(e.Ctx(), namespace+"/nginx", &policyv1.PodDisruptionBudgetArgs{
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("nginx"),
 				Namespace: pulumi.String(namespace),
@@ -186,19 +201,25 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		}
 	}
 
-	if dependsOnCrd != nil {
-		ddm, err := ddv1alpha1.NewDatadogMetric(e.Ctx, "nginx", &ddv1alpha1.DatadogMetricArgs{
-			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String("nginx"),
-				Namespace: pulumi.String(namespace),
-				Labels: pulumi.StringMap{
-					"app": pulumi.String("nginx"),
+	if withDatadogAutoscaling {
+		ddm, err := yaml.NewConfigGroup(e.Ctx(), namespace+"/nginx", &yaml.ConfigGroupArgs{
+			Objs: []map[string]any{
+				{
+					"apiVersion": "datadoghq.com/v1alpha1",
+					"kind":       "DatadogMetric",
+					"metadata": map[string]any{
+						"name":      "nginx",
+						"namespace": namespace,
+						"labels": map[string]string{
+							"app": "nginx",
+						},
+					},
+					"spec": map[string]any{
+						"query": fmt.Sprintf("avg:nginx.net.request_per_s{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:nginx}.rollup(60)", namespace),
+					},
 				},
 			},
-			Spec: &ddv1alpha1.DatadogMetricSpecArgs{
-				Query: pulumi.String(fmt.Sprintf("avg:nginx.net.request_per_s{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:nginx}.rollup(60)", namespace)),
-			},
-		}, append(opts, dependsOnCrd)...)
+		}, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -207,7 +228,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		kubeThresholdVersion, _ = semver.NewVersion("1.23.0")
 
 		if kubeVersion.Compare(kubeThresholdVersion) < 0 {
-			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx, "nginx", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
+			if _, err := autoscalingv2beta2.NewHorizontalPodAutoscaler(e.Ctx(), namespace+"/nginx", &autoscalingv2beta2.HorizontalPodAutoscalerArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Name:      pulumi.String("nginx"),
 					Namespace: pulumi.String(namespace),
@@ -231,10 +252,15 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
 								},
 								Target: &autoscalingv2beta2.MetricTargetArgs{
-									Type:         pulumi.String("AverageValue"),
-									AverageValue: pulumi.String("10"),
+									Type:  pulumi.String("Value"),
+									Value: pulumi.StringPtr("10"),
 								},
 							},
+						},
+					},
+					Behavior: &autoscalingv2beta2.HorizontalPodAutoscalerBehaviorArgs{
+						ScaleDown: &autoscalingv2beta2.HPAScalingRulesArgs{
+							StabilizationWindowSeconds: pulumi.IntPtr(0),
 						},
 					},
 				},
@@ -242,7 +268,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 				return nil, err
 			}
 		} else {
-			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx, "nginx", &autoscalingv2.HorizontalPodAutoscalerArgs{
+			if _, err := autoscalingv2.NewHorizontalPodAutoscaler(e.Ctx(), namespace+"/nginx", &autoscalingv2.HorizontalPodAutoscalerArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Name:      pulumi.String("nginx"),
 					Namespace: pulumi.String(namespace),
@@ -266,10 +292,15 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 									Name: pulumi.String("datadogmetric@" + namespace + ":nginx"),
 								},
 								Target: &autoscalingv2.MetricTargetArgs{
-									Type:         pulumi.String("AverageValue"),
-									AverageValue: pulumi.String("10"),
+									Type:  pulumi.String("Value"),
+									Value: pulumi.StringPtr("10"),
 								},
 							},
+						},
+					},
+					Behavior: &autoscalingv2.HorizontalPodAutoscalerBehaviorArgs{
+						ScaleDown: &autoscalingv2.HPAScalingRulesArgs{
+							StabilizationWindowSeconds: pulumi.IntPtr(0),
 						},
 					},
 				},
@@ -280,7 +311,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 
 	}
 
-	if _, err := corev1.NewService(e.Ctx, "nginx", &corev1.ServiceArgs{
+	if _, err := corev1.NewService(e.Ctx(), namespace+"/nginx", &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
@@ -321,7 +352,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx, "nginx-query", &appsv1.DeploymentArgs{
+	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx-query", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx-query"),
 			Namespace: pulumi.String(namespace),
@@ -358,7 +389,7 @@ func K8sAppDefinition(e config.CommonEnvironment, kubeProvider *kubernetes.Provi
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),
-									"memory": pulumi.String("32Mi"),
+									"memory": pulumi.String("64Mi"),
 								},
 								Requests: pulumi.StringMap{
 									"cpu":    pulumi.String("10m"),

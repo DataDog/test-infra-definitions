@@ -36,8 +36,8 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 	}
 
 	opts = append(opts, e.WithProviders(config.ProviderAzure))
-	cluster, err := containerservice.NewManagedCluster(e.Ctx, e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
-		ResourceName:      e.CommonNamer.DisplayName(math.MaxInt, pulumi.String(name)),
+	cluster, err := containerservice.NewManagedCluster(e.Ctx(), e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
+		ResourceName:      e.CommonNamer().DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
 		KubernetesVersion: pulumi.String(e.KubernetesVersion()),
 		AgentPoolProfiles: nodePool,
@@ -71,7 +71,7 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 		return nil, pulumi.StringOutput{}, err
 	}
 
-	creds := containerservice.ListManagedClusterUserCredentialsOutput(e.Ctx,
+	creds := containerservice.ListManagedClusterUserCredentialsOutput(e.Ctx(),
 		containerservice.ListManagedClusterUserCredentialsOutputArgs{
 			ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
 			ResourceName:      cluster.Name,
@@ -108,7 +108,7 @@ func kataNodePool(e azure.Environment) containerservice.ManagedClusterAgentPoolP
 		Mode:            string(containerservice.AgentPoolModeSystem),
 		InstanceType:    e.DefaultInstanceType(),
 		OSType:          string(containerservice.OSTypeLinux),
-		NodeCount:       2,
+		NodeCount:       1,
 		WorkloadRuntime: kataRuntime,
 		OsSku:           kataSku,
 	})

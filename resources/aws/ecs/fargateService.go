@@ -20,9 +20,9 @@ type Instance struct {
 }
 
 func FargateService(e aws.Environment, name string, clusterArn pulumi.StringInput, taskDefArn pulumi.StringInput, lb classicECS.ServiceLoadBalancerArrayInput, opts ...pulumi.ResourceOption) (*ecs.FargateService, error) {
-	return ecs.NewFargateService(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateServiceArgs{
+	return ecs.NewFargateService(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         e.CommonNamer.DisplayName(255, pulumi.String(name)),
+		Name:         e.CommonNamer().DisplayName(255, pulumi.String(name)),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),
@@ -76,10 +76,10 @@ func FargateTaskDefinitionWithAgent(
 	fakeintake *fakeintake.Fakeintake,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(*e.CommonEnvironment, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
-	return ecs.NewFargateTaskDefinition(e.Ctx, e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
+	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
 		Cpu:        pulumi.StringPtr(fmt.Sprintf("%d", cpu)),
 		Memory:     pulumi.StringPtr(fmt.Sprintf("%d", memory)),
@@ -89,7 +89,7 @@ func FargateTaskDefinitionWithAgent(
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family: e.CommonNamer.DisplayName(255, family),
+		Family: e.CommonNamer().DisplayName(255, family),
 		Volumes: classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),

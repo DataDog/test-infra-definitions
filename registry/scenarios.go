@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/eks"
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/installer"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/kindvm"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms"
 	"github.com/DataDog/test-infra-definitions/scenarios/azure/aks"
@@ -18,14 +19,15 @@ type ScenarioRegistry map[string]pulumi.RunFunc
 
 func Scenarios() ScenarioRegistry {
 	return ScenarioRegistry{
-		"aws/vm":       ec2.VMRun,
-		"aws/dockervm": ec2.VMRunWithDocker,
-		"aws/ecs":      ecs.Run,
-		"aws/eks":      eks.Run,
-		"aws/microvms": microvms.Run,
-		"aws/kind":     kindvm.Run,
-		"az/vm":        compute.VMRun,
-		"az/aks":       aks.Run,
+		"aws/vm":        ec2.VMRun,
+		"aws/dockervm":  ec2.VMRunWithDocker,
+		"aws/ecs":       ecs.Run,
+		"aws/eks":       eks.Run,
+		"aws/installer": installer.Run,
+		"aws/microvms":  microvms.Run,
+		"aws/kind":      kindvm.Run,
+		"az/vm":         compute.VMRun,
+		"az/aks":        aks.Run,
 	}
 }
 

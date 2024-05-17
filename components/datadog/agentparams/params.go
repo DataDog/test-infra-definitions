@@ -5,9 +5,11 @@ import (
 	"path"
 	"strings"
 
+	"github.com/DataDog/datadog-agent/pkg/util/optional"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -36,8 +38,9 @@ import (
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type FileDefinition struct {
-	Content string
-	UseSudo bool
+	Content     string
+	UseSudo     bool
+	Permissions optional.Option[perms.FilePermissions]
 }
 
 type Params struct {
@@ -57,7 +60,7 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(env *config.CommonEnvironment, options ...Option) (*Params, error) {
+func NewParams(env config.Env, options ...Option) (*Params, error) {
 	p := &Params{
 		Integrations: make(map[string]*FileDefinition),
 		Files:        make(map[string]*FileDefinition),
@@ -175,10 +178,16 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 
 // WithFile adds a file with contents to the install at the given path. This should only be used when the agent needs to be restarted after writing the file.
 func WithFile(absolutePath string, content string, useSudo bool) func(*Params) error {
+	return WithFileWithPermissions(absolutePath, content, useSudo, optional.NewNoneOption[perms.FilePermissions]())
+}
+
+// WithFileWithPermissions adds a file like WithFile but we can predefine the permissions of the file.
+func WithFileWithPermissions(absolutePath string, content string, useSudo bool, perms optional.Option[perms.FilePermissions]) func(*Params) error {
 	return func(p *Params) error {
 		p.Files[absolutePath] = &FileDefinition{
-			Content: content,
-			UseSudo: useSudo,
+			Content:     content,
+			UseSudo:     useSudo,
+			Permissions: perms,
 		}
 		return nil
 	}

@@ -27,6 +27,7 @@ const (
 //   - [WithNamespace]
 //   - [WithDeployWindows]
 //   - [WithFakeintake]
+//   - [WithoutLogsContainerCollectAll]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -38,25 +39,27 @@ type Params struct {
 	// Namespace is the namespace to deploy the agent to.
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
-	HelmValues pulumi.AssetOrArchiveArray
+	HelmValues string
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 	// FakeIntake is the fake intake to use for the agent installation.
 	FakeIntake *fakeintake.Fakeintake
 	// DeployWindows is a flag to deploy the agent on Windows.
 	DeployWindows bool
+	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
+	DisableLogsContainerCollectAll bool
 }
 
 type Option = func(*Params) error
 
-func NewParams(e config.CommonEnvironment, options ...Option) (*Params, error) {
+func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.CloudProviderEnvironment.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
-		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.CloudProviderEnvironment.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)
@@ -102,11 +105,14 @@ func WithDeployWindows() func(*Params) error {
 	}
 }
 
-// WithHelmValues sets the Helm values to use for the agent installation.
+// WithHelmValues adds helm values to the agent installation. If used several times, the helm values are merged together
+// If the same values is defined several times the latter call will override the previous one.
+// TODO: If https://github.com/pulumi/pulumi-kubernetes/pull/2963 is merged we can revert https://github.com/DataDog/test-infra-definitions/pull/779
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
-		p.HelmValues = pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(values)}
-		return nil
+		var err error
+		p.HelmValues, err = utils.MergeYAML(p.HelmValues, values)
+		return err
 	}
 }
 
@@ -115,6 +121,14 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.PulumiResourceOptions = append(p.PulumiResourceOptions, utils.PulumiDependsOn(fakeintake))
 		p.FakeIntake = fakeintake
+		return nil
+	}
+}
+
+// WithoutLogsContainerCollectAll disables collection of logs from all containers by default.
+func WithoutLogsContainerCollectAll() func(*Params) error {
+	return func(p *Params) error {
+		p.DisableLogsContainerCollectAll = true
 		return nil
 	}
 }

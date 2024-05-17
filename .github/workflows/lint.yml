@@ -24,7 +24,7 @@ jobs:
           cache: false
           cache-dependency-path: go.sum
       - name: golangci-lint
-        uses: golangci/golangci-lint-action@v3
+        uses: golangci/golangci-lint-action@v4
         with:
           # Require: The version of golangci-lint to use.
           # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
@@ -58,10 +58,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Install lint python requirements
-        run: pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/circleci.txt
+        run: pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements.txt
       - name: Run linters
         run: |
-          flake8 tasks
-          black --check --diff tasks
-          isort --check-only --diff tasks
+          ruff format --check tasks
+          ruff check tasks
           vulture --ignore-decorators @task --ignore-names 'test_*,Test*' tasks

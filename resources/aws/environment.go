@@ -28,6 +28,7 @@ const (
 	DDInfraDefaultInstanceStorageSize      = "aws/defaultInstanceStorageSize"
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
+	DDInfraDefaultInternalDockerhubMirror  = "aws/defaultInternalDockerhubMirror"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -45,6 +46,7 @@ const (
 	DDInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
 
 	// AWS EKS
+	DDInfraEKSPODSubnets                   = "aws/eks/podSubnets"
 	DDInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
 	DDInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
 	DDInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
@@ -65,12 +67,11 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 }
 
-var _ config.CloudProviderEnvironment = (*Environment)(nil)
+var _ config.Env = (*Environment)(nil)
 
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
-		awsEnv.CommonEnvironment.CloudProviderEnvironment = awsEnv
 	}
 }
 
@@ -85,19 +86,19 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 
 	if env.CommonEnvironment == nil {
-		commonEnv, err := config.NewCommonEnvironment(ctx, &env)
+		commonEnv, err := config.NewCommonEnvironment(ctx)
 		if err != nil {
 			return Environment{}, err
 		}
 
 		env.CommonEnvironment = &commonEnv
 	}
-	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.CommonEnvironment.InfraEnvironmentNames(), awsConfigNamespace))
+	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
 		Region: pulumi.String(env.Region()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
-			Tags: env.CommonEnvironment.ResourcesTags(),
+			Tags: env.ResourcesTags(),
 		},
 		SkipCredentialsValidation: pulumi.BoolPtr(false),
 		SkipMetadataApiCheck:      pulumi.BoolPtr(false),
@@ -107,7 +108,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
 
-	shuffle, err := random.NewRandomShuffle(env.Ctx, env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
+	shuffle, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
 		Inputs:      pulumi.ToStringArray(env.DefaultSubnets()),
 		ResultCount: pulumi.IntPtr(2),
 	}, env.WithProviders(config.ProviderRandom))
@@ -122,6 +123,10 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 // Cross Cloud Provider config
 func (e *Environment) InternalRegistry() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalRegistry, e.envDefault.ddInfra.defaultInternalRegistry)
+}
+
+func (e *Environment) InternalDockerhubMirror() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalDockerhubMirror, e.envDefault.ddInfra.defaultInternalDockerhubMirror)
 }
 
 // Common
@@ -234,6 +239,12 @@ func (e *Environment) ECSLinuxBottlerocketNodeGroup() bool {
 
 func (e *Environment) ECSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEcsWindowsLTSCNodeGroup, e.envDefault.ddInfra.ecs.windowsLTSCNodeGroup)
+}
+
+func (e *Environment) EKSPODSubnets() []DDInfraEKSPodSubnets {
+	var arr []DDInfraEKSPodSubnets
+	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEKSPODSubnets, arr, e.envDefault.ddInfra.eks.podSubnets)
+	return resObj.([]DDInfraEKSPodSubnets)
 }
 
 func (e *Environment) EKSAllowedInboundSecurityGroups() []string {

@@ -45,6 +45,7 @@ def create_kind(
     extra_flags = {}
     extra_flags["ddinfra:osDescriptor"] = f"amazonlinuxecs::{_get_architecture(architecture)}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
+    extra_flags["ddinfra:aws/defaultInstanceType"] = "t3.xlarge"
 
     full_stack_name = deploy(
         ctx,

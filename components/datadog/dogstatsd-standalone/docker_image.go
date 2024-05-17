@@ -13,7 +13,7 @@ const (
 	defaultDogstatsdImageTag  = "latest"
 )
 
-func dockerDogstatsdFullImagePath(e *config.CommonEnvironment, repositoryPath string) string {
+func dockerDogstatsdFullImagePath(e config.Env, repositoryPath string) string {
 	// return dogstatsd image path if defined
 	if e.DogstatsdFullImagePath() != "" {
 		return e.DogstatsdFullImagePath()

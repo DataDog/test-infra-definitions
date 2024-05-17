@@ -2,8 +2,9 @@ invoke==2.2.0
 termcolor==2.4.0
 pyyaml==6.0.1
 pyperclip==1.8.2
-pydantic==2.5.3
+pydantic==2.7.0
 colorama>=0.4.6
-lxml==5.1.0
+lxml==5.2.1
 python-gitlab==4.4.0
+PyGithub==2.3.0
 boto3>=1.28.0

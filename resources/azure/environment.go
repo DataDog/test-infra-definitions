@@ -33,13 +33,13 @@ type Environment struct {
 	envDefault environmentDefault
 }
 
-var _ config.CloudProviderEnvironment = (*Environment)(nil)
+var _ config.Env = (*Environment)(nil)
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
 		Namer: namer.NewNamer(ctx, azNamerNamespace),
 	}
-	commonEnv, err := config.NewCommonEnvironment(ctx, &env)
+	commonEnv, err := config.NewCommonEnvironment(ctx)
 	if err != nil {
 		return Environment{}, err
 	}
@@ -62,6 +62,10 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 // Cross Cloud Provider config
 func (e *Environment) InternalRegistry() string {
 	return "none"
+}
+
+func (e *Environment) InternalDockerhubMirror() string {
+	return "registry-1.docker.io"
 }
 
 // Common

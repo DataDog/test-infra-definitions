@@ -51,7 +51,7 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		return nil, err
 	}
 
-	// Create Agent container
+	// Create Agent container and attach to environment Docker network
 	instance, err := docker.NewContainer(e.Ctx(), "agent-container", &docker.ContainerArgs{
 		Name:         pulumi.String(fmt.Sprintf("agent-%v", e.Ctx().Stack())),
 		Image:        hostImage.ImageName,

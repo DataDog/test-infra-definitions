@@ -2,10 +2,12 @@ package docker
 
 import (
 	"fmt"
-	"github.com/DataDog/test-infra-definitions/components/os"
+	"math/rand"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/os"
+
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -53,7 +55,7 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 
 	// Create Agent container and attach to environment Docker network
 	instance, err := docker.NewContainer(e.Ctx(), "agent-container", &docker.ContainerArgs{
-		Name:         pulumi.String(fmt.Sprintf("agent-%v", e.Ctx().Stack())),
+		Name:         pulumi.String(fmt.Sprintf("agent-%v-%s", e.Ctx().Stack(), getPostfix())),
 		Image:        hostImage.ImageName,
 		CgroupnsMode: pulumi.String("host"),
 		Privileged:   pulumi.Bool(true),
@@ -65,7 +67,7 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 				Type:     pulumi.String("bind"),
 			},
 		},
-		Rm:          pulumi.Bool(false),
+		Rm:          pulumi.Bool(true),
 		StopTimeout: pulumi.IntPtr(5),
 		Ports: docker.ContainerPortArray{
 			&docker.ContainerPortArgs{
@@ -76,9 +78,6 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		NetworksAdvanced: &docker.ContainerNetworksAdvancedArray{
 			&docker.ContainerNetworksAdvancedArgs{
 				Name: e.DockerNetwork.Name,
-				Aliases: pulumi.StringArray{
-					pulumi.String("agent"),
-				},
 			},
 		},
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderDocker))...)
@@ -86,4 +85,13 @@ func NewInstance(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*do
 		return nil, err
 	}
 	return instance, nil
+}
+
+func getPostfix() string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }

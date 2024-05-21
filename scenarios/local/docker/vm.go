@@ -16,7 +16,6 @@ import (
 )
 
 func NewVM(e docker.Environment, name string, params ...ec2.VMOption) (*remote.Host, error) {
-
 	vArgs, err := ec2.BuildArgs(params...)
 	if err != nil {
 		return nil, err
@@ -56,7 +55,7 @@ func NewVM(e docker.Environment, name string, params ...ec2.VMOption) (*remote.H
 
 		return remote.InitHost(&e,
 			conn.ToConnectionOutputWithContext(e.Ctx().Context()),
-			os.Ubuntu2204,
+			*dos,
 			"root",
 			command.WaitForSuccessfulConnection,
 			comp,

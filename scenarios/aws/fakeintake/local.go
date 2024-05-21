@@ -2,6 +2,8 @@ package fakeintake
 
 import (
 	"fmt"
+	"math/rand"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -19,6 +21,7 @@ func NewLocalInstance(e docker.Environment, name string, option ...Option) (*fak
 	}
 
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(fi *fakeintake.Fakeintake) error {
+		fmt.Println("NewLocalInstance.NewComponent")
 		opts := []pulumi.ResourceOption{pulumi.Parent(fi)}
 
 		// Get fake intake image
@@ -32,15 +35,17 @@ func NewLocalInstance(e docker.Environment, name string, option ...Option) (*fak
 		}
 
 		// Start fake intake is a container
+		postfix := getPostfix()
 		fiContainer, err := pdocker.NewContainer(e.Ctx(), "fakeintakeContainer", &pdocker.ContainerArgs{
-			Name:        pulumi.String(fmt.Sprintf("fakeintake-%v", e.Ctx().Stack())),
+			Name:        pulumi.String(fmt.Sprintf("fakeintake-%v-%s", e.Ctx().Stack(), postfix)),
 			Image:       fiImage.ImageId,
-			Rm:          pulumi.Bool(false),
+			Rm:          pulumi.Bool(true),
 			StopTimeout: pulumi.IntPtr(5),
-			Hostname:    pulumi.String("fakeintake"),
+			Hostname:    pulumi.String(fmt.Sprintf("fakeintake-%s", postfix)),
 			Ports: pdocker.ContainerPortArray{
 				&pdocker.ContainerPortArgs{
 					Internal: pulumi.Int(80),
+					Protocol: pulumi.String("tcp"),
 				},
 			},
 			NetworksAdvanced: &pdocker.ContainerNetworksAdvancedArray{
@@ -65,4 +70,13 @@ func NewLocalInstance(e docker.Environment, name string, option ...Option) (*fak
 
 		return nil
 	})
+}
+
+func getPostfix() string {
+	const charset = "abcdefghijklmnopqrstuvwxyz0123456789"
+	b := make([]byte, 5)
+	for i := range b {
+		b[i] = charset[rand.Intn(len(charset))]
+	}
+	return string(b)
 }

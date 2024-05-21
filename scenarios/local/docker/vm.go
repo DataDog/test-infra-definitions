@@ -1,8 +1,6 @@
 package docker
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"

@@ -21,7 +21,7 @@ require (
 	github.com/pulumi/pulumi-command/sdk v0.9.2
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.1
 	github.com/pulumi/pulumi-eks/sdk/v2 v2.2.1
-	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.9.0
+	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.12.0
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
@@ -128,7 +128,7 @@ require (
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20240304212257-790db918fca8 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20240311173647-c811ad7063a7 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect

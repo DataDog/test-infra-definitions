@@ -2,9 +2,10 @@ package command
 
 import (
 	"fmt"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"path/filepath"
 	"strings"
+
+	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/alessio/shellescape"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -71,21 +72,23 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 	return strings.HasPrefix(path, "/")
 }
 
-func (fs unixOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	tempRemotePath := filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(localPath))
+func (fs unixOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+	tempRemotePath := localPath.ToStringOutput().ApplyT(func(path string) string {
+		return filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(path))
+	}).(pulumi.StringOutput)
 
-	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy-", remotePath), &remote.CopyFileArgs{
+	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy-", name), &remote.CopyFileArgs{
 		Connection: runner.config.connection,
-		LocalPath:  pulumi.String(localPath),
-		RemotePath: pulumi.String(tempRemotePath),
-		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(tempRemotePath)},
+		LocalPath:  localPath,
+		RemotePath: tempRemotePath,
+		Triggers:   pulumi.Array{localPath, tempRemotePath},
 	}, utils.MergeOptions(runner.options, opts...)...)
 
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = fs.copyRemoteFile(runner, tempRemotePath, remotePath, true, utils.PulumiDependsOn(tempCopyFile))
+	_, err = fs.copyRemoteFile(runner, name, tempRemotePath, remotePath, true, utils.PulumiDependsOn(tempCopyFile))
 	if err != nil {
 		return nil, err
 	}
@@ -114,10 +117,10 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool,
 	return formattedCommand
 }
 
-func (fs unixOSCommand) copyRemoteFile(runner *Runner, source string, destination string, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	backupPath := destination + "." + backupExtension
-	copyCommand := fmt.Sprintf(`cp '%v' '%v'`, source, destination)
-	createCommand := fmt.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
-	deleteCommand := fmt.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
-	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(source)), createCommand, deleteCommand, sudo, opts...)
+func (fs unixOSCommand) copyRemoteFile(runner *Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	var backupPath pulumi.StringInput = pulumi.Sprintf("%v.%s", destination, backupExtension)
+	var copyCommand pulumi.StringInput = pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
+	var createCommand pulumi.StringInput = pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
+	var deleteCommand pulumi.StringInput = pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
+	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(name)), createCommand, deleteCommand, sudo, opts...)
 }

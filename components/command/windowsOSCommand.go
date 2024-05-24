@@ -2,8 +2,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"strings"
+
+	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -77,11 +78,11 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	return false
 }
 
-func (fs windowsOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
+func (fs windowsOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: runner.config.connection,
-		LocalPath:  pulumi.String(localPath),
-		RemotePath: pulumi.String(remotePath),
-		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
+		LocalPath:  localPath,
+		RemotePath: remotePath,
+		Triggers:   pulumi.Array{localPath, remotePath},
 	}, utils.MergeOptions(runner.options, opts...)...)
 }

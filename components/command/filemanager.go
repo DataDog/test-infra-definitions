@@ -3,15 +3,15 @@ package command
 import (
 	"errors"
 	"fmt"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"sync"
+
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type FileManager struct {
@@ -65,38 +65,29 @@ func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceO
 	return folderCmd, homeDir, err
 }
 
-func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return fm.runner.NewCopyFile(localPath, remotePath, opts...)
+func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+	return fm.runner.NewCopyFile(name, localPath, remotePath, opts...)
 }
 
 func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	var waitingGroup sync.WaitGroup
-	waitingGroup.Add(1)
-
-	var tempFilePath string
-
 	// Write the content into a temporary file and get the path
-	fileContent.ToStringOutput().ApplyT(func(content string) error {
-		defer waitingGroup.Done()
+	localFilePath := fileContent.ToStringOutput().ApplyT(func(content string) (string, error) {
 
 		tempFile, err := os.CreateTemp("", filepath.Base(remotePath))
 		if err != nil {
-			return err
+			return "", err
 		}
 		defer tempFile.Close()
 
-		tempFilePath = tempFile.Name()
+		tempFilePath := tempFile.Name()
 		_, err = tempFile.WriteString(content)
 		if err != nil {
-			return err
+			return "", err
 		}
+		return tempFilePath, nil
+	}).(pulumi.StringInput)
 
-		return nil
-	})
-
-	waitingGroup.Wait()
-
-	return fm.CopyFile(tempFilePath, remotePath, opts...)
+	return fm.CopyFile(filepath.Base(remotePath), localFilePath, pulumi.String(remotePath), opts...)
 }
 
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.
@@ -134,7 +125,7 @@ func (fm *FileManager) CopyRelativeFile(relativePath string, remotePath string, 
 		return nil, err
 	}
 
-	return fm.CopyFile(fullPath, remotePath, opts...)
+	return fm.CopyFile(filepath.Base(relativePath), pulumi.String(fullPath), pulumi.String(remotePath), opts...)
 }
 
 // CopyFSFolder copies recursively a local folder to a remote folder.

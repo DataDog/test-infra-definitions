@@ -43,7 +43,7 @@ elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTI
 fi
 
 apt_url="apttesting.datad0g.com"
-apt_repo_version="${DD_PIPELINE_ID}-i7-${ARCH} 7"
+apt_repo_version="${DD_PIPELINE_ID}-a7-${ARCH} 7"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
 apt_trusted_d_keyring="/etc/apt/trusted.gpg.d/datadog-archive-keyring.gpg"
 

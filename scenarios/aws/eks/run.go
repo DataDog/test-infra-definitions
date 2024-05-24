@@ -141,7 +141,7 @@ func Run(ctx *pulumi.Context) error {
 
 		// Create configuration for POD subnets if any
 		if podSubnets := awsEnv.EKSPODSubnets(); len(podSubnets) > 0 {
-			eniConfigs, err := localEks.NewENIConfigs(awsEnv, podSubnets, awsEnv.DefaultSecurityGroups(), pulumi.Provider(eksKubeProvider))
+			eniConfigs, err := localEks.NewENIConfigs(awsEnv, podSubnets, awsEnv.DefaultSecurityGroups(), pulumi.Providers(eksKubeProvider))
 			if err != nil {
 				return err
 			}

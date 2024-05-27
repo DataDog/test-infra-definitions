@@ -147,7 +147,7 @@ def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     defaultPublicKeyPath = cfg.get_aws().publicKeyPath
     if require and defaultPublicKeyPath is None:
         raise Exit(f"Your scenario requires to define {default_public_path_key_name} in the configuration file")
-    return defaultPublicKeyPath
+    return f'"{defaultPublicKeyPath}"'
 
 
 # creates a stack with the given stack_name if it doesn't already exists
@@ -176,6 +176,8 @@ def _deploy(
     log_to_stderr: Optional[bool],
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
+    # make sure the stack name is safe
+    stack_name = stack_name.replace(" ", "-").lower()
     aws_account = flags["ddinfra:env"][len("aws/") :]
     global_flags = ""
     up_flags = ""
@@ -207,7 +209,11 @@ def _deploy(
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     if use_aws_vault is None or use_aws_vault:
         cmd = tool.get_aws_wrapper(aws_account) + cmd
-    ctx.run(cmd, pty=True)
+    
+    pty=True
+    if tool.is_windows():
+        pty=False
+    ctx.run(cmd, pty=pty)
     return stack_name
 
 

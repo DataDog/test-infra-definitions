@@ -21,16 +21,6 @@
       </xsl:copy>
   </xsl:template>
 
-  <xsl:template match="/domain/devices/disk">
-      <filesystem type='mount' accessmode='passthrough'>
-          <source dir='{sharedFSMount}'/>
-          <target dir='kernel-version-testing'/>
-      </filesystem>
-      <xsl:copy>
-          <xsl:apply-templates select="@*|node()"/>
-      </xsl:copy>
-  </xsl:template>
-
   <xsl:template match="/domain/devices/disk[@type='file']/driver">
       <readonly/>
       <xsl:copy>

@@ -32,7 +32,7 @@ func TestParams(t *testing.T) {
 		result, err := common.ApplyOption(p, options)
 		assert.NoError(t, err)
 		assert.Equal(t, result.Version, PackageVersion{
-			PipelineID: "pipeline-16362517",
+			PipelineID: "16362517",
 		})
 	})
 	t.Run("WithIntegration should correctly add conf.d/integration/conf.yaml to the path", func(t *testing.T) {

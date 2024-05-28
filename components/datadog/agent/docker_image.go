@@ -24,7 +24,7 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string) str
 
 	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", aws.AgentQAECR), fmt.Sprintf("pipeline-%s-%s", e.PipelineID(), e.CommitSHA()))
 	}
 
 	if repositoryPath == "" {
@@ -45,7 +45,7 @@ func dockerClusterAgentFullImagePath(e config.Env, repositoryPath string) string
 
 	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		return utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", aws.AgentQAECR), fmt.Sprintf("pipeline-%s-%s", e.PipelineID(), e.CommitSHA()))
 	}
 
 	if repositoryPath == "" {

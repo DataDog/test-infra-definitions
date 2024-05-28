@@ -80,7 +80,7 @@ def _show_connection_message(ctx: Context, config_path: Optional[str], full_stac
     )
     print(f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n")
 
-    input("Press a key to copy command to clipboard...")
+    print("The command has been copied to your clipboard.")
     pyperclip.copy(command)
 
 

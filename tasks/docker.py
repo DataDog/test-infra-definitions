@@ -78,7 +78,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
     print(f"If you want to use docker context, you can run the following commands \n\n{command}")
 
     if copy_to_clipboard:
-        input("Press a key to copy command to clipboard...")
+        print("The command has been copied to your clipboard.")
         pyperclip.copy(command)
 
 

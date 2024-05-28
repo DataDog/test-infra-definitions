@@ -97,7 +97,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
 
     print(f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n")
 
-    input("Press a key to copy command to clipboard...")
+    print("The command has been copied to your clipboard.")
     pyperclip.copy(command)
 
 

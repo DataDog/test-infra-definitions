@@ -68,6 +68,8 @@ jobs:
             image: netflow-generator
           - app: jmxfetch
             image: jmx-test-app
+          - app: snmp
+            image: snmp
 
     steps:
       - name: Checkout repository

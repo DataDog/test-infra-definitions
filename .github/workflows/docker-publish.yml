@@ -69,7 +69,7 @@ jobs:
           - app: jmxfetch
             image: jmx-test-app
           - app: snmp
-            image: snmp
+            image: snmpsim
 
     steps:
       - name: Checkout repository

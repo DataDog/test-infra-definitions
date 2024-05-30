@@ -125,6 +125,7 @@ func Run(ctx *pulumi.Context) error {
 			Kubeconfig:            cluster.KubeconfigJson,
 			EnableServerSideApply: pulumi.BoolPtr(true),
 			DeleteUnreachable:     pulumi.BoolPtr(true),
+			KubeClientSettings:    kubernetes.KubeClientSettingsPtrInput(kubernetes.KubeClientSettingsArgs{Burst: pulumi.IntPtr(20), Qps: pulumi.Float64Ptr(10)}),
 		}, awsEnv.WithProviders(config.ProviderAWS))
 		if err != nil {
 			return err

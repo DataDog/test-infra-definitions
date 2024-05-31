@@ -12,8 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.25.0
-	github.com/pulumi/pulumi-awsx/sdk/v2 v2.5.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.37.1
+	github.com/pulumi/pulumi-awsx/sdk/v2 v2.11.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
@@ -25,7 +25,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.115.0
+	github.com/pulumi/pulumi/sdk/v3 v3.116.1
 	github.com/pulumiverse/pulumi-time/sdk v0.0.16
 	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.9.0
@@ -122,7 +122,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.22.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/net v0.24.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
@@ -130,7 +130,7 @@ require (
 	golang.org/x/tools v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240304212257-790db918fca8 // indirect
 	google.golang.org/grpc v1.63.2 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.34.0 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
 	gopkg.in/warnings.v0 v0.1.2 // indirect
 	lukechampine.com/frand v1.4.2 // indirect

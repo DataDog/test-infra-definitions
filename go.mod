@@ -15,9 +15,9 @@ require (
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.25.0
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.5.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.30.0
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.43.0
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.30.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.43.0
 	github.com/pulumi/pulumi-command/sdk v0.9.2
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.1
 	github.com/pulumi/pulumi-eks/sdk/v2 v2.2.1
@@ -25,7 +25,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.115.0
+	github.com/pulumi/pulumi/sdk/v3 v3.117.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.16
 	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.9.0
@@ -120,13 +120,13 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zclconf/go-cty v1.14.3 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/crypto v0.22.0 // indirect
+	golang.org/x/crypto v0.23.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect
-	golang.org/x/net v0.23.0 // indirect
+	golang.org/x/net v0.25.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
-	golang.org/x/term v0.19.0 // indirect
-	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/sys v0.20.0 // indirect
+	golang.org/x/term v0.20.0 // indirect
+	golang.org/x/text v0.15.0 // indirect
 	golang.org/x/tools v0.19.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240304212257-790db918fca8 // indirect
 	google.golang.org/grpc v1.63.2 // indirect

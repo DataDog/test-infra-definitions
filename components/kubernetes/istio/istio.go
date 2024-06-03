@@ -119,7 +119,7 @@ func NewHelmInstallation(e config.Env, opts ...pulumi.ResourceOption) (*HelmComp
 	return helmComponent, nil
 }
 
-func NewHttpbinServiceInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) (*corev1.Service, error) {
+func NewHttpbinServiceInstallation(e config.Env, opts ...pulumi.ResourceOption) (*corev1.Service, error) {
 	// deploy httpbin on default namespace
 	httpbinServiceAccount, err := corev1.NewServiceAccount(e.Ctx(), "httpbin", &corev1.ServiceAccountArgs{
 		Metadata: metav1.ObjectMetaArgs{Name: pulumi.String("httpbin")},
@@ -195,7 +195,7 @@ func NewHttpbinServiceInstallation(e config.CommonEnvironment, opts ...pulumi.Re
 	return httpbinService, nil
 }
 
-func NewHttpbinGatewayRoutesInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) error {
+func NewHttpbinGatewayRoutesInstallation(e config.Env, opts ...pulumi.ResourceOption) error {
 	// create the gateway
 	httpbinGateway, err := apiext.NewCustomResource(e.Ctx(), "gateway", &apiext.CustomResourceArgs{
 		ApiVersion: pulumi.String("networking.istio.io/v1alpha3"),

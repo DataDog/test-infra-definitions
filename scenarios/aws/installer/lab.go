@@ -59,7 +59,7 @@ DD_API_KEY=%s DD_HOSTNAME=%s DD_SITE=%s DD_REMOTE_UPDATES=true bash -c "$(curl -
 
 const hostnamePrefix = "installer-lab-%s"
 
-type InstallerLabHost struct {
+type LabHost struct {
 	pulumi.ResourceState
 	components.Component
 
@@ -87,13 +87,13 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		_, err = components.NewComponent(&env, vm.Name(), func(comp *InstallerLabHost) error {
+		_, err = components.NewComponent(&env, vm.Name(), func(comp *LabHost) error {
 			comp.namer = env.CommonNamer().WithPrefix(comp.Name())
 			comp.host = vm
 
-			comp.installManagedAgent(env.AgentAPIKey(), fmt.Sprintf(hostnamePrefix, vmArgs.name), env.Site())
+			err := comp.installManagedAgent(env.AgentAPIKey(), fmt.Sprintf(hostnamePrefix, vmArgs.name), env.Site())
 
-			return nil
+			return err
 		})
 		if err != nil {
 			return err
@@ -103,7 +103,7 @@ func Run(ctx *pulumi.Context) error {
 	return nil
 }
 
-func (h *InstallerLabHost) installManagedAgent(
+func (h *LabHost) installManagedAgent(
 	apiKey pulumi.StringOutput, hostname string, site string,
 ) error {
 	installScript := pulumi.Sprintf(installScriptFormat, apiKey, hostname, site)

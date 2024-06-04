@@ -1,6 +1,8 @@
 package installer
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -52,8 +54,10 @@ var installerLabVMs = []installerLabVMArgs{
 }
 
 const installScriptFormat = `#!/bin/bash
-DD_API_KEY=%s DD_SITE=%s DD_REMOTE_UPDATES=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
+DD_API_KEY=%s DD_HOSTNAME=%s DD_SITE=%s DD_REMOTE_UPDATES=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
 `
+
+const hostnamePrefix = "installer-lab-%s"
 
 type InstallerLabHost struct {
 	pulumi.ResourceState
@@ -87,7 +91,7 @@ func Run(ctx *pulumi.Context) error {
 			comp.namer = env.CommonNamer().WithPrefix(comp.Name())
 			comp.host = vm
 
-			comp.installManagedAgent(env.AgentAPIKey(), env.Site())
+			comp.installManagedAgent(env.AgentAPIKey(), fmt.Sprintf(hostnamePrefix, vmArgs.name), env.Site())
 
 			return nil
 		})
@@ -100,9 +104,9 @@ func Run(ctx *pulumi.Context) error {
 }
 
 func (h *InstallerLabHost) installManagedAgent(
-	apiKey pulumi.StringOutput, site string,
+	apiKey pulumi.StringOutput, hostname string, site string,
 ) error {
-	installScript := pulumi.Sprintf(installScriptFormat, apiKey, site)
+	installScript := pulumi.Sprintf(installScriptFormat, apiKey, hostname, site)
 
 	_, err := h.host.OS.Runner().Command(
 		h.namer.ResourceName("install-script"),

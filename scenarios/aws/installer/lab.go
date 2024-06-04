@@ -1,19 +1,21 @@
 package installer
 
 import (
-	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
-	"github.com/DataDog/test-infra-definitions/components/datadog/updater"
+	"github.com/DataDog/test-infra-definitions/common/namer"
+	"github.com/DataDog/test-infra-definitions/components"
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type installerLabVMArgs struct {
-	name         string
-	descriptor   os.Descriptor
-	instanceType string
-	packageNames []string
+	name              string
+	descriptor        os.Descriptor
+	instanceType      string
+	extraPackageNames []string
 }
 
 var installerLabVMs = []installerLabVMArgs{
@@ -21,52 +23,54 @@ var installerLabVMs = []installerLabVMArgs{
 		name:         "ubuntu-22",
 		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
 		instanceType: "t4g.medium",
-		packageNames: []string{
-			"agent-package-dev:latest",
+		extraPackageNames: []string{
+			"datadog-agent",
 		},
 	},
 	{
 		name:         "ubuntu-20",
 		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "20.04", os.ARM64Arch),
 		instanceType: "t4g.medium",
-		packageNames: []string{
-			"agent-package-dev:latest",
-		},
-	},
-	{
-		name:         "ubuntu-22-all-packages",
-		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
-		instanceType: "t4g.medium",
-		packageNames: []string{
-			"agent-package-dev:latest",
-			"apm-inject-package-dev:latest",
-			"apm-library-java-package-dev:latest",
+		extraPackageNames: []string{
+			"datadog-agent",
 		},
 	},
 	{
 		name:         "debian-12",
 		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
 		instanceType: "t4g.medium",
-		packageNames: []string{
-			"agent-package-dev:latest",
+		extraPackageNames: []string{
+			"datadog-agent",
 		},
 	},
 	{
 		name:         "debian-12-small",
 		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
 		instanceType: "t4g.small",
-		packageNames: []string{
-			"agent-package-dev:latest",
+		extraPackageNames: []string{
+			"datadog-agent",
 		},
 	},
 	{
 		name:         "suse-15",
 		descriptor:   os.NewDescriptorWithArch(os.Suse, "15-sp4", os.ARM64Arch),
 		instanceType: "t4g.medium",
-		packageNames: []string{
-			"agent-package-dev:latest",
+		extraPackageNames: []string{
+			"datadog-agent",
 		},
 	},
+}
+
+const installScriptFormat = `#!/bin/bash
+DD_API_KEY=%s DD_SITE=%s DD_REMOTE_UPDATES=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
+`
+
+type InstallerLabHost struct {
+	pulumi.ResourceState
+	components.Component
+
+	namer namer.Namer
+	host  *remoteComp.Host
 }
 
 func Run(ctx *pulumi.Context) error {
@@ -89,13 +93,14 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		// Install the installer
-		_, err = updater.NewHostUpdaterWithPackages(
-			&env,
-			vm,
-			vmArgs.packageNames,
-			withInstallerOption(env.AgentAPIKey(), vm.Name(), env.Site()),
-		)
+		_, err = components.NewComponent(&env, vm.Name(), func(comp *InstallerLabHost) error {
+			comp.namer = env.CommonNamer().WithPrefix(comp.Name())
+			comp.host = vm
+
+			comp.installManagedAgent(env.AgentAPIKey(), env.Site())
+
+			return nil
+		})
 		if err != nil {
 			return err
 		}
@@ -104,20 +109,17 @@ func Run(ctx *pulumi.Context) error {
 	return nil
 }
 
-func withInstallerOption(
-	apiKey pulumi.StringOutput, hostname string, site string,
-) func(*agentparams.Params) error {
-	return func(p *agentparams.Params) error {
-		datadogAgentConfig := pulumi.Sprintf(`
-api_key: %v
-hostname: %v
-site: %v
-updater:
-    remote_updates: true
-`, apiKey, hostname, site)
+func (h *InstallerLabHost) installManagedAgent(
+	apiKey pulumi.StringOutput, site string,
+) error {
+	installScript := pulumi.Sprintf(installScriptFormat, apiKey, site)
 
-		p.ExtraAgentConfig = append(p.ExtraAgentConfig, datadogAgentConfig)
+	_, err := h.host.OS.Runner().Command(
+		h.namer.ResourceName("install-script"),
+		&command.Args{
+			Create: installScript,
+		},
+	)
 
-		return nil
-	}
+	return err
 }

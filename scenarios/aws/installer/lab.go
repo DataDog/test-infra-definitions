@@ -20,44 +20,34 @@ type installerLabVMArgs struct {
 
 var installerLabVMs = []installerLabVMArgs{
 	{
-		name:         "ubuntu-22",
-		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
-		instanceType: "t4g.medium",
-		extraPackageNames: []string{
-			"datadog-agent",
-		},
+		name:              "ubuntu-22",
+		descriptor:        os.NewDescriptorWithArch(os.Ubuntu, "22.04", os.ARM64Arch),
+		instanceType:      "t4g.medium",
+		extraPackageNames: []string{},
 	},
 	{
-		name:         "ubuntu-20",
-		descriptor:   os.NewDescriptorWithArch(os.Ubuntu, "20.04", os.ARM64Arch),
-		instanceType: "t4g.medium",
-		extraPackageNames: []string{
-			"datadog-agent",
-		},
+		name:              "ubuntu-20",
+		descriptor:        os.NewDescriptorWithArch(os.Ubuntu, "20.04", os.ARM64Arch),
+		instanceType:      "t4g.medium",
+		extraPackageNames: []string{},
 	},
 	{
-		name:         "debian-12",
-		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
-		instanceType: "t4g.medium",
-		extraPackageNames: []string{
-			"datadog-agent",
-		},
+		name:              "debian-12",
+		descriptor:        os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
+		instanceType:      "t4g.medium",
+		extraPackageNames: []string{},
 	},
 	{
-		name:         "debian-12-small",
-		descriptor:   os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
-		instanceType: "t4g.small",
-		extraPackageNames: []string{
-			"datadog-agent",
-		},
+		name:              "debian-12-small",
+		descriptor:        os.NewDescriptorWithArch(os.Debian, "12", os.ARM64Arch),
+		instanceType:      "t4g.small",
+		extraPackageNames: []string{},
 	},
 	{
-		name:         "suse-15",
-		descriptor:   os.NewDescriptorWithArch(os.Suse, "15-sp4", os.ARM64Arch),
-		instanceType: "t4g.medium",
-		extraPackageNames: []string{
-			"datadog-agent",
-		},
+		name:              "suse-15",
+		descriptor:        os.NewDescriptorWithArch(os.Suse, "15-sp4", os.ARM64Arch),
+		instanceType:      "t4g.medium",
+		extraPackageNames: []string{},
 	},
 }
 

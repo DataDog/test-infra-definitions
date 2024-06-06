@@ -33,6 +33,11 @@ class Config(BaseModel, extra=Extra.forbid):
 
         agent: Optional[Agent]
 
+        class Installer(BaseModel, extra=Extra.forbid):
+            bucket: Optional[str]
+            stagingApiKey: Optional[str]
+
+        installer: Optional[Installer]
         class Pulumi(BaseModel, extra=Extra.forbid):
             logLevel: Optional[int] = None
             logToStdErr: Optional[bool] = None
@@ -69,6 +74,14 @@ class Config(BaseModel, extra=Extra.forbid):
         if self.configParams.agent is None:
             return default
         return self.configParams.agent
+    
+    def get_installer(self) -> Params.Installer:
+        default = Config.Params.Installer(bucket=None, stagingApiKey=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.installer is None:
+            return default
+        return self.configParams.installer
 
     def get_pulumi(self) -> Params.Pulumi:
         default = Config.Params.Pulumi(

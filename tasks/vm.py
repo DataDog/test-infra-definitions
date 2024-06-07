@@ -140,7 +140,14 @@ def destroy_vm(
     Destroy a new virtual machine on the cloud.
     """
     host = _get_host(ctx, stack_name)
-    destroy(ctx, scenario_name=scenario_name, config_path=config_path, stack=stack_name, use_aws_vault=use_aws_vault, force_yes=yes)
+    destroy(
+        ctx,
+        scenario_name=scenario_name,
+        config_path=config_path,
+        stack=stack_name,
+        use_aws_vault=use_aws_vault,
+        force_yes=yes,
+    )
     if clean_known_hosts:
         _clean_known_hosts(host)
 

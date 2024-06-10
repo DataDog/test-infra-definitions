@@ -11,6 +11,7 @@ from .tool import error, get_aws_wrapper, get_stack_name, get_stack_name_prefix,
 
 def destroy(
     ctx: Context,
+    *,
     scenario_name: str,
     config_path: Optional[str] = None,
     stack: Optional[str] = None,

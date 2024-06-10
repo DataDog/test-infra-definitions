@@ -99,7 +99,14 @@ def destroy_kind(
     """
     Destroy an environment created by invoke create_docker.
     """
-    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
+    destroy(
+        ctx,
+        scenario_name=scenario_name,
+        config_path=config_path,
+        stack=stack_name,
+        use_aws_vault=use_aws_vault,
+        force_yes=yes,
+    )
 
 
 def _get_architecture(architecture: Optional[str]) -> str:

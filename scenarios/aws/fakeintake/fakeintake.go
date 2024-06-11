@@ -68,7 +68,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		e.Ctx().Log.Info(fmt.Sprintf("Fakeintake dashboard available at: https://dddev.datadoghq.com/dashboard/xzy-ybs-wz4/e2e-tests--fake-intake?fromUser=true&tpl_var_fake_intake_task_family[0]=%s-fakeintake-ecs", e.Ctx().Stack()), nil)
 		useLoadBalancer := false
 		if params.LoadBalancerEnabled {
-			if len(e.DefaultFakeintakes()) != 0 {
+			if len(e.DefaultFakeintakeLBs()) != 0 {
 				useLoadBalancer = true
 			} else {
 				e.Ctx().Log.Warn("Load balancer is enabled but no listener is defined, will not use LB", nil)

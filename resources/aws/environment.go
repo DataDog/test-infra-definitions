@@ -121,7 +121,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 
 	shuffleLB, err := random.NewRandomInteger(env.Ctx(), env.Namer.ResourceName("rnd-fakeintake"), &random.RandomIntegerArgs{
 		Min: pulumi.Int(0),
-		Max: pulumi.Int(len(env.DefaultFakeintakes()) - 1),
+		Max: pulumi.Int(len(env.DefaultFakeintakeLBs()) - 1),
 	}, env.WithProviders(config.ProviderRandom))
 	if err != nil {
 		return Environment{}, err
@@ -153,7 +153,7 @@ func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 
-func (e *Environment) DefaultFakeintakes() []FakeintakeLBConfig {
+func (e *Environment) DefaultFakeintakeLBs() []FakeintakeLBConfig {
 	var fakeintakeLBConfig FakeintakeLBConfig
 	return e.GetObjectWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBs, fakeintakeLBConfig, e.envDefault.ddInfra.ecs.defaultFakeintakeLBs).([]FakeintakeLBConfig)
 }
@@ -215,7 +215,7 @@ func (e *Environment) ECSFargateFakeintakeClusterArn() string {
 
 func (e *Environment) ECSFakeintakeLBListenerArn() pulumi.StringOutput {
 	defaultFakeintakeLBListenerArns := []string{}
-	for _, fakeintake := range e.DefaultFakeintakes() {
+	for _, fakeintake := range e.DefaultFakeintakeLBs() {
 		defaultFakeintakeLBListenerArns = append(defaultFakeintakeLBListenerArns, fakeintake.listenerArn)
 	}
 
@@ -224,7 +224,7 @@ func (e *Environment) ECSFakeintakeLBListenerArn() pulumi.StringOutput {
 
 func (e *Environment) ECSFakeintakeLBBaseHost() pulumi.StringOutput {
 	defaultFakeintakeLBBaseHost := []string{}
-	for _, fakeintake := range e.DefaultFakeintakes() {
+	for _, fakeintake := range e.DefaultFakeintakeLBs() {
 		defaultFakeintakeLBBaseHost = append(defaultFakeintakeLBBaseHost, fakeintake.baseHost)
 	}
 

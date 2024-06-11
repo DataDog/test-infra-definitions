@@ -31,9 +31,9 @@ const (
 	DDInfraDefaultInternalDockerhubMirror  = "aws/defaultInternalDockerhubMirror"
 
 	// AWS ECS
-	DDInfraEcsExecKMSKeyID                = "aws/ecs/execKMSKeyID"
-	DDInfraEcsFargateFakeintakeClusterArn = "aws/ecs/fargateFakeintakeClusterArn"
-	DDInfraEcsFakeintake
+	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
+	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
+	DDInfraEcsFakeintakeLBs                 = "aws/ecs/defaultfakeintakeLBs"
 	DDInfraEcsFakeintakeLBListenerArn       = "aws/ecs/fakeintakeLBListenerArn"
 	DDInfraEcsFakeintakeLBBaseHost          = "aws/ecs/fakeintakeLBBaseHost"
 	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
@@ -154,7 +154,8 @@ func (e *Environment) DefaultSubnets() []string {
 }
 
 func (e *Environment) DefaultFakeintakes() []FakeintakeLBConfig {
-	return e.GetObjectWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBBaseHost, []fakeintakeLBConfig{}, e.envDefault.ddInfra.ecs.defaultFakeintakeLBs).([]fakeintakeLBConfig)
+	var fakeintakeLBConfig FakeintakeLBConfig
+	return e.GetObjectWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBs, fakeintakeLBConfig, e.envDefault.ddInfra.ecs.defaultFakeintakeLBs).([]FakeintakeLBConfig)
 }
 
 func (e *Environment) RandomSubnets() pulumi.StringArrayOutput {

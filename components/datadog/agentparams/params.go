@@ -272,7 +272,7 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
-		return withIntakeHostname(fakeintake.Host)(p)
+		return withIntakeHostname(fakeintake.URL)(p)
 	}
 }
 

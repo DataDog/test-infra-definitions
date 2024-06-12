@@ -151,6 +151,9 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 }
 
 func getAgentURLFromPipelineID(pipeline string) (string, error) {
+	// FIXME: remove pipeline- from the pipelineID we do not want it for Windows
+	pipelineID := strings.TrimPrefix(pipeline, "pipeline-")
+
 	// TODO: Replace context.Background() with a Pulumi context.Context.
 	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
 	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
@@ -162,7 +165,7 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 
 	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: aws.String("dd-agent-mstesting"),
-		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipeline)),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
 	})
 	if err != nil {
 		return "", err

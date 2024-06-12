@@ -209,10 +209,10 @@ def _deploy(
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
     if use_aws_vault is None or use_aws_vault:
         cmd = tool.get_aws_wrapper(aws_account) + cmd
-    
-    pty=True
+
+    pty = True
     if tool.is_windows():
-        pty=False
+        pty = False
     ctx.run(cmd, pty=pty)
     return stack_name
 

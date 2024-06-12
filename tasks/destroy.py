@@ -55,9 +55,9 @@ def destroy(
         cmd = f"pulumi destroy --remove -s {full_stack_name} {force_destroy}"
         if use_aws_vault:
             cmd = get_aws_wrapper(aws_account) + cmd
-        pty=True
+        pty = True
         if tool.is_windows():
-            pty=False
+            pty = False
         ret = ctx.run(cmd, pty=pty, warn=True)
         if ret is not None and ret.exited != 0:
             # run with refresh on first destroy attempt failure

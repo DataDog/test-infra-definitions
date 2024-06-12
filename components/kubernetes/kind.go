@@ -68,7 +68,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", kindClusterName)
 		clusterConfig, err := vm.OS.FileManager().CopyInlineFile(
 			pulumi.String(kindClusterConfig),
-			clusterConfigFilePath, opts...)
+			clusterConfigFilePath, false, opts...)
 		if err != nil {
 			return err
 		}

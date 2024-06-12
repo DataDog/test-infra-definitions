@@ -34,8 +34,6 @@ const (
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
 	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
 	DDInfraEcsFakeintakeLBs                 = "aws/ecs/defaultfakeintakeLBs"
-	DDInfraEcsFakeintakeLBListenerArn       = "aws/ecs/fakeintakeLBListenerArn"
-	DDInfraEcsFakeintakeLBBaseHost          = "aws/ecs/fakeintakeLBBaseHost"
 	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
 	DDInfraEcsTaskRole                      = "aws/ecs/taskRole"
 	DDInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
@@ -65,8 +63,8 @@ type Environment struct {
 	awsConfig  *sdkconfig.Config
 	envDefault environmentDefault
 
-	randomSubnets       pulumi.StringArrayOutput
-	randomFakeintakeIdx pulumi.IntOutput
+	randomSubnets pulumi.StringArrayOutput
+	randomLBIdx   pulumi.IntOutput
 }
 
 var _ config.Env = (*Environment)(nil)
@@ -126,7 +124,7 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	if err != nil {
 		return Environment{}, err
 	}
-	env.randomFakeintakeIdx = shuffleLB.Result
+	env.randomLBIdx = shuffleLB.Result
 
 	return env, nil
 }
@@ -219,7 +217,7 @@ func (e *Environment) ECSFakeintakeLBListenerArn() pulumi.StringOutput {
 		defaultFakeintakeLBListenerArns = append(defaultFakeintakeLBListenerArns, fakeintake.listenerArn)
 	}
 
-	return pulumi.ToStringArray(defaultFakeintakeLBListenerArns).ToStringArrayOutput().Index(e.randomFakeintakeIdx)
+	return pulumi.ToStringArray(defaultFakeintakeLBListenerArns).ToStringArrayOutput().Index(e.randomLBIdx)
 }
 
 func (e *Environment) ECSFakeintakeLBBaseHost() pulumi.StringOutput {
@@ -228,7 +226,7 @@ func (e *Environment) ECSFakeintakeLBBaseHost() pulumi.StringOutput {
 		defaultFakeintakeLBBaseHost = append(defaultFakeintakeLBBaseHost, fakeintake.baseHost)
 	}
 
-	return pulumi.ToStringArray(defaultFakeintakeLBBaseHost).ToStringArrayOutput().Index(e.randomFakeintakeIdx)
+	return pulumi.ToStringArray(defaultFakeintakeLBBaseHost).ToStringArrayOutput().Index(e.randomLBIdx)
 }
 
 func (e *Environment) ECSTaskExecutionRole() string {

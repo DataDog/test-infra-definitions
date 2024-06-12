@@ -164,9 +164,7 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 
 	// Hashing fakeintake resource name as prefix for Host header
 	hostPrefix := utils.StrHash(namer.ResourceName(e.Ctx().Stack()))
-	host := e.ECSFakeintakeLBBaseHost().ApplyT(func(baseHost string) (string, error) {
-		return hostPrefix + baseHost, nil
-	}).(pulumi.StringOutput)
+	host := pulumi.Sprintf("%s%s", hostPrefix, e.ECSFakeintakeLBBaseHost())
 
 	_, err = clb.NewListenerRule(e.Ctx(), namer.ResourceName(hostPrefix), &clb.ListenerRuleArgs{
 		ListenerArn: e.ECSFakeintakeLBListenerArn(),
@@ -206,9 +204,7 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 	fi.Scheme = "https"
 	fi.Port = httpsPort
 	fi.Host = host
-	fi.URL = host.ApplyT(func(host string) string {
-		return fi.Scheme + "://" + host
-	}).(pulumi.StringOutput)
+	fi.URL = pulumi.Sprintf("%s://%s", fi.Scheme, host)
 	return nil
 }
 

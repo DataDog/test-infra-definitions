@@ -36,7 +36,7 @@ func (fm *FileManager) CreateDirectoryFromPulumiString(name string, remotePath p
 }
 
 // CreateDirectoryForFile if the directory does not exist
-// To avoid pulumi.URN colisions if multiple files use the same directory, use the full filePath as URN and path.Split out the folderPath for creation
+// To avoid pulumi.URN collisions if multiple files use the same directory, use the full filePath as URN and path.Split out the folderPath for creation
 func (fm *FileManager) CreateDirectoryForFile(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// if given just a directory path, path.Split returns "" as file
 	//  eg. path.Split("/a/b/c/") -> "/a/b/c/", ""

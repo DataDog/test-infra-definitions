@@ -135,7 +135,7 @@ func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, k
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InfraOSDescriptor(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{

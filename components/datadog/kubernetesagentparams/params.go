@@ -58,8 +58,8 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("pipeline-%s-%s", e.PipelineID(), e.CommitSHA()))))
-		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("pipeline-%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)

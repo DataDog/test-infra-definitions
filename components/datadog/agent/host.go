@@ -137,7 +137,7 @@ func (h *HostAgent) updateCoreAgentConfig(
 	extraAgentConfig []pulumi.StringInput,
 	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.CopyFile, pulumi.StringInput, error) {
+) (*remote.Command, pulumi.StringInput, error) {
 	for _, extraConfig := range extraAgentConfig {
 		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
 	}
@@ -153,12 +153,12 @@ func (h *HostAgent) updateConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	opts ...pulumi.ResourceOption,
-) (*remote.CopyFile, error) {
+) (*remote.Command, error) {
 	var err error
 
 	configFullPath := path.Join(h.manager.getAgentConfigFolder(), configPath)
 
-	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(configContent, configFullPath, opts...)
+	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(configContent, configFullPath, true, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +170,8 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	integrations map[string]*agentparams.FileDefinition,
 	files map[string]*agentparams.FileDefinition,
 	opts ...pulumi.ResourceOption,
-) ([]*remote.CopyFile, string, error) {
-	allCommands := make([]*remote.CopyFile, 0)
+) ([]*remote.Command, string, error) {
+	allCommands := make([]*remote.Command, 0)
 	var parts []string
 
 	// Build hash beforehand as we need to pass it to the restart command
@@ -205,11 +205,11 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 		configFolder := h.manager.getAgentConfigFolder()
 		fullPath := path.Join(configFolder, filePath)
 
-		file, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, fileDef.Permissions, opts...)
+		cmd, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, fileDef.Permissions, opts...)
 		if err != nil {
 			return nil, "", err
 		}
-		allCommands = append(allCommands, file)
+		allCommands = append(allCommands, cmd)
 	}
 
 	for fullPath, fileDef := range files {
@@ -233,14 +233,14 @@ func (h *HostAgent) writeFileDefinition(
 	useSudo bool,
 	perms optional.Option[perms.FilePermissions],
 	opts ...pulumi.ResourceOption,
-) (*remote.CopyFile, error) {
+) (*remote.Command, error) {
 	// create directory, if it does not exist
 	dirCommand, err := h.Host.OS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
+	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, useSudo, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func (h *HostAgent) writeFileDefinition(
 	// Set permissions if any
 	if value, found := perms.Get(); found {
 		if cmd := value.SetupPermissionsCommand(fullPath); cmd != "" {
-			_, err := h.Host.OS.Runner().Command(
+			return h.Host.OS.Runner().Command(
 				h.namer.ResourceName("set-permissions-"+fullPath, utils.StrHash(cmd)),
 				&command.Args{
 					Create: pulumi.String(cmd),
@@ -256,10 +256,6 @@ func (h *HostAgent) writeFileDefinition(
 					Update: pulumi.String(value.ResetPermissionsCommand(fullPath)),
 				},
 				utils.PulumiDependsOn(copyCmd))
-
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 

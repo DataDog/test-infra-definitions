@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -109,8 +108,8 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	return remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
 }
 
-func (r *Runner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
+func (r *Runner) NewCopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+	return r.osCommand.NewCopyFile(r, localPath, remotePath, opts...)
 }
 
 type LocalRunner struct {

@@ -4,7 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
@@ -12,6 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
+	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 	"github.com/DataDog/test-infra-definitions/resources/azure/aks"
@@ -70,20 +71,20 @@ providers:
   aks:
     enabled: true
 `
+			k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithNamespace("datadog"),
+				kubernetesagentparams.WithHelmValues(customValues),
+			)
 
-			helmComponent, err := agent.NewHelmInstallation(&env, agent.HelmInstallationArgs{
-				KubeProvider: aksKubeProvider,
-				Namespace:    "datadog",
-				ValuesYAML:   pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(customValues)},
-			}, nil)
+			k8sAgentComponent, err := helm.NewKubernetesAgent(&env, env.Namer.ResourceName("datadog-agent"), aksKubeProvider, k8sAgentOptions...)
+
 			if err != nil {
 				return err
 			}
 
-			ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
-			ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
-
-			dependsOnCrd = utils.PulumiDependsOn(helmComponent)
+			dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
 		}
 
 		// Deploy standalone dogstatsd

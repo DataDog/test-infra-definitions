@@ -77,7 +77,7 @@ func (fs unixOSCommand) NewCopyFile(runner *Runner, name string, localPath, remo
 		return filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
 
-	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
+	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy-", name), &remote.CopyFileArgs{
 		Connection: runner.config.connection,
 		LocalPath:  localPath,
 		RemotePath: tempRemotePath,
@@ -122,5 +122,5 @@ func (fs unixOSCommand) copyRemoteFile(runner *Runner, name string, source, dest
 	var copyCommand pulumi.StringInput = pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
 	var createCommand pulumi.StringInput = pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
 	var deleteCommand pulumi.StringInput = pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
-	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", name), createCommand, deleteCommand, sudo, opts...)
+	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(name)), createCommand, deleteCommand, sudo, opts...)
 }

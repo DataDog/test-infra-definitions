@@ -87,7 +87,7 @@ func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath
 		return tempFilePath, nil
 	}).(pulumi.StringInput)
 
-	return fm.CopyFile(filepath.Base(remotePath), localFilePath, pulumi.String(remotePath), opts...)
+	return fm.CopyFile(remotePath, localFilePath, pulumi.String(remotePath), opts...)
 }
 
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.

@@ -2,6 +2,7 @@ package filepermissions
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/datadog-agent/pkg/util/optional"
 	"github.com/DataDog/test-infra-definitions/common"
@@ -32,9 +33,10 @@ func NewWindowsPermissions(options ...WindowsPermissionsOption) optional.Option[
 
 // SetupPermissionsCommand returns a command that sets the permissions of a file. It relies on the icacls command.
 func (p *WindowsPermissions) SetupPermissionsCommand(path string) string {
+	path = strings.ReplaceAll(path, `/`, `\`) // icacls can behave weirdly with forward slashes
 	cmd := ""
 	if p.DisableInheritance {
-		cmd = fmt.Sprintf(`icacls "%v" /inheritance:r /t /c /l;`, path)
+		cmd = fmt.Sprintf(`icacls "%v" /inheritance:r /c /l;`, path)
 	}
 	if p.IcaclsCommand != "" {
 		return fmt.Sprintf(`%v icacls "%v" %v`, cmd, path, p.IcaclsCommand)
@@ -44,7 +46,7 @@ func (p *WindowsPermissions) SetupPermissionsCommand(path string) string {
 
 // ResetPermissionsCommand returns a command that resets the owner, group, and permissions of a file to default.
 func (p *WindowsPermissions) ResetPermissionsCommand(path string) string {
-	return fmt.Sprintf("icacls “%v” /reset /t /c /l;", path)
+	return fmt.Sprintf("icacls “%v” /reset /c /l;", path)
 }
 
 // WithIcaclsCommand sets the icacls command to use.

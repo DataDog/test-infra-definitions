@@ -5,9 +5,10 @@ from invoke.context import Context
 from invoke.exceptions import Exit
 from pydantic import ValidationError
 
+from tasks import tool
+
 from . import config
 from .tool import error, get_aws_wrapper, get_stack_name, get_stack_name_prefix, info
-from tasks import tool
 
 
 def destroy(

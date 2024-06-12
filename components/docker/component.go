@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -77,7 +78,7 @@ func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceO
 	}
 	remoteComposePath := path.Join(tempDirPath, path.Base(composeFilePath))
 
-	copyCmd, err := d.Host.OS.FileManager().CopyFile(composeFilePath, remoteComposePath, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCmd))...)
+	copyCmd, err := d.Host.OS.FileManager().CopyFile(filepath.Base(composeFilePath), pulumi.String(composeFilePath), pulumi.String(remoteComposePath), utils.MergeOptions(opts, utils.PulumiDependsOn(tempCmd))...)
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +110,6 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		writeCommand, err := d.Host.OS.FileManager().CopyInlineFile(
 			manifest.Content,
 			remoteComposePath,
-			false,
 			utils.MergeOptions(d.opts, utils.PulumiDependsOn(homeCmd))...,
 		)
 		if err != nil {

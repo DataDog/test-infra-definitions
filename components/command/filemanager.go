@@ -65,12 +65,29 @@ func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceO
 	return folderCmd, homeDir, err
 }
 
-func (fm *FileManager) CopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return fm.runner.NewCopyFile(localPath, remotePath, opts...)
+func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return fm.runner.NewCopyFile(name, localPath, remotePath, opts...)
 }
 
-func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	return fm.command.CopyInlineFile(fm.runner, fileContent, remotePath, useSudo, opts...)
+func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	// Write the content into a temporary file and get the path
+	localFilePath := fileContent.ToStringOutput().ApplyT(func(content string) (string, error) {
+
+		tempFile, err := os.CreateTemp("", filepath.Base(remotePath))
+		if err != nil {
+			return "", err
+		}
+		defer tempFile.Close()
+
+		tempFilePath := tempFile.Name()
+		_, err = tempFile.WriteString(content)
+		if err != nil {
+			return "", err
+		}
+		return tempFilePath, nil
+	}).(pulumi.StringInput)
+
+	return fm.CopyFile(remotePath, localFilePath, pulumi.String(remotePath), opts...)
 }
 
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.
@@ -108,7 +125,7 @@ func (fm *FileManager) CopyRelativeFile(relativePath string, remotePath string, 
 		return nil, err
 	}
 
-	return fm.CopyFile(fullPath, remotePath, opts...)
+	return fm.CopyFile(filepath.Base(relativePath), pulumi.String(fullPath), pulumi.String(remotePath), opts...)
 }
 
 // CopyFSFolder copies recursively a local folder to a remote folder.
@@ -158,7 +175,6 @@ func (fm *FileManager) CopyFSFolder(
 		fileCommand, err := fm.CopyInlineFile(
 			pulumi.String(fileContent),
 			path.Join(remoteFolder, destFile),
-			useSudo,
 			pulumi.DependsOn(folderResources))
 		if err != nil {
 			return nil, err

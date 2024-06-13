@@ -130,7 +130,6 @@ def _filter_aws_resource(resource, instance_id: Optional[str] = None, ip: Option
 
 
 def _get_windows_password(ctx: Context, cfg: Config, full_stack_name: str, use_aws_vault: Optional[bool] = True, instance_id: Optional[str] = None, ip: Optional[str] = None):
-    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     resources = tool.get_stack_json_resources(ctx, full_stack_name)
     vms = []
     for r in resources:

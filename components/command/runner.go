@@ -109,7 +109,7 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	return remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
 }
 
-func (r *Runner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+func (r *Runner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 

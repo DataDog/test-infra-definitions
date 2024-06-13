@@ -65,11 +65,11 @@ func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceO
 	return folderCmd, homeDir, err
 }
 
-func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return fm.runner.NewCopyFile(name, localPath, remotePath, opts...)
 }
 
-func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	// Write the content into a temporary file and get the path
 	localFilePath := fileContent.ToStringOutput().ApplyT(func(content string) (string, error) {
 

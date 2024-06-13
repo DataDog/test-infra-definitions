@@ -78,7 +78,7 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	return false
 }
 
-func (fs windowsOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+func (fs windowsOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: runner.config.connection,
 		LocalPath:  localPath,

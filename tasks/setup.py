@@ -278,8 +278,23 @@ class KeyFingerprint(NamedTuple):
 class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint)])):
     def in_ssh_agent(self, ctx):
         out = ctx.run("ssh-add -l", hide=True)
-        out = ssh_fingerprint_to_bytes(out.stdout.strip())
-        return self.match(out)
+        inAgent = out.stdout.strip().split('\n')
+        fromPath = None
+        if self.path:
+            # TODO: Not sure why the SHA256 is different for RSA keys between
+            #       ssh-agent and the openssl command below.
+            out = ctx.run(f"ssh-keygen -l -f {self.path}", hide=True)
+            fromPath = ssh_fingerprint_to_bytes(out.stdout.strip())
+        for line in inAgent:
+            line = line.strip()
+            if not line:
+                continue
+            out = ssh_fingerprint_to_bytes(line)
+            if self.match(out):
+                return True
+            if fromPath and out == fromPath:
+                return True
+        return False
 
     def match(self, fingerprint: bytes):
         for f in self.fingerprint:

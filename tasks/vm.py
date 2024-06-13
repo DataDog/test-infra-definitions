@@ -2,13 +2,15 @@ import getpass
 import os
 from typing import Optional, Tuple
 
+from pydantic import ValidationError
 import pyperclip
 from invoke.context import Context
 from invoke.exceptions import Exit
 from invoke.tasks import task
 
-from . import doc, tool
-from .deploy import deploy
+from . import config, doc, tool
+from .config import Config, get_full_profile_path
+from .deploy import deploy, _get_public_path_key_name
 from .destroy import destroy
 
 scenario_name = "aws/vm"
@@ -117,6 +119,109 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
     if copy_to_clipboard:
         input("Press a key to copy command to clipboard...")
         pyperclip.copy(command)
+
+
+def _filter_aws_resource(resource, instance_id: Optional[str] = None, ip: Optional[str] = None):
+    if instance_id and resource["id"] != instance_id:
+        return None
+    if ip and resource["outputs"]["privateIp"] != ip:
+        return None
+    return resource
+
+
+def _get_windows_password(ctx: Context, cfg: Config, full_stack_name: str, use_aws_vault: Optional[bool] = True, instance_id: Optional[str] = None, ip: Optional[str] = None):
+    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
+    resources = tool.get_stack_json_resources(ctx, full_stack_name)
+    vms = []
+    for r in resources:
+        if not r["type"].startswith("aws:ec2/instance:Instance"):
+            continue
+        vms.append(r)
+    if not vms:
+        raise Exit("No VM found in the stack.")
+
+    out = []
+    for r in vms:
+        if not _filter_aws_resource(r, instance_id, ip):
+            continue
+        vm_id = r["id"]
+        aws_account = cfg.get_aws().get_account()
+        # TODO: could xref with r['inputs']['keyName']
+        key_path = _get_public_path_key_name(cfg, require=True) or ""
+        password = tool.get_aws_instance_password_data(ctx, vm_id, key_path, aws_account=aws_account, use_aws_vault=use_aws_vault)
+        if password:
+            out.append({
+                "vm_id": vm_id,
+                "resource": r,
+                "password": password
+            })
+    return out
+
+
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "use_aws_vault": doc.use_aws_vault,
+        "ip": "Filter to VM with this IP address",
+        "instance_id": "Filter to VM with this id",
+    }
+)
+def get_vm_password(
+    ctx: Context,
+    stack_name: str,
+    config_path: Optional[str] = None,
+    ip: Optional[str] = None,
+    instance_id: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
+):
+    try:
+        cfg = config.get_local_config(config_path)
+    except ValidationError as e:
+        raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+
+    out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
+    if not out:
+        raise Exit("No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help.")
+    for vm in out:
+        vm_id = vm["vm_id"]
+        vm_ip = vm["resource"]["outputs"]["privateIp"]
+        password = vm["password"]
+        print(f"Password for VM {vm['vm_id']} ({vm_ip}): {password}")
+
+
+@task(
+    help={
+        "config_path": doc.config_path,
+        "stack_name": doc.stack_name,
+        "use_aws_vault": doc.use_aws_vault,
+        "ip": "Filter to VM with this IP address",
+        "instance_id": "Filter to VM with this id",
+    }
+)
+def rdp_vm(
+    ctx: Context,
+    stack_name: str,
+    config_path: Optional[str] = None,
+    ip: Optional[str] = None,
+    instance_id: Optional[str] = None,
+    use_aws_vault: Optional[bool] = True,
+):
+    try:
+        cfg = config.get_local_config(config_path)
+    except ValidationError as e:
+        raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+
+    out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
+    if not out:
+        raise Exit("No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help.")
+    for vm in out:
+        vm_ip = vm["resource"]["outputs"]["privateIp"]
+        password = vm["password"]
+        tool.rdp(ctx, vm_ip)
+        print(f"Password for VM {vm['vm_id']} ({vm_ip}): {password}")
+        input("Press a key to copy command to clipboard...")
+        pyperclip.copy(password)
 
 
 @task(

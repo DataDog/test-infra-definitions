@@ -12,11 +12,13 @@ from tasks.installer import create_installer_lab, destroy_installer_lab
 from tasks.kind import create_kind, destroy_kind
 from tasks.pipeline import retry_job
 
-from .vm import create_vm, destroy_vm
+from .vm import create_vm, destroy_vm, rdp_vm, get_vm_password
 
 ns = Collection()
 ns.add_task(create_vm)  # pyright: ignore [reportArgumentType]
 ns.add_task(destroy_vm)  # pyright: ignore [reportArgumentType]
+ns.add_task(rdp_vm)  # pyright: ignore [reportArgumentType]
+ns.add_task(get_vm_password)  # pyright: ignore [reportArgumentType]
 ns.add_task(create_docker)  # pyright: ignore [reportArgumentType]
 ns.add_task(destroy_docker)  # pyright: ignore [reportArgumentType]
 ns.add_task(create_eks)  # pyright: ignore [reportArgumentType]

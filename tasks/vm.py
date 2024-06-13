@@ -2,15 +2,15 @@ import getpass
 import os
 from typing import Optional, Tuple
 
-from pydantic import ValidationError
 import pyperclip
 from invoke.context import Context
 from invoke.exceptions import Exit
 from invoke.tasks import task
+from pydantic import ValidationError
 
 from . import config, doc, tool
 from .config import Config, get_full_profile_path
-from .deploy import deploy, _get_public_path_key_name
+from .deploy import _get_public_path_key_name, deploy
 from .destroy import destroy
 
 scenario_name = "aws/vm"
@@ -199,7 +199,7 @@ def get_vm_password(
         vm_id = vm["vm_id"]
         vm_ip = vm["resource"]["outputs"]["privateIp"]
         password = vm["password"]
-        print(f"Password for VM {vm['vm_id']} ({vm_ip}): {password}")
+        print(f"Password for VM {vm_id} ({vm_ip}): {password}")
 
 
 @task(

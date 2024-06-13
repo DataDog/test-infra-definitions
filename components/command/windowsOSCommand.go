@@ -2,8 +2,9 @@ package command
 
 import (
 	"fmt"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"strings"
+
+	"github.com/DataDog/test-infra-definitions/common/utils"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -33,25 +34,6 @@ func (fs windowsOSCommand) CreateDirectory(
 		fmt.Sprintf("if (-not (Test-Path -Path %v/*)) { Remove-Item -Path %v -ErrorAction SilentlyContinue }", remotePath, remotePath),
 		useSudo,
 		opts...)
-}
-
-func (fs windowsOSCommand) CopyInlineFile(
-	runner *Runner,
-	fileContent pulumi.StringInput,
-	remotePath string,
-	useSudo bool,
-	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
-	backupPath := remotePath + "." + backupExtension
-	backupCmd := fmt.Sprintf("if (Test-Path -Path '%v') { Move-Item -Force -Path '%v' -Destination '%v'}", remotePath, remotePath, backupPath)
-	createCmd := fmt.Sprintf(`%v; [System.Console]::In.ReadToEnd() | Out-File -FilePath '%v'`, backupCmd, remotePath)
-
-	deleteMoveCmd := fmt.Sprintf(`Move-Item -Force -Path '%v' -Destination '%v'`, backupPath, remotePath)
-	deleteRemoveCmd := fmt.Sprintf(`Remove-Item -Force -Path '%v'`, remotePath)
-	deleteCmd := fmt.Sprintf("if (Test-Path -Path '%v') { %v } else { %v }", backupPath, deleteMoveCmd, deleteRemoveCmd)
-	// If the file was previously created, make sure to delete it before creating it.
-	opts = append(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))
-	return copyInlineFile(remotePath, runner, fileContent, useSudo, createCmd, deleteCmd, opts...)
 }
 
 func (fs windowsOSCommand) GetTemporaryDirectory() string {
@@ -96,11 +78,11 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	return false
 }
 
-func (fs windowsOSCommand) NewCopyFile(runner *Runner, localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
+func (fs windowsOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: runner.config.connection,
-		LocalPath:  pulumi.String(localPath),
-		RemotePath: pulumi.String(remotePath),
-		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
+		LocalPath:  localPath,
+		RemotePath: remotePath,
+		Triggers:   pulumi.Array{localPath, remotePath},
 	}, utils.MergeOptions(runner.options, opts...)...)
 }

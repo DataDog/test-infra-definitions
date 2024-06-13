@@ -177,7 +177,9 @@ def is_wsl():
     return "microsoft" in platform.uname().release.lower()
 
 
-def get_aws_instance_password_data(ctx: Context, vm_id: str, key_path: str, aws_account: Optional[str] = None, use_aws_vault: Optional[bool] = True) -> str:
+def get_aws_instance_password_data(
+    ctx: Context, vm_id: str, key_path: str, aws_account: Optional[str] = None, use_aws_vault: Optional[bool] = True
+) -> str:
     buffer = StringIO()
     with ctx.cd(_get_root_path()):
         cmd = f"aws ec2 get-password-data --instance-id {vm_id} --priv-launch-key {key_path}"

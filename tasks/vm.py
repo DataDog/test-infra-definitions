@@ -129,7 +129,14 @@ def _filter_aws_resource(resource, instance_id: Optional[str] = None, ip: Option
     return resource
 
 
-def _get_windows_password(ctx: Context, cfg: Config, full_stack_name: str, use_aws_vault: Optional[bool] = True, instance_id: Optional[str] = None, ip: Optional[str] = None):
+def _get_windows_password(
+    ctx: Context,
+    cfg: Config,
+    full_stack_name: str,
+    use_aws_vault: Optional[bool] = True,
+    instance_id: Optional[str] = None,
+    ip: Optional[str] = None,
+):
     resources = tool.get_stack_json_resources(ctx, full_stack_name)
     vms = []
     for r in resources:
@@ -147,13 +154,11 @@ def _get_windows_password(ctx: Context, cfg: Config, full_stack_name: str, use_a
         aws_account = cfg.get_aws().get_account()
         # TODO: could xref with r['inputs']['keyName']
         key_path = _get_public_path_key_name(cfg, require=True) or ""
-        password = tool.get_aws_instance_password_data(ctx, vm_id, key_path, aws_account=aws_account, use_aws_vault=use_aws_vault)
+        password = tool.get_aws_instance_password_data(
+            ctx, vm_id, key_path, aws_account=aws_account, use_aws_vault=use_aws_vault
+        )
         if password:
-            out.append({
-                "vm_id": vm_id,
-                "resource": r,
-                "password": password
-            })
+            out.append({"vm_id": vm_id, "resource": r, "password": password})
     return out
 
 
@@ -187,7 +192,9 @@ def get_vm_password(
 
     out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
     if not out:
-        raise Exit("No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help.")
+        raise Exit(
+            "No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help."
+        )
     for vm in out:
         vm_id = vm["vm_id"]
         vm_ip = vm["resource"]["outputs"]["privateIp"]
@@ -225,7 +232,9 @@ def rdp_vm(
 
     out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
     if not out:
-        raise Exit("No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help.")
+        raise Exit(
+            "No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help."
+        )
     for vm in out:
         vm_ip = vm["resource"]["outputs"]["privateIp"]
         password = vm["password"]

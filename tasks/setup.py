@@ -103,7 +103,7 @@ def _check_config(config: Config):
 
 def setupAWSConfig(config: Config):
     if config.configParams is None:
-        config.configParams = Config.Params(aws=None, agent=None, pulumi=None)
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, devMode=False)
     if config.configParams.aws is None:
         config.configParams.aws = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
 

@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from . import config, doc, tool
 from .config import Config, get_full_profile_path
-from .deploy import _get_public_path_key_name, deploy
+from .deploy import deploy
 from .destroy import destroy
 
 scenario_name = "aws/vm"
@@ -153,7 +153,9 @@ def _get_windows_password(
         vm_id = r["id"]
         aws_account = cfg.get_aws().get_account()
         # TODO: could xref with r['inputs']['keyName']
-        key_path = _get_public_path_key_name(cfg, require=True) or ""
+        key_path = cfg.get_aws().privateKeyPath
+        if not key_path:
+            raise Exit("No privateKeyPath found in the config.")
         password = tool.get_aws_instance_password_data(
             ctx, vm_id, key_path, aws_account=aws_account, use_aws_vault=use_aws_vault
         )

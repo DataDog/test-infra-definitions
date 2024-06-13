@@ -161,7 +161,7 @@ def _get_windows_password(ctx: Context, cfg: Config, full_stack_name: str, use_a
 @task(
     help={
         "config_path": doc.config_path,
-        "stack_name": doc.stack_name,
+        "stack_name": "Name of stack that contains hosts to RDP into",
         "use_aws_vault": doc.use_aws_vault,
         "ip": "Filter to VM with this IP address",
         "instance_id": "Filter to VM with this id",
@@ -169,16 +169,22 @@ def _get_windows_password(ctx: Context, cfg: Config, full_stack_name: str, use_a
 )
 def get_vm_password(
     ctx: Context,
-    stack_name: str,
+    stack_name: Optional[str] = None,
     config_path: Optional[str] = None,
     ip: Optional[str] = None,
     instance_id: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,
 ):
+    """
+    Get the password of a new virtual machine in a stack.
+    """
     try:
         cfg = config.get_local_config(config_path)
     except ValidationError as e:
         raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+
+    if not stack_name:
+        raise Exit("Please provide a stack name to connect to.")
 
     out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
     if not out:
@@ -193,7 +199,7 @@ def get_vm_password(
 @task(
     help={
         "config_path": doc.config_path,
-        "stack_name": doc.stack_name,
+        "stack_name": "Name of stack that contains hosts to RDP into",
         "use_aws_vault": doc.use_aws_vault,
         "ip": "Filter to VM with this IP address",
         "instance_id": "Filter to VM with this id",
@@ -201,16 +207,22 @@ def get_vm_password(
 )
 def rdp_vm(
     ctx: Context,
-    stack_name: str,
+    stack_name: Optional[str] = None,
     config_path: Optional[str] = None,
     ip: Optional[str] = None,
     instance_id: Optional[str] = None,
     use_aws_vault: Optional[bool] = True,
 ):
+    """
+    Open an RDP connection to a new virtual machine in a stack.
+    """
     try:
         cfg = config.get_local_config(config_path)
     except ValidationError as e:
         raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+
+    if not stack_name:
+        raise Exit("Please provide a stack name to connect to.")
 
     out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
     if not out:

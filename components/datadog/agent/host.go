@@ -157,21 +157,6 @@ func (h *HostAgent) updateConfig(
 
 	configFullPath := path.Join(h.manager.getAgentConfigFolder(), configPath)
 
-	// Restart the agent when a config file is replaced
-	// See longer comment in `installAgent` for more details
-	restartCmd, err := h.manager.restartAgentServices(
-		func(name string, args command.Args) (string, command.Args) {
-			args.Triggers = pulumi.Array{configContent}
-			args.Delete = args.Create
-			args.Create = nil
-			return name + "-on-file-replace-" + configPath, args
-		})
-	if err != nil {
-		return nil, err
-	}
-
-	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(restartCmd))
-
 	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(configContent, configFullPath, opts...)
 	if err != nil {
 		return nil, err

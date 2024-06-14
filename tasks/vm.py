@@ -242,7 +242,7 @@ def rdp_vm(
         password = vm["password"]
         tool.rdp(ctx, vm_ip)
         print(f"Password for VM {vm['vm_id']} ({vm_ip}): {password}")
-        input("Press a key to copy command to clipboard...")
+        print("Username is Administrator, password has been copied to clipboard")
         pyperclip.copy(password)
 
 

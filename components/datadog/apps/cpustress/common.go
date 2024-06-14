@@ -4,7 +4,7 @@ import "fmt"
 
 const (
 	defaultStressNgImageRepo = "ghcr.io/colinianking/stress-ng"
-	defaultStressNgImageTag  = "409201de7458c639c68088d28ec8270ef599fe47"
+	defaultStressNgImageTag  = "9e9d6045b5e938f279f7e802fb72cfcf0eb261f9"
 )
 
 func getStressNGImage() string {

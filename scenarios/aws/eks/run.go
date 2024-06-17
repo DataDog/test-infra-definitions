@@ -290,6 +290,10 @@ func Run(ctx *pulumi.Context) error {
 				return err
 			}
 
+			if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+				return err
+			}
+
 			workloadWithCRDDeps = append(workloadWithCRDDeps, k8sAgentComponent)
 		}
 

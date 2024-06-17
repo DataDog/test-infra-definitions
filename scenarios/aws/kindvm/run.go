@@ -108,6 +108,11 @@ agents:
 		if err != nil {
 			return err
 		}
+
+		if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
+
 		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 

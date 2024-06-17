@@ -9,9 +9,9 @@ import (
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	NodeAgent     KubernetesObjRefOutput `json:"nodeAgent"`
-	ClusterAgent  KubernetesObjRefOutput `json:"clusterAgent"`
-	ClusterChecks KubernetesObjRefOutput `json:"clusterChecks"`
+	NodeAgent     map[string]string `json:"nodeAgent"`
+	ClusterAgent  map[string]string `json:"clusterAgent"`
+	ClusterChecks map[string]string `json:"clusterChecks"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
@@ -27,14 +27,3 @@ type KubernetesAgent struct {
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {
 	return components.Export(ctx, h, out)
 }
-
-//    agent-linux-helm-install-name  : "dda-linux"
-//    agent-linux-helm-install-status: {
-//        appVersion: "7"
-//        chart     : "datadog"
-//        name      : "dda-linux"
-//        namespace : "datadog"
-//        revision  : 1
-//        status    : "deployed"
-//        version   : "3.66.0"
-//    }

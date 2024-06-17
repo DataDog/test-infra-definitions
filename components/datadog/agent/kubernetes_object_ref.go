@@ -40,11 +40,11 @@ func NewKubernetesObjRef(e config.Env, name string, namespace string, kind strin
 		comp.AppVersion = appVersion
 		comp.Version = version
 
-		labelSelectorsJsonStr, err := json.Marshal(labelSelectors)
+		labelSelectorsJSONStr, err := json.Marshal(labelSelectors)
 		if err != nil {
 			return err
 		}
-		comp.LabelSelectors = pulumi.String(labelSelectorsJsonStr)
+		comp.LabelSelectors = pulumi.String(labelSelectorsJSONStr)
 
 		return nil
 	})

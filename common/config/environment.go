@@ -7,9 +7,10 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"github.com/DataDog/test-infra-definitions/common/namer"
 )
 
 const (
@@ -33,6 +34,7 @@ const (
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
+	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
 	DDAgentVersionParamName              = "version"
 	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentCommitSHA                     = "commit_sha"
@@ -142,6 +144,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
+	ctx.Log.Debug(fmt.Sprintf("deploy with Operator: %v", env.AgentDeployWithOperator()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
 	return env, nil
 }
@@ -220,6 +223,10 @@ func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
 // Agent Namespace
 func (e *CommonEnvironment) AgentDeploy() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployParamName, true)
+}
+
+func (e *CommonEnvironment) AgentDeployWithOperator() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {

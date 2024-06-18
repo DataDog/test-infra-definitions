@@ -85,7 +85,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Deploy the agent
-	if awsEnv.AgentDeploy() {
+	if awsEnv.AgentDeploy() && !awsEnv.AgentDeployWithOperator() {
 		customValues := fmt.Sprintf(`
 datadog:
   kubelet:
@@ -114,6 +114,27 @@ agents:
 		}
 
 		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+	}
+
+	// Deploy the operator
+	if awsEnv.AgentDeploy() && awsEnv.AgentDeployWithOperator() {
+		operatorHelmComponent, err := agent.NewOperatorHelmInstallation(&awsEnv, agent.OperatorHelmInstallationArgs{
+			KubeProvider:          kindKubeProvider,
+			Namespace:             "datadog",
+			ValuesYAML:            pulumi.AssetOrArchiveArray{},
+			OperatorFullImagePath: "gcr.io/datadoghq/operator:1.6.0",
+		}, nil)
+		if err != nil {
+			return err
+		}
+		ctx.Export("operator-linux-helm-install-name", operatorHelmComponent.LinuxHelmReleaseName)
+		ctx.Export("operator-linux-helm-install-status", operatorHelmComponent.LinuxHelmReleaseStatus)
+
+		dependsOnCrd = utils.PulumiDependsOn(operatorHelmComponent)
+
+		if _, err := agent.K8sAppDefinition(&awsEnv, kindKubeProvider, "datadog", fakeIntake, false, kindClusterName, ""); err != nil {
+			return err
+		}
 	}
 
 	// Deploy standalone dogstatsd

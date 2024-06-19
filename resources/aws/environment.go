@@ -117,6 +117,10 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.randomSubnets = shuffle.Results
 
+	if len(env.DefaultFakeintakeLBs()) == 0 {
+		return env, nil
+	}
+
 	shuffleLB, err := random.NewRandomInteger(env.Ctx(), env.Namer.ResourceName("rnd-fakeintake"), &random.RandomIntegerArgs{
 		Min: pulumi.Int(0),
 		Max: pulumi.Int(len(env.DefaultFakeintakeLBs()) - 1),

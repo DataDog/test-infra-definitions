@@ -30,6 +30,7 @@ const (
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
+	DDInfraInitOnly                         = "initOnly"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -102,6 +103,7 @@ type Env interface {
 	AgentAPPKey() pulumi.StringOutput
 	AgentUseFakeintake() bool
 	TestingWorkloadDeploy() bool
+	InitOnly() bool
 	DogstatsdDeploy() bool
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
@@ -179,6 +181,10 @@ func (e *CommonEnvironment) KubernetesVersion() string {
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
 	return map[string]string{"managed-by": "pulumi", "username": e.username}
+}
+
+func (e *CommonEnvironment) InitOnly() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraInitOnly, false)
 }
 
 func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {

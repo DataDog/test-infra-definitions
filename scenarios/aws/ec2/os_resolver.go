@@ -64,7 +64,11 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 
 	switch vmArgs.osInfo.Family() { // nolint:exhaustive
 	case os.LinuxFamily:
-		amiInfo.readyFunc = command.WaitForCloudInit
+		if vmArgs.osInfo.Version == os.AmazonLinux2018.Version && vmArgs.osInfo.Flavor == os.AmazonLinux2018.Flavor {
+			amiInfo.readyFunc = command.WaitForSuccessfulConnection
+		} else {
+			amiInfo.readyFunc = command.WaitForCloudInit
+		}
 	case os.WindowsFamily, os.MacOSFamily:
 		amiInfo.readyFunc = command.WaitForSuccessfulConnection
 	default:
@@ -92,6 +96,11 @@ func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, er
 		paramName = fmt.Sprintf("amzn2-ami-hvm-%s-gp2", osInfo.Architecture)
 	case os.AmazonLinuxECS2023.Version:
 		paramName = fmt.Sprintf("al2023-ami-kernel-default-%s", osInfo.Architecture)
+	case os.AmazonLinux2018.Version:
+		if osInfo.Architecture == os.ARM64Arch {
+			return "", errors.New("ARM64 is not supported for Amazon Linux 2018")
+		}
+		return "ami-051394ccb12210d6e", nil // Image name: amzn-ami-2018.03.20240131-amazon-ecs-optimized
 	default:
 		return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
 	}

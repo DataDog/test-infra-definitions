@@ -62,6 +62,8 @@ jobs:
             image: go-httpbin
           - app: npm-tools
             image: npm-tools
+          - app: cws
+            image: cws-centos7
           - app: logger
             image: logger
           - app: jmxfetch

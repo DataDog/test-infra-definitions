@@ -2,6 +2,7 @@ package agent
 
 import (
 	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -27,7 +28,7 @@ type HelmInstallationArgs struct {
 	// Namespace is the namespace in which to install the agent
 	Namespace string
 	// ValuesYAML is used to provide installation-specific values
-	ValuesYAML pulumi.AssetOrArchiveArrayInput
+	ValuesYAML pulumi.AssetOrArchiveArray
 	// Fakeintake is used to configure the agent to send data to a fake intake
 	Fakeintake *fakeintake.Fakeintake
 	// DeployWindows is used to deploy the Windows agent
@@ -125,17 +126,24 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := baseName + "-linux"
+
 	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake)
+
+	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
+
+	var valuesYAML pulumi.AssetOrArchiveArray
+
+	valuesYAML = append(valuesYAML, defaultYAMLValues)
+	valuesYAML = append(valuesYAML, args.ValuesYAML...)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
 		ChartName:   "datadog",
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
-		ValuesYAML:  args.ValuesYAML,
-		Values:      pulumi.Map(values),
+		ValuesYAML:  valuesYAML,
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -153,6 +161,10 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
 		values.configureFakeintake(e, args.Fakeintake)
+		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
+
+		valuesYAML = append(valuesYAML, defaultYAMLValues)
+		valuesYAML = append(valuesYAML, args.ValuesYAML...)
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -160,8 +172,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 			ChartName:   "datadog",
 			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
-			ValuesYAML:  args.ValuesYAML,
-			Values:      pulumi.Map(values),
+			ValuesYAML:  valuesYAML,
 		}, opts...)
 		if err != nil {
 			return nil, err
@@ -512,4 +523,15 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
 		}
 	}
+}
+
+func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
+	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]interface{}) (pulumi.Asset, error) {
+		yamlValues, err := yaml.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		return pulumi.NewStringAsset(string(yamlValues)), nil
+	}).(pulumi.AssetOutput)
+
 }

@@ -97,10 +97,10 @@ func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, er
 	case os.AmazonLinuxECS2023.Version:
 		paramName = fmt.Sprintf("al2023-ami-kernel-default-%s", osInfo.Architecture)
 	case os.AmazonLinux2018.Version:
-		if osInfo.Architecture == os.ARM64Arch {
-			return "", errors.New("ARM64 is not supported for Amazon Linux 2018")
+		if osInfo.Architecture != os.AMD64Arch {
+			return "", fmt.Errorf("arch %s is not supported for Amazon Linux 2018", osInfo.Architecture)
 		}
-		return "ami-051394ccb12210d6e", nil // Image name: amzn-ami-2018.03.20240131-amazon-ecs-optimized
+		return ec2.SearchAMI(e, "591542846629", "amzn-ami-2018.03.*-amazon-ecs-optimized", string(osInfo.Architecture)) // Community AMI owned by Amazon
 	default:
 		return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
 	}

@@ -4,6 +4,7 @@ from typing import Dict, Optional
 import yaml
 from invoke.exceptions import Exit
 from pydantic import BaseModel, Extra
+from termcolor import colored
 
 from .tool import info
 
@@ -23,6 +24,16 @@ class Config(BaseModel, extra=Extra.forbid):
             def get_account(self) -> str:
                 if self.account is None:
                     return "agent-sandbox"
+                if self.account == "agent-sandbox":
+                    print(
+                        colored(
+                            """
+Warning: You are deploying to the sandbox account, this AWS account is no longer supported.
+You should consider moving to the agent-sandbox account. Please follow https://datadoghq.atlassian.net/wiki/spaces/ADX/pages/3492282517/Getting+started+with+E2E to set it up.
+                          """,
+                            "yellow",
+                        )
+                    )
                 return self.account
 
         aws: Optional[Aws]

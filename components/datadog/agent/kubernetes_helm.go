@@ -134,7 +134,6 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
 	var valuesYAML pulumi.AssetOrArchiveArray
-
 	valuesYAML = append(valuesYAML, defaultYAMLValues)
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
 
@@ -163,8 +162,9 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		values.configureFakeintake(e, args.Fakeintake)
 		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
-		valuesYAML = append(valuesYAML, defaultYAMLValues)
-		valuesYAML = append(valuesYAML, args.ValuesYAML...)
+		var windowsValuesYAML pulumi.AssetOrArchiveArray
+		windowsValuesYAML = append(windowsValuesYAML, defaultYAMLValues)
+		windowsValuesYAML = append(windowsValuesYAML, args.ValuesYAML...)
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -172,7 +172,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 			ChartName:   "datadog",
 			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
-			ValuesYAML:  valuesYAML,
+			ValuesYAML:  windowsValuesYAML,
 		}, opts...)
 		if err != nil {
 			return nil, err

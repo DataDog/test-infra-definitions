@@ -24,7 +24,7 @@ class Config(BaseModel, extra=Extra.forbid):
             def get_account(self) -> str:
                 if self.account is None:
                     return "agent-sandbox"
-                if self.account == "agent-sandbox":
+                if self.account == "sandbox":
                     print(
                         colored(
                             """

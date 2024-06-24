@@ -100,7 +100,7 @@ func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, er
 		if osInfo.Architecture != os.AMD64Arch {
 			return "", fmt.Errorf("arch %s is not supported for Amazon Linux 2018", osInfo.Architecture)
 		}
-		return ec2.SearchAMI(e, "591542846629", "amzn-ami-2018.03.*-amazon-ecs-optimized", string(osInfo.Architecture)) // Community AMI owned by Amazon
+		return ec2.SearchAMI(e, "669783387624", "amzn-ami-2018.03.*-amazon-ecs-optimized", string(osInfo.Architecture))
 	default:
 		return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
 	}

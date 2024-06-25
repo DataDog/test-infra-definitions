@@ -27,6 +27,8 @@ import (
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -266,16 +268,38 @@ func Run(ctx *pulumi.Context) error {
 			}
 		}
 
+		randomClusterAgentToken, err := random.NewRandomString(awsEnv.CommonEnvironment.Ctx(), "datadog-cluster-agent-token", &random.RandomStringArgs{
+			Lower:   pulumi.Bool(true),
+			Upper:   pulumi.Bool(true),
+			Length:  pulumi.Int(32),
+			Numeric: pulumi.Bool(false),
+			Special: pulumi.Bool(false),
+		}, pulumi.Providers(eksKubeProvider), awsEnv.CommonEnvironment.WithProviders(config.ProviderRandom), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider))
+		if err != nil {
+			return err
+		}
+
 		// Deploy the agent
 		workloadWithCRDDeps := make([]pulumi.Resource, 0, len(workloadDeps))
 		copy(workloadWithCRDDeps, workloadDeps)
 
 		if awsEnv.AgentDeploy() {
+			fargateInjectionCustomValues := `
+clusterAgent:
+  admissionController:
+    agentSidecarInjection:
+      enabled: true
+      provider: fargate
+`
+
 			helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
-				KubeProvider:  eksKubeProvider,
-				Namespace:     "datadog",
-				Fakeintake:    fakeIntake,
-				DeployWindows: awsEnv.EKSWindowsNodeGroup(),
+				KubeProvider:                   eksKubeProvider,
+				Namespace:                      "datadog",
+				ValuesYAML:                     pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(fargateInjectionCustomValues)},
+				Fakeintake:                     fakeIntake,
+				DeployWindows:                  awsEnv.EKSWindowsNodeGroup(),
+				ClusterAgentToken:              randomClusterAgentToken,
+				EnableSidecarProfileFakeIntake: true,
 			}, utils.PulumiDependsOn(workloadDeps...))
 			if err != nil {
 				return err
@@ -332,6 +356,118 @@ func Run(ctx *pulumi.Context) error {
 
 			if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, eksKubeProvider, "workload-mutated", "workload-mutated-lib-injection", utils.PulumiDependsOn(workloadDeps...)); err != nil {
 				return err
+			}
+
+			if fargateNamespace := awsEnv.EKSFargateNamespace(); fargateNamespace != "" {
+				fgns, err := corev1.NewNamespace(awsEnv.CommonEnvironment.Ctx(), "fargate", &corev1.NamespaceArgs{
+					Metadata: metav1.ObjectMetaArgs{
+						Name: pulumi.String("fargate"),
+					},
+				}, pulumi.Provider(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider))
+				if err != nil {
+					return err
+				}
+				dependsOnFargate := utils.PulumiDependsOn(fgns)
+
+				fargateSecret, err := corev1.NewSecret(awsEnv.CommonEnvironment.Ctx(), "datadog-credentials-injection", &corev1.SecretArgs{
+					Metadata: metav1.ObjectMetaArgs{
+						Namespace: pulumi.StringPtr("fargate"),
+						Name:      pulumi.Sprintf("datadog-secret"),
+					},
+					StringData: pulumi.StringMap{
+						"api-key": awsEnv.CommonEnvironment.AgentAPIKey(),
+						"app-key": awsEnv.CommonEnvironment.AgentAPPKey(),
+						"token":   randomClusterAgentToken.Result,
+					},
+				}, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate)
+				if err != nil {
+					return err
+				}
+				dependsOnSecret := utils.PulumiDependsOn(fargateSecret)
+
+				clusterRoleArgs := v1.ClusterRoleArgs{
+					Metadata: &metav1.ObjectMetaArgs{
+						Name:      pulumi.String("datadog-agent"),
+						Namespace: pulumi.String("fargate"),
+					},
+					Rules: v1.PolicyRuleArray{
+						v1.PolicyRuleArgs{
+							ApiGroups: pulumi.StringArray{
+								pulumi.String(""),
+							},
+							Resources: pulumi.StringArray{
+								pulumi.String("nodes"),
+								pulumi.String("namespaces"),
+								pulumi.String("endpoints"),
+							},
+							Verbs: pulumi.StringArray{
+								pulumi.String("get"),
+								pulumi.String("list"),
+							},
+						},
+						v1.PolicyRuleArgs{
+							ApiGroups: pulumi.StringArray{
+								pulumi.String(""),
+							},
+							Resources: pulumi.StringArray{
+								pulumi.String("nodes/metrics"),
+								pulumi.String("nodes/spec"),
+								pulumi.String("nodes/stats"),
+								pulumi.String("nodes/proxy"),
+								pulumi.String("nodes/pods"),
+								pulumi.String("nodes/healthz"),
+							},
+							Verbs: pulumi.StringArray{
+								pulumi.String("get"),
+							},
+						},
+					},
+				}
+
+				clusterRoleBindingArgs := v1.ClusterRoleBindingArgs{
+					Metadata: &metav1.ObjectMetaArgs{
+						Name: pulumi.String("datadog-agent"),
+					},
+					RoleRef: v1.RoleRefArgs{
+						ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
+						Kind:     pulumi.String("ClusterRole"),
+						Name:     pulumi.String("datadog-agent"),
+					},
+					Subjects: v1.SubjectArray{
+						&v1.SubjectArgs{
+							Kind:      pulumi.String("ServiceAccount"),
+							Name:      pulumi.String("datadog-agent"),
+							Namespace: pulumi.String(fargateNamespace),
+						},
+					},
+				}
+
+				serviceAccountArgs := corev1.ServiceAccountArgs{
+					Metadata: &metav1.ObjectMetaArgs{
+						Name:      pulumi.String("datadog-agent"),
+						Namespace: pulumi.String(fargateNamespace),
+					},
+				}
+
+				if _, err := v1.NewClusterRole(awsEnv.CommonEnvironment.Ctx(), "datadog-agent", &clusterRoleArgs, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider)); err != nil {
+					return err
+				}
+
+				if _, err := v1.NewClusterRoleBinding(awsEnv.CommonEnvironment.Ctx(), "datadog-agent", &clusterRoleBindingArgs, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider)); err != nil {
+					return err
+				}
+
+				if _, err := corev1.NewServiceAccount(awsEnv.CommonEnvironment.Ctx(), "datadog-agent", &serviceAccountArgs, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider)); err != nil {
+					return err
+				}
+
+				if _, err := nginx.EKSFargateAppDefinition(&awsEnv, fargateNamespace, true, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate, utils.PulumiDependsOn(workloadWithCRDDeps...), dependsOnSecret); err != nil {
+					return err
+				}
+
+				if _, err := redis.EKSFargateAppDefinition(&awsEnv, fargateNamespace, true, pulumi.Providers(eksKubeProvider), pulumi.Parent(eksKubeProvider), pulumi.DeletedWith(eksKubeProvider), dependsOnFargate, utils.PulumiDependsOn(workloadWithCRDDeps...), dependsOnSecret); err != nil {
+					return err
+				}
 			}
 		}
 

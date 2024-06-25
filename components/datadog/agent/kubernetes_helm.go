@@ -36,8 +36,11 @@ type HelmInstallationArgs struct {
 	AgentFullImagePath string
 	// ClusterAgentFullImagePath is used to specify the full image path for the cluster agent
 	ClusterAgentFullImagePath string
+	ClusterAgentToken         *random.RandomString
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
+	// EnableSidecarProfile is used to determine if fake intake for a sidecar profile should be configured
+	EnableSidecarProfileFakeIntake bool
 }
 
 type HelmComponent struct {
@@ -61,17 +64,22 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		return nil, err
 	}
 	opts = append(opts, pulumi.Parent(helmComponent))
-
-	// Create fixed cluster agent token
-	randomClusterAgentToken, err := random.NewRandomString(e.Ctx(), "datadog-cluster-agent-token", &random.RandomStringArgs{
-		Lower:   pulumi.Bool(true),
-		Upper:   pulumi.Bool(true),
-		Length:  pulumi.Int(32),
-		Numeric: pulumi.Bool(false),
-		Special: pulumi.Bool(false),
-	}, opts...)
-	if err != nil {
-		return nil, err
+	var randomClusterAgentToken *random.RandomString
+	if args.ClusterAgentToken != nil {
+		randomClusterAgentToken = args.ClusterAgentToken
+	} else {
+		// Create fixed cluster agent token
+		var err error
+		randomClusterAgentToken, err = random.NewRandomString(e.Ctx(), "datadog-cluster-agent-token", &random.RandomStringArgs{
+			Lower:   pulumi.Bool(true),
+			Upper:   pulumi.Bool(true),
+			Length:  pulumi.Int(32),
+			Numeric: pulumi.Bool(false),
+			Special: pulumi.Bool(false),
+		}, opts...)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Create namespace if necessary
@@ -94,6 +102,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
 			"app-key": appKey,
+			"token":   randomClusterAgentToken.Result,
 		},
 	}, opts...)
 	if err != nil {
@@ -127,7 +136,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	linuxInstallName := baseName + "-linux"
 	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake)
+	values.configureFakeintake(e, args.Fakeintake, args.EnableSidecarProfileFakeIntake)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -152,7 +161,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake)
+		values.configureFakeintake(e, args.Fakeintake, args.EnableSidecarProfileFakeIntake)
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -453,7 +462,7 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake, enableProfileFakeIntake bool) {
 	if fakeintake == nil {
 		return
 	}
@@ -510,6 +519,18 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
 		} else {
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
+		}
+	}
+
+	if enableProfileFakeIntake {
+		values["clusterAgent"].(pulumi.Map)["admissionController"] = pulumi.Map{
+			"agentSidecarInjection": pulumi.Map{
+				"profiles": pulumi.Array{
+					pulumi.Map{
+						"env": additionalEndpointsEnvVar,
+					},
+				},
+			},
 		}
 	}
 }

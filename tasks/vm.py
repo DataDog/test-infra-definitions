@@ -33,6 +33,7 @@ scenario_name = "aws/vm"
         "instance_type": doc.instance_type,
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
+        "os_version": doc.os_version,
     }
 )
 def create_vm(
@@ -45,6 +46,7 @@ def create_vm(
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
+    os_version: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     ami_id: Optional[str] = None,
@@ -62,7 +64,7 @@ def create_vm(
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
     deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
-    extra_flags["ddinfra:osDescriptor"] = f"{os_family}::{os_arch}"
+    extra_flags["ddinfra:osDescriptor"] = f"{os_family}:{os_version if os_version else ''}:{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
     if ami_id is not None:

@@ -145,7 +145,6 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,
-		
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -520,7 +519,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			},
 		}
 	} else {
-		endpointsEnvVar = pulumi.StringMapArray{	
+		endpointsEnvVar = pulumi.StringMapArray{
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_DD_URL"),
 				"value": pulumi.Sprintf("%s", fakeintake.URL),
@@ -546,6 +545,8 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 				"value": pulumi.String("true"),
 			},
 		}
+	}
+
 	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = endpointsEnvVar

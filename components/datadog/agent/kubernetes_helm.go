@@ -551,7 +551,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {
-			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
+			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), endpointsEnvVar...)
 		}
 	}
 }

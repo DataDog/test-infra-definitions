@@ -82,6 +82,9 @@ func Run(ctx *pulumi.Context) error {
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
+		if fakeIntake == nil {
+			fmt.Println("FAKE INTAKE IS NIL")
+		}
 		if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
@@ -103,8 +106,13 @@ agents:
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog"),
 			kubernetesagentparams.WithHelmValues(customValues),
-			kubernetesagentparams.WithFakeintake(fakeIntake),
 		)
+		if fakeIntake != nil {
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithFakeintake(fakeIntake),
+			)
+		}
 
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
 

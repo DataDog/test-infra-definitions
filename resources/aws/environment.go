@@ -33,8 +33,7 @@ const (
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
 	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
-	DDInfraEcsFakeintakeLBListenerArn       = "aws/ecs/fakeintakeLBListenerArn"
-	DDInfraEcsFakeintakeLBBaseHost          = "aws/ecs/fakeintakeLBBaseHost"
+	DDInfraEcsFakeintakeLBs                 = "aws/ecs/defaultfakeintakeLBs"
 	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
 	DDInfraEcsTaskRole                      = "aws/ecs/taskRole"
 	DDInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
@@ -65,6 +64,7 @@ type Environment struct {
 	envDefault environmentDefault
 
 	randomSubnets pulumi.StringArrayOutput
+	randomLBIdx   pulumi.IntOutput
 }
 
 var _ config.Env = (*Environment)(nil)
@@ -117,6 +117,19 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.randomSubnets = shuffle.Results
 
+	if len(env.DefaultFakeintakeLBs()) == 0 {
+		return env, nil
+	}
+
+	shuffleLB, err := random.NewRandomInteger(env.Ctx(), env.Namer.ResourceName("rnd-fakeintake"), &random.RandomIntegerArgs{
+		Min: pulumi.Int(0),
+		Max: pulumi.Int(len(env.DefaultFakeintakeLBs()) - 1),
+	}, env.WithProviders(config.ProviderRandom))
+	if err != nil {
+		return Environment{}, err
+	}
+	env.randomLBIdx = shuffleLB.Result
+
 	return env, nil
 }
 
@@ -140,6 +153,11 @@ func (e *Environment) DefaultVPCID() string {
 
 func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+}
+
+func (e *Environment) DefaultFakeintakeLBs() []FakeintakeLBConfig {
+	var fakeintakeLBConfig FakeintakeLBConfig
+	return e.GetObjectWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBs, fakeintakeLBConfig, e.envDefault.ddInfra.ecs.defaultFakeintakeLBs).([]FakeintakeLBConfig)
 }
 
 func (e *Environment) RandomSubnets() pulumi.StringArrayOutput {
@@ -197,12 +215,22 @@ func (e *Environment) ECSFargateFakeintakeClusterArn() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
 }
 
-func (e *Environment) ECSFakeintakeLBListenerArn() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBListenerArn, e.envDefault.ddInfra.ecs.fakeintakeLBListenerArn)
+func (e *Environment) ECSFakeintakeLBListenerArn() pulumi.StringOutput {
+	defaultFakeintakeLBListenerArns := []string{}
+	for _, fakeintake := range e.DefaultFakeintakeLBs() {
+		defaultFakeintakeLBListenerArns = append(defaultFakeintakeLBListenerArns, fakeintake.listenerArn)
+	}
+
+	return pulumi.ToStringArray(defaultFakeintakeLBListenerArns).ToStringArrayOutput().Index(e.randomLBIdx)
 }
 
-func (e *Environment) ECSFakeintakeLBBaseHost() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBBaseHost, e.envDefault.ddInfra.ecs.fakeintakeLBBaseHostHeader)
+func (e *Environment) ECSFakeintakeLBBaseHost() pulumi.StringOutput {
+	defaultFakeintakeLBBaseHost := []string{}
+	for _, fakeintake := range e.DefaultFakeintakeLBs() {
+		defaultFakeintakeLBBaseHost = append(defaultFakeintakeLBBaseHost, fakeintake.baseHost)
+	}
+
+	return pulumi.ToStringArray(defaultFakeintakeLBBaseHost).ToStringArrayOutput().Index(e.randomLBIdx)
 }
 
 func (e *Environment) ECSTaskExecutionRole() string {

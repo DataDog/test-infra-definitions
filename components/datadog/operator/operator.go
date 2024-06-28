@@ -10,7 +10,7 @@ import (
 )
 
 // OperatorOutput is used to import the Operator component
-type OperatorOutput struct {
+type Output struct {
 	components.JSONImporter
 }
 
@@ -20,12 +20,12 @@ type Operator struct {
 	components.Component
 }
 
-func (h *Operator) Export(ctx *pulumi.Context, out *OperatorOutput) error {
+func (h *Operator) Export(ctx *pulumi.Context, out *Output) error {
 	return components.Export(ctx, h, out)
 }
 
 func NewOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...operatorparams.Option) (*Operator, error) {
-	return components.NewComponent(e, resourceName, func(comp *Operator) error {
+	return components.NewComponent(e, resourceName, func(_ *Operator) error {
 		params, err := operatorparams.NewParams(e, options...)
 		if err != nil {
 			return err

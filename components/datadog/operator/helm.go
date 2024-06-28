@@ -90,7 +90,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.OperatorFullImagePath != "" {
 		operatorImagePath = args.OperatorFullImagePath
 	}
-	operatorImagePath, operatorImageTag := utils.ParseImageReference(args.OperatorFullImagePath)
+	operatorImagePath, operatorImageTag := utils.ParseImageReference(operatorImagePath)
 	linuxInstallName := baseName + "-linux"
 
 	values := buildLinuxHelmValues(baseName, operatorImagePath, operatorImageTag)

@@ -82,9 +82,7 @@ func Run(ctx *pulumi.Context) error {
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
-		if fakeIntake == nil {
-			fmt.Println("FAKE INTAKE IS NIL")
-		}
+
 		if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
@@ -134,7 +132,6 @@ agents:
 			operatorOpts,
 			operatorparams.WithNamespace("datadog"),
 			operatorparams.WithFakeIntake(fakeIntake),
-
 		)
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(

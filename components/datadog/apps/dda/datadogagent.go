@@ -71,6 +71,23 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					"tlsVerify": pulumi.Bool(kubeletTLSVerify),
 				},
 			},
+			"override": pulumi.Map{
+				"nodeAgent": pulumi.Map{
+					"image": pulumi.Map{
+						"pullSecrets": imagePullSecrets,
+					},
+				},
+				"clusterAgent": pulumi.Map{
+					"image": pulumi.Map{
+						"pullSecrets": imagePullSecrets,
+					},
+				},
+				"clusterChecksRunner": pulumi.Map{
+					"image": pulumi.Map{
+						"pullSecrets": imagePullSecrets,
+					},
+				},
+			},
 		},
 	}
 

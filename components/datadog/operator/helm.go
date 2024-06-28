@@ -1,51 +1,51 @@
-package agent
+package operator
 
 import (
-	"dario.cat/mergo"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apiextensions"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 )
 
-// OperatorHelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
-type OperatorHelmInstallationArgs struct {
+const (
+	DatadogHelmRepo = "https://helm.datadoghq.com"
+)
+
+// HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
+type HelmInstallationArgs struct {
 	// KubeProvider is the Kubernetes provider to use
 	KubeProvider *kubernetes.Provider
-	// Namespace is the namespace in which to install the agent
+	// Namespace is the namespace in which to install the operator
 	Namespace string
 	// ValuesYAML is used to provide installation-specific values
 	ValuesYAML pulumi.AssetOrArchiveArrayInput
-	// OperatorFullImagePath is used to specify the full image path for the cluster agent
+	// OperatorFullImagePath is used to specify the full image path for the agent
 	OperatorFullImagePath string
 }
 
-type OperatorHelmComponent struct {
+type HelmComponent struct {
 	pulumi.ResourceState
 
 	LinuxHelmReleaseName   pulumi.StringPtrOutput
 	LinuxHelmReleaseStatus kubeHelm.ReleaseStatusOutput
 }
 
-func NewOperatorHelmInstallation(e config.Env, args OperatorHelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
-	baseName := "dd-operator"
+	baseName := "dda"
 	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
-	if err := e.Ctx().RegisterComponentResource("dd:agent-with-operator", "operator", helmComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:operator", "operator", helmComponent, opts...); err != nil {
 		return nil, err
 	}
+
 	opts = append(opts, pulumi.Parent(helmComponent))
 
 	// Create namespace if necessary
@@ -78,18 +78,23 @@ func NewOperatorHelmInstallation(e config.Env, args OperatorHelmInstallationArgs
 	// Create image pull secret if necessary
 	var imgPullSecret *corev1.Secret
 	if e.ImagePullRegistry() != "" {
-		imgPullSecret, err = NewImagePullSecret(e, args.Namespace, opts...)
+		imgPullSecret, err = utils.NewImagePullSecret(e, args.Namespace, opts...)
 		if err != nil {
 			return nil, err
 		}
 		opts = append(opts, utils.PulumiDependsOn(imgPullSecret))
 	}
 
+	// Compute some values
+	operatorImagePath := dockerOperatorFullImagePath(e, "", "")
+	if args.OperatorFullImagePath != "" {
+		operatorImagePath = args.OperatorFullImagePath
+	}
 	operatorImagePath, operatorImageTag := utils.ParseImageReference(args.OperatorFullImagePath)
 	linuxInstallName := baseName + "-linux"
 
-	values := buildLinuxOperatorHelmValues(baseName, operatorImagePath, operatorImageTag)
-	values.configureOperatorImagePullSecret(imgPullSecret)
+	values := buildLinuxHelmValues(baseName, operatorImagePath, operatorImageTag)
+	values.configureImagePullSecret(imgPullSecret)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -99,7 +104,6 @@ func NewOperatorHelmInstallation(e config.Env, args OperatorHelmInstallationArgs
 		ValuesYAML:  args.ValuesYAML,
 		Values:      pulumi.Map(values),
 	}, opts...)
-
 	if err != nil {
 		return nil, err
 	}
@@ -119,7 +123,9 @@ func NewOperatorHelmInstallation(e config.Env, args OperatorHelmInstallationArgs
 	return helmComponent, nil
 }
 
-func buildLinuxOperatorHelmValues(baseName string, operatorImagePath string, operatorImageTag string) HelmValues {
+type HelmValues pulumi.Map
+
+func buildLinuxHelmValues(baseName string, operatorImagePath string, operatorImageTag string) HelmValues {
 	return HelmValues{
 		"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 		"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -168,7 +174,7 @@ func buildLinuxOperatorHelmValues(baseName string, operatorImagePath string, ope
 	}
 }
 
-func (values HelmValues) configureOperatorImagePullSecret(secret *corev1.Secret) {
+func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	if secret == nil {
 		return
 	}
@@ -179,119 +185,4 @@ func (values HelmValues) configureOperatorImagePullSecret(secret *corev1.Secret)
 		},
 	}
 
-}
-
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, customDda string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
-	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
-
-	k8sComponent := &componentskube.Workload{}
-	if err := e.Ctx().RegisterComponentResource("dd:agent-with-operator", "dda", k8sComponent, opts...); err != nil {
-		return nil, err
-	}
-
-	opts = append(opts, pulumi.Parent(k8sComponent))
-
-	ns, err := corev1.NewNamespace(
-		e.Ctx(),
-		namespace,
-		&corev1.NamespaceArgs{
-			Metadata: metav1.ObjectMetaArgs{
-				Name: pulumi.String(namespace),
-			},
-		},
-		opts...,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	opts = append(opts, utils.PulumiDependsOn(ns))
-
-	var imagePullSecrets corev1.LocalObjectReferenceArray
-	if e.ImagePullRegistry() != "" {
-		imgPullSecret, err := NewImagePullSecret(e, namespace, opts...)
-		if err != nil {
-			return nil, err
-		}
-
-		imagePullSecrets = append(imagePullSecrets, corev1.LocalObjectReferenceArgs{
-			Name: imgPullSecret.Metadata.Name(),
-		})
-	}
-
-	ddaArgs := kubernetes.UntypedArgs{}
-	err = yaml.Unmarshal([]byte(customDda), &ddaArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	defaultArgs := kubernetes.UntypedArgs{
-		"spec": pulumi.Map{
-			"global": pulumi.Map{
-				"credentials": pulumi.Map{
-					"apiKey": pulumi.StringInput(e.AgentAPIKey()),
-					"appKey": pulumi.StringInput(e.AgentAPPKey()),
-				},
-				"clusterName": pulumi.String(clusterName),
-				"kubelet": pulumi.Map{
-					"tlsVerify": pulumi.Bool(kubeletTLSVerify),
-				},
-			},
-		},
-	}
-
-	if e.AgentUseFakeintake() {
-		err = mergo.Merge(&ddaArgs, kubernetes.UntypedArgs{
-			"spec": pulumi.Map{
-				"override": pulumi.Map{
-					"nodeAgent": pulumi.Map{
-						"env": pulumi.MapArray{
-							pulumi.Map{
-								"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-								"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeIntake.URL),
-							},
-						},
-					},
-					"clusterAgent": pulumi.Map{
-						"env": pulumi.MapArray{
-							pulumi.Map{
-								"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-								"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeIntake.URL),
-							},
-						},
-					},
-					"clusterChecksRunner": pulumi.Map{
-						"env": pulumi.MapArray{
-							pulumi.Map{
-								"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-								"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeIntake.URL),
-							},
-						},
-					},
-				}},
-		})
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	err = mergo.Merge(&ddaArgs, defaultArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = apiextensions.NewCustomResource(e.Ctx(), "datadog-agent", &apiextensions.CustomResourceArgs{
-		ApiVersion: pulumi.String("datadoghq.com/v2alpha1"),
-		Kind:       pulumi.String("DatadogAgent"),
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("datadog"),
-			Namespace: pulumi.String("datadog"),
-		},
-		OtherFields: ddaArgs,
-	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	return k8sComponent, nil
 }

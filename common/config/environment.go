@@ -22,6 +22,7 @@ const (
 	DDTestingWorkloadNamespace = "ddtestworkload"
 	DDDogstatsdNamespace       = "dddogstatsd"
 	DDUpdaterConfigNamespace   = "ddupdater"
+	DDOperatorConfigNamespace  = "ddoperator"
 
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
@@ -41,13 +42,16 @@ const (
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
-	DDImagePullRegistryParamName         = "imagePullRegistry"
-	DDImagePullUsernameParamName         = "imagePullUsername"
-	DDImagePullPasswordParamName         = "imagePullPassword"
-	DDAgentAPIKeyParamName               = "apiKey"
-	DDAgentAPPKeyParamName               = "appKey"
-	DDAgentFakeintake                    = "fakeintake"
-	DDAgentSite                          = "site"
+	DDOperatorVersionParamName           = "operatorVersion"
+	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
+
+	DDImagePullRegistryParamName = "imagePullRegistry"
+	DDImagePullUsernameParamName = "imagePullUsername"
+	DDImagePullPasswordParamName = "imagePullPassword"
+	DDAgentAPIKeyParamName       = "apiKey"
+	DDAgentAPPKeyParamName       = "appKey"
+	DDAgentFakeintake            = "fakeintake"
+	DDAgentSite                  = "site"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -71,6 +75,7 @@ type CommonEnvironment struct {
 	TestingWorkloadConfig *sdkconfig.Config
 	DogstatsdConfig       *sdkconfig.Config
 	UpdaterConfig         *sdkconfig.Config
+	OperatorConfig        *sdkconfig.Config
 
 	username string
 }
@@ -97,6 +102,8 @@ type Env interface {
 	ClusterAgentVersion() string
 	AgentFullImagePath() string
 	ClusterAgentFullImagePath() string
+	OperatorFullImagePath() string
+	OperatorVersion() string
 	ImagePullRegistry() string
 	ImagePullUsername() string
 	ImagePullPassword() pulumi.StringOutput
@@ -130,6 +137,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
 		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
 		commonNamer:           namer.NewNamer(ctx, ""),
+		OperatorConfig:        sdkconfig.New(ctx, DDOperatorConfigNamespace),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
 	// store username
@@ -144,8 +152,9 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	ctx.Log.Debug(fmt.Sprintf("agent version: %s", env.AgentVersion()), nil)
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
-	ctx.Log.Debug(fmt.Sprintf("deploy with Operator: %v", env.AgentDeployWithOperator()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
+	ctx.Log.Debug(fmt.Sprintf("deploy with Operator: %v", env.AgentDeployWithOperator()), nil)
+	ctx.Log.Debug(fmt.Sprintf("operator full image path: %v", env.AgentFullImagePath()), nil)
 	return env, nil
 }
 
@@ -226,7 +235,7 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 }
 
 func (e *CommonEnvironment) AgentDeployWithOperator() bool {
-	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
+	return e.GetBoolWithDefault(e.OperatorConfig, DDAgentDeployWithOperatorParamName, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {
@@ -251,6 +260,14 @@ func (e *CommonEnvironment) AgentFullImagePath() string {
 
 func (e *CommonEnvironment) ClusterAgentFullImagePath() string {
 	return e.AgentConfig.Get(DDClusterAgentFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) OperatorVersion() string {
+	return e.OperatorConfig.Get(DDOperatorVersionParamName)
+}
+
+func (e *CommonEnvironment) OperatorFullImagePath() string {
+	return e.OperatorConfig.Get(DDOperatorFullImagePathParamName)
 }
 
 func (e *CommonEnvironment) ImagePullRegistry() string {

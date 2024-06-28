@@ -37,6 +37,9 @@ func TestInvokes(t *testing.T) {
 	t.Run("invoke-kind", func(t *testing.T) {
 		testInvokeKind(t, tmpConfigFile)
 	})
+	t.Run("invoke-kind-operator", func(t *testing.T) {
+		testInvokeKindOperator(t, tmpConfigFile)
+	})
 }
 
 func testInvokeVM(t *testing.T, tmpConfigFile string) {
@@ -79,6 +82,24 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 func testInvokeKind(t *testing.T, tmpConfigFile string) {
 	t.Helper()
 	stackParts := []string{"invoke", "kind"}
+	if os.Getenv("CI") == "true" {
+		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
+	}
+	stackName := strings.Join(stackParts, "-")
+	t.Log("creating kind cluster")
+	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
+
+	t.Log("destroying kind cluster")
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
+}
+
+func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
+	t.Helper()
+	stackParts := []string{"invoke", "kind", "--install_agent_with_operator"}
 	if os.Getenv("CI") == "true" {
 		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
 	}

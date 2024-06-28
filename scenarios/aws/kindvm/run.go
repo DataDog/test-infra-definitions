@@ -4,7 +4,9 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agentwithoperatorparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
@@ -15,6 +17,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -118,21 +121,28 @@ agents:
 
 	// Deploy the operator
 	if awsEnv.AgentDeploy() && awsEnv.AgentDeployWithOperator() {
-		operatorHelmComponent, err := agent.NewOperatorHelmInstallation(&awsEnv, agent.OperatorHelmInstallationArgs{
-			KubeProvider:          kindKubeProvider,
-			Namespace:             "datadog",
-			ValuesYAML:            pulumi.AssetOrArchiveArray{},
-			OperatorFullImagePath: "gcr.io/datadoghq/operator:1.6.0",
-		}, nil)
+		operatorOpts := make([]operatorparams.Option, 0)
+		operatorOpts = append(
+			operatorOpts,
+			operatorparams.WithNamespace("datadog"),
+			operatorparams.WithFakeIntake(fakeIntake),
+
+		)
+		ddaOptions := make([]agentwithoperatorparams.Option, 0)
+		ddaOptions = append(
+			ddaOptions,
+			agentwithoperatorparams.WithNamespace("datadog"),
+			agentwithoperatorparams.WithTLSKubeletVerify(false),
+		)
+
+		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
 		if err != nil {
 			return err
 		}
-		ctx.Export("operator-linux-helm-install-name", operatorHelmComponent.LinuxHelmReleaseName)
-		ctx.Export("operator-linux-helm-install-status", operatorHelmComponent.LinuxHelmReleaseStatus)
 
-		dependsOnCrd = utils.PulumiDependsOn(operatorHelmComponent)
+		dependsOnCrd = utils.PulumiDependsOn(operatorAgentComponent)
 
-		if _, err := agent.K8sAppDefinition(&awsEnv, kindKubeProvider, "datadog", fakeIntake, false, kindClusterName, ""); err != nil {
+		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 	}

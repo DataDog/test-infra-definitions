@@ -26,7 +26,7 @@ require (
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
 	github.com/pulumi/pulumi/sdk/v3 v3.116.1
-	github.com/pulumiverse/pulumi-time/sdk v0.0.16
+	github.com/pulumiverse/pulumi-time/sdk v0.0.17
 	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225

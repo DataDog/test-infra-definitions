@@ -42,6 +42,10 @@ func ClusterAgentSemverVersion(e Env) (*semver.Version, error) {
 	return anyAgentSemverVersion(e.ClusterAgentVersion())
 }
 
+func OperatorSemverVersion(e Env) (*semver.Version, error) {
+	return anyAgentSemverVersion(e.OperatorVersion())
+}
+
 func tagListToKeyValueMap(tagList []string) (map[string]string, error) {
 	tags := map[string]string{}
 	for _, tag := range tagList {

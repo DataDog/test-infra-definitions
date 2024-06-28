@@ -104,7 +104,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
 		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
 	}
 	stackName := strings.Join(stackParts, "-")
-	t.Log("creating kind cluster")
+	t.Log("creating kind cluster with operator")
 	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))

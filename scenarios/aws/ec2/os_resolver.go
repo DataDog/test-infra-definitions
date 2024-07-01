@@ -191,6 +191,10 @@ func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.CentOSDefault.Version
 	}
 
+	if osInfo.Version == "7" {
+		return "ami-0db0376aef6830be3", nil
+	}
+
 	return ec2.SearchAMI(e, "679593333241", fmt.Sprintf("CentOS-%s-*-*.x86_64*", osInfo.Version), string(osInfo.Architecture))
 }
 

@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
@@ -14,6 +14,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -78,6 +79,7 @@ func Run(ctx *pulumi.Context) error {
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
+
 		if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
@@ -94,22 +96,30 @@ agents:
   useHostNetwork: true
 `, kindClusterName)
 
-		helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
-			KubeProvider: kindKubeProvider,
-			Namespace:    "datadog",
-			ValuesYAML: pulumi.AssetOrArchiveArray{
-				pulumi.NewStringAsset(customValues),
-			},
-			Fakeintake: fakeIntake,
-		}, nil)
+		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
+		k8sAgentOptions = append(
+			k8sAgentOptions,
+			kubernetesagentparams.WithNamespace("datadog"),
+			kubernetesagentparams.WithHelmValues(customValues),
+		)
+		if fakeIntake != nil {
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithFakeintake(fakeIntake),
+			)
+		}
+
+		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
+
 		if err != nil {
 			return err
 		}
 
-		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
-		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
+		if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
 
-		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
+		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy standalone dogstatsd

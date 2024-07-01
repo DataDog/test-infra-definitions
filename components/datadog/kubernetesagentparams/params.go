@@ -49,15 +49,14 @@ type Params struct {
 	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
 	DisableLogsContainerCollectAll bool
 	// DualShipping is a flag to enable dual shipping.
-	DualShipping bool
+	DisableDualShipping bool
 }
 
 type Option = func(*Params) error
 
 func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace:    defaultAgentNamespace,
-		DualShipping: true,
+		Namespace: defaultAgentNamespace,
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
@@ -138,7 +137,7 @@ func WithoutLogsContainerCollectAll() func(*Params) error {
 // With that flag data will be sent only to the fakeintake.
 func WithoutDualShipping() func(*Params) error {
 	return func(p *Params) error {
-		p.DualShipping = false
+		p.DisableDualShipping = true
 		return nil
 	}
 }

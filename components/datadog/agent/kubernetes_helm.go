@@ -39,8 +39,8 @@ type HelmInstallationArgs struct {
 	ClusterAgentFullImagePath string
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
-	// DualShipping is used to enable dual-shipping
-	DualShipping bool
+	// DisableDualShipping is used to disable dual-shipping
+	DisableDualShipping bool
 }
 
 type HelmComponent struct {
@@ -131,7 +131,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
+	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
 
 	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
@@ -161,7 +161,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
+		values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
 		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
 		var windowsValuesYAML pulumi.AssetOrArchiveArray

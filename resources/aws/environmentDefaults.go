@@ -91,7 +91,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 func sandboxDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "sandbox",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-d1aac1a8",
@@ -258,7 +259,8 @@ func agentQADefault() environmentDefault {
 func tsePlaygroundDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "tse-playground",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-0570ac09560a97693",

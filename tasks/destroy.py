@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from tasks import tool
 
 from . import config
-from .tool import error, get_aws_wrapper, get_stack_name, get_stack_name_prefix, info
+from .tool import error, get_stack_name, get_stack_name_prefix, info
 
 
 def destroy(
@@ -55,8 +55,6 @@ def destroy(
             error(f" {stack_name}")
     else:
         cmd = f"pulumi destroy --remove -s {full_stack_name} {force_destroy}"
-        if use_aws_vault:
-            cmd = get_aws_wrapper(aws_account) + cmd
         pty = True
         if tool.is_windows():
             pty = False

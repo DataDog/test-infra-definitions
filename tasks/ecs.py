@@ -76,7 +76,7 @@ def _show_connection_message(ctx: Context, config_path: Optional[str], full_stac
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
     command = (
-        f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
+        f"aws ecs list-tasks --cluster {cluster_name}"
     )
     print(f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n")
 

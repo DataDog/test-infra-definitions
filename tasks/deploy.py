@@ -65,7 +65,6 @@ def deploy(
     # Verify image deployed and not outdated in s3
     if deploy_job is not None and pipeline_id is not None:
         cmd = f"inv -e check-s3-image-exists --pipeline-id={pipeline_id} --deploy-job={deploy_job}"
-        cmd = tool.get_aws_wrapper(aws_account) + cmd
         output = ctx.run(cmd, warn=True)
 
         # The command already has a traceback
@@ -207,8 +206,6 @@ def _deploy(
 
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
-    if use_aws_vault is None or use_aws_vault:
-        cmd = tool.get_aws_wrapper(aws_account) + cmd
 
     pty = True
     if tool.is_windows():

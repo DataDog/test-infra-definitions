@@ -33,7 +33,6 @@ func TestInvokes(t *testing.T) {
 	t.Run("invoke-docker-vm", func(t *testing.T) {
 		testInvokeDockerVM(t, tmpConfigFile)
 	})
-
 	t.Run("invoke-kind", func(t *testing.T) {
 		testInvokeKind(t, tmpConfigFile)
 	})
@@ -43,7 +42,7 @@ func testInvokeVM(t *testing.T, tmpConfigFile string) {
 	t.Helper()
 	stackName := fmt.Sprintf("invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile, "--use-fakeintake")
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
 
@@ -59,7 +58,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 	t.Log("creating vm with docker")
 	var stdOut, stdErr bytes.Buffer
 
-	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Stdout = &stdOut
 	createCmd.Stderr = &stdErr
 	err := createCmd.Run()
@@ -84,7 +83,7 @@ func testInvokeKind(t *testing.T, tmpConfigFile string) {
 	}
 	stackName := strings.Join(stackParts, "-")
 	t.Log("creating kind cluster")
-	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 

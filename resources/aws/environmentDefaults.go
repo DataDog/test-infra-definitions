@@ -92,7 +92,7 @@ func sandboxDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
 			region:  string(aws.RegionUSEast1),
-			profile: "sandbox",
+			profile: "exec-sso-sandbox-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-d1aac1a8",
@@ -260,7 +260,7 @@ func tsePlaygroundDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
 			region:  string(aws.RegionUSEast1),
-			profile: "tse-playground",
+			profile: "exec-sso-tse-playground-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-0570ac09560a97693",

@@ -71,13 +71,11 @@ def _show_connection_message(ctx: Context, config_path: Optional[str], full_stac
     cluster_name = outputs["ecs-cluster-name"]
 
     try:
-        local_config = config.get_local_config(config_path)
+        config.get_local_config(config_path)
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
-    command = (
-        f"aws ecs list-tasks --cluster {cluster_name}"
-    )
+    command = f"aws ecs list-tasks --cluster {cluster_name}"
     print(f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n")
 
     input("Press a key to copy command to clipboard...")

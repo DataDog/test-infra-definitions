@@ -30,7 +30,6 @@ def deploy(
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
-    use_aws_vault: Optional[bool] = True,
     deploy_job: Optional[str] = None,
 ) -> str:
     flags = extra_flags
@@ -97,7 +96,6 @@ def deploy(
         stack_name,
         flags,
         debug,
-        use_aws_vault,
         cfg.get_pulumi().logLevel,
         cfg.get_pulumi().logToStdErr,
     )
@@ -170,14 +168,12 @@ def _deploy(
     stack_name: Optional[str],
     flags: Dict[str, Any],
     debug: Optional[bool],
-    use_aws_vault: Optional[bool],
     log_level: Optional[int],
     log_to_stderr: Optional[bool],
 ) -> str:
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     # make sure the stack name is safe
     stack_name = stack_name.replace(" ", "-").lower()
-    aws_account = flags["ddinfra:env"][len("aws/") :]
     global_flags = ""
     up_flags = ""
 

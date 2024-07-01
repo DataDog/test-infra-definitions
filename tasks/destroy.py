@@ -17,7 +17,6 @@ def destroy(
     scenario_name: str,
     config_path: Optional[str] = None,
     stack: Optional[str] = None,
-    use_aws_vault: Optional[bool] = True,
     force_yes: Optional[bool] = False,
 ):
     """
@@ -33,10 +32,9 @@ def destroy(
         return
 
     try:
-        cfg = config.get_local_config(config_path)
+        config.get_local_config(config_path)
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
-    aws_account = cfg.get_aws().get_account()
 
     if stack is not None:
         if stack in short_stack_names:

@@ -93,7 +93,7 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
-    command = f"KUBECONFIG={kubeconfig} {local_config.get_aws().get_account()} kubectl get nodes"
+    command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} kubectl get nodes"
 
     print(f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n")
 

@@ -16,7 +16,7 @@ import (
 // NewVM creates an EC2 Instance and returns a Remote component.
 // Without any parameter it creates an Ubuntu VM on AMD64 architecture.
 func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, error) {
-	vmArgs, err := buildArgs(params...)
+	vmArgs, err := BuildArgs(params...)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.
 	return ecrConfigCommand, nil
 }
 
-func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
+func defaultVMArgs(e aws.Environment, vmArgs *VmArgs) error {
 	if vmArgs.osInfo == nil {
 		vmArgs.osInfo = &os.UbuntuDefault
 	}

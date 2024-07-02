@@ -1,0 +1,13 @@
+# syntax=docker/dockerfile:1
+FROM geerlingguy/docker-amazonlinux2023-ansible:latest
+
+COPY allow_root.conf /etc/ssh/sshd_config.d/allow_root.conf
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN set -eu && \
+    yum -y update; \
+    update-ca-trust; \
+    yum -y install \
+      openssh-server; \
+    echo 'root:root123' | chpasswd;

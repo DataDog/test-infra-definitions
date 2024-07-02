@@ -1,9 +1,10 @@
 module github.com/DataDog/test-infra-definitions
 
 go 1.21
+toolchain go1.22.4
 
 require (
-	github.com/DataDog/datadog-agent/pkg/util/optional v0.52.1
+	github.com/DataDog/datadog-agent/pkg/util/optional v0.54.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2 v1.26.1

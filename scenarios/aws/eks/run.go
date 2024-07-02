@@ -247,6 +247,9 @@ func Run(ctx *pulumi.Context) error {
 			}
 			workloadDeps = append(workloadDeps, ng)
 		}
+		if awsEnv.InitOnly() {
+			return nil
+		}
 
 		// Create fakeintake if needed
 		var fakeIntake *fakeintakeComp.Fakeintake

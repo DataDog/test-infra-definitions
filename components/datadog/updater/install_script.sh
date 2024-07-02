@@ -43,7 +43,7 @@ elif [ -f /etc/SuSE-release ] || [ "$DISTRIBUTION" == "SUSE" ] || [ "$DISTRIBUTI
 fi
 
 apt_url="apttesting.datad0g.com"
-apt_repo_version="${DD_PIPELINE_ID}-i7-${ARCH} 7"
+apt_repo_version="pipeline-${DD_PIPELINE_ID}-a7-${ARCH} 7"
 apt_usr_share_keyring="/usr/share/keyrings/datadog-archive-keyring.gpg"
 apt_trusted_d_keyring="/etc/apt/trusted.gpg.d/datadog-archive-keyring.gpg"
 
@@ -101,7 +101,7 @@ if [ "${OS}" = "Debian" ]; then
     fi
 elif [ "${OS}" = "RedHat" ]; then
     yum_url="yumtesting.datad0g.com/testing"
-    yum_repo_version="${DD_PIPELINE_ID}-i7/7"
+    yum_repo_version="pipeline-${DD_PIPELINE_ID}-i7/7"
 
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
     separator='\n       '
@@ -113,7 +113,7 @@ elif [ "${OS}" = "RedHat" ]; then
     $sudo_cmd yum -y install datadog-installer
 elif [ "${OS}" = "SUSE" ]; then
     yum_url="yumtesting.datad0g.com/suse/testing"
-    yum_repo_version="${DD_PIPELINE_ID}-i7/7"
+    yum_repo_version="pipeline-${DD_PIPELINE_ID}-i7/7"
 
     RPM_GPG_KEYS=("DATADOG_RPM_KEY_CURRENT.public" "DATADOG_RPM_KEY_B01082D3.public" "DATADOG_RPM_KEY_FD4BF915.public" "DATADOG_RPM_KEY_E09422B3.public")
     separator='\n       '

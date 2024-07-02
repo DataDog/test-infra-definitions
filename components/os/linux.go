@@ -18,24 +18,26 @@ func newLinuxOS(e config.Env, desc Descriptor, runner *command.Runner) OS {
 	case AmazonLinux, AmazonLinuxECS, CentOS:
 		// AL2 is YUM, AL2023 is DNF (but with yum compatibility)
 		os.packageManager = newYumManager(runner)
-		os.serviceManager = newSystemdServiceManager(e, runner)
 
 	case Fedora, RedHat, RockyLinux:
 		os.packageManager = newDnfManager(runner)
-		os.serviceManager = newSystemdServiceManager(e, runner)
 
 	case Debian, Ubuntu:
 		os.packageManager = newAptManager(runner)
-		os.serviceManager = newSystemdServiceManager(e, runner)
 
 	case Suse:
 		os.packageManager = newZypperManager(runner)
-		os.serviceManager = newSystemdServiceManager(e, runner)
 
 	case Unknown, WindowsServer, MacosOS:
 		fallthrough
 	default:
 		panic(fmt.Sprintf("unsupported linux flavor from desc: %+v", desc))
+	}
+
+	if desc.Flavor == AmazonLinux2018.Flavor && desc.Version == AmazonLinux2018.Version {
+		os.serviceManager = newSysvinitServiceManager(e, runner)
+	} else {
+		os.serviceManager = newSystemdServiceManager(e, runner)
 	}
 
 	return os

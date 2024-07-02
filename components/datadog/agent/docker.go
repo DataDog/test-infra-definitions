@@ -50,7 +50,10 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(params.FullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
 		composeContents = append(composeContents, params.ExtraComposeManifests...)
 
-		_, err = manager.ComposeStrUp("agent", composeContents, params.EnvironmentVariables, pulumi.Parent(comp))
+		opts := make([]pulumi.ResourceOption, 0, len(params.PulumiDependsOn)+1)
+		opts = append(opts, params.PulumiDependsOn...)
+		opts = append(opts, pulumi.Parent(comp))
+		_, err = manager.ComposeStrUp("agent", composeContents, params.EnvironmentVariables, opts...)
 		if err != nil {
 			return err
 		}

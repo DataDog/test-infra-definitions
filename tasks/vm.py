@@ -29,10 +29,10 @@ scenario_name = "aws/vm"
         "ami_id": doc.ami_id,
         "architecture": doc.architecture,
         "interactive": doc.interactive,
-        "use_aws_vault": doc.use_aws_vault,
         "instance_type": doc.instance_type,
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
+        "os_version": doc.os_version,
     }
 )
 def create_vm(
@@ -45,11 +45,11 @@ def create_vm(
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
+    os_version: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     ami_id: Optional[str] = None,
     architecture: Optional[str] = None,
-    use_aws_vault: Optional[bool] = True,
     interactive: Optional[bool] = True,
     instance_type: Optional[str] = None,
     no_verify: Optional[bool] = False,
@@ -62,7 +62,7 @@ def create_vm(
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
     deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
-    extra_flags["ddinfra:osDescriptor"] = f"{os_family}::{os_arch}"
+    extra_flags["ddinfra:osDescriptor"] = f"{os_family}:{os_version if os_version else ''}:{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
     if ami_id is not None:
@@ -95,7 +95,6 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
-        use_aws_vault=use_aws_vault,
         deploy_job=deploy_job,
     )
 
@@ -124,7 +123,6 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
         "yes": doc.yes,
-        "use_aws_vault": doc.use_aws_vault,
         "clean_known_hosts": doc.clean_known_hosts,
     }
 )
@@ -133,14 +131,19 @@ def destroy_vm(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     yes: Optional[bool] = False,
-    use_aws_vault: Optional[bool] = True,
     clean_known_hosts: Optional[bool] = True,
 ):
     """
     Destroy a new virtual machine on the cloud.
     """
     host = _get_host(ctx, stack_name)
-    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
+    destroy(
+        ctx,
+        scenario_name=scenario_name,
+        config_path=config_path,
+        stack=stack_name,
+        force_yes=yes,
+    )
     if clean_known_hosts:
         _clean_known_hosts(host)
 

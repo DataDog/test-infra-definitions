@@ -40,11 +40,12 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			KubeProvider:                   kubeProvider,
 			DeployWindows:                  params.DeployWindows,
 			Namespace:                      params.Namespace,
-			ValuesYAML:                     pulumi.AssetOrArchiveArray{pulumi.NewStringAsset(params.HelmValues)},
+			ValuesYAML:                     params.HelmValues,
 			Fakeintake:                     params.FakeIntake,
 			AgentFullImagePath:             params.AgentFullImagePath,
 			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
 			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
+			DisableDualShipping:            params.DisableDualShipping,
 		}, params.PulumiResourceOptions...)
 		if err != nil {
 			return err

@@ -22,7 +22,6 @@ scenario_name = "aws/dockervm"
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
-        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def create_docker(
@@ -35,7 +34,6 @@ def create_docker(
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
-    use_aws_vault: Optional[bool] = True,
 ):
     """
     Create a docker environment.
@@ -55,7 +53,6 @@ def create_docker(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
-        use_aws_vault=use_aws_vault,
     )
 
     if interactive:
@@ -87,7 +84,6 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
         "yes": doc.yes,
-        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def destroy_docker(
@@ -95,12 +91,17 @@ def destroy_docker(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     yes: Optional[bool] = False,
-    use_aws_vault: Optional[bool] = True,
 ):
     """
     Destroy an environment created by invoke create_docker.
     """
-    destroy(ctx, scenario_name, config_path, stack_name, use_aws_vault, force_yes=yes)
+    destroy(
+        ctx,
+        scenario_name=scenario_name,
+        config_path=config_path,
+        stack=stack_name,
+        force_yes=yes,
+    )
 
 
 def _get_architecture(architecture: Optional[str]) -> str:

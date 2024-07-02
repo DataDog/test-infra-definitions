@@ -45,6 +45,6 @@ def destroy_installer_lab(
     ctx: Context,
     yes: Optional[bool] = False,
 ):
-    destroy(ctx, scenario_name, stack="installer-lab", force_yes=yes)
+    destroy(ctx, scenario_name=scenario_name, stack="installer-lab", force_yes=yes)
 
     print("Installer lab destroyed")

@@ -68,7 +68,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", kindClusterName)
 		clusterConfig, err := vm.OS.FileManager().CopyInlineFile(
 			pulumi.String(kindClusterConfig),
-			clusterConfigFilePath, false, opts...)
+			clusterConfigFilePath, opts...)
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, k
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InfraOSDescriptor(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
 			&command.Args{

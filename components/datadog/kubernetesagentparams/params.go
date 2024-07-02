@@ -39,7 +39,7 @@ type Params struct {
 	// Namespace is the namespace to deploy the agent to.
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
-	HelmValues string
+	HelmValues pulumi.AssetOrArchiveArray
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 	// FakeIntake is the fake intake to use for the agent installation.
@@ -48,6 +48,8 @@ type Params struct {
 	DeployWindows bool
 	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
 	DisableLogsContainerCollectAll bool
+	// DualShipping is a flag to enable dual shipping.
+	DisableDualShipping bool
 }
 
 type Option = func(*Params) error
@@ -107,12 +109,10 @@ func WithDeployWindows() func(*Params) error {
 
 // WithHelmValues adds helm values to the agent installation. If used several times, the helm values are merged together
 // If the same values is defined several times the latter call will override the previous one.
-// TODO: If https://github.com/pulumi/pulumi-kubernetes/pull/2963 is merged we can revert https://github.com/DataDog/test-infra-definitions/pull/779
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
-		var err error
-		p.HelmValues, err = utils.MergeYAML(p.HelmValues, values)
-		return err
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))
+		return nil
 	}
 }
 
@@ -129,6 +129,15 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 func WithoutLogsContainerCollectAll() func(*Params) error {
 	return func(p *Params) error {
 		p.DisableLogsContainerCollectAll = true
+		return nil
+	}
+}
+
+// WithoutDualShipping disables dual shipping. By default the agent is configured to send data to ddev and to the fakeintake.
+// With that flag data will be sent only to the fakeintake.
+func WithoutDualShipping() func(*Params) error {
+	return func(p *Params) error {
+		p.DisableDualShipping = true
 		return nil
 	}
 }

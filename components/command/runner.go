@@ -109,13 +109,8 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	return remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
 }
 
-func (r *Runner) NewCopyFile(localPath, remotePath string, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
-	return remote.NewCopyFile(r.e.Ctx(), r.namer.ResourceName("copy", remotePath), &remote.CopyFileArgs{
-		Connection: r.config.connection,
-		LocalPath:  pulumi.String(localPath),
-		RemotePath: pulumi.String(remotePath),
-		Triggers:   pulumi.Array{pulumi.String(localPath), pulumi.String(remotePath)},
-	}, utils.MergeOptions(r.options, opts...)...)
+func (r *Runner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 
 type LocalRunner struct {

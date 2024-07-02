@@ -35,7 +35,7 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		commandLine := strings.Join(testEnvVars, " ")
 
 		return fmt.Sprintf(
-			`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && break || sleep $((2**$i)); done`,
+			`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && exit 0  || sleep $((2**$i)); done; exit 1`,
 			"install_script_agent7.sh",
 			commandLine), nil
 	}
@@ -51,7 +51,7 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 	}
 
 	return fmt.Sprintf(
-		`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && break || sleep $((2**$i)); done`,
+		`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && exit 0 || sleep $((2**$i)); done; exit 1`,
 		fmt.Sprintf("install_script_agent%s.sh", version.Major),
 		commandLine), nil
 }

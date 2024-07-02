@@ -183,12 +183,15 @@ func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 }
 
 func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
-	if osInfo.Architecture == os.ARM64Arch {
-		return "", errors.New("ARM64 is not supported for CentOS")
-	}
-
 	if osInfo.Version == "" {
 		osInfo.Version = os.CentOSDefault.Version
+	}
+
+	if osInfo.Architecture == os.ARM64Arch {
+		if osInfo.Version == "7" {
+			return "ami-0cb7a00afccf30559", nil
+		}
+		return "", fmt.Errorf("ARM64 is not supported for CentOS %s", osInfo.Version)
 	}
 
 	if osInfo.Version == "7" {

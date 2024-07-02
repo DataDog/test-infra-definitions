@@ -28,12 +28,15 @@ func TestInvokes(t *testing.T) {
 
 	// Subtests
 	t.Run("invoke-vm", func(t *testing.T) {
+		t.Parallel()
 		testInvokeVM(t, tmpConfigFile)
 	})
 	t.Run("invoke-docker-vm", func(t *testing.T) {
+		t.Parallel()
 		testInvokeDockerVM(t, tmpConfigFile)
 	})
 	t.Run("invoke-kind", func(t *testing.T) {
+		t.Parallel()
 		testInvokeKind(t, tmpConfigFile)
 	})
 }

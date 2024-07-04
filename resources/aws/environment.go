@@ -1,13 +1,19 @@
 package aws
 
 import (
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	awsECR "github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
 	"os"
 )
 
@@ -145,12 +151,41 @@ func (e *Environment) InternalDockerhubMirror() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalDockerhubMirror, e.envDefault.ddInfra.defaultInternalDockerhubMirror)
 }
 
+// Check if the image exists in the internal registry
+func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, error) {
+
+	cfg, err := awsConfig.LoadDefaultConfig(e.Ctx().Context(),
+		awsConfig.WithRegion(e.Region()),
+		awsConfig.WithSharedConfigProfile(e.Profile()),
+	)
+	if err != nil {
+		return false, err
+	}
+
+	ecrClient := awsECR.NewFromConfig(cfg)
+	_, err = ecrClient.BatchGetImage(e.Ctx().Context(), &awsECR.BatchGetImageInput{
+		RegistryId:     &strings.Split(image, ".")[0],
+		RepositoryName: &strings.Split(image, "/")[len(strings.Split(image, "/"))-1],
+		ImageIds:       []types.ImageIdentifier{{ImageTag: &tag}},
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Common
 func (e *Environment) Region() string {
 	return e.GetStringWithDefault(e.awsConfig, awsRegionParamName, e.envDefault.aws.region)
 }
 
 func (e *Environment) Profile() string {
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return ""
+	}
+
 	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
 		return profile
 	}

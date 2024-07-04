@@ -68,6 +68,10 @@ func (e *Environment) InternalDockerhubMirror() string {
 	return "registry-1.docker.io"
 }
 
+func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) {
+	return true, nil
+}
+
 // Common
 func (e *Environment) DefaultResourceGroup() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultResourceGroup, e.envDefault.ddInfra.defaultResourceGroup)

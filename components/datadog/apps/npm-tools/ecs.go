@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
+	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -15,11 +16,11 @@ type EcsComponent struct {
 	pulumi.ResourceState
 }
 
-func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, testURL string, opts ...pulumi.ResourceOption) (*EcsComponent, error) {
+func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, testURL string, opts ...pulumi.ResourceOption) (*ecsComp.Workload, error) {
 	namer := e.Namer.WithPrefix("npm-tools")
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
-	ecsComponent := &EcsComponent{}
+	ecsComponent := &ecsComp.Workload{}
 	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
 		return nil, err
 	}

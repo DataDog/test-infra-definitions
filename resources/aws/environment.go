@@ -1,18 +1,20 @@
 package aws
 
 import (
-	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+	"os"
 )
 
 const (
-	awsConfigNamespace = "aws"
-	awsRegionParamName = "region"
+	awsConfigNamespace  = "aws"
+	awsRegionParamName  = "region"
+	awsProfileParamName = "profile"
 
 	// AWS Infra
 	DDInfraDefaultVPCIDParamName           = "aws/defaultVPCID"
@@ -96,7 +98,8 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
-		Region: pulumi.String(env.Region()),
+		Region:  pulumi.String(env.Region()),
+		Profile: pulumi.String(env.Profile()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
 			Tags: env.ResourcesTags(),
 		},
@@ -116,6 +119,10 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 		return Environment{}, err
 	}
 	env.randomSubnets = shuffle.Results
+
+	if len(env.DefaultFakeintakeLBs()) == 0 {
+		return env, nil
+	}
 
 	shuffleLB, err := random.NewRandomInteger(env.Ctx(), env.Namer.ResourceName("rnd-fakeintake"), &random.RandomIntegerArgs{
 		Min: pulumi.Int(0),
@@ -141,6 +148,18 @@ func (e *Environment) InternalDockerhubMirror() string {
 // Common
 func (e *Environment) Region() string {
 	return e.GetStringWithDefault(e.awsConfig, awsRegionParamName, e.envDefault.aws.region)
+}
+
+func (e *Environment) Profile() string {
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return ""
+	}
+
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		return profile
+	}
+
+	return e.GetStringWithDefault(e.awsConfig, awsProfileParamName, e.envDefault.aws.profile)
 }
 
 func (e *Environment) DefaultVPCID() string {

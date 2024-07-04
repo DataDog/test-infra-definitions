@@ -1,7 +1,7 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM python:3.12-slim-bullseye AS base
+FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
 
 ENV GO_VERSION=1.21.5
 ENV GO_SHA=e2bc0b3e4b64111ec117295c088bde5f00eeed1567999ff77bc859d7df70078e
@@ -109,7 +109,6 @@ RUN --mount=type=secret,id=github_token \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
   pulumi --logflow --logtostderr -v 5 --non-interactive plugin install && \
-  pulumi --non-interactive plugin install resource time v0.0.16 && \
   pulumi --non-interactive plugin ls && \
   cd / && \
   rm -rf /tmp/test-infra

@@ -151,6 +151,10 @@ func (e *Environment) Region() string {
 }
 
 func (e *Environment) Profile() string {
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return ""
+	}
+
 	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
 		return profile
 	}

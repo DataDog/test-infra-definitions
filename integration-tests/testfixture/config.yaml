@@ -7,5 +7,9 @@ configParams:
     keyPairName: KEY_PAIR_NAME
     publicKeyPath: PUBLIC_KEY_PATH
     teamTag: test-ci
+  pulumi:
+    logLevel: 1
+    logToStdErr: true
+    verboseProgressStreams: false
 options:
   checkKeyPair: false

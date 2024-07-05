@@ -24,25 +24,28 @@ func TestInvokes(t *testing.T) {
 
 	t.Log("setup test infra")
 	err = setupTestInfra(tmpConfigFile)
+	require.NoError(t, err, "Error setting up test infra")
+
+	tmpConfig, err := LoadConfig(tmpConfigFile)
 	require.NoError(t, err)
+
+	require.NotEmpty(t, tmpConfig.ConfigParams.AWS.TeamTag)
 
 	// Subtests
 	t.Run("invoke-vm", func(t *testing.T) {
-		t.Parallel()
 		testInvokeVM(t, tmpConfigFile)
 	})
 	t.Run("invoke-docker-vm", func(t *testing.T) {
-		t.Parallel()
 		testInvokeDockerVM(t, tmpConfigFile)
 	})
 	t.Run("invoke-kind", func(t *testing.T) {
-		t.Parallel()
 		testInvokeKind(t, tmpConfigFile)
 	})
 }
 
 func testInvokeVM(t *testing.T, tmpConfigFile string) {
 	t.Helper()
+
 	stackName := fmt.Sprintf("invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm")
 	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
@@ -101,13 +104,27 @@ var testInfraTestConfig string
 
 func createTemporaryConfigurationFile() (string, error) {
 	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
-	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", os.Getenv("E2E_KEY_PAIR_NAME"))
-	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", os.Getenv("E2E_PUBLIC_KEY_PATH"))
+
 	isCI, err := strconv.ParseBool(os.Getenv("CI"))
-	account := "agent-sandbox"
-	if err == nil && isCI {
-		account = "agent-qa"
+	account := "agent-qa"
+	keyPairName := os.Getenv("E2E_KEY_PAIR_NAME")
+	publicKeyPath := os.Getenv("E2E_PUBLIC_KEY_PATH")
+	if err != nil || !isCI {
+		// load local config
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		localConfig, err := LoadConfig(filepath.Join(homeDir, ".test_infra_config.yaml"))
+		if err != nil {
+			return "", err
+		}
+		account = localConfig.ConfigParams.AWS.Account
+		keyPairName = localConfig.ConfigParams.AWS.KeyPairName
+		publicKeyPath = localConfig.ConfigParams.AWS.PublicKeyPath
 	}
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", keyPairName)
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", publicKeyPath)
 	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "ACCOUNT", account)
 	err = os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
 	return tmpConfigFile, err

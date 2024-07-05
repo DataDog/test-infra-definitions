@@ -20,7 +20,10 @@ func TestInvokes(t *testing.T) {
 	t.Log("Creating temporary configuration file")
 	tmpConfigFile, err := createTemporaryConfigurationFile()
 	require.NoError(t, err, "Error writing temporary configuration")
-	defer os.Remove(tmpConfigFile)
+	t.Cleanup(func() {
+		t.Log("Cleaning up temporary configuration file")
+		os.Remove(tmpConfigFile)
+	})
 
 	t.Log("setup test infra")
 	err = setupTestInfra(tmpConfigFile)
@@ -33,12 +36,15 @@ func TestInvokes(t *testing.T) {
 
 	// Subtests
 	t.Run("invoke-vm", func(t *testing.T) {
+		t.Parallel()
 		testInvokeVM(t, tmpConfigFile)
 	})
 	t.Run("invoke-docker-vm", func(t *testing.T) {
+		t.Parallel()
 		testInvokeDockerVM(t, tmpConfigFile)
 	})
 	t.Run("invoke-kind", func(t *testing.T) {
+		t.Parallel()
 		testInvokeKind(t, tmpConfigFile)
 	})
 }

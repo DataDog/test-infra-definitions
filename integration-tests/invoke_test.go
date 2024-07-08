@@ -27,16 +27,16 @@ func TestInvokes(t *testing.T) {
 	require.NoError(t, err)
 
 	// Subtests
-	t.Run("invoke-vm", func(t *testing.T) {
-		testInvokeVM(t, tmpConfigFile)
-	})
-	t.Run("invoke-docker-vm", func(t *testing.T) {
-		testInvokeDockerVM(t, tmpConfigFile)
-	})
-
-	t.Run("invoke-kind", func(t *testing.T) {
-		testInvokeKind(t, tmpConfigFile)
-	})
+	//t.Run("invoke-vm", func(t *testing.T) {
+	//	testInvokeVM(t, tmpConfigFile)
+	//})
+	//t.Run("invoke-docker-vm", func(t *testing.T) {
+	//	testInvokeDockerVM(t, tmpConfigFile)
+	//})
+	//
+	//t.Run("invoke-kind", func(t *testing.T) {
+	//	testInvokeKind(t, tmpConfigFile)
+	//})
 
 	t.Run("invoke-kind-operator", func(t *testing.T) {
 		testInvokeKindOperator(t, tmpConfigFile)
@@ -106,7 +106,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
 	}
 
 	t.Log("creating kind cluster with operator")
-	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 

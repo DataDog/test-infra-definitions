@@ -48,7 +48,8 @@ func TestInvokes(t *testing.T) {
 		testInvokeKind(t, tmpConfigFile)
 	})
 	t.Run("invoke-kind-operator", func(t *testing.T) {
-	testInvokeKindOperator(t, tmpConfigFile)
+		t.Parallel()
+		testInvokeKindOperator(t, tmpConfigFile)
 	})
 }
 
@@ -116,12 +117,12 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
 	}
 
 	t.Log("creating kind cluster with operator")
-	createCmd := exec.Command("invoke", "create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }

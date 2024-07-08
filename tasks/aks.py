@@ -46,7 +46,6 @@ def create_aks(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
-        use_aws_vault=False,
     )
 
     tool.notify(ctx, "Your AKS cluster is now created")
@@ -76,4 +75,4 @@ def destroy_aks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bo
     """
     Destroy a AKS environment created with invoke create-aks.
     """
-    destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes, use_aws_vault=False)
+    destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes)

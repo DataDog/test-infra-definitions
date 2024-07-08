@@ -24,7 +24,6 @@ scenario_name = "aws/kind"
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
-        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def create_kind(
@@ -38,7 +37,6 @@ def create_kind(
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
-    use_aws_vault: Optional[bool] = True,
 ):
     """
     Create a kind environment.
@@ -60,7 +58,6 @@ def create_kind(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
-        use_aws_vault=use_aws_vault,
         app_key_required=True,
     )
 
@@ -89,7 +86,6 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
         "yes": doc.yes,
-        "use_aws_vault": doc.use_aws_vault,
     }
 )
 def destroy_kind(
@@ -97,7 +93,6 @@ def destroy_kind(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     yes: Optional[bool] = False,
-    use_aws_vault: Optional[bool] = True,
 ):
     """
     Destroy an environment created by invoke create_docker.
@@ -107,7 +102,6 @@ def destroy_kind(
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
-        use_aws_vault=use_aws_vault,
         force_yes=yes,
     )
 

@@ -103,7 +103,7 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 		var ipAddress string
 		err := backoff.Retry(func() error {
 			e.Ctx().Log.Debug("waiting for fakeintake task private ip", nil)
-			ecsClient, err := ecs.NewECSClient(e.Ctx().Context(), e.Region())
+			ecsClient, err := ecs.NewECSClient(e.Ctx().Context(), e)
 			if err != nil {
 				return err
 			}

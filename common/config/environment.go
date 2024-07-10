@@ -235,7 +235,7 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 }
 
 func (e *CommonEnvironment) AgentDeployWithOperator() bool {
-	return e.GetBoolWithDefault(e.OperatorConfig, DDAgentDeployWithOperatorParamName, false)
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {

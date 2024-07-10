@@ -6,6 +6,7 @@ import (
 	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -23,7 +24,7 @@ type HelmInstallationArgs struct {
 	// Namespace is the namespace in which to install the operator
 	Namespace string
 	// ValuesYAML is used to provide installation-specific values
-	ValuesYAML pulumi.AssetOrArchiveArrayInput
+	ValuesYAML pulumi.AssetOrArchiveArray
 	// OperatorFullImagePath is used to specify the full image path for the agent
 	OperatorFullImagePath string
 }
@@ -87,6 +88,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 	// Compute some values
 	operatorImagePath := dockerOperatorFullImagePath(e, "", "")
+
 	if args.OperatorFullImagePath != "" {
 		operatorImagePath = args.OperatorFullImagePath
 	}
@@ -96,13 +98,18 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	values := buildLinuxHelmValues(baseName, operatorImagePath, operatorImageTag)
 	values.configureImagePullSecret(imgPullSecret)
 
+	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
+
+	var valuesYAML pulumi.AssetOrArchiveArray
+	valuesYAML = append(valuesYAML, defaultYAMLValues)
+	valuesYAML = append(valuesYAML, args.ValuesYAML...)
+
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
 		ChartName:   "datadog-operator",
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
-		ValuesYAML:  args.ValuesYAML,
-		Values:      pulumi.Map(values),
+		ValuesYAML:  valuesYAML,
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -130,8 +137,9 @@ func buildLinuxHelmValues(baseName string, operatorImagePath string, operatorIma
 		"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 		"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 		"image": pulumi.Map{
-			"repository": pulumi.String(operatorImagePath),
-			"tag":        pulumi.String(operatorImageTag),
+			"repository":    pulumi.String(operatorImagePath),
+			"tag":           pulumi.String(operatorImageTag),
+			"doNotCheckTag": pulumi.Bool(true),
 		},
 		"logLevel": pulumi.String("debug"),
 		"introspection": pulumi.Map{
@@ -184,5 +192,16 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 			"name": secret.Metadata.Name(),
 		},
 	}
+
+}
+
+func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
+	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]interface{}) (pulumi.Asset, error) {
+		yamlValues, err := yaml.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		return pulumi.NewStringAsset(string(yamlValues)), nil
+	}).(pulumi.AssetOutput)
 
 }

@@ -127,23 +127,23 @@ agents:
 
 	// Deploy the operator
 	if awsEnv.AgentDeploy() && awsEnv.AgentDeployWithOperator() {
-		customDda := fmt.Sprintf(`
-features:
-  liveProcessCollection:
-    enabled: true
-`)
 		operatorOpts := make([]operatorparams.Option, 0)
 		operatorOpts = append(
 			operatorOpts,
 			operatorparams.WithNamespace("datadog"),
-			operatorparams.WithFakeIntake(fakeIntake),
 		)
+		if fakeIntake != nil {
+			operatorOpts = append(
+				operatorOpts,
+				operatorparams.WithFakeIntake(fakeIntake),
+			)
+		}
+
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(
 			ddaOptions,
 			agentwithoperatorparams.WithNamespace("datadog"),
 			agentwithoperatorparams.WithTLSKubeletVerify(false),
-			agentwithoperatorparams.WithDDAConfig(customDda),
 		)
 
 		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)

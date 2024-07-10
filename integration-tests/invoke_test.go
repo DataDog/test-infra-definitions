@@ -104,14 +104,14 @@ func testInvokeKind(t *testing.T, tmpConfigFile string) {
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }
 
 func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
 	t.Helper()
-	stackName := "invoke-kind-agent-with-operator"
+	stackName := "invoke-kind-with-operator"
 	if os.Getenv("CI") == "true" {
 		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_PIPELINE_ID"))
 	}
@@ -121,8 +121,8 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
-	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	t.Log("destroying kind cluster with operator")
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }

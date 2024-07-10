@@ -57,7 +57,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			namer.ResourceName("taskdef"),
 			pulumi.String("fakeintake-ecs"),
 			params.CPU, params.Memory,
-			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600)},
+			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600, params.DDDevForwarding)},
 			apiKeyParam.Name,
 			nil,
 			opts...,
@@ -208,11 +208,17 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 	return nil
 }
 
-func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput, GoMemLimitMiB int) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
+func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput, GoMemLimitMiB int, dddevForwarding bool) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
+	command := []string{}
+	if dddevForwarding {
+		command = append(command, "--dddev-forward")
+	}
+
 	return &awsxEcs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
 		Image:       pulumi.String(imageURL),
 		Essential:   pulumi.BoolPtr(true),
+		Command:     pulumi.ToStringArray(command),
 		MountPoints: awsxEcs.TaskDefinitionMountPointArray{},
 		Environment: awsxEcs.TaskDefinitionKeyValuePairArray{
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
@@ -222,6 +228,12 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("STORAGE_DRIVER"),
 				Value: pulumi.StringPtr("sql"),
+			},
+		},
+		Secrets: awsxEcs.TaskDefinitionSecretArray{
+			awsxEcs.TaskDefinitionSecretArgs{
+				Name:      pulumi.String("DD_API_KEY"),
+				ValueFrom: apiKeySSMParamName,
 			},
 		},
 		PortMappings: awsxEcs.TaskDefinitionPortMappingArray{

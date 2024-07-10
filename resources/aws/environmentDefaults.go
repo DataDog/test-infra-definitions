@@ -17,7 +17,8 @@ type environmentDefault struct {
 }
 
 type awsProvider struct {
-	region string
+	region  string
+	profile string
 }
 
 type FakeintakeLBConfig struct {
@@ -90,7 +91,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 func sandboxDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-sandbox-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-d1aac1a8",
@@ -132,7 +134,8 @@ func sandboxDefault() environmentDefault {
 func agentSandboxDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-agent-sandbox-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-029c0faf8f49dee8d",
@@ -193,7 +196,8 @@ func agentSandboxDefault() environmentDefault {
 func agentQADefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-agent-qa-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-0097b9307ec2c8139",
@@ -255,7 +259,8 @@ func agentQADefault() environmentDefault {
 func tsePlaygroundDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-tse-playground-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-0570ac09560a97693",

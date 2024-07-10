@@ -48,6 +48,8 @@ type Params struct {
 	DeployWindows bool
 	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
 	DisableLogsContainerCollectAll bool
+	// DualShipping is a flag to enable dual shipping.
+	DisableDualShipping bool
 }
 
 type Option = func(*Params) error
@@ -127,6 +129,15 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 func WithoutLogsContainerCollectAll() func(*Params) error {
 	return func(p *Params) error {
 		p.DisableLogsContainerCollectAll = true
+		return nil
+	}
+}
+
+// WithoutDualShipping disables dual shipping. By default the agent is configured to send data to ddev and to the fakeintake.
+// With that flag data will be sent only to the fakeintake.
+func WithoutDualShipping() func(*Params) error {
+	return func(p *Params) error {
+		p.DisableDualShipping = true
 		return nil
 	}
 }

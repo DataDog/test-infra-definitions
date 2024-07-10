@@ -39,6 +39,8 @@ type HelmInstallationArgs struct {
 	ClusterAgentFullImagePath string
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
+	// DisableDualShipping is used to disable dual-shipping
+	DisableDualShipping bool
 }
 
 type HelmComponent struct {
@@ -129,7 +131,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake)
+	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
 
 	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
@@ -159,7 +161,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake)
+		values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
 		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
 		var windowsValuesYAML pulumi.AssetOrArchiveArray
@@ -464,63 +466,92 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake, dualShipping bool) {
 	if fakeintake == nil {
 		return
 	}
 
-	if fakeintake.Scheme != "https" {
-		e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
-	}
-
-	additionalEndpointsEnvVar := pulumi.StringMapArray{
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
+	var endpointsEnvVar pulumi.StringMapArray
+	if dualShipping {
+		if fakeintake.Scheme != "https" {
+			e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
+		}
+		endpointsEnvVar = pulumi.StringMapArray{
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			},
+		}
+	} else {
+		endpointsEnvVar = pulumi.StringMapArray{
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_PROCESS_CONFIG_PROCESS_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_APM_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
+				"value": pulumi.String("true"),
+			},
+		}
 	}
 
 	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
-			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
+			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {
-			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
+			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), endpointsEnvVar...)
 		}
 	}
 }

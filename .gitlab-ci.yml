@@ -50,7 +50,8 @@ integration-testing:
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
   script:
-    - go test ./integration-tests -v -timeout 0s
+    # Limit test runs to 2 in parallel, as each test consumes ~8GB of memory
+    - go test -parallel 2 ./integration-tests -v -timeout 0s
   variables:
     E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
     E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key

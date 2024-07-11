@@ -32,3 +32,5 @@ Pulumi.*.yaml
 
 # JetBrains IDE
 .idea/
+main
+mem.pprof

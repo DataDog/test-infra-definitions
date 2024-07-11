@@ -1,5 +1,8 @@
 name: dd
-runtime: go
+runtime:
+  name: go
+  options:
+    binary: main
 description: Generic scenario (check scenario variable)
 config:
   pulumi:disable-default-providers: ["*"]

@@ -34,3 +34,4 @@ Pulumi.*.yaml
 .idea/
 main
 mem.pprof
+Pulumi.yaml

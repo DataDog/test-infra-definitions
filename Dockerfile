@@ -108,6 +108,7 @@ RUN --mount=type=secret,id=github_token \
   cd /tmp/test-infra && \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
+  cp Pulumi.yaml.CI Pulumi.yaml && \
   pulumi --logflow --logtostderr -v 5 --non-interactive plugin install && \
   pulumi --non-interactive plugin ls && \
   cd / && \

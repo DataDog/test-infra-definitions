@@ -19,13 +19,30 @@ from .tool import ask, debug, error, info, is_linux, is_windows, warn
 available_aws_accounts = ["agent-sandbox", "sandbox", "agent-qa", "tse-playground"]
 
 
-@task(help={"config_path": doc.config_path, "interactive": doc.interactive, "debug": doc.debug}, default=True)
+@task(
+    help={
+        "config_path": doc.config_path,
+        "interactive": doc.interactive,
+        "debug": doc.debug,
+    },
+    default=True,
+)
 def setup(
-    ctx: Context, config_path: Optional[str] = None, interactive: Optional[bool] = True, debug: Optional[bool] = False
+    ctx: Context,
+    config_path: Optional[str] = None,
+    interactive: Optional[bool] = True,
+    debug: Optional[bool] = False,
 ) -> None:
     """
     Setup a local environment, interactively by default
     """
+    if not os.path.isfile("Pulumi.yaml"):
+        info("🤖 Pulumi.yaml not found, creating one")
+        source = "Pulumi.yaml.local"
+        if os.getenv("CI"):
+            source = "Pulumi.yaml.CI"
+        shutil.copyfile(source, "Pulumi.yaml")
+
     pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")
@@ -86,10 +103,10 @@ def _install_pulumi(ctx: Context):
                 for x in [
                     Path().home().joinpath(".pulumi", "bin"),
                     Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
-                    'C:\\Program Files (x86)\\Pulumi\\bin',
+                    "C:\\Program Files (x86)\\Pulumi\\bin",
                 ]
             ]
-            os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)
+            os.environ["PATH"] = ";".join([os.environ["PATH"]] + paths)
         elif is_linux():
             path = Path().home().joinpath(".pulumi", "bin")
             os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
@@ -263,9 +280,9 @@ def _pulumi_version(ctx: Context) -> Tuple[str, bool]:
 
 def ssh_fingerprint_to_bytes(fingerprint: str) -> bytes:
     # EXAMPLE: 256 SHA1:41jsg4Z9lgylj6/zmhGxtZ6/qZs testname (ED25519)
-    out = fingerprint.strip().split(' ')[1].split(':')[1]
+    out = fingerprint.strip().split(" ")[1].split(":")[1]
     # ssh leaves out padding but python will ignore extra padding so add the missing padding
-    return base64.b64decode(out + '==')
+    return base64.b64decode(out + "==")
 
 
 # noqa: because vulture thinks this is unused
@@ -275,7 +292,7 @@ class KeyFingerprint(NamedTuple):
     sha256: str  # noqa
 
 
-class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint)])):
+class KeyInfo(NamedTuple("KeyFingerprint", [("path", str), ("fingerprint", KeyFingerprint)])):
     def in_ssh_agent(self, ctx):
         out = ctx.run("ssh-add -l", hide=True)
         out = ssh_fingerprint_to_bytes(out.stdout.strip())
@@ -291,28 +308,28 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
         # EC2 uses a different fingerprint hash/format depending on the key type and the key's origin
         # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html
         ec2_fingerprint = keypair["KeyFingerprint"]
-        if ':' in ec2_fingerprint:
-            ec2_fingerprint = bytes.fromhex(ec2_fingerprint.replace(':', ''))
+        if ":" in ec2_fingerprint:
+            ec2_fingerprint = bytes.fromhex(ec2_fingerprint.replace(":", ""))
         else:
-            ec2_fingerprint = base64.b64decode(ec2_fingerprint + '==')
+            ec2_fingerprint = base64.b64decode(ec2_fingerprint + "==")
         return self.match(ec2_fingerprint)
 
     @classmethod
     def from_path(cls, ctx, path):
         # Make sure the key is ascii
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             firstline = f.readline()
-            if b'\0' in firstline:
+            if b"\0" in firstline:
                 raise ValueError(f"Key file {path} is not ascii, it may be in utf-16, please convert it to ascii")
             # EC2 uses a different fingerprint hash/format depending on the key type and the key's origin
             # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html
-            if b'SSH' in firstline or firstline.startswith(b'ssh-'):
+            if b"SSH" in firstline or firstline.startswith(b"ssh-"):
 
                 def getfingerprint(fmt, path):
-                    out = ctx.run(f"ssh-keygen -l -E {fmt} -f \"{path}\"", hide=True)
+                    out = ctx.run(f'ssh-keygen -l -E {fmt} -f "{path}"', hide=True)
                     return ssh_fingerprint_to_bytes(out.stdout.strip())
 
-            elif b'BEGIN' in firstline:
+            elif b"BEGIN" in firstline:
 
                 def getfingerprint(fmt, path):
                     out = ctx.run(
@@ -320,8 +337,8 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
                         hide=True,
                     )
                     # EXAMPLE: (stdin)= e3:a8:bc:0a:3a:54:9f:b8:be:6e:75:8c:98:26:8e:3d:8e:e9:d0:69
-                    out = out.stdout.strip().split(' ')[1]
-                    return bytes.fromhex(out.replace(':', ''))
+                    out = out.stdout.strip().split(" ")[1]
+                    return bytes.fromhex(out.replace(":", ""))
 
             else:
                 raise ValueError(f"Key file {path} is not a valid ssh key")
@@ -377,7 +394,7 @@ def _passphrase_decrypts_privatekey(ctx: Context, path: str, passphrase: str):
         ctx.run(f"ssh-keygen -y -P '{passphrase}' -f {path}", hide=True)
     except UnexpectedExit as e:
         # incorrect passphrase supplied to decrypt private key
-        if 'incorrect passphrase' in str(e):
+        if "incorrect passphrase" in str(e):
             return False
     return True
 
@@ -482,9 +499,9 @@ def debug_keys(ctx: Context, config_path: Optional[str] = None):
         try:
             keyinfo, keypair = find_matching_ec2_keypair(ctx, keypairs, keypath)
         except (ValueError, UnexpectedExit) as e:
-            if 'not a valid ssh key' in str(e):
+            if "not a valid ssh key" in str(e):
                 continue
-            warn(f'WARNING: {e}')
+            warn(f"WARNING: {e}")
             continue
         if keyinfo is not None and keypair is not None:
             info(f"Found '{keypair['KeyName']}' matches: {keypath}")
@@ -563,7 +580,7 @@ def debug_env(ctx, config_path: Optional[str] = None):
     print()
 
     # Check aws-vault profile name, some invoke taskes hard code this value.
-    expected_profile = 'sso-agent-sandbox-account-admin'
+    expected_profile = "sso-agent-sandbox-account-admin"
     out = ctx.run("aws-vault list", hide=True)
     if expected_profile not in out.stdout:
         warn(f"WARNING: expected profile {expected_profile} missing from aws-vault. Some invoke tasks may fail.")

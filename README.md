@@ -102,13 +102,23 @@ More information about state can be retrieved at: https://www.pulumi.com/docs/in
 Finally, Pulumi is encrypting secrets in your `Pulumi.<stack_name>.yaml` (if entered as such).
 To do that, it requires a password. For dev purposes, you can simply store the password in the `PULUMI_CONFIG_PASSPHRASE` variable in your `~/.zshrc`.
 
+## Using `pulumi` commands
+
+### Setup
+
+Copy `Pulumi.yaml.local` to `Pulumi.yaml`
+
+```bash
+cp Pulumi.yaml.local Pulumi.yaml
+```
+
 ### Creating a stack with `pulumi up`
 
 In this example, we're going to create an ECS Cluster:
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs-test
+pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs-test
 ```
 
 In case of failure, you may update some parameters or configuration and run the command again.
@@ -137,21 +147,21 @@ pulumi stack rm <your_name>-ecs-test
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/dockervm -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa -s <your_name>-docker
+pulumi up -c scenario=aws/dockervm -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa -s <your_name>-docker
 ```
 
 ## Quick start: Create an ECS EC2 (Windows/Linux) + Fargate (Linux) Cluster
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs
+pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs
 ```
 
 ## Quick start: Create an EKS (Linux/Windows) + Fargate (Linux) Cluster + Agent (Helm)
 
 ```
 # You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
+pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
 ```
 
 ## Troubleshooting
@@ -159,6 +169,6 @@ aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/eks 
 ### Environment and configuration
 The `setup.debug` invoke task will check for common mistakes such as key unavailable in configured AWS region, ssh-agent not running, invalid key format, and more.
 ```
-aws-vault exec sso-agent-sandbox-account-admin -- inv setup.debug
-aws-vault exec sso-agent-sandbox-account-admin -- inv setup --debug --no-interactive
+inv setup.debug
+inv setup --debug --no-interactive
 ```

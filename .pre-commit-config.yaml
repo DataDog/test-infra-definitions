@@ -28,5 +28,6 @@ repos:
       - id: go-tidy
         name: go-tidy
         entry: go mod tidy
+        files: .*\.go$
         language: system
         pass_filenames: false

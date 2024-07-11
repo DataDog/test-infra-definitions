@@ -23,9 +23,3 @@ repos:
     rev: 'v2.3'
     hooks:
       - id: vulture
-        args:
-          - --ignore-decorators
-          - "@task"
-          - --ignore-names
-          - 'test_*,Test*'
-          - tasks

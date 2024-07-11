@@ -64,7 +64,7 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 			return nil, err
 		}
 		if !exists {
-			return nil, fmt.Errorf("agent image %s not found in the internal registry", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+			return nil, fmt.Errorf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 		}
 		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 
@@ -73,7 +73,7 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 			return nil, err
 		}
 		if !exists {
-			return nil, fmt.Errorf("cluster agent image %s not found in the internal registry", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+			return nil, fmt.Errorf("image %s/cluster-agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 		}
 		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}

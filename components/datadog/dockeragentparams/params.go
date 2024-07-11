@@ -63,7 +63,7 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 			return nil, err
 		}
 		if !exists {
-			return nil, fmt.Errorf("image %s:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+			return nil, fmt.Errorf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 		}
 		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}

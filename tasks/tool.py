@@ -1,5 +1,6 @@
 import getpass
 import json
+import os
 import pathlib
 import platform
 from io import StringIO
@@ -148,11 +149,12 @@ def get_stack_name_prefix() -> str:
 
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
-    with ctx.cd(_get_root_path()):
-        ctx.run(
-            f"pulumi stack output --json -s {full_stack_name}",
-            out_stream=buffer,
-        )
+
+    cmd_parts: List[str] = ["pulumi", "stack", "output", "--json", "-s", full_stack_name, get_pulumi_dir_flag()]
+    ctx.run(
+        " ".join(cmd_parts),
+        out_stream=buffer,
+    )
     return json.loads(buffer.getvalue())
 
 
@@ -204,6 +206,16 @@ def notify_linux(ctx, text):
 def notify_windows():
     # TODO: Implenent notification on windows. Would require windows computer (with desktop) to test
     return
+
+
+# ensure we run pulumi from a directory with a Pulumi.yaml file
+# defaults to the project root directory
+def get_pulumi_dir_flag():
+    root_path = _get_root_path()
+    current_path = os.getcwd()
+    if not os.path.isfile(os.path.join(current_path, "Pulumi.yaml")):
+        return f"-C {root_path}"
+    return ""
 
 
 def _get_root_path() -> str:

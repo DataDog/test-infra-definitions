@@ -145,15 +145,10 @@ def get_stack_name_prefix() -> str:
 
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
-    # Check we execute from a pulumi project
-    root_path = get_root_path()
-    current_path = os.getcwd()
-    global_flags = ""
-    if not os.path.isfile(os.path.join(current_path, "Pulumi.yaml")):
-        global_flags += f" -C {root_path}"
 
+    cmd_parts: List[str] = ["pulumi", "stack", "output", "--json", "-s", full_stack_name, get_pulumi_dir_flag()]
     ctx.run(
-        f"pulumi stack output --json -s {full_stack_name}{global_flags}",
+        " ".join(cmd_parts),
         out_stream=buffer,
     )
     return json.loads(buffer.getvalue())
@@ -209,7 +204,17 @@ def notify_windows():
     return
 
 
-def get_root_path() -> str:
+# ensure we run pulumi from a directory with a Pulumi.yaml file
+# defaults to the project root directory
+def get_pulumi_dir_flag():
+    root_path = _get_root_path()
+    current_path = os.getcwd()
+    if not os.path.isfile(os.path.join(current_path, "Pulumi.yaml")):
+        return f"-C {root_path}"
+    return ""
+
+
+def _get_root_path() -> str:
     folder = pathlib.Path(__file__).parent.resolve()
     return str(folder.parent)
 

@@ -69,6 +69,11 @@ integration-testing:
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
   script:
+    - |
+      if [ ! -f ./dist/main ]; then 
+        echo "no main binary found, please run 'build-pulumi-go-main' job"
+        exit 1
+      fi
     # execute test from dist directory to use the generated binary
     - go test ./integration-tests -v -timeout 0s -workingDir=dist
   variables:

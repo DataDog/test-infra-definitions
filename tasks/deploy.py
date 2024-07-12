@@ -175,13 +175,11 @@ def _deploy(
     stack_name = tool.get_stack_name(stack_name, flags["scenario"])
     # make sure the stack name is safe
     stack_name = stack_name.replace(" ", "-").lower()
-    global_flags = ""
+    global_flags_array: List[str] = []
     up_flags = ""
 
-    # Checking root path
-    root_path = tool._get_root_path()
-    if root_path != os.getcwd():
-        global_flags += f" -C {root_path}"
+    # Check we are in a pulumi project
+    global_flags_array.append(tool.get_pulumi_dir_flag())
 
     # Building run func parameters
     for key, value in flags.items():
@@ -196,11 +194,12 @@ def _deploy(
         log_to_stderr = debug
     if should_log:
         if log_to_stderr:
-            global_flags += " --logtostderr"
-        global_flags += f" -v {log_level}"
+            global_flags_array.append("--logtostderr")
+        global_flags_array.append(f"-v {log_level}")
         if debug:
             up_flags += " --debug"
 
+    global_flags = " ".join(global_flags_array)
     _create_stack(ctx, stack_name, global_flags)
     cmd = f"pulumi {global_flags} up --yes -s {stack_name} {up_flags}"
 

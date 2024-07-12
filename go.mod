@@ -1,8 +1,6 @@
 module github.com/DataDog/test-infra-definitions
 
-go 1.21.12
-
-toolchain go1.22.4
+go 1.22.0
 
 require (
 	github.com/DataDog/datadog-agent/pkg/util/optional v0.52.1

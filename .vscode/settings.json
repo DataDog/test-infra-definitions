@@ -1,7 +1,8 @@
 {
-  "python.linting.enabled": true,
-  "python.analysis.typeCheckingMode": "basic",
-  "python.languageServer": "Pylance",
-  "python.formatting.provider": "black",
-  "python.analysis.diagnosticMode": "workspace",
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+  },
+  "ruff.configurationPreference": "filesystemFirst",
 }

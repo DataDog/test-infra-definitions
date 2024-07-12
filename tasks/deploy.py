@@ -178,9 +178,10 @@ def _deploy(
     global_flags = ""
     up_flags = ""
 
-    # Checking root path
-    root_path = tool._get_root_path()
-    if root_path != os.getcwd():
+    # Check we are in a pulumi project
+    current_path = os.getcwd()
+    root_path = tool.get_root_path()
+    if not os.path.isfile(os.path.join(current_path, "Pulumi.yaml")):
         global_flags += f" -C {root_path}"
 
     # Building run func parameters

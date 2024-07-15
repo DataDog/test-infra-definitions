@@ -63,7 +63,7 @@ func TestInvokes(t *testing.T) {
 	})
 	t.Run("invoke-kind-operator", func(t *testing.T) {
 		t.Parallel()
-		testInvokeKindOperator(t, tmpConfigFile)
+		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
 	})
 }
 
@@ -129,7 +129,7 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }
 
-func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
+func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 	stackName := "invoke-kind-with-operator"
 	if os.Getenv("CI") == "true" {
@@ -138,11 +138,13 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string) {
 
 	t.Log("creating kind cluster with operator")
 	createCmd := exec.Command("invoke", "create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster with operator")
 	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }

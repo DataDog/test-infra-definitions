@@ -1,6 +1,6 @@
 module github.com/DataDog/test-infra-definitions
 
-go 1.21
+go 1.22.0
 
 require (
 	github.com/DataDog/datadog-agent/pkg/util/optional v0.52.1
@@ -12,8 +12,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
 	github.com/cenkalti/backoff/v4 v4.2.1
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.25.0
-	github.com/pulumi/pulumi-awsx/sdk/v2 v2.5.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.44.0
+	github.com/pulumi/pulumi-awsx/sdk/v2 v2.13.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
@@ -25,7 +25,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.121.0
+	github.com/pulumi/pulumi/sdk/v3 v3.122.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.17
 	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.9.0

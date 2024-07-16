@@ -381,15 +381,17 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
-				// It is required for the collection of k8s namespace labels/annotations.
 				pulumi.StringMap{
-					"name":  pulumi.String("DD_KUBERNETES_NAMESPACE_COLLECTION_ENABLED"),
-					"value": pulumi.String("true"),
+					"name": pulumi.String("DD_KUBERNETES_NAMESPACE_ANNOTATIONS_AS_TAGS"),
+					"value": pulumi.String(
+						`"related_email": "email"`,
+					),
 				},
 				pulumi.StringMap{
-					"name":  pulumi.String("DD_KUBERNETES_NAMESPACE_ANNOTATIONS_AS_TAGS"),
-					"value": pulumi.StringMapMap{
-						"related_email":"email",
+					"name": pulumi.String("DD_KUBERNETES_NAMESPACE_LABELS_AS_TAGS"),
+					"value": pulumi.String(
+						`"related_team": "team"`,
+					),
 				},
 			},
 		},

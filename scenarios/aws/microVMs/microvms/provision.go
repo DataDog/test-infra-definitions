@@ -256,8 +256,7 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 					return nil, err
 				}
 
-
-				reloadSSHDDone, err := reloadSSHD(microRunner, append(setDockerDataRootDone...))
+				reloadSSHDDone, err := reloadSSHD(microRunner, setDockerDataRootDone)
 				if err != nil {
 					return nil, err
 				}

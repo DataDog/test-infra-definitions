@@ -3,8 +3,6 @@ package dockeragentparams
 import (
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -136,9 +134,6 @@ func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 }
 
 func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation bool) func(*Params) error {
-	shouldEnforceHTTPInput := url.ToStringOutput().ApplyT(func(host string) (bool, error) {
-		return strings.HasPrefix(host, "https"), nil
-	}).(pulumi.BoolOutput)
 	return func(p *Params) error {
 		envVars := pulumi.Map{
 			"DD_DD_URL":                                 pulumi.Sprintf("%s", url),
@@ -146,8 +141,9 @@ func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation bool) fu
 			"DD_APM_DD_URL":                             pulumi.Sprintf("%s", url),
 			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldSkipSSLValidation),
 			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldSkipSSLValidation),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
+			"DD_LOGS_CONFIG_LOGS_DD_URL":                pulumi.Sprintf("%s", url),
 			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldSkipSSLValidation),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             shouldEnforceHTTPInput,
 		}
 		for key, value := range envVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {
@@ -185,16 +181,16 @@ func WithAdditionalFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) e
 	}).(pulumi.StringOutput)
 
 	// fakeintake without LB does not have a valid SSL certificate and accepts http only
-	shouldEnforceHTTPInputandSkipSSL := fakeintake.Scheme == "http"
+	shouldEnforceHTTPInputAndSkipSSL := fakeintake.Scheme == "http"
 
 	return func(p *Params) error {
 		logsEnvVars := pulumi.Map{
 			"DD_ADDITIONAL_ENDPOINTS":                   additionalEndpointsContentInput,
 			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS":       additionalLogsEndpointsContentInput,
-			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldEnforceHTTPInputandSkipSSL),
-			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldEnforceHTTPInputandSkipSSL),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldEnforceHTTPInputandSkipSSL),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             pulumi.Bool(shouldEnforceHTTPInputandSkipSSL),
+			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
 		}
 		for key, value := range logsEnvVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {

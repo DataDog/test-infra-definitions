@@ -12,9 +12,10 @@ from tasks.installer import create_installer_lab, destroy_installer_lab
 from tasks.kind import create_kind, destroy_kind
 from tasks.pipeline import retry_job
 
-from .vm import create_vm, destroy_vm
+from .vm import create_vm, create_vm_azure, destroy_vm
 
 ns = Collection()
+ns.add_task(create_vm_azure)  # pyright: ignore [reportArgumentType]
 ns.add_task(create_vm)  # pyright: ignore [reportArgumentType]
 ns.add_task(destroy_vm)  # pyright: ignore [reportArgumentType]
 ns.add_task(create_docker)  # pyright: ignore [reportArgumentType]

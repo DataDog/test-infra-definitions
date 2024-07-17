@@ -16,9 +16,9 @@ require (
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.44.0
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.13.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.30.0
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.50.1
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.30.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.50.1
 	github.com/pulumi/pulumi-command/sdk v0.9.2
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.1
 	github.com/pulumi/pulumi-eks/sdk/v2 v2.2.1
@@ -26,7 +26,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.122.0
+	github.com/pulumi/pulumi/sdk/v3 v3.124.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.17
 	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.9.0

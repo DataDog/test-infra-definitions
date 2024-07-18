@@ -57,7 +57,7 @@ def create_vm(
     ssh_user: Optional[str] = None,
 ) -> None:
     """
-    Create a new virtual machine on the cloud.
+    Create a new virtual machine on aws.
     """
 
     extra_flags = {}
@@ -121,7 +121,7 @@ def destroy_vm(
     clean_known_hosts: Optional[bool] = True,
 ):
     """
-    Destroy a new virtual machine on the cloud.
+    Destroy a new virtual machine on aws.
     """
     host = get_host(ctx, "aws-vm", scenario_name, stack_name)
     destroy(

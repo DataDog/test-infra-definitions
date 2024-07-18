@@ -41,7 +41,7 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         class Azure(BaseModel, extra=Extra.forbid):
             publicKeyPath: Optional[str]
 
-        azure: Optional[Azure]
+        azure: Optional[Azure] = None
 
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]

@@ -47,6 +47,9 @@ def create_vm(
     except ValidationError as e:
         raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
 
+    if not cfg.get_azure().publicKeyPath:
+        raise Exit("The field `azure.publicKeyPath` is required in the config file")
+
     extra_flags = dict()
     extra_flags["ddinfra:env"] = "az/agent-sandbox"
     extra_flags["ddinfra:az/defaultPublicKeyPath"] = cfg.get_azure().publicKeyPath

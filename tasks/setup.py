@@ -46,6 +46,8 @@ def setup(
         info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
         # AWS config
         setupAWSConfig(config)
+        # Azure config
+        setup_azure_config(config)
         # Agent config
         setupAgentConfig(config)
         # Pulumi config
@@ -106,8 +108,6 @@ def setupAWSConfig(config: Config):
         config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None)
     if config.configParams.aws is None:
         config.configParams.aws = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
-    if config.configParams.azure is None:
-        config.configParams.azure = Config.Params.Azure(publicKeyPath=None)
 
     # aws account
     if config.configParams.aws.account is None:
@@ -168,6 +168,28 @@ def setupAWSConfig(config: Config):
         if len(config.configParams.aws.teamTag) > 0:
             break
         warn("Provide a non-empty team")
+
+
+def setup_azure_config(config: Config):
+    if config.configParams is None:
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None)
+    if config.configParams.azure is None:
+        config.configParams.azure = Config.Params.Azure(publicKeyPath=None)
+
+    # azure public key path
+    if config.configParams.azure.publicKeyPath is None:
+        config.configParams.azure.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
+    default_public_key_path = config.configParams.azure.publicKeyPath
+    while True:
+        config.configParams.azure.publicKeyPath = default_public_key_path
+        publicKeyPath = ask(
+            f"🔑 Path to your Azure public ssh key, default [{config.configParams.azure.publicKeyPath}]: "
+        )
+        if len(publicKeyPath) > 0:
+            config.configParams.azure.publicKeyPath = publicKeyPath
+        if os.path.isfile(config.configParams.azure.publicKeyPath):
+            break
+        warn(f"{config.configParams.azure.publicKeyPath} is not a valid ssh key")
 
 
 def setupAgentConfig(config):

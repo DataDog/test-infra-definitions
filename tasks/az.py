@@ -10,7 +10,7 @@ from .config import get_full_profile_path
 from .deploy import deploy
 from .destroy import destroy
 from .tool import clean_known_hosts as clean_known_hosts_func
-from .tool import show_connection_message
+from .tool import get_host, show_connection_message
 
 scenario_name = "az/vm"
 
@@ -94,7 +94,7 @@ def destroy_vm(
     """
     Destroy a new virtual machine on the cloud.
     """
-    host = _get_host(ctx, stack_name)
+    host = get_host(ctx, "az-vm", scenario_name, stack_name)
     destroy(
         ctx,
         scenario_name=scenario_name,
@@ -104,13 +104,3 @@ def destroy_vm(
     )
     if clean_known_hosts:
         clean_known_hosts_func(host)
-
-
-def _get_host(ctx: Context, stack_name: Optional[str] = None) -> str:
-    """
-    Get the host of the VM.
-    """
-    full_stack_name = tool.get_stack_name(stack_name, scenario_name)
-    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    remoteHost = tool.RemoteHost("az-vm", outputs)
-    return remoteHost.host

@@ -1,5 +1,7 @@
 from invoke.collection import Collection
 
+import tasks.aws as aws
+import tasks.az as azure
 import tasks.ci as ci
 import tasks.setup as setup
 import tasks.test as test
@@ -12,26 +14,29 @@ from tasks.installer import create_installer_lab, destroy_installer_lab
 from tasks.kind import create_kind, destroy_kind
 from tasks.pipeline import retry_job
 
-from .vm import create_vm, create_vm_azure, destroy_vm
+from .vm import create_vm, destroy_vm
 
 ns = Collection()
-ns.add_task(create_vm_azure)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_vm)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_vm)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_docker)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_docker)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_eks)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_eks)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_aks)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_aks)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_ecs)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_ecs)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_kind)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_kind)  # pyright: ignore [reportArgumentType]
-ns.add_task(retry_job)  # pyright: ignore [reportArgumentType]
+
 ns.add_task(check_s3_image_exists)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_aks)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_docker)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_ecs)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_eks)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_installer_lab)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_kind)  # pyright: ignore [reportArgumentType]
+ns.add_task(create_vm)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_aks)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_docker)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_ecs)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_eks)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_installer_lab)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_kind)  # pyright: ignore [reportArgumentType]
+ns.add_task(destroy_vm)  # pyright: ignore [reportArgumentType]
+ns.add_task(retry_job)  # pyright: ignore [reportArgumentType]
+
+ns.add_collection(aws)  # pyright: ignore [reportArgumentType]
+ns.add_collection(azure)  # pyright: ignore [reportArgumentType]
+ns.add_collection(ci)  # pyright: ignore [reportArgumentType]
 ns.add_collection(setup)  # pyright: ignore [reportArgumentType]
 ns.add_collection(test)  # pyright: ignore [reportArgumentType]
-ns.add_collection(ci)  # pyright: ignore [reportArgumentType]
-ns.add_task(create_installer_lab)  # pyright: ignore [reportArgumentType]
-ns.add_task(destroy_installer_lab)  # pyright: ignore [reportArgumentType]

@@ -38,6 +38,11 @@ You should consider moving to the agent-sandbox account. Please follow https://d
 
         aws: Optional[Aws]
 
+        class Azure(BaseModel, extra=Extra.forbid):
+            publicKeyPath: Optional[str]
+
+        azure: Optional[Azure]
+
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
@@ -64,6 +69,14 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         if self.options is None:
             return Config.Options(checkKeyPair=False)
         return self.options
+
+    def get_azure(self) -> Params.Azure:
+        default = Config.Params.Azure(publicKeyPath=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.azure is None:
+            return default
+        return self.configParams.azure
 
     def get_aws(self) -> Params.Aws:
         default = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)

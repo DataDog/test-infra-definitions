@@ -50,7 +50,7 @@ func sandboxDefault() environmentDefault {
 			defaultVNet:            "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/virtualNetworks/dd-agent-sandbox",
 			defaultSubnet:          "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/virtualNetworks/dd-agent-sandbox/subnets/dd-agent-sandbox-private",
 			defaultSecurityGroup:   "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/networkSecurityGroups/appgategreen",
-			defaultInstanceType:    "Standard_D4s_v5",  // Allows nested virtualization for kata runtimes
+			defaultInstanceType:    "Standard_D2a_v4",  // Allows nested virtualization for kata runtimes
 			defaultARMInstanceType: "Standard_D4ps_v5", // No azure arm instance supports nested virtualization
 			aks: ddInfraAks{
 				linuxKataNodeGroup: true,

@@ -57,7 +57,9 @@ def deploy(
     flags["ddagent:fakeintake"] = use_fakeintake
 
     awsKeyPairName = cfg.get_aws().keyPairName
+
     flags["ddinfra:aws/defaultKeyPairName"] = awsKeyPairName
+    flags["ddinfra:az/defaultPublicKeyPath"] = cfg.get_azure().publicKeyPath
     aws_account = cfg.get_aws().get_account()
     flags.setdefault("ddinfra:env", "aws/" + aws_account)
 

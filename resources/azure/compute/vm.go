@@ -19,10 +19,10 @@ const (
 	AdminUsername     = "azureuser"
 )
 
-func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, userData pulumi.StringPtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, error) {
+func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, userData pulumi.StringPtrInput) (*compute.VirtualMachine, *network.NetworkInterface, error) {
 	sshPublicKey, err := utils.GetSSHPublicKey(e.DefaultPublicKeyPath())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	linuxOsProfile := compute.OSProfileArgs{
@@ -45,13 +45,13 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 	return newVMInstance(e, name, imageUrn, instanceType, linuxOsProfile)
 }
 
-func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, pulumi.StringOutput, error) {
+func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput) (*compute.VirtualMachine, *network.NetworkInterface, pulumi.StringOutput, error) {
 	windowsAdminPassword, err := random.NewRandomPassword(e.Ctx(), e.Namer.ResourceName(name, "admin-password"), &random.RandomPasswordArgs{
 		Length:  pulumi.Int(20),
 		Special: pulumi.Bool(true),
 	})
 	if err != nil {
-		return nil, nil, nil, pulumi.StringOutput{}, err
+		return nil, nil, pulumi.StringOutput{}, err
 	}
 
 	windowsOsProfile := compute.OSProfileArgs{
@@ -74,28 +74,18 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 		}
 	}
 
-	vm, publicIP, nw, err := newVMInstance(e, name, imageUrn, instanceType, windowsOsProfile)
+	vm, nw, err := newVMInstance(e, name, imageUrn, instanceType, windowsOsProfile)
 	if err != nil {
-		return nil, nil, nil, pulumi.StringOutput{}, err
+		return nil, nil, pulumi.StringOutput{}, err
 	}
 
-	return vm, publicIP, nw, windowsAdminPassword.Result, nil
+	return vm, nw, windowsAdminPassword.Result, nil
 }
 
-func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osProfile compute.OSProfilePtrInput) (*compute.VirtualMachine, *network.PublicIPAddress, *network.NetworkInterface, error) {
+func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osProfile compute.OSProfilePtrInput) (*compute.VirtualMachine, *network.NetworkInterface, error) {
 	vmImageRef, err := parseImageReferenceURN(imageUrn)
 	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	publicIP, err := network.NewPublicIPAddress(e.Ctx(), e.Namer.ResourceName(name), &network.PublicIPAddressArgs{
-		PublicIpAddressName:      e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
-		ResourceGroupName:        pulumi.String(e.DefaultResourceGroup()),
-		PublicIPAllocationMethod: pulumi.String(network.IPAllocationMethodStatic),
-		Tags:                     e.ResourcesTags(),
-	}, e.WithProviders(config.ProviderAzure))
-	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	nwInt, err := network.NewNetworkInterface(e.Ctx(), e.Namer.ResourceName(name), &network.NetworkInterfaceArgs{
@@ -108,15 +98,12 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 					Id: pulumi.String(e.DefaultSubnet()),
 				},
 				PrivateIPAllocationMethod: pulumi.String(network.IPAllocationMethodDynamic),
-				PublicIPAddress: network.PublicIPAddressTypeArgs{
-					Id: publicIP.ID(),
-				},
 			},
 		},
 		Tags: e.ResourcesTags(),
 	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	vm, err := compute.NewVirtualMachine(e.Ctx(), e.Namer.ResourceName(name), &compute.VirtualMachineArgs{
@@ -148,8 +135,8 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		Tags:      e.ResourcesTags(),
 	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
-	return vm, publicIP, nwInt, nil
+	return vm, nwInt, nil
 }

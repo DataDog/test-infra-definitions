@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -104,6 +105,18 @@ const metalUserData = `#!/bin/bash
 apt-get -y remove unattended-upgrades
 `
 
+func buildUserData(instanceEnv *InstanceEnvironment, m *config.DDMicroVMConfig) string {
+	var sb strings.Builder
+
+	sb.WriteString(metalUserData)
+	if instanceEnv.DefaultShutdownBehavior() == "terminate" {
+		shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
+		sb.WriteString(fmt.Sprintf("sudo shutdown -P +%.0f\n", shutdownPeriod.Minutes()))
+	}
+
+	return sb.String()
+}
+
 func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
 	var ami string
@@ -124,10 +137,11 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
+	userData := buildUserData(instanceEnv, &m)
 	awsInstance, err := ec2Scn.NewVM(*awsEnv, name,
 		ec2Scn.WithInstanceType(instanceType),
 		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
-		ec2Scn.WithUserData(metalUserData),
+		ec2Scn.WithUserData(userData),
 	)
 	if err != nil {
 		return nil, err
@@ -172,23 +186,6 @@ type ScenarioDone struct {
 
 func defaultLibvirtSSHKey(keyname string) string {
 	return "/tmp/" + keyname
-}
-
-func setShutdownTimer(instance *Instance, m *config.DDMicroVMConfig) (pulumi.Resource, error) {
-	var shutdownRegisterDone pulumi.Resource
-	shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
-	shutdownRegisterArgs := command.Args{
-		Create: pulumi.Sprintf(
-			"shutdown -P +%.0f", shutdownPeriod.Minutes(),
-		),
-		Sudo: true,
-	}
-	shutdownRegisterDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("shutdown"), &shutdownRegisterArgs)
-	if err != nil {
-		return shutdownRegisterDone, fmt.Errorf("failed to schedule shutdown: %w", err)
-	}
-
-	return shutdownRegisterDone, nil
 }
 
 func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.Resource, error) {
@@ -241,14 +238,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			instance.instance.Address,
 			privkey,
 		)
-
-		if instance.e.DefaultShutdownBehavior() == "terminate" {
-			shutdownTimerDone, err := setShutdownTimer(instance, m)
-			if err != nil {
-				return nil, err
-			}
-			waitFor = append(waitFor, shutdownTimerDone)
-		}
 	} else if runtime.GOOS == "darwin" {
 		url = pulumi.Sprintf("qemu:///system?socket=/opt/homebrew/var/run/libvirt/libvirt-sock")
 	} else {

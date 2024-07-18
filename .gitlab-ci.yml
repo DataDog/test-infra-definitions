@@ -68,6 +68,11 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
+    - export AZURE_CLIENT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_id --with-decryption --query "Parameter.Value" --out text)
+    - export AZURE_CLIENT_SECRET=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_secret --with-decryption --query "Parameter.Value" --out text)
+    - export AZURE_TENANT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_tenant_id --with-decryption --query "Parameter.Value" --out text)
+    - export AZURE_SUBSCRIPTION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_subscription_id --with-decryption --query "Parameter.Value" --out text)
+    - az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" > /dev/null
   script:
     - |
       if [ ! -f ./dist/main ]; then 

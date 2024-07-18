@@ -37,6 +37,7 @@ def create_vm(
     debug: Optional[bool] = False,
     interactive: Optional[bool] = True,
     ssh_user: Optional[str] = None,
+    environment: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on azure.
@@ -51,7 +52,7 @@ def create_vm(
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
 
     extra_flags = dict()
-    extra_flags["ddinfra:env"] = "az/agent-sandbox"
+    extra_flags["ddinfra:env"] = environment if environment else cfg.get_azure().defaultEnv
     extra_flags["ddinfra:az/defaultPublicKeyPath"] = cfg.get_azure().publicKeyPath
 
     if ssh_user:

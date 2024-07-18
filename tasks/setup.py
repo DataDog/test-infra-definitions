@@ -182,14 +182,19 @@ def setup_azure_config(config: Config):
     default_public_key_path = config.configParams.azure.publicKeyPath
     while True:
         config.configParams.azure.publicKeyPath = default_public_key_path
-        publicKeyPath = ask(
-            f"🔑 Path to your Azure public ssh key, default [{config.configParams.azure.publicKeyPath}]: "
+        public_key_path = ask(
+            f"🔑 Path to your Azure public ssh key: (default: [{config.configParams.azure.publicKeyPath}])"
         )
-        if len(publicKeyPath) > 0:
-            config.configParams.azure.publicKeyPath = publicKeyPath
+        if public_key_path:
+            config.configParams.azure.publicKeyPath = public_key_path
+
         if os.path.isfile(config.configParams.azure.publicKeyPath):
             break
         warn(f"{config.configParams.azure.publicKeyPath} is not a valid ssh key")
+
+    default_environment = ask(f"🔑 Default environment to use, default [{config.configParams.azure.defaultEnv}]: ")
+    if default_environment:
+        config.configParams.azure.defaultEnv = default_environment
 
 
 def setupAgentConfig(config):

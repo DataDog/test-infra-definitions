@@ -4,15 +4,15 @@ from invoke.context import Context
 from invoke.exceptions import Exit
 from invoke.tasks import task
 
-from . import doc, tool
-from .config import Config
-from .deploy import deploy
-from .destroy import destroy
-from .tool import clean_known_hosts as clean_known_hosts_func
-from .tool import get_host, show_connection_message
+from tasks import doc, tool
+from tasks.deploy import deploy
+from tasks.destroy import destroy
+from tasks.tool import clean_known_hosts as clean_known_hosts_func
+from tasks.tool import get_host, show_connection_message
 
-scenario_name = "aws/vm"
 default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
+scenario_name = "aws/vm"
+remote_hostname = "aws-vm"
 
 
 @task(
@@ -102,7 +102,7 @@ def create_vm(
     if interactive:
         tool.notify(ctx, "Your VM is now created")
 
-    show_connection_message(ctx, "aws-vm", full_stack_name, interactive)
+    show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
 
 @task(
@@ -121,9 +121,9 @@ def destroy_vm(
     clean_known_hosts: Optional[bool] = True,
 ):
     """
-    Destroy a virtual machine on aws.
+    Destroy a new virtual machine on aws.
     """
-    host = get_host(ctx, "aws-vm", scenario_name, stack_name)
+    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
     destroy(
         ctx,
         scenario_name=scenario_name,
@@ -137,7 +137,7 @@ def destroy_vm(
 
 def _get_os_family(os_family: Optional[str]) -> str:
     os_families = tool.get_os_families()
-    if os_family is None:
+    if not os_family:
         os_family = tool.get_default_os_family()
     if os_family.lower() not in os_families:
         raise Exit(f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}")
@@ -146,7 +146,7 @@ def _get_os_family(os_family: Optional[str]) -> str:
 
 def _get_architecture(architecture: Optional[str]) -> str:
     architectures = tool.get_architectures()
-    if architecture is None:
+    if not architecture:
         architecture = tool.get_default_architecture()
     if architecture.lower() not in architectures:
         raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
@@ -177,11 +177,4 @@ def _get_os_information(
     else:
         family = _get_os_family(os_family)
         architecture = _get_architecture(arch)
-    return (family, architecture)
-
-
-def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
-    defaultPublicKeyPath = cfg.get_aws().publicKeyPath
-    if require and defaultPublicKeyPath is None:
-        raise Exit(f"Your scenario requires to define {default_public_path_key_name} in the configuration file")
-    return f'"{defaultPublicKeyPath}"'
+    return family, architecture

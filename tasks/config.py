@@ -39,9 +39,9 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         aws: Optional[Aws]
 
         class Azure(BaseModel, extra=Extra.forbid):
-            _DEFAULT_ENV = "az/agent-sandbox"
+            _DEFAULT_ACCOUNT = "agent-sandbox"
             publicKeyPath: Optional[str] = None
-            defaultEnv: Optional[str] = _DEFAULT_ENV
+            account: Optional[str] = _DEFAULT_ACCOUNT
 
         azure: Optional[Azure] = None
 

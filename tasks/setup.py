@@ -192,9 +192,9 @@ def setup_azure_config(config: Config):
             break
         warn(f"{config.configParams.azure.publicKeyPath} is not a valid ssh key")
 
-    default_environment = ask(f"🔑 Default environment to use, default [{config.configParams.azure.defaultEnv}]: ")
-    if default_environment:
-        config.configParams.azure.defaultEnv = default_environment
+    default_account = ask(f"🔑 Default account to use, default [{config.configParams.azure.account}]: ")
+    if default_account:
+        config.configParams.azure.account = default_account
 
 
 def setupAgentConfig(config):

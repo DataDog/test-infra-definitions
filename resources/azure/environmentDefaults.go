@@ -1,7 +1,9 @@
 package azure
 
 const (
-	sandboxEnv = "az/sandbox"
+	sandboxEnv      = "az/sandbox"
+	agentSandboxEnv = "az/agent-sandbox"
+	agentQaEnv      = "az/agent-qa"
 )
 
 type environmentDefault struct {
@@ -12,6 +14,7 @@ type environmentDefault struct {
 type azureProvider struct {
 	tenantID       string
 	subscriptionID string
+	location       string
 }
 
 type ddInfra struct {
@@ -32,6 +35,10 @@ func getEnvironmentDefault(envName string) environmentDefault {
 	switch envName {
 	case sandboxEnv:
 		return sandboxDefault()
+	case agentSandboxEnv:
+		return agentSandboxDefault()
+	case agentQaEnv:
+		return agentQaDefault()
 	default:
 		panic("Unknown environment: " + envName)
 	}
@@ -49,6 +56,48 @@ func sandboxDefault() environmentDefault {
 			defaultSubnet:          "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/datadog-agent-testing/providers/Microsoft.Network/virtualNetworks/default-vnet/subnets/default-subnet",
 			defaultSecurityGroup:   "/subscriptions/8c56d827-5f07-45ce-8f2b-6c5001db5c6f/resourceGroups/datadog-agent-testing/providers/Microsoft.Network/networkSecurityGroups/default",
 			defaultInstanceType:    "Standard_D4s_v5",  // Allows nested virtualization for kata runtimes
+			defaultARMInstanceType: "Standard_D4ps_v5", // No azure arm instance supports nested virtualization
+			aks: ddInfraAks{
+				linuxKataNodeGroup: true,
+			},
+		},
+	}
+}
+
+func agentSandboxDefault() environmentDefault {
+	return environmentDefault{
+		azure: azureProvider{
+			tenantID:       "cc0b82f3-7c2e-400b-aec3-40a3d720505b",
+			subscriptionID: "9972cab2-9e99-419b-a683-86bfa77b3df1",
+			location:       "West US 2",
+		},
+		ddInfra: ddInfra{
+			defaultResourceGroup:   "dd-agent-sandbox",
+			defaultVNet:            "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/virtualNetworks/dd-agent-sandbox",
+			defaultSubnet:          "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/virtualNetworks/dd-agent-sandbox/subnets/dd-agent-sandbox-private",
+			defaultSecurityGroup:   "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/networkSecurityGroups/appgategreen",
+			defaultInstanceType:    "Standard_D2a_v4",  // Allows nested virtualization for kata runtimes
+			defaultARMInstanceType: "Standard_D4ps_v5", // No azure arm instance supports nested virtualization
+			aks: ddInfraAks{
+				linuxKataNodeGroup: true,
+			},
+		},
+	}
+}
+
+func agentQaDefault() environmentDefault {
+	return environmentDefault{
+		azure: azureProvider{
+			tenantID:       "cc0b82f3-7c2e-400b-aec3-40a3d720505b",
+			subscriptionID: "c767177d-c6fc-47d3-a87e-3ab195f5b99e",
+			location:       "West US 2",
+		},
+		ddInfra: ddInfra{
+			defaultResourceGroup:   "dd-agent-sandbox",
+			defaultVNet:            "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/virtualNetworks/dd-agent-sandbox",
+			defaultSubnet:          "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/virtualNetworks/dd-agent-sandbox/subnets/dd-agent-sandbox-private",
+			defaultSecurityGroup:   "/subscriptions/9972cab2-9e99-419b-a683-86bfa77b3df1/resourceGroups/dd-agent-sandbox/providers/Microsoft.Network/networkSecurityGroups/appgategreen",
+			defaultInstanceType:    "Standard_D2a_v4",  // Allows nested virtualization for kata runtimes
 			defaultARMInstanceType: "Standard_D4ps_v5", // No azure arm instance supports nested virtualization
 			aks: ddInfraAks{
 				linuxKataNodeGroup: true,

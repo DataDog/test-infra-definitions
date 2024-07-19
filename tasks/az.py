@@ -93,7 +93,7 @@ def destroy_vm(
     clean_known_hosts: Optional[bool] = True,
 ):
     """
-    Destroy a new virtual machine on azure.
+    Destroy a virtual machine on azure.
     """
     host = get_host(ctx, "az-vm", scenario_name, stack_name)
     destroy(

@@ -121,7 +121,7 @@ def destroy_vm(
     clean_known_hosts: Optional[bool] = True,
 ):
     """
-    Destroy a new virtual machine on aws.
+    Destroy a virtual machine on aws.
     """
     host = get_host(ctx, "aws-vm", scenario_name, stack_name)
     destroy(

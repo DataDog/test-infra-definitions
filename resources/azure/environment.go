@@ -50,6 +50,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
 		SubscriptionId:         pulumi.StringPtr(env.envDefault.azure.subscriptionID),
 		TenantId:               pulumi.StringPtr(env.envDefault.azure.tenantID),
+		Location:               pulumi.StringPtr(env.envDefault.azure.location),
 	})
 	if err != nil {
 		return Environment{}, err

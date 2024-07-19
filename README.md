@@ -62,11 +62,14 @@ Available tasks:
   create-docker    Create a docker environment.
   create-ecs       Create a new ECS environment.
   create-eks       Create a new EKS environment. It lasts around 20 minutes.
-  create-vm        Create a new virtual machine on the cloud.
+  aws.create-vm        Create a new virtual machine on aws.
+  az.create-vm        Create a new virtual machine on azure.
   destroy-aks      Destroy a AKS environment created with invoke create-aks.
   destroy-docker   Destroy an environment created by invoke create_docker.
   destroy-ecs      Destroy a ECS environment created with invoke create-ecs.
   destroy-eks      Destroy a EKS environment created with invoke create-eks.
+  aws.destroy-vm          Destroy a virtual machine on aws.
+  az.destroy-vm          Destroy a virtual machine on azure.
 ```
 
 Run any `-h` on any of the available tasks for more information

@@ -5,14 +5,15 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 from pydantic_core._pydantic_core import ValidationError
 
-from . import config, doc, tool
-from .config import get_full_profile_path
-from .deploy import deploy
-from .destroy import destroy
-from .tool import clean_known_hosts as clean_known_hosts_func
-from .tool import get_host, show_connection_message
+from tasks import config, doc, tool
+from tasks.config import get_full_profile_path
+from tasks.deploy import deploy
+from tasks.destroy import destroy
+from tasks.tool import clean_known_hosts as clean_known_hosts_func
+from tasks.tool import get_host, show_connection_message
 
 scenario_name = "az/vm"
+remote_hostname = "az-vm"
 
 
 @task(
@@ -46,7 +47,7 @@ def create_vm(
     try:
         cfg = config.get_local_config(config_path)
     except ValidationError as e:
-        raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+        raise Exit(f"Error in config {get_full_profile_path(config_path)}") from e
 
     if not cfg.get_azure().publicKeyPath:
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
@@ -74,7 +75,7 @@ def create_vm(
     if interactive:
         tool.notify(ctx, "Your VM is now created")
 
-    show_connection_message(ctx, "az-vm", full_stack_name, interactive)
+    show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
 
 @task(
@@ -93,9 +94,9 @@ def destroy_vm(
     clean_known_hosts: Optional[bool] = True,
 ):
     """
-    Destroy a virtual machine on azure.
+    Destroy a new virtual machine on azure.
     """
-    host = get_host(ctx, "az-vm", scenario_name, stack_name)
+    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
     destroy(
         ctx,
         scenario_name=scenario_name,

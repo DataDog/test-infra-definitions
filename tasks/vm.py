@@ -5,8 +5,6 @@ from invoke.tasks import task
 
 from . import doc
 
-scenario_name = "aws/vm"
-
 
 @task(
     help={
@@ -49,7 +47,7 @@ def create_vm(
     no_verify: Optional[bool] = False,
     ssh_user: Optional[str] = None,
 ) -> None:
-    from tasks.aws import create_vm as create_vm_aws
+    from tasks.aws.vm import create_vm as create_vm_aws
 
     print('This command is deprecated, please use `aws.create-vm` instead')
     print("Running `aws.create-vm`...")
@@ -90,7 +88,7 @@ def destroy_vm(
     yes: Optional[bool] = False,
     clean_known_hosts: Optional[bool] = True,
 ):
-    from tasks.aws import destroy_vm as destroy_vm_aws
+    from tasks.aws.vm import destroy_vm as destroy_vm_aws
 
     print('This command is deprecated, please use `aws.destroy-vm` instead')
     print("Running `aws.destroy-vm`...")

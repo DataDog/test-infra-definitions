@@ -32,9 +32,7 @@ def deploy(
     use_fakeintake: Optional[bool] = False,
     deploy_job: Optional[str] = None,
 ) -> str:
-    flags = extra_flags
-    if flags is None:
-        flags = {}
+    flags = extra_flags if extra_flags else {}
 
     if install_agent is None:
         install_agent = tool.get_default_agent_install()
@@ -48,7 +46,7 @@ def deploy(
     try:
         cfg = config.get_local_config(config_path)
     except ValidationError as e:
-        raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
+        raise Exit(f"Error in config {get_full_profile_path(config_path)}") from e
 
     flags[default_public_path_key_name] = _get_public_path_key_name(cfg, public_key_required)
     flags["scenario"] = scenario_name
@@ -140,13 +138,6 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
     exists = "Contents" in response
 
     assert exists, f"Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy"
-
-
-def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
-    defaultPublicKeyPath = cfg.get_aws().publicKeyPath
-    if require and defaultPublicKeyPath is None:
-        raise Exit(f"Your scenario requires to define {default_public_path_key_name} in the configuration file")
-    return f'"{defaultPublicKeyPath}"'
 
 
 # creates a stack with the given stack_name if it doesn't already exists
@@ -249,7 +240,7 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
     output = output.decode("utf-8")
     for line in output.splitlines():
         parts = line.split(" ")
-        if len(parts) > 0:
+        if parts:
             key_pair_path = os.path.basename(parts[-1])
             key_pair = os.path.splitext(key_pair_path)[0]
             key_pairs.append(key_pair)
@@ -260,3 +251,10 @@ def _check_key_pair(key_pair_to_search: Optional[str]):
             + f"You may have issue to connect to the remote instance. Possible values are \n{key_pairs}. "
             + "You can skip this check by setting `checkKeyPair: false` in the config"
         )
+
+
+def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
+    defaultPublicKeyPath = cfg.get_aws().publicKeyPath
+    if require and defaultPublicKeyPath is None:
+        raise Exit(f"Your scenario requires to define {default_public_path_key_name} in the configuration file")
+    return f'"{defaultPublicKeyPath}"'

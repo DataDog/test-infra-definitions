@@ -1,11 +1,14 @@
 package azure
 
 import (
+	"fmt"
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-
 	sdkazure "github.com/pulumi/pulumi-azure-native-sdk/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"os/exec"
+	"strings"
+	"time"
 )
 
 const (
@@ -45,6 +48,9 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	}
 	env.CommonEnvironment = &commonEnv
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace))
+
+	// TODO: Remove this when we find a better way to automatically log in
+	logIn(ctx, env.envDefault.azure.subscriptionID)
 
 	azureProvider, err := sdkazure.NewProvider(ctx, string(config.ProviderAzure), &sdkazure.ProviderArgs{
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
@@ -117,4 +123,35 @@ func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 // LinuxKataNodeGroup Whether to deploy a kata node pool
 func (e *Environment) LinuxKataNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraAksLinuxKataNodeGroup, e.envDefault.ddInfra.aks.linuxKataNodeGroup)
+}
+
+func logIn(ctx *pulumi.Context, subscription string) {
+	cmd := exec.Command("az", "account", "show", "--subscription", subscription)
+	shouldLogIn := false
+
+	if err := cmd.Run(); err != nil {
+		shouldLogIn = true
+	} else {
+		// Check the token is not expired
+		cmd = exec.Command("az", "account", "get-access-token", "--query", "\"expiresOn\"", "--output", "tsv")
+		out, err := cmd.Output()
+
+		if err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `az account get-access-token`: %v", err), nil)
+			shouldLogIn = true
+		} else {
+			tt, err := time.Parse(time.DateTime, strings.TrimSpace(string(out)))
+			if err != nil {
+				ctx.Log.Error(fmt.Sprintf("Error parsing the token expiration date`: %v", err), nil)
+			} else {
+				shouldLogIn = tt.Before(time.Now())
+			}
+		}
+	}
+
+	if shouldLogIn {
+		if err := exec.Command("az", "login").Run(); err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `az login`: %v", err), nil)
+		}
+	}
 }

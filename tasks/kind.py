@@ -1,15 +1,9 @@
 from typing import Optional
 
-import pyperclip
 from invoke.context import Context
-from invoke.exceptions import Exit
 from invoke.tasks import task
 
-from . import doc, tool
-from .deploy import deploy
-from .destroy import destroy
-
-scenario_name = "aws/kind"
+from . import doc
 
 
 # TODO add dogstatsd and workload options
@@ -36,46 +30,21 @@ def create_kind(
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
 ):
-    """
-    Create a kind environment.
-    """
+    print('This command is deprecated, please use `aws.create-kind` instead')
+    print("Running `aws.create-kind`...")
+    from tasks.aws.kind import create_kind as create_kind_aws
 
-    extra_flags = {}
-    extra_flags["ddinfra:osDescriptor"] = f"amazonlinuxecs::{_get_architecture(architecture)}"
-    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
-    extra_flags["ddinfra:aws/defaultInstanceType"] = "t3.xlarge"
-
-    full_stack_name = deploy(
+    create_kind_aws(
         ctx,
-        scenario_name,
         config_path,
-        key_pair_required=True,
-        stack_name=stack_name,
-        install_agent=install_agent,
-        agent_version=agent_version,
-        use_fakeintake=use_fakeintake,
-        extra_flags=extra_flags,
-        app_key_required=True,
+        stack_name,
+        install_agent,
+        agent_version,
+        architecture,
+        use_fakeintake,
+        use_loadBalancer,
+        interactive,
     )
-
-    if interactive:
-        tool.notify(ctx, "Your Kind environment is now created")
-
-    _show_connection_message(ctx, full_stack_name, interactive)
-
-
-def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
-    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    remoteHost = tool.RemoteHost("aws-kind", outputs)
-    host = remoteHost.host
-    user = remoteHost.user
-
-    command = f"\nssh {user}@{host}"
-    print(f"If you want to connect to the remote host, you can run the following command \n\n{command}")
-
-    if copy_to_clipboard:
-        input("Press a key to copy command to clipboard...")
-        pyperclip.copy(command)
 
 
 @task(
@@ -91,22 +60,8 @@ def destroy_kind(
     stack_name: Optional[str] = None,
     yes: Optional[bool] = False,
 ):
-    """
-    Destroy an environment created by invoke create_docker.
-    """
-    destroy(
-        ctx,
-        scenario_name=scenario_name,
-        config_path=config_path,
-        stack=stack_name,
-        force_yes=yes,
-    )
+    print('This command is deprecated, please use `aws.destroy-kind` instead')
+    print("Running `aws.destroy-kind`...")
+    from tasks.aws.kind import destroy_kind as destroy_kind_aws
 
-
-def _get_architecture(architecture: Optional[str]) -> str:
-    architectures = tool.get_architectures()
-    if architecture is None:
-        architecture = tool.get_default_architecture()
-    if architecture.lower() not in architectures:
-        raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
-    return architecture
+    destroy_kind_aws(ctx, config_path, stack_name, yes)

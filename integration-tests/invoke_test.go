@@ -55,20 +55,20 @@ func TestInvokes(t *testing.T) {
 		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
 	})
 
-	//t.Run("aws.create-vm", func(t *testing.T) {
-	//	t.Parallel()
-	//	testAwsInvokeVM(t, tmpConfigFile, *workingDir)
-	//})
-	//
-	//t.Run("invoke-docker-vm", func(t *testing.T) {
-	//	t.Parallel()
-	//	testInvokeDockerVM(t, tmpConfigFile, *workingDir)
-	//})
-	//
-	//t.Run("invoke-kind", func(t *testing.T) {
-	//	t.Parallel()
-	//	testInvokeKind(t, tmpConfigFile, *workingDir)
-	//})
+	t.Run("aws.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
+	})
+
+	t.Run("invoke-docker-vm", func(t *testing.T) {
+		t.Parallel()
+		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
+	})
+
+	t.Run("invoke-kind", func(t *testing.T) {
+		t.Parallel()
+		testInvokeKind(t, tmpConfigFile, *workingDir)
+	})
 }
 
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
@@ -88,68 +88,67 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
 }
 
-//
-//func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
-//	t.Helper()
-//
-//	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
-//	t.Log("creating vm")
-//	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
-//	createCmd.Dir = workingDirectory
-//	createOutput, err := createCmd.Output()
-//	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
-//
-//	t.Log("destroying vm")
-//	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
-//	destroyCmd.Dir = workingDirectory
-//	destroyOutput, err := destroyCmd.Output()
-//	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
-//}
-//
-//func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
-//	t.Helper()
-//	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
-//	t.Log("creating vm with docker")
-//	var stdOut, stdErr bytes.Buffer
-//
-//	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
-//	createCmd.Dir = workingDirectory
-//	createCmd.Stdout = &stdOut
-//	createCmd.Stderr = &stdErr
-//	err := createCmd.Run()
-//	assert.NoError(t, err, "Error found creating docker vm.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
-//
-//	stdOut.Reset()
-//	stdErr.Reset()
-//
-//	t.Log("destroying vm with docker")
-//	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
-//	destroyCmd.Dir = workingDirectory
-//	destroyCmd.Stdout = &stdOut
-//	destroyCmd.Stderr = &stdErr
-//	err = destroyCmd.Run()
-//	require.NoError(t, err, "Error found destroying stack.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
-//}
-//
-//func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string) {
-//	t.Helper()
-//	stackParts := []string{"invoke", "kind"}
-//	if os.Getenv("CI") == "true" {
-//		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
-//	}
-//	stackName := strings.Join(stackParts, "-")
-//	t.Log("creating kind cluster")
-//	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
-//	createCmd.Dir = workingDirectory
-//	createOutput, err := createCmd.Output()
-//	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
-//
-//	t.Log("destroying kind cluster")
-//	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
-//	destroyCmd.Dir = workingDirectory
-//	destroyOutput, err := destroyCmd.Output()
-//	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
-//}
+func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+
+	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
+
+func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm with docker")
+	var stdOut, stdErr bytes.Buffer
+
+	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
+	createCmd.Stdout = &stdOut
+	createCmd.Stderr = &stdErr
+	err := createCmd.Run()
+	assert.NoError(t, err, "Error found creating docker vm.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
+
+	stdOut.Reset()
+	stdErr.Reset()
+
+	t.Log("destroying vm with docker")
+	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyCmd.Stdout = &stdOut
+	destroyCmd.Stderr = &stdErr
+	err = destroyCmd.Run()
+	require.NoError(t, err, "Error found destroying stack.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
+}
+
+func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+	stackParts := []string{"invoke", "kind"}
+	if os.Getenv("CI") == "true" {
+		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
+	}
+	stackName := strings.Join(stackParts, "-")
+	t.Log("creating kind cluster")
+	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
+
+	t.Log("destroying kind cluster")
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
+}
 
 //go:embed testfixture/config.yaml
 var testInfraTestConfig string

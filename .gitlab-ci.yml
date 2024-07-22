@@ -57,12 +57,12 @@ integration-testing:
   rules:
     - when: on_success
   before_script:
-    # Setup Azure credentials. Uncomment once the resources are ready
-#    - export AZURE_CLIENT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_id --with-decryption --query "Parameter.Value" --out text)
-#    - export AZURE_CLIENT_SECRET=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_secret --with-decryption --query "Parameter.Value" --out text)
-#    - export AZURE_TENANT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_tenant_id --with-decryption --query "Parameter.Value" --out text)
-#    - export AZURE_SUBSCRIPTION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_subscription_id --with-decryption --query "Parameter.Value" --out text)
-#    - az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" --tenant "$AZURE_TENANT_ID" > /dev/null
+    # Setup Azure credentials. https://www.pulumi.com/registry/packages/azure-native/installation-configuration/#set-configuration-using-pulumi-config
+    # The app is called `agent-e2e-tests`
+    - export ARM_CLIENT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_id --with-decryption --query "Parameter.Value" --out text)
+    - export ARM_CLIENT_SECRET=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_secret --with-decryption --query "Parameter.Value" --out text)
+    - export ARM_TENANT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_tenant_id --with-decryption --query "Parameter.Value" --out text)
+    - export ARM_SUBSCRIPTION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_subscription_id --with-decryption --query "Parameter.Value" --out text)
     # Setup AWS Credentials
     - mkdir -p ~/.aws
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config

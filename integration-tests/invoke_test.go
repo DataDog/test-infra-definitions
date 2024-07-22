@@ -50,11 +50,10 @@ func TestInvokes(t *testing.T) {
 
 	// Subtests
 
-	// Uncomment once the resources will be created
-	//t.Run("az.create-vm", func(t *testing.T) {
-	//	t.Parallel()
-	//	testAzureInvokeVM(t, tmpConfigFile, *workingDir)
-	//})
+	t.Run("az.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
+	})
 
 	t.Run("aws.create-vm", func(t *testing.T) {
 		t.Parallel()
@@ -72,22 +71,22 @@ func TestInvokes(t *testing.T) {
 	})
 }
 
-//func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
-//	t.Helper()
-//
-//	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
-//	t.Log("creating vm")
-//	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--account", "agent-qa")
-//	createCmd.Dir = workingDirectory
-//	createOutput, err := createCmd.Output()
-//	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
-//
-//	t.Log("destroying vm")
-//	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
-//	destroyCmd.Dir = workingDirectory
-//	destroyOutput, err := destroyCmd.Output()
-//	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
-//}
+func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+
+	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--account", "agent-qa")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
 
 func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()

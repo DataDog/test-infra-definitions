@@ -58,6 +58,8 @@ You should consider moving to the agent-sandbox account. Please follow https://d
 
         pulumi: Optional[Pulumi] = None
 
+        devMode: Optional[bool] = False  # noqa used in e2e tests
+
     configParams: Optional[Params] = None
 
     stackParams: Optional[Dict[str, Dict[str, str]]] = None

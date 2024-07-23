@@ -76,7 +76,7 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 
 	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--account", "agent-qa")
+	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))

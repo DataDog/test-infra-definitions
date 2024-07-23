@@ -23,6 +23,16 @@ configParams:
     # would be the github team name
 
     teamTag: ""
+
+  # azure configuration
+  azure:
+      # azure account where resources will be created on
+      # defaults to "agent-sandbox"
+      account: "agent-sandbox"
+
+      # local path to your public ssh key
+      publicKeyPath: ""
+
   # agent related config
   agent:
     # Datadog API key
@@ -31,7 +41,7 @@ configParams:
 
     apiKey: "00000000000000000000000000000000"
 # Raw stack parameters for Pulumi, passed as-is to the so called ConfigMap
-# There is no validation over these values, usefull to pass parameters not yet documented
+# There is no validation over these values, useful to pass parameters not yet documented
 
 stackParams:
   # # namespace

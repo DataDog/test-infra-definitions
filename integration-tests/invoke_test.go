@@ -142,7 +142,7 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	}
 	stackName := strings.Join(stackParts, "-")
 	t.Log("creating kind cluster")
-	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd := exec.Command("invoke", "aws.create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
@@ -162,7 +162,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory
 	}
 
 	t.Log("creating kind cluster with operator")
-	createCmd := exec.Command("invoke", "create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd := exec.Command("invoke", "aws.create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))

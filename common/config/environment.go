@@ -155,7 +155,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy with Operator: %v", env.AgentDeployWithOperator()), nil)
-	ctx.Log.Debug(fmt.Sprintf("operator full image path: %v", env.AgentFullImagePath()), nil)
+	ctx.Log.Debug(fmt.Sprintf("operator full image path: %v", env.OperatorFullImagePath()), nil)
 	return env, nil
 }
 

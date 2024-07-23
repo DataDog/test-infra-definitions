@@ -26,6 +26,15 @@ def setup(
     """
     Setup a local environment, interactively by default
     """
+    # Ensure aws cli is installed
+    if not shutil.which("aws"):
+        error("AWS CLI not found, please install it: https://aws.amazon.com/cli/")
+        raise Exit(code=1)
+    # Ensure azure cli is installed
+    if not shutil.which("az"):
+        error("Azure CLI not found, please install it: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli")
+        raise Exit(code=1)
+
     pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")

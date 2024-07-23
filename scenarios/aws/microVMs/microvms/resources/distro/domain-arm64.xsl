@@ -85,4 +85,14 @@
     <xsl:template match="domain/devices/graphics" />
     <xsl:template match="domain/devices/audio" />
     <xsl:template match="domain/devices/video" />
+
+    <xsl:template match="/domain/devices">
+        <xsl:copy>
+            <xsl:apply-templates select="node()|@*" />
+            <xsl:element name="memballoon">
+                <xsl:attribute name="model">virtio</xsl:attribute>
+                <xsl:attribute name="autodeflate">on</xsl:attribute>
+            </xsl:element>
+        </xsl:copy>
+    </xsl:template>
 </xsl:stylesheet>

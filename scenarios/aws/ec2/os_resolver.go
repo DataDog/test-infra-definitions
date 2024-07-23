@@ -64,7 +64,11 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 
 	switch vmArgs.osInfo.Family() { // nolint:exhaustive
 	case os.LinuxFamily:
-		amiInfo.readyFunc = command.WaitForCloudInit
+		if vmArgs.osInfo.Version == os.AmazonLinux2018.Version && vmArgs.osInfo.Flavor == os.AmazonLinux2018.Flavor {
+			amiInfo.readyFunc = command.WaitForSuccessfulConnection
+		} else {
+			amiInfo.readyFunc = command.WaitForCloudInit
+		}
 	case os.WindowsFamily, os.MacOSFamily:
 		amiInfo.readyFunc = command.WaitForSuccessfulConnection
 	default:
@@ -92,6 +96,11 @@ func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, er
 		paramName = fmt.Sprintf("amzn2-ami-hvm-%s-gp2", osInfo.Architecture)
 	case os.AmazonLinuxECS2023.Version:
 		paramName = fmt.Sprintf("al2023-ami-kernel-default-%s", osInfo.Architecture)
+	case os.AmazonLinux2018.Version:
+		if osInfo.Architecture != os.AMD64Arch {
+			return "", fmt.Errorf("arch %s is not supported for Amazon Linux 2018", osInfo.Architecture)
+		}
+		return ec2.SearchAMI(e, "669783387624", "amzn-ami-2018.03.*-amazon-ecs-optimized", string(osInfo.Architecture))
 	default:
 		return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
 	}
@@ -174,12 +183,19 @@ func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 }
 
 func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
-	if osInfo.Architecture == os.ARM64Arch {
-		return "", errors.New("ARM64 is not supported for CentOS")
-	}
-
 	if osInfo.Version == "" {
 		osInfo.Version = os.CentOSDefault.Version
+	}
+
+	if osInfo.Architecture == os.ARM64Arch {
+		if osInfo.Version == "7" {
+			return "ami-0cb7a00afccf30559", nil
+		}
+		return "", fmt.Errorf("ARM64 is not supported for CentOS %s", osInfo.Version)
+	}
+
+	if osInfo.Version == "7" {
+		return "ami-036de472bb001ae9c", nil
 	}
 
 	return ec2.SearchAMI(e, "679593333241", fmt.Sprintf("CentOS-%s-*-*.x86_64*", osInfo.Version), string(osInfo.Architecture))

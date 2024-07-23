@@ -50,6 +50,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
 		SubscriptionId:         pulumi.StringPtr(env.envDefault.azure.subscriptionID),
 		TenantId:               pulumi.StringPtr(env.envDefault.azure.tenantID),
+		Location:               pulumi.StringPtr(env.envDefault.azure.location),
 	})
 	if err != nil {
 		return Environment{}, err
@@ -66,6 +67,10 @@ func (e *Environment) InternalRegistry() string {
 
 func (e *Environment) InternalDockerhubMirror() string {
 	return "registry-1.docker.io"
+}
+
+func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) {
+	return true, nil
 }
 
 // Common

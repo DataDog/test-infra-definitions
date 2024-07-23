@@ -1,10 +1,12 @@
 import getpass
 import json
+import os
 import pathlib
 import platform
 from io import StringIO
 from typing import Any, List, Optional, Union
 
+import pyperclip
 from invoke.context import Context
 from invoke.exceptions import Exit
 from termcolor import colored
@@ -144,11 +146,12 @@ def get_stack_name_prefix() -> str:
 
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
-    with ctx.cd(_get_root_path()):
-        ctx.run(
-            f"pulumi stack output --json -s {full_stack_name}",
-            out_stream=buffer,
-        )
+
+    cmd_parts: List[str] = ["pulumi", "stack", "output", "--json", "-s", full_stack_name, get_pulumi_dir_flag()]
+    ctx.run(
+        " ".join(cmd_parts),
+        out_stream=buffer,
+    )
     return json.loads(buffer.getvalue())
 
 
@@ -249,6 +252,16 @@ def notify_windows():
     return
 
 
+# ensure we run pulumi from a directory with a Pulumi.yaml file
+# defaults to the project root directory
+def get_pulumi_dir_flag():
+    root_path = _get_root_path()
+    current_path = os.getcwd()
+    if not os.path.isfile(os.path.join(current_path, "Pulumi.yaml")):
+        return f"-C {root_path}"
+    return ""
+
+
 def _get_root_path() -> str:
     folder = pathlib.Path(__file__).parent.resolve()
     return str(folder.parent)
@@ -259,3 +272,42 @@ class RemoteHost:
         remoteHost: Any = stack_outputs[f"dd-Host-{name}"]
         self.host: str = remoteHost["address"]
         self.user: str = remoteHost["username"]
+
+
+def show_connection_message(
+    ctx: Context, remote_host_name: str, full_stack_name: str, copy_to_clipboard: Optional[bool] = True
+):
+    outputs = get_stack_json_outputs(ctx, full_stack_name)
+    remoteHost = RemoteHost(remote_host_name, outputs)
+    host = remoteHost.host
+    user = remoteHost.user
+
+    command = f"ssh {user}@{host}"
+
+    print(f"\nYou can run the following command to connect to the host `{command}`.\n")
+    if copy_to_clipboard:
+        input("Press a key to copy command to clipboard...")
+        pyperclip.copy(command)
+
+
+def clean_known_hosts(host: str) -> None:
+    """
+    Remove the host from the known_hosts file.
+    """
+    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
+    with open(f"{home}/.ssh/known_hosts") as f:
+        lines = f.readlines()
+
+    filtered_lines = [line for line in lines if not line.startswith(host)]
+    with open(f"{home}/.ssh/known_hosts", "w") as f:
+        f.writelines(filtered_lines)
+
+
+def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> str:
+    """
+    Get the host of the VM.
+    """
+    full_stack_name = get_stack_name(stack_name, scenario_name)
+    outputs = get_stack_json_outputs(ctx, full_stack_name)
+    remoteHost = RemoteHost(remote_host_name, outputs)
+    return remoteHost.host

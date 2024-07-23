@@ -256,12 +256,9 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 					return nil, err
 				}
 
-				allowEnvDone, err := setupSSHAllowEnv(microRunner, append(readKeyDone, domain.lvDomain))
-				if err != nil {
-					return nil, err
-				}
-
-				reloadSSHDDone, err := reloadSSHD(microRunner, append(allowEnvDone, setDockerDataRootDone...))
+				deps := append(readKeyDone, setDockerDataRootDone...)
+				deps = append(deps, domain.lvDomain)
+				reloadSSHDDone, err := reloadSSHD(microRunner, deps)
 				if err != nil {
 					return nil, err
 				}

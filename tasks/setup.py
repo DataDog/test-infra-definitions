@@ -27,13 +27,11 @@ def setup(
     Setup a local environment, interactively by default
     """
     # Ensure aws cli is installed
-    result = ctx.run("aws --version", warn=True, hide=True)
-    if result is None or result.exited != 0:
+    if not shutil.which("aws"):
         error("AWS CLI not found, please install it: https://aws.amazon.com/cli/")
         raise Exit(code=1)
     # Ensure azure cli is installed
-    result = ctx.run("az --version", warn=True, hide=True)
-    if result is None or result.exited != 0:
+    if not shutil.which("az"):
         error("Azure CLI not found, please install it: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli")
         raise Exit(code=1)
 

@@ -23,7 +23,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 	}
 
 	// Default missing parameters
-	if err = defaultVMArgs(vmArgs); err != nil {
+	if err = defaultVMArgs(e, vmArgs); err != nil {
 		return nil, err
 	}
 
@@ -40,9 +40,9 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 		var nwIface *network.NetworkInterface
 
 		if vmArgs.osInfo.Family() == os.LinuxFamily {
-			_, _, nwIface, err = compute.NewLinuxInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData))
+			_, nwIface, err = compute.NewLinuxInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData))
 		} else if vmArgs.osInfo.Family() == os.WindowsFamily {
-			_, _, nwIface, _, err = compute.NewWindowsInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData), nil)
+			_, nwIface, _, err = compute.NewWindowsInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData), nil)
 		} else {
 			return fmt.Errorf("unsupported OS family %v", vmArgs.osInfo.Family())
 		}
@@ -62,9 +62,16 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 	})
 }
 
-func defaultVMArgs(vmArgs *vmArgs) error {
+func defaultVMArgs(e azure.Environment, vmArgs *vmArgs) error {
 	if vmArgs.osInfo == nil {
-		vmArgs.osInfo = &os.UbuntuDefault
+		vmArgs.osInfo = &os.WindowsDefault
+	}
+
+	if vmArgs.instanceType == "" {
+		vmArgs.instanceType = e.DefaultInstanceType()
+		if vmArgs.osInfo.Architecture == os.ARM64Arch {
+			vmArgs.instanceType = e.DefaultARMInstanceType()
+		}
 	}
 
 	return nil

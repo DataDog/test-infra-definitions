@@ -49,14 +49,22 @@ func TestInvokes(t *testing.T) {
 	require.NotEmpty(t, tmpConfig.ConfigParams.AWS.TeamTag)
 
 	// Subtests
-	t.Run("invoke-vm", func(t *testing.T) {
+
+	t.Run("az.create-vm", func(t *testing.T) {
 		t.Parallel()
-		testInvokeVM(t, tmpConfigFile, *workingDir)
+		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
 	})
+
+	t.Run("aws.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
+	})
+
 	t.Run("invoke-docker-vm", func(t *testing.T) {
 		t.Parallel()
 		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
 	})
+
 	t.Run("invoke-kind", func(t *testing.T) {
 		t.Parallel()
 		testInvokeKind(t, tmpConfigFile, *workingDir)
@@ -67,18 +75,35 @@ func TestInvokes(t *testing.T) {
 	})
 }
 
-func testInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 
-	stackName := fmt.Sprintf("invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
+	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--account", "agent-qa")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
 
 	t.Log("destroying vm")
-	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
+
+func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+
+	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))

@@ -276,9 +276,12 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(
 				k8sAgentOptions,
 				kubernetesagentparams.WithNamespace("datadog"),
-				kubernetesagentparams.WithFakeintake(fakeIntake),
 				kubernetesagentparams.WithPulumiResourceOptions(utils.PulumiDependsOn(workloadDeps...)),
 			)
+
+			if awsEnv.AgentUseFakeintake() {
+				k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeIntake))
+			}
 
 			if awsEnv.EKSWindowsNodeGroup() {
 				k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())

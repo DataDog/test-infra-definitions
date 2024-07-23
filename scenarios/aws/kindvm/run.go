@@ -18,6 +18,7 @@ import (
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
+
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -147,6 +148,7 @@ agents:
 		)
 
 		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
+
 		if err != nil {
 			return err
 		}
@@ -156,6 +158,7 @@ agents:
 		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
+
 	}
 
 	// Deploy standalone dogstatsd

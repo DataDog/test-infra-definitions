@@ -4,7 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
@@ -14,6 +14,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
@@ -271,24 +272,32 @@ func Run(ctx *pulumi.Context) error {
 		copy(workloadWithCRDDeps, workloadDeps)
 
 		if awsEnv.AgentDeploy() {
-			helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
-				KubeProvider:  eksKubeProvider,
-				Namespace:     "datadog",
-				Fakeintake:    fakeIntake,
-				DeployWindows: awsEnv.EKSWindowsNodeGroup(),
-			}, utils.PulumiDependsOn(workloadDeps...))
+			k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithNamespace("datadog"),
+				kubernetesagentparams.WithPulumiResourceOptions(utils.PulumiDependsOn(workloadDeps...)),
+			)
+
+			if awsEnv.AgentUseFakeintake() {
+				k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeIntake))
+			}
+
+			if awsEnv.EKSWindowsNodeGroup() {
+				k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())
+			}
+
+			k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), eksKubeProvider, k8sAgentOptions...)
+
 			if err != nil {
 				return err
 			}
 
-			ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
-			ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
-			if awsEnv.EKSWindowsNodeGroup() {
-				ctx.Export("agent-windows-helm-install-name", helmComponent.WindowsHelmReleaseName)
-				ctx.Export("agent-windows-helm-install-status", helmComponent.WindowsHelmReleaseStatus)
+			if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+				return err
 			}
 
-			workloadWithCRDDeps = append(workloadWithCRDDeps, helmComponent)
+			workloadWithCRDDeps = append(workloadWithCRDDeps, k8sAgentComponent)
 		}
 
 		// Deploy standalone dogstatsd

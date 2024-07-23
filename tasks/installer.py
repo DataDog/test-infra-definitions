@@ -4,10 +4,6 @@ from invoke.context import Context
 from invoke.tasks import task
 
 from . import doc
-from .deploy import deploy
-from .destroy import destroy
-
-scenario_name = "aws/installer"
 
 
 @task(
@@ -23,17 +19,16 @@ def create_installer_lab(
     pipeline_id: Optional[str] = None,
     site: Optional[str] = "datad0g.com",
 ):
-    full_stack_name = deploy(
-        ctx,
-        scenario_name,
-        stack_name="installer-lab",
-        pipeline_id=pipeline_id,
-        install_updater=True,
-        debug=debug,
-        extra_flags={"ddagent:site": site},
-    )
+    print('This command is deprecated, please use `aws.create-installer-lab` instead')
+    print("Running `aws.create-installer-lab`...")
+    from tasks.aws.installer import create_installer_lab as create_installer_lab_aws
 
-    print(f"Installer lab created: {full_stack_name}")
+    create_installer_lab_aws(
+        ctx,
+        debug,
+        pipeline_id,
+        site,
+    )
 
 
 @task(
@@ -45,6 +40,11 @@ def destroy_installer_lab(
     ctx: Context,
     yes: Optional[bool] = False,
 ):
-    destroy(ctx, scenario_name=scenario_name, stack="installer-lab", force_yes=yes)
+    print('This command is deprecated, please use `aws.destroy-installer-lab` instead')
+    print("Running `aws.destroy-installer-lab`...")
+    from tasks.aws.installer import create_installer_lab as create_installer_lab_aws
 
-    print("Installer lab destroyed")
+    create_installer_lab_aws(
+        ctx,
+        yes,
+    )

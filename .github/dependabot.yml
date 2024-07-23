@@ -81,3 +81,7 @@ updates:
     schedule:
       interval: daily
 
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/cws/images/cws-centos7
+    schedule:
+      interval: daily

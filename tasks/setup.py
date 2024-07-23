@@ -26,6 +26,15 @@ def setup(
     """
     Setup a local environment, interactively by default
     """
+    # Ensure aws cli is installed
+    if not shutil.which("aws"):
+        error("AWS CLI not found, please install it: https://aws.amazon.com/cli/")
+        raise Exit(code=1)
+    # Ensure azure cli is installed
+    if not shutil.which("az"):
+        error("Azure CLI not found, please install it: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli")
+        raise Exit(code=1)
+
     pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")
@@ -46,6 +55,8 @@ def setup(
         info("🤖 Let's configure your environment for e2e tests! Press ctrl+c to stop me")
         # AWS config
         setupAWSConfig(config)
+        # Azure config
+        setup_azure_config(config)
         # Agent config
         setupAgentConfig(config)
         # Pulumi config
@@ -103,7 +114,7 @@ def _check_config(config: Config):
 
 def setupAWSConfig(config: Config):
     if config.configParams is None:
-        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, devMode=False)
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, devMode=False)
     if config.configParams.aws is None:
         config.configParams.aws = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
 
@@ -166,6 +177,33 @@ def setupAWSConfig(config: Config):
         if len(config.configParams.aws.teamTag) > 0:
             break
         warn("Provide a non-empty team")
+
+
+def setup_azure_config(config: Config):
+    if config.configParams is None:
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None)
+    if config.configParams.azure is None:
+        config.configParams.azure = Config.Params.Azure(publicKeyPath=None)
+
+    # azure public key path
+    if config.configParams.azure.publicKeyPath is None:
+        config.configParams.azure.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
+    default_public_key_path = config.configParams.azure.publicKeyPath
+    while True:
+        config.configParams.azure.publicKeyPath = default_public_key_path
+        public_key_path = ask(
+            f"🔑 Path to your Azure public ssh key: (default: [{config.configParams.azure.publicKeyPath}])"
+        )
+        if public_key_path:
+            config.configParams.azure.publicKeyPath = public_key_path
+
+        if os.path.isfile(config.configParams.azure.publicKeyPath):
+            break
+        warn(f"{config.configParams.azure.publicKeyPath} is not a valid ssh key")
+
+    default_account = ask(f"🔑 Default account to use, default [{config.configParams.azure.account}]: ")
+    if default_account:
+        config.configParams.azure.account = default_account
 
 
 def setupAgentConfig(config):

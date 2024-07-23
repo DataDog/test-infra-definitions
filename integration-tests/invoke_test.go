@@ -3,6 +3,7 @@ package tests
 import (
 	"bytes"
 	_ "embed"
+	"flag"
 	"fmt"
 	"os"
 	"os/exec"
@@ -15,51 +16,103 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var workingDir = flag.String("workingDir", "", "run tests in the specified directory, relative to the root of the repository. Defaults to the root of the repository.")
+
 func TestInvokes(t *testing.T) {
+	// Set working directory
+	rootPath, err := rootPath()
+	require.NoError(t, err)
+	if *workingDir == "" {
+		*workingDir = rootPath
+	}
+	if !filepath.IsAbs(*workingDir) {
+		*workingDir = filepath.Join(rootPath, *workingDir)
+	}
+	t.Logf("Running tests in %s", *workingDir)
+
 	// Arrange
 	t.Log("Creating temporary configuration file")
 	tmpConfigFile, err := createTemporaryConfigurationFile()
 	require.NoError(t, err, "Error writing temporary configuration")
-	defer os.Remove(tmpConfigFile)
+	t.Cleanup(func() {
+		t.Log("Cleaning up temporary configuration file")
+		os.Remove(tmpConfigFile)
+	})
 
 	t.Log("setup test infra")
 	err = setupTestInfra(tmpConfigFile)
+	require.NoError(t, err, "Error setting up test infra")
+
+	tmpConfig, err := LoadConfig(tmpConfigFile)
 	require.NoError(t, err)
 
+	require.NotEmpty(t, tmpConfig.ConfigParams.AWS.TeamTag)
+
 	// Subtests
-	t.Run("invoke-vm", func(t *testing.T) {
-		testInvokeVM(t, tmpConfigFile)
+
+	t.Run("az.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
 	})
+
+	t.Run("aws.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
+	})
+
 	t.Run("invoke-docker-vm", func(t *testing.T) {
-		testInvokeDockerVM(t, tmpConfigFile)
+		t.Parallel()
+		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
 	})
 
 	t.Run("invoke-kind", func(t *testing.T) {
-		testInvokeKind(t, tmpConfigFile)
+		t.Parallel()
+		testInvokeKind(t, tmpConfigFile, *workingDir)
 	})
 }
 
-func testInvokeVM(t *testing.T, tmpConfigFile string) {
+func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
-	stackName := fmt.Sprintf("invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+
+	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "create-vm", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--account", "agent-qa")
+	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
 
 	t.Log("destroying vm")
-	destroyCmd := exec.Command("invoke", "destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
 }
 
-func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
+func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+
+	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
+
+func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
 	t.Log("creating vm with docker")
 	var stdOut, stdErr bytes.Buffer
 
-	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
 	createCmd.Stdout = &stdOut
 	createCmd.Stderr = &stdErr
 	err := createCmd.Run()
@@ -69,14 +122,15 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string) {
 	stdErr.Reset()
 
 	t.Log("destroying vm with docker")
-	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
 	destroyCmd.Stdout = &stdOut
 	destroyCmd.Stderr = &stdErr
 	err = destroyCmd.Run()
 	require.NoError(t, err, "Error found destroying stack.\n   stdout: %s\n   stderr: %s", stdOut.String(), stdErr.String())
 }
 
-func testInvokeKind(t *testing.T, tmpConfigFile string) {
+func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 	stackParts := []string{"invoke", "kind"}
 	if os.Getenv("CI") == "true" {
@@ -84,12 +138,14 @@ func testInvokeKind(t *testing.T, tmpConfigFile string) {
 	}
 	stackName := strings.Join(stackParts, "-")
 	t.Log("creating kind cluster")
-	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--no-use-aws-vault", "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }
@@ -99,13 +155,27 @@ var testInfraTestConfig string
 
 func createTemporaryConfigurationFile() (string, error) {
 	tmpConfigFile := filepath.Join(os.TempDir(), "test-infra-test.yaml")
-	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", os.Getenv("E2E_KEY_PAIR_NAME"))
-	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", os.Getenv("E2E_PUBLIC_KEY_PATH"))
+
 	isCI, err := strconv.ParseBool(os.Getenv("CI"))
-	account := "agent-sandbox"
-	if err == nil && isCI {
-		account = "agent-qa"
+	account := "agent-qa"
+	keyPairName := os.Getenv("E2E_KEY_PAIR_NAME")
+	publicKeyPath := os.Getenv("E2E_PUBLIC_KEY_PATH")
+	if err != nil || !isCI {
+		// load local config
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		localConfig, err := LoadConfig(filepath.Join(homeDir, ".test_infra_config.yaml"))
+		if err != nil {
+			return "", err
+		}
+		account = localConfig.ConfigParams.AWS.Account
+		keyPairName = localConfig.ConfigParams.AWS.KeyPairName
+		publicKeyPath = localConfig.ConfigParams.AWS.PublicKeyPath
 	}
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "KEY_PAIR_NAME", keyPairName)
+	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "PUBLIC_KEY_PATH", publicKeyPath)
 	testInfraTestConfig = strings.ReplaceAll(testInfraTestConfig, "ACCOUNT", account)
 	err = os.WriteFile(tmpConfigFile, []byte(testInfraTestConfig), 0644)
 	return tmpConfigFile, err
@@ -124,4 +194,12 @@ func setupTestInfra(tmpConfigFile string) error {
 		return fmt.Errorf("stdout: %s\n%s, %v", setupStdout.String(), setupStderr.String(), err)
 	}
 	return nil
+}
+
+func rootPath() (string, error) {
+	path, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(string(path)), nil
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -59,6 +60,9 @@ var datadogAgentConfig string
 //go:embed files/system-probe.yaml
 var systemProbeConfig string
 
+//go:embed files/oom_kill.yaml
+var oomKillConfig string
+
 var SSHKeyFileNames = map[string]string{
 	ec2.AMD64Arch: libvirtSSHPrivateKeyX86,
 	ec2.ARM64Arch: libvirtSSHPrivateKeyArm,
@@ -101,6 +105,18 @@ const metalUserData = `#!/bin/bash
 apt-get -y remove unattended-upgrades
 `
 
+func buildUserData(instanceEnv *InstanceEnvironment, m *config.DDMicroVMConfig) string {
+	var sb strings.Builder
+
+	sb.WriteString(metalUserData)
+	if instanceEnv.DefaultShutdownBehavior() == "terminate" {
+		shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
+		sb.WriteString(fmt.Sprintf("sudo shutdown -P +%.0f\n", shutdownPeriod.Minutes()))
+	}
+
+	return sb.String()
+}
+
 func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m config.DDMicroVMConfig) (*Instance, error) {
 	var instanceType string
 	var ami string
@@ -121,10 +137,11 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 		return nil, fmt.Errorf("unsupported arch: %s", arch)
 	}
 
+	userData := buildUserData(instanceEnv, &m)
 	awsInstance, err := ec2Scn.NewVM(*awsEnv, name,
 		ec2Scn.WithInstanceType(instanceType),
 		ec2Scn.WithAMI(ami, os.UbuntuDefault, os.Architecture(arch)),
-		ec2Scn.WithUserData(metalUserData),
+		ec2Scn.WithUserData(userData),
 	)
 	if err != nil {
 		return nil, err
@@ -134,7 +151,7 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig))
+		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig), agentparams.WithIntegration("oom_kill", oomKillConfig))
 		if err != nil {
 			awsEnv.Ctx().Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}
@@ -169,23 +186,6 @@ type ScenarioDone struct {
 
 func defaultLibvirtSSHKey(keyname string) string {
 	return "/tmp/" + keyname
-}
-
-func setShutdownTimer(instance *Instance, m *config.DDMicroVMConfig) (pulumi.Resource, error) {
-	var shutdownRegisterDone pulumi.Resource
-	shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
-	shutdownRegisterArgs := command.Args{
-		Create: pulumi.Sprintf(
-			"shutdown -P +%.0f", shutdownPeriod.Minutes(),
-		),
-		Sudo: true,
-	}
-	shutdownRegisterDone, err := instance.runner.Command(instance.instanceNamer.ResourceName("shutdown"), &shutdownRegisterArgs)
-	if err != nil {
-		return shutdownRegisterDone, fmt.Errorf("failed to schedule shutdown: %w", err)
-	}
-
-	return shutdownRegisterDone, nil
 }
 
 func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.Resource, error) {
@@ -238,14 +238,6 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 			instance.instance.Address,
 			privkey,
 		)
-
-		if instance.e.DefaultShutdownBehavior() == "terminate" {
-			shutdownTimerDone, err := setShutdownTimer(instance, m)
-			if err != nil {
-				return nil, err
-			}
-			waitFor = append(waitFor, shutdownTimerDone)
-		}
 	} else if runtime.GOOS == "darwin" {
 		url = pulumi.Sprintf("qemu:///system?socket=/opt/homebrew/var/run/libvirt/libvirt-sock")
 	} else {

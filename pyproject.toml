@@ -59,3 +59,8 @@ ban-relative-imports = "all"
 [tool.ruff.format]
 # Enable preview style formatting.
 quote-style = "preserve"
+
+[tool.vulture]
+ignore_decorators = ["@task"]
+ignore_names = ["test_*", "Test*"]
+paths = ["tasks"]

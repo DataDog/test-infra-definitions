@@ -1,18 +1,26 @@
 package aws
 
 import (
-	config "github.com/DataDog/test-infra-definitions/common/config"
+	"strings"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 
+	awsConfig "github.com/aws/aws-sdk-go-v2/config"
+	awsECR "github.com/aws/aws-sdk-go-v2/service/ecr"
+	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	sdkaws "github.com/pulumi/pulumi-aws/sdk/v6/go/aws"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"os"
 )
 
 const (
-	awsConfigNamespace = "aws"
-	awsRegionParamName = "region"
+	awsConfigNamespace  = "aws"
+	awsRegionParamName  = "region"
+	awsProfileParamName = "profile"
 
 	// AWS Infra
 	DDInfraDefaultVPCIDParamName           = "aws/defaultVPCID"
@@ -33,8 +41,7 @@ const (
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
 	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
-	DDInfraEcsFakeintakeLBListenerArn       = "aws/ecs/fakeintakeLBListenerArn"
-	DDInfraEcsFakeintakeLBBaseHost          = "aws/ecs/fakeintakeLBBaseHost"
+	DDInfraEcsFakeintakeLBs                 = "aws/ecs/defaultfakeintakeLBs"
 	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
 	DDInfraEcsTaskRole                      = "aws/ecs/taskRole"
 	DDInfraEcsInstanceProfile               = "aws/ecs/instanceProfile"
@@ -65,6 +72,7 @@ type Environment struct {
 	envDefault environmentDefault
 
 	randomSubnets pulumi.StringArrayOutput
+	randomLBIdx   pulumi.IntOutput
 }
 
 var _ config.Env = (*Environment)(nil)
@@ -96,7 +104,8 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.InfraEnvironmentNames(), awsConfigNamespace))
 
 	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
-		Region: pulumi.String(env.Region()),
+		Region:  pulumi.String(env.Region()),
+		Profile: pulumi.String(env.Profile()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
 			Tags: env.ResourcesTags(),
 		},
@@ -117,6 +126,19 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.randomSubnets = shuffle.Results
 
+	if len(env.DefaultFakeintakeLBs()) == 0 {
+		return env, nil
+	}
+
+	shuffleLB, err := random.NewRandomInteger(env.Ctx(), env.Namer.ResourceName("rnd-fakeintake"), &random.RandomIntegerArgs{
+		Min: pulumi.Int(0),
+		Max: pulumi.Int(len(env.DefaultFakeintakeLBs()) - 1),
+	}, env.WithProviders(config.ProviderRandom))
+	if err != nil {
+		return Environment{}, err
+	}
+	env.randomLBIdx = shuffleLB.Result
+
 	return env, nil
 }
 
@@ -129,9 +151,46 @@ func (e *Environment) InternalDockerhubMirror() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInternalDockerhubMirror, e.envDefault.ddInfra.defaultInternalDockerhubMirror)
 }
 
+// Check if the image exists in the internal registry
+func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, error) {
+
+	cfg, err := awsConfig.LoadDefaultConfig(e.Ctx().Context(),
+		awsConfig.WithRegion(e.Region()),
+		awsConfig.WithSharedConfigProfile(e.Profile()),
+	)
+	if err != nil {
+		return false, err
+	}
+
+	ecrClient := awsECR.NewFromConfig(cfg)
+	_, err = ecrClient.BatchGetImage(e.Ctx().Context(), &awsECR.BatchGetImageInput{
+		RegistryId:     &strings.Split(image, ".")[0],
+		RepositoryName: &strings.Split(image, "/")[len(strings.Split(image, "/"))-1],
+		ImageIds:       []types.ImageIdentifier{{ImageTag: &tag}},
+	})
+
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // Common
 func (e *Environment) Region() string {
 	return e.GetStringWithDefault(e.awsConfig, awsRegionParamName, e.envDefault.aws.region)
+}
+
+func (e *Environment) Profile() string {
+	if os.Getenv("AWS_ACCESS_KEY_ID") != "" && os.Getenv("AWS_SECRET_ACCESS_KEY") != "" {
+		return ""
+	}
+
+	if profile := os.Getenv("AWS_PROFILE"); profile != "" {
+		return profile
+	}
+
+	return e.GetStringWithDefault(e.awsConfig, awsProfileParamName, e.envDefault.aws.profile)
 }
 
 func (e *Environment) DefaultVPCID() string {
@@ -140,6 +199,11 @@ func (e *Environment) DefaultVPCID() string {
 
 func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+}
+
+func (e *Environment) DefaultFakeintakeLBs() []FakeintakeLBConfig {
+	var fakeintakeLBConfig FakeintakeLBConfig
+	return e.GetObjectWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBs, fakeintakeLBConfig, e.envDefault.ddInfra.ecs.defaultFakeintakeLBs).([]FakeintakeLBConfig)
 }
 
 func (e *Environment) RandomSubnets() pulumi.StringArrayOutput {
@@ -197,12 +261,22 @@ func (e *Environment) ECSFargateFakeintakeClusterArn() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
 }
 
-func (e *Environment) ECSFakeintakeLBListenerArn() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBListenerArn, e.envDefault.ddInfra.ecs.fakeintakeLBListenerArn)
+func (e *Environment) ECSFakeintakeLBListenerArn() pulumi.StringOutput {
+	defaultFakeintakeLBListenerArns := []string{}
+	for _, fakeintake := range e.DefaultFakeintakeLBs() {
+		defaultFakeintakeLBListenerArns = append(defaultFakeintakeLBListenerArns, fakeintake.listenerArn)
+	}
+
+	return pulumi.ToStringArray(defaultFakeintakeLBListenerArns).ToStringArrayOutput().Index(e.randomLBIdx)
 }
 
-func (e *Environment) ECSFakeintakeLBBaseHost() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBBaseHost, e.envDefault.ddInfra.ecs.fakeintakeLBBaseHostHeader)
+func (e *Environment) ECSFakeintakeLBBaseHost() pulumi.StringOutput {
+	defaultFakeintakeLBBaseHost := []string{}
+	for _, fakeintake := range e.DefaultFakeintakeLBs() {
+		defaultFakeintakeLBBaseHost = append(defaultFakeintakeLBBaseHost, fakeintake.baseHost)
+	}
+
+	return pulumi.ToStringArray(defaultFakeintakeLBBaseHost).ToStringArrayOutput().Index(e.randomLBIdx)
 }
 
 func (e *Environment) ECSTaskExecutionRole() string {

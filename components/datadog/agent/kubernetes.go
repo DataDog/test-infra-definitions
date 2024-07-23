@@ -46,6 +46,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
 			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
 			DisableDualShipping:            params.DisableDualShipping,
+			OtelAgent:                      params.OtelAgent,
 		}, params.PulumiResourceOptions...)
 		if err != nil {
 			return err

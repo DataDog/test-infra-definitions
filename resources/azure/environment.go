@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	sdkazure "github.com/pulumi/pulumi-azure-native-sdk/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -37,6 +38,7 @@ type Environment struct {
 }
 
 var _ config.Env = (*Environment)(nil)
+var pulumiEnvVariables = []string{"ARM_SUBSCRIPTION_ID", "ARM_TENANT_ID", "ARM_CLIENT_ID", "ARM_CLIENT_SECRET"}
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
@@ -126,6 +128,19 @@ func (e *Environment) LinuxKataNodeGroup() bool {
 }
 
 func logIn(ctx *pulumi.Context, subscription string) {
+	// Don't log in if the env variables are already set, used to avoid running `az login` in CI
+	envVariablesSet := true
+	for _, envVar := range pulumiEnvVariables {
+		if os.Getenv(envVar) == "" {
+			envVariablesSet = false
+			break
+		}
+	}
+
+	if envVariablesSet {
+		return
+	}
+
 	cmd := exec.Command("az", "account", "show", "--subscription", subscription)
 	shouldLogIn := false
 

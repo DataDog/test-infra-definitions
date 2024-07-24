@@ -3,6 +3,8 @@ from typing import Optional
 from invoke.context import Context
 from invoke.tasks import task
 
+from tasks.aws import doc as aws_doc
+
 from . import doc
 
 
@@ -17,7 +19,7 @@ from . import doc
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
-        "instance_type": doc.instance_type,
+        "instance_type": aws_doc.instance_type,
     }
 )
 def create_eks(

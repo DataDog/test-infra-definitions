@@ -6,7 +6,13 @@ from invoke.tasks import task
 from pydantic_core._pydantic_core import ValidationError
 
 from tasks import config, doc, tool
-from tasks.azure.common import get_default_os_family
+from tasks.azure.common import (
+    get_architectures,
+    get_default_architecture,
+    get_default_os_family,
+    get_deploy_job,
+    get_os_families,
+)
 from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy
@@ -59,14 +65,12 @@ def create_vm(
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
 
     os_family, os_arch = _get_os_information(os_family, architecture)
-        deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
 
     extra_flags = {
         "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
         "ddinfra:az/defaultPublicKeyPath": cfg.get_azure().publicKeyPath,
         "ddinfra:osDescriptor": f"{os_family}:{os_version if os_version else ''}:{os_arch}",
     }
-
 
     if ssh_user:
         extra_flags["ddinfra:sshUser"] = ssh_user
@@ -125,7 +129,7 @@ def _get_os_information(os_family: Optional[str], arch: Optional[str]) -> Tuple[
 
 
 def _get_os_family(os_family: Optional[str]) -> str:
-    os_families = tool.get_os_families()
+    os_families = get_os_families()
     if not os_family:
         os_family = get_default_os_family()
     if os_family.lower() not in os_families:
@@ -134,9 +138,9 @@ def _get_os_family(os_family: Optional[str]) -> str:
 
 
 def _get_architecture(architecture: Optional[str]) -> str:
-    architectures = tool.get_architectures()
+    architectures = get_architectures()
     if not architecture:
-        architecture = tool.get_default_architecture()
+        architecture = get_default_architecture()
     if architecture.lower() not in architectures:
         raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture

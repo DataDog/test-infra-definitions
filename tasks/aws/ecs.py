@@ -7,6 +7,8 @@ from invoke.tasks import task
 from pydantic import ValidationError
 
 from tasks import config, doc, tool
+from tasks.aws import doc as aws_doc
+from tasks.aws.common import get_aws_wrapper
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
@@ -20,7 +22,7 @@ scenario_name = "aws/ecs"
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "use_fargate": doc.use_fargate,
+        "use_fargate": aws_doc.use_fargate,
         "linux_node_group": doc.linux_node_group,
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
@@ -75,9 +77,7 @@ def _show_connection_message(ctx: Context, config_path: Optional[str], full_stac
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
-    command = (
-        f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
-    )
+    command = f"{get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
     print(f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n")
 
     input("Press a key to copy command to clipboard...")

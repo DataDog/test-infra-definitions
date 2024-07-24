@@ -6,6 +6,8 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 
 from tasks import doc, tool
+from tasks.aws import doc as aws_doc
+from tasks.aws.common import get_architectures, get_default_architecture
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
@@ -18,7 +20,7 @@ scenario_name = "aws/dockervm"
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "architecture": doc.architecture,
+        "architecture": aws_doc.architecture,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
@@ -105,9 +107,9 @@ def destroy_docker(
 
 
 def _get_architecture(architecture: Optional[str]) -> str:
-    architectures = tool.get_architectures()
+    architectures = get_architectures()
     if architecture is None:
-        architecture = tool.get_default_architecture()
+        architecture = get_default_architecture()
     if architecture.lower() not in architectures:
         raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture

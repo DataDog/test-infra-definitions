@@ -154,11 +154,13 @@ datadog:
 
 func WithOTELConfig(config string) func(*Params) error {
 	return func(p *Params) error {
+		indentedConfig := utils.IndentMultilineString(config, 6)
 		otelCollectorConfigValues := fmt.Sprintf(`
 datadog:
   otelCollector:
     config: |
-	  %s`, config)
+%s`, indentedConfig)
+		fmt.Println("COCOCOCOCO", otelCollectorConfigValues)
 		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(otelCollectorConfigValues))
 		return nil
 	}

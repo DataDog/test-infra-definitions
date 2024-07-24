@@ -5,6 +5,7 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 
 from tasks import doc, tool
+from tasks.aws.common import get_default_os_family
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 from tasks.tool import clean_known_hosts as clean_known_hosts_func
@@ -73,8 +74,8 @@ def create_vm(
         print(
             "[WARNING] It is currently not possible to deploy a VM with fakeintake and without agent. Your VM will start without fakeintake."
         )
-    if instance_type is not None:
-        if architecture is None or architecture.lower() == tool.get_default_architecture():
+    if instance_type:
+        if not architecture or architecture.lower() == tool.get_default_architecture():
             extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
         else:
             extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
@@ -138,7 +139,7 @@ def destroy_vm(
 def _get_os_family(os_family: Optional[str]) -> str:
     os_families = tool.get_os_families()
     if not os_family:
-        os_family = tool.get_default_os_family()
+        os_family = get_default_os_family()
     if os_family.lower() not in os_families:
         raise Exit(f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}")
     return os_family

@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from invoke.context import Context
 from invoke.exceptions import Exit
@@ -6,6 +6,7 @@ from invoke.tasks import task
 from pydantic_core._pydantic_core import ValidationError
 
 from tasks import config, doc, tool
+from tasks.azure.common import get_default_os_family
 from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy
@@ -39,6 +40,11 @@ def create_vm(
     interactive: Optional[bool] = True,
     ssh_user: Optional[str] = None,
     account: Optional[str] = None,
+    os_family: Optional[str] = None,
+    os_version: Optional[str] = None,
+    architecture: Optional[str] = None,
+    instance_type: Optional[str] = None,
+    no_verify: Optional[bool] = False,
 ) -> None:
     """
     Create a new virtual machine on azure.
@@ -52,10 +58,15 @@ def create_vm(
     if not cfg.get_azure().publicKeyPath:
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
 
+    os_family, os_arch = _get_os_information(os_family, architecture)
+        deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
+
     extra_flags = {
         "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
         "ddinfra:az/defaultPublicKeyPath": cfg.get_azure().publicKeyPath,
+        "ddinfra:osDescriptor": f"{os_family}:{os_version if os_version else ''}:{os_arch}",
     }
+
 
     if ssh_user:
         extra_flags["ddinfra:sshUser"] = ssh_user
@@ -70,6 +81,7 @@ def create_vm(
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
+        deploy_job=deploy_job,
     )
 
     if interactive:
@@ -106,3 +118,25 @@ def destroy_vm(
     )
     if clean_known_hosts:
         clean_known_hosts_func(host)
+
+
+def _get_os_information(os_family: Optional[str], arch: Optional[str]) -> Tuple[str, Optional[str]]:
+    return _get_os_family(os_family), _get_architecture(arch)
+
+
+def _get_os_family(os_family: Optional[str]) -> str:
+    os_families = tool.get_os_families()
+    if not os_family:
+        os_family = get_default_os_family()
+    if os_family.lower() not in os_families:
+        raise Exit(f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}")
+    return os_family
+
+
+def _get_architecture(architecture: Optional[str]) -> str:
+    architectures = tool.get_architectures()
+    if not architecture:
+        architecture = tool.get_default_architecture()
+    if architecture.lower() not in architectures:
+        raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
+    return architecture

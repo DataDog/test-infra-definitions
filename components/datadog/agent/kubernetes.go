@@ -1,19 +1,17 @@
 package agent
 
 import (
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components"
-	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 )
 
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	InstallNameLinux   string `json:"installNameLinux"`
-	InstallNameWindows string `json:"installNameWindows"`
+	NodeAgent     map[string]string `json:"nodeAgent"`
+	ClusterAgent  map[string]string `json:"clusterAgent"`
+	ClusterChecks map[string]string `json:"clusterChecks"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
@@ -21,42 +19,11 @@ type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	InstallNameLinux   pulumi.StringOutput `pulumi:"installNameLinux"`
-	InstallNameWindows pulumi.StringOutput `pulumi:"installNameWindows"`
+	NodeAgent     *KubernetesObjectRef `pulumi:"nodeAgent"`
+	ClusterAgent  *KubernetesObjectRef `pulumi:"clusterAgent"`
+	ClusterChecks *KubernetesObjectRef `pulumi:"clusterChecks"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {
 	return components.Export(ctx, h, out)
-}
-
-func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
-	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
-		params, err := kubernetesagentparams.NewParams(e, options...)
-		if err != nil {
-			return err
-		}
-
-		helmComponent, err := NewHelmInstallation(e, HelmInstallationArgs{
-			KubeProvider:                   kubeProvider,
-			DeployWindows:                  params.DeployWindows,
-			Namespace:                      params.Namespace,
-			ValuesYAML:                     params.HelmValues,
-			Fakeintake:                     params.FakeIntake,
-			AgentFullImagePath:             params.AgentFullImagePath,
-			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
-			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
-			DisableDualShipping:            params.DisableDualShipping,
-			OtelAgent:                      params.OtelAgent,
-		}, params.PulumiResourceOptions...)
-		if err != nil {
-			return err
-		}
-
-		// Fill component
-		comp.InstallNameLinux = helmComponent.LinuxHelmReleaseName.Elem()
-		if params.DeployWindows {
-			comp.InstallNameWindows = helmComponent.WindowsHelmReleaseName.Elem()
-		}
-		return nil
-	})
 }

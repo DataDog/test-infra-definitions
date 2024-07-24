@@ -155,6 +155,17 @@ def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     return json.loads(buffer.getvalue())
 
 
+def get_stack_json_resources(ctx: Context, full_stack_name: str) -> Any:
+    buffer = StringIO()
+    with ctx.cd(_get_root_path()):
+        ctx.run(
+            f"pulumi stack export -s {full_stack_name}",
+            out_stream=buffer,
+        )
+    out = json.loads(buffer.getvalue())
+    return out['deployment']['resources']
+
+
 def get_aws_wrapper(
     aws_account: str,
 ) -> str:
@@ -163,6 +174,25 @@ def get_aws_wrapper(
 
 def is_linux():
     return platform.system() == "Linux"
+
+
+def is_wsl():
+    return "microsoft" in platform.uname().release.lower()
+
+
+def get_aws_instance_password_data(
+    ctx: Context, vm_id: str, key_path: str, aws_account: Optional[str] = None, use_aws_vault: Optional[bool] = True
+) -> str:
+    buffer = StringIO()
+    with ctx.cd(_get_root_path()):
+        cmd = f"aws ec2 get-password-data --instance-id {vm_id} --priv-launch-key {key_path}"
+        if use_aws_vault:
+            if aws_account is None:
+                raise Exit("AWS account is required when using aws-vault.")
+            cmd = get_aws_wrapper(aws_account) + cmd
+        ctx.run(cmd, out_stream=buffer)
+    out = json.loads(buffer.getvalue())
+    return out["PasswordData"]
 
 
 def get_image_description(ctx: Context, ami_id: str) -> Any:
@@ -176,6 +206,23 @@ def get_image_description(ctx: Context, ami_id: str) -> Any:
         raise Exit(f"The AMI id {ami_id} returns more than one definition.")
     else:
         return result["Images"][0]
+
+
+def rdp(ctx, ip):
+    if is_windows() or is_wsl():
+        rdp_windows(ctx, ip)
+    elif is_linux():
+        raise Exit("RDP is not yet implemented on Linux")
+    else:
+        rdp_macos(ctx, ip)
+
+
+def rdp_windows(ctx, ip):
+    ctx.run(f"mstsc.exe /v:{ip}", disown=True)
+
+
+def rdp_macos(ctx, ip):
+    ctx.run(f"open -a '/Applications/Microsoft Remote Desktop.app' rdp://{ip}", disown=True)
 
 
 def notify(ctx, text):

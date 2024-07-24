@@ -2,6 +2,7 @@ package helm
 
 import (
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 
@@ -16,6 +17,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 		if err != nil {
 			return err
 		}
+		pulumiResourceOptions := append(params.PulumiResourceOptions, pulumi.Parent(comp))
 
 		helmComponent, err := agent.NewHelmInstallation(e, agent.HelmInstallationArgs{
 			KubeProvider:                   kubeProvider,
@@ -26,7 +28,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			AgentFullImagePath:             params.AgentFullImagePath,
 			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
 			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
-		}, params.PulumiResourceOptions...)
+		}, pulumiResourceOptions...)
 		if err != nil {
 			return err
 		}

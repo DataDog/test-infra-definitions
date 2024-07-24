@@ -110,8 +110,7 @@ RUN --mount=type=secret,id=github_token \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
   pulumi --logflow --logtostderr -v 5 --non-interactive plugin install && \
   pulumi --non-interactive plugin ls && \
-  cd / && \
-  rm -rf /tmp/test-infra
+  cd /
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
@@ -120,7 +119,10 @@ RUN --mount=type=secret,id=github_token \
 RUN pip3 install "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
   pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
+  pip3 install -r /tmp/test-infra/requirements.txt & \
   go install gotest.tools/gotestsum@latest
+
+RUN rm -rf /tmp/test-infra
 
 # Configure aws retries
 COPY .awsconfig $HOME/.aws/config

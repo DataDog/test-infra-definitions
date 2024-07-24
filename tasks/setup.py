@@ -26,6 +26,15 @@ def setup(
     """
     Setup a local environment, interactively by default
     """
+    # Ensure aws cli is installed
+    if not shutil.which("aws"):
+        error("AWS CLI not found, please install it: https://aws.amazon.com/cli/")
+        raise Exit(code=1)
+    # Ensure azure cli is installed
+    if not shutil.which("az"):
+        error("Azure CLI not found, please install it: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli")
+        raise Exit(code=1)
+
     pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")
@@ -105,7 +114,7 @@ def _check_config(config: Config):
 
 def setupAWSConfig(config: Config):
     if config.configParams is None:
-        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None)
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, devMode=False)
     if config.configParams.aws is None:
         config.configParams.aws = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)
 
@@ -291,24 +300,36 @@ def _pulumi_version(ctx: Context) -> Tuple[str, bool]:
 
 
 def ssh_fingerprint_to_bytes(fingerprint: str) -> bytes:
-    # EXAMPLE: 256 SHA1:41jsg4Z9lgylj6/zmhGxtZ6/qZs testname (ED25519)
-    out = fingerprint.strip().split(' ')[1].split(':')[1]
-    # ssh leaves out padding but python will ignore extra padding so add the missing padding
-    return base64.b64decode(out + '==')
+    out = fingerprint.strip().split(' ')[1].split(':', 1)
+    if ':' in out[1]:
+        # EXAMPLE: 2048 MD5:19:b3:a8:5f:13:7e:b9:d3:6c:75:20:d6:18:7f:e2:1d no comment (RSA)
+        return bytes.fromhex(out[1].replace(':', ''))
+    else:
+        # EXAMPLE: 256 SHA1:41jsg4Z9lgylj6/zmhGxtZ6/qZs testname (ED25519)
+        # ssh leaves out padding but python will ignore extra padding so add the missing padding
+        return base64.b64decode(out[1] + '==')
 
 
 # noqa: because vulture thinks this is unused
 class KeyFingerprint(NamedTuple):
-    md5: str  # noqa
-    sha1: str  # noqa
-    sha256: str  # noqa
+    md5: bytes  # noqa
+    sha1: bytes  # noqa
+    sha256: bytes  # noqa
+    ssh_keygen: bytes  # noqa
 
 
-class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint)])):
+class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint), ('is_rsa_pubkey', bool)])):
     def in_ssh_agent(self, ctx):
         out = ctx.run("ssh-add -l", hide=True)
-        out = ssh_fingerprint_to_bytes(out.stdout.strip())
-        return self.match(out)
+        inAgent = out.stdout.strip().split('\n')
+        for line in inAgent:
+            line = line.strip()
+            if not line:
+                continue
+            out = ssh_fingerprint_to_bytes(line)
+            if self.match(out):
+                return True
+        return False
 
     def match(self, fingerprint: bytes):
         for f in self.fingerprint:
@@ -328,11 +349,15 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
 
     @classmethod
     def from_path(cls, ctx, path):
-        # Make sure the key is ascii
+        fingerprints = {'ssh_keygen': b''}
+        is_rsa_pubkey = False
         with open(path, 'rb') as f:
             firstline = f.readline()
+            # Make sure the key is ascii
             if b'\0' in firstline:
                 raise ValueError(f"Key file {path} is not ascii, it may be in utf-16, please convert it to ascii")
+            if firstline.startswith(b'ssh-rsa'):
+                is_rsa_pubkey = True
             # EC2 uses a different fingerprint hash/format depending on the key type and the key's origin
             # https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/verify-keys.html
             if b'SSH' in firstline or firstline.startswith(b'ssh-'):
@@ -352,13 +377,19 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
                     out = out.stdout.strip().split(' ')[1]
                     return bytes.fromhex(out.replace(':', ''))
 
+                # AWS calculatees its fingerprints differents for RSA keys,
+                # such that the sha256 fingerprint doesn't match ssh-agent/ssh-keygen.
+                # It seems like they're hashing the private key instead of the public key.
+                # This also means it's not possible to match a public key to an EC2 RSA fingerprint
+                out = ctx.run(f"ssh-keygen -l -f {path}", hide=True)
+                fingerprints['ssh_keygen'] = ssh_fingerprint_to_bytes(out.stdout.strip())
+
             else:
                 raise ValueError(f"Key file {path} is not a valid ssh key")
         # aws returns fingerprints in different formats so get a couple
-        fingerprints = dict()
-        for fmt in KeyFingerprint._fields:
+        for fmt in ['md5', 'sha1', 'sha256']:
             fingerprints[fmt] = getfingerprint(fmt, path)
-        return cls(path=path, fingerprint=KeyFingerprint(**fingerprints))
+        return cls(path=path, fingerprint=KeyFingerprint(**fingerprints), is_rsa_pubkey=is_rsa_pubkey)
 
 
 def load_ec2_keypairs(ctx: Context) -> dict:
@@ -382,7 +413,7 @@ def find_matching_ec2_keypair(ctx: Context, keypairs: dict, path: Path) -> Tuple
     for keypair in keypairs:
         if info.match_ec2_keypair(keypair):
             return info, keypair
-    return None, None
+    return info, None
 
 
 def get_ssh_keys():
@@ -489,18 +520,37 @@ def debug_keys(ctx: Context, config_path: Optional[str] = None):
         # https://github.com/pulumi/pulumi-command/blob/58dda0317f72920537b3a0c9613ce5fed0610533/provider/pkg/provider/remote/connection.go#L105-L118
         error("Private key is not provided in the config. Pulumi does not support Windows SSH agent.")
         info("Configure privateKeyPath and provide the privateKeyPassword if the key is encrypted.")
+    configuredKeyInfo = {}
     for keyname in ["privateKeyPath", "publicKeyPath"]:
         keypair_path = getattr(awsConf, keyname)
         if keypair_path is None:
             continue
         keyinfo, keypair = find_matching_ec2_keypair(ctx, keypairs, keypair_path)
+        if keyinfo is not None:
+            configuredKeyInfo[keyname] = keyinfo
         if keyinfo is not None and keypair is not None:
             info(f"Configured {keyname} found in aws!")
             debug(json.dumps(keypair, indent=4))
             _check_key(ctx, keyinfo, keypair, keypair_name)
             found = True
         else:
-            warn(f"WARNING: Configured {keyname} missing from aws!")
+            if keyinfo is not None and keyinfo.is_rsa_pubkey:
+                debug(f"NOTICE: {keyname} is an RSA public key, these cannot be matched to aws keys!")
+            else:
+                warn(f"WARNING: Configured {keyname} missing from aws!")
+
+    # Check that private and public keys match
+    if "privateKeyPath" in configuredKeyInfo and "publicKeyPath" in configuredKeyInfo:
+        for privf in configuredKeyInfo["privateKeyPath"].fingerprint:
+            for pubf in configuredKeyInfo["publicKeyPath"].fingerprint:
+                if privf == pubf:
+                    info("privateKeyPath and publicKeyPath fingerprints match!")
+                    break
+            else:
+                continue
+            break
+        else:
+            warn("WARNING: privateKeyPath and publicKeyPath fingerprints do not match!")
 
     print()
 

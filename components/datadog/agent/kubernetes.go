@@ -9,9 +9,9 @@ import (
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	NodeAgent     map[string]string `json:"nodeAgent"`
-	ClusterAgent  map[string]string `json:"clusterAgent"`
-	ClusterChecks map[string]string `json:"clusterChecks"`
+	NodeAgent     KubernetesObjRefOutput `json:"nodeAgent"`
+	ClusterAgent  KubernetesObjRefOutput `json:"clusterAgent"`
+	ClusterChecks KubernetesObjRefOutput `json:"clusterChecks"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.

@@ -9,6 +9,10 @@ import (
 	"github.com/DataDog/test-infra-definitions/components"
 )
 
+LabelSelectorsRef struct {
+	Name pulumi.String `pulumi:"name"`
+	Value pulumi.String `pulumi:"value"`
+}
 type KubernetesObjRefOutput struct {
 	components.JSONImporter
 

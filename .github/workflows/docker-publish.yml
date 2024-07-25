@@ -68,6 +68,8 @@ jobs:
             image: logger
           - app: jmxfetch
             image: jmx-test-app
+          - app: fips
+            image: fips-server
 
     steps:
       - name: Checkout repository

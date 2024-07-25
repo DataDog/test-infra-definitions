@@ -17,6 +17,7 @@ scenario_name = "aws/kind"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
+        "install_agent_with_operator": doc.install_agent_with_operator,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "architecture": doc.architecture,
@@ -30,6 +31,7 @@ def create_kind(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
+    install_agent_with_operator: Optional[bool] = None,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
@@ -52,6 +54,7 @@ def create_kind(
         key_pair_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
+        install_agent_with_operator=install_agent_with_operator,
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,

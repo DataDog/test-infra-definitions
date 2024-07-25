@@ -25,7 +25,7 @@ def create_kind(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
-    install_agent_with_operator: Optional[bool] = False,
+    install_agent_with_operator: Optional[bool] = None,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,

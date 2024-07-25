@@ -63,7 +63,6 @@ def create_vm(
         ctx,
         scenario_name,
         config_path,
-        key_pair_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
         install_updater=install_updater,

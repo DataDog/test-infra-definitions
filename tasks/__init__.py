@@ -14,7 +14,7 @@ from tasks.eks import create_eks, destroy_eks
 from tasks.installer import create_installer_lab, destroy_installer_lab
 from tasks.kind import create_kind, destroy_kind
 from tasks.pipeline import retry_job
-from tasks.vm import create_vm, destroy_vm
+from tasks.vm import create_vm, destroy_vm, get_vm_password, rdp_vm
 
 ns = Collection()
 
@@ -33,6 +33,8 @@ ns.add_task(destroy_eks)
 ns.add_task(destroy_installer_lab)
 ns.add_task(destroy_kind)
 ns.add_task(destroy_vm)
+ns.add_task(get_vm_password)
+ns.add_task(rdp_vm)
 ns.add_task(retry_job)
 
 ns.add_collection(aws.collection, "aws")

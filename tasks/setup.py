@@ -520,6 +520,9 @@ def debug_keys(ctx: Context, config_path: Optional[str] = None):
         # https://github.com/pulumi/pulumi-command/blob/58dda0317f72920537b3a0c9613ce5fed0610533/provider/pkg/provider/remote/connection.go#L105-L118
         error("Private key is not provided in the config. Pulumi does not support Windows SSH agent.")
         info("Configure privateKeyPath and provide the privateKeyPassword if the key is encrypted.")
+    if not awsConf.privateKeyPath:
+        warn("WARNING: privateKeyPath is not configured. You will not be able to decrypt Windows RDP credentials.")
+
     configuredKeyInfo = {}
     for keyname in ["privateKeyPath", "publicKeyPath"]:
         keypair_path = getattr(awsConf, keyname)

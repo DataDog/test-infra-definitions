@@ -6,7 +6,7 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 
 from tasks import doc, tool
-from tasks.deploy import deploy
+from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
 scenario_name = "aws/dockervm"

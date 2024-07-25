@@ -69,6 +69,7 @@ func TestInvokes(t *testing.T) {
 		t.Parallel()
 		testInvokeKind(t, tmpConfigFile, *workingDir)
 	})
+
 	t.Run("invoke-kind-operator", func(t *testing.T) {
 		t.Parallel()
 		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
@@ -115,7 +116,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory str
 	t.Log("creating vm with docker")
 	var stdOut, stdErr bytes.Buffer
 
-	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd := exec.Command("invoke", "aws.create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
 	createCmd.Stdout = &stdOut
 	createCmd.Stderr = &stdErr
@@ -165,7 +166,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory
 	createCmd := exec.Command("invoke", "aws.create-kind", "--install-agent-with-operator", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
-	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
+	assert.NoError(t, err, "Error found creating kind cluster: %s; %s", string(createOutput), err)
 
 	t.Log("destroying kind cluster with operator")
 	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)

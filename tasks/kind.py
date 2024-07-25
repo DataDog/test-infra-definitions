@@ -39,14 +39,14 @@ def create_kind(
     create_kind_aws(
         ctx,
         config_path,
-        key_pair_required=True,
-        stack_name=stack_name,
-        install_agent=install_agent,
-        install_agent_with_operator=install_agent_with_operator,
-        agent_version=agent_version,
-        use_fakeintake=use_fakeintake,
-        extra_flags=extra_flags,
-        app_key_required=True,
+        stack_name,
+        install_agent,
+        install_agent_with_operator,
+        agent_version,
+        architecture,
+        use_fakeintake,
+        use_loadBalancer,
+        interactive,
     )
 
 

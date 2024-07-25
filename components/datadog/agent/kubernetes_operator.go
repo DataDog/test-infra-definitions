@@ -41,13 +41,13 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 
 		baseName := "dda-linux"
 
-		comp.NodeAgent, err = NewKubernetesObjRef(e, baseName+"-nodeAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{"app": baseName + "-datadog"})
+		comp.LinuxNodeAgent, err = NewKubernetesObjRef(e, baseName+"-nodeAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{"app": baseName + "-datadog"})
 
 		if err != nil {
 			return err
 		}
 
-		comp.ClusterAgent, err = NewKubernetesObjRef(e, baseName+"-clusterAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{
+		comp.LinuxClusterAgent, err = NewKubernetesObjRef(e, baseName+"-clusterAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{
 			"app": baseName + "-datadog-cluster-agent",
 		})
 
@@ -55,7 +55,7 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		comp.ClusterChecks, err = NewKubernetesObjRef(e, baseName+"-clusterChecks", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("version").ToStringOutput(), map[string]string{
+		comp.LinuxClusterChecks, err = NewKubernetesObjRef(e, baseName+"-clusterChecks", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("version").ToStringOutput(), map[string]string{
 			"app": baseName + "-datadog-clusterchecks",
 		})
 

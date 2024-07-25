@@ -40,6 +40,22 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 				Name:  pulumi.StringPtr("DD_TELEMETRY_CHECKS"),
 				Value: pulumi.StringPtr("*"),
 			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_ORCHESTRATOR_EXPLORER_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_ORCHESTRATOR_EXPLORER_ECS_COLLECTION_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CONTAINER_LIFECYCLE_ECS_TASK_EVENT_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_ECS_TASK_COLLECTION_ENABLED"),
+				Value: pulumi.StringPtr("true"),
+			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{

@@ -4,7 +4,7 @@ from invoke.context import Context
 from invoke.tasks import task
 
 from tasks import doc
-from tasks.deploy import deploy
+from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
 scenario_name = "aws/installer"

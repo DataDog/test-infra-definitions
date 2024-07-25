@@ -5,7 +5,7 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 
 from tasks import doc, tool
-from tasks.deploy import deploy
+from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 from tasks.tool import clean_known_hosts as clean_known_hosts_func
 from tasks.tool import get_host, show_connection_message

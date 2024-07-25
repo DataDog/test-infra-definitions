@@ -37,15 +37,9 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 		appVersion := helmComponent.LinuxHelmReleaseStatus.AppVersion().Elem()
 		version := helmComponent.LinuxHelmReleaseStatus.Version().Elem()
 
-		if params.DeployWindows {
-			platform = "windows"
-			appVersion = helmComponent.WindowsHelmReleaseStatus.AppVersion().Elem()
-			version = helmComponent.WindowsHelmReleaseStatus.Version().Elem()
-		}
-
 		baseName := "dda-" + platform
 
-		comp.NodeAgent, err = agent.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+		comp.LinuxNodeAgent, err = agent.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog",
 		})
 
@@ -53,7 +47,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		comp.ClusterAgent, err = agent.NewKubernetesObjRef(e, baseName+"-clusterAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+		comp.LinuxClusterAgent, err = agent.NewKubernetesObjRef(e, baseName+"-clusterAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog-cluster-agent",
 		})
 
@@ -61,9 +55,38 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		comp.ClusterChecks, err = agent.NewKubernetesObjRef(e, baseName+"-clusterChecks", params.Namespace, "Pod", appVersion, version, map[string]string{
+		comp.LinuxClusterChecks, err = agent.NewKubernetesObjRef(e, baseName+"-clusterChecks", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog-clusterchecks",
 		})
+
+		if params.DeployWindows {
+			platform = "windows"
+			appVersion = helmComponent.WindowsHelmReleaseStatus.AppVersion().Elem()
+			version = helmComponent.WindowsHelmReleaseStatus.Version().Elem()
+
+			baseName = "dda-" + platform
+
+			comp.WindowsNodeAgent, err = agent.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+				"app": baseName + "-datadog",
+			})
+			if err != nil {
+				return err
+			}
+
+			comp.WindowsClusterAgent, err = agent.NewKubernetesObjRef(e, baseName+"-clusterAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+				"app": baseName + "-datadog-cluster-agent",
+			})
+			if err != nil {
+				return err
+			}
+
+			comp.WindowsClusterChecks, err = agent.NewKubernetesObjRef(e, baseName+"-clusterChecks", params.Namespace, "Pod", appVersion, version, map[string]string{
+				"app": baseName + "-datadog-clusterchecks",
+			})
+			if err != nil {
+				return err
+			}
+		}
 
 		if err != nil {
 			return err

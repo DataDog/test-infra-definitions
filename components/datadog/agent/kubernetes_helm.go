@@ -204,6 +204,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"checksCardinality":    pulumi.String("high"),
+			"namespaceLabelsAsTags": pulumi.Map{
+				"related_team": pulumi.String("team"),
+			},
+			"namespaceAnnotationsAsTags": pulumi.Map{
+				"related_email": pulumi.String("email"),
+			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
 				"containerCollectAll": pulumi.Bool(logsContainerCollectAll),

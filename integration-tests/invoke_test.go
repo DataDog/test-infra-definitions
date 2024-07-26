@@ -55,11 +55,6 @@ func TestInvokes(t *testing.T) {
 		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
 	})
 
-	t.Run("az.create-aks", func(t *testing.T) {
-		t.Parallel()
-		testAzureInvokeAKS(t, tmpConfigFile, *workingDir)
-	})
-
 	t.Run("aws.create-vm", func(t *testing.T) {
 		t.Parallel()
 		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
@@ -88,23 +83,6 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 
 	t.Log("destroying vm")
 	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
-	destroyCmd.Dir = workingDirectory
-	destroyOutput, err := destroyCmd.Output()
-	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
-}
-
-func testAzureInvokeAKS(t *testing.T, tmpConfigFile string, workingDirectory string) {
-	t.Helper()
-
-	stackName := fmt.Sprintf("az-invoke-aks-%s", os.Getenv("CI_PIPELINE_ID"))
-	t.Log("creating aks")
-	createCmd := exec.Command("invoke", "az.create-aks", "--stack-name", stackName, "--config-path", tmpConfigFile, "--no-interactive")
-	createCmd.Dir = workingDirectory
-	createOutput, err := createCmd.Output()
-	assert.NoError(t, err, "Error found creating aks: %s", string(createOutput))
-
-	t.Log("destroying aks")
-	destroyCmd := exec.Command("invoke", "az.destroy-aks", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))

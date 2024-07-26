@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"encoding/json"
-
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -12,12 +10,12 @@ import (
 type KubernetesObjRefOutput struct {
 	components.JSONImporter
 
-	Namespace      string `json:"namespace"`
-	Name           string `json:"name"`
-	Kind           string `json:"kind"`
-	AppVersion     string `json:"installAppVersion"`
-	Version        string `json:"installVersion"`
-	LabelSelectors string `json:"labelSelectors"`
+	Namespace      string            `json:"namespace"`
+	Name           string            `json:"name"`
+	Kind           string            `json:"kind"`
+	AppVersion     string            `json:"installAppVersion"`
+	Version        string            `json:"installVersion"`
+	LabelSelectors map[string]string `json:"labelSelectors"`
 }
 
 type KubernetesObjectRef struct {
@@ -29,7 +27,7 @@ type KubernetesObjectRef struct {
 	Kind           pulumi.String       `pulumi:"kind"`
 	AppVersion     pulumi.StringOutput `pulumi:"installAppVersion"`
 	Version        pulumi.StringOutput `pulumi:"installVersion"`
-	LabelSelectors pulumi.String       `pulumi:"labelSelectors"`
+	LabelSelectors pulumi.Map          `pulumi:"labelSelectors"`
 }
 
 func NewKubernetesObjRef(e config.Env, name string, namespace string, kind string, appVersion pulumi.StringOutput, version pulumi.StringOutput, labelSelectors map[string]string) (*KubernetesObjectRef, error) {
@@ -40,11 +38,11 @@ func NewKubernetesObjRef(e config.Env, name string, namespace string, kind strin
 		comp.AppVersion = appVersion
 		comp.Version = version
 
-		labelSelectorsJSONStr, err := json.Marshal(labelSelectors)
-		if err != nil {
-			return err
+		labelSelectorsMap := make(pulumi.Map)
+		for k, v := range labelSelectors {
+			labelSelectorsMap[k] = pulumi.String(v)
 		}
-		comp.LabelSelectors = pulumi.String(labelSelectorsJSONStr)
+		comp.LabelSelectors = labelSelectorsMap
 
 		return nil
 	})

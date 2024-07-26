@@ -2,6 +2,7 @@ package helm
 
 import (
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 
@@ -16,6 +17,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 		if err != nil {
 			return err
 		}
+		pulumiResourceOptions := append(params.PulumiResourceOptions, pulumi.Parent(comp))
 
 		helmComponent, err := agent.NewHelmInstallation(e, agent.HelmInstallationArgs{
 			KubeProvider:                   kubeProvider,
@@ -27,7 +29,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
 			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
 			OTelAgent:                      params.OTelAgent,
-		}, params.PulumiResourceOptions...)
+		}, pulumiResourceOptions...)
 		if err != nil {
 			return err
 		}
@@ -36,15 +38,9 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 		appVersion := helmComponent.LinuxHelmReleaseStatus.AppVersion().Elem()
 		version := helmComponent.LinuxHelmReleaseStatus.Version().Elem()
 
-		if params.DeployWindows {
-			platform = "windows"
-			appVersion = helmComponent.WindowsHelmReleaseStatus.AppVersion().Elem()
-			version = helmComponent.WindowsHelmReleaseStatus.Version().Elem()
-		}
-
 		baseName := "dda-" + platform
 
-		comp.NodeAgent, err = agent.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+		comp.LinuxNodeAgent, err = agent.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog",
 		})
 
@@ -52,7 +48,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		comp.ClusterAgent, err = agent.NewKubernetesObjRef(e, baseName+"-clusterAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+		comp.LinuxClusterAgent, err = agent.NewKubernetesObjRef(e, baseName+"-clusterAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog-cluster-agent",
 		})
 
@@ -60,9 +56,38 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		comp.ClusterChecks, err = agent.NewKubernetesObjRef(e, baseName+"-clusterChecks", params.Namespace, "Pod", appVersion, version, map[string]string{
+		comp.LinuxClusterChecks, err = agent.NewKubernetesObjRef(e, baseName+"-clusterChecks", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog-clusterchecks",
 		})
+
+		if params.DeployWindows {
+			platform = "windows"
+			appVersion = helmComponent.WindowsHelmReleaseStatus.AppVersion().Elem()
+			version = helmComponent.WindowsHelmReleaseStatus.Version().Elem()
+
+			baseName = "dda-" + platform
+
+			comp.WindowsNodeAgent, err = agent.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+				"app": baseName + "-datadog",
+			})
+			if err != nil {
+				return err
+			}
+
+			comp.WindowsClusterAgent, err = agent.NewKubernetesObjRef(e, baseName+"-clusterAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
+				"app": baseName + "-datadog-cluster-agent",
+			})
+			if err != nil {
+				return err
+			}
+
+			comp.WindowsClusterChecks, err = agent.NewKubernetesObjRef(e, baseName+"-clusterChecks", params.Namespace, "Pod", appVersion, version, map[string]string{
+				"app": baseName + "-datadog-clusterchecks",
+			})
+			if err != nil {
+				return err
+			}
+		}
 
 		if err != nil {
 			return err

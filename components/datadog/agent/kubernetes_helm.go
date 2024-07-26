@@ -41,8 +41,8 @@ type HelmInstallationArgs struct {
 	DisableLogsContainerCollectAll bool
 	// DisableDualShipping is used to disable dual-shipping
 	DisableDualShipping bool
-	// OtelAgent is used to deploy the Otel agent instead of the classic agent
-	OtelAgent bool
+	// OTelAgent is used to deploy the OTel agent instead of the classic agent
+	OTelAgent bool
 }
 
 type HelmComponent struct {

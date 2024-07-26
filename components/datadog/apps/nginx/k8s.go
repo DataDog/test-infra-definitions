@@ -50,6 +50,12 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"related_team": pulumi.String("contp"),
+			},
+			Annotations: pulumi.StringMap{
+				"related_email": pulumi.String("team-container-platform@datadoghq.com"),
+			},
 		},
 	}, opts...)
 	if err != nil {

@@ -50,8 +50,8 @@ type Params struct {
 	DisableLogsContainerCollectAll bool
 	// DualShipping is a flag to enable dual shipping.
 	DisableDualShipping bool
-	// OtelAgent is a flag to deploy the OTEL agent.
-	OtelAgent bool
+	// OTelAgent is a flag to deploy the OTel agent.
+	OTelAgent bool
 }
 
 type Option = func(*Params) error

@@ -227,7 +227,7 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 			},
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("STORAGE_DRIVER"),
-				Value: pulumi.StringPtr("sql"),
+				Value: pulumi.StringPtr("memory"),
 			},
 		},
 		Secrets: awsxEcs.TaskDefinitionSecretArray{

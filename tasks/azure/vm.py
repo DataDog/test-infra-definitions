@@ -6,6 +6,7 @@ from invoke.tasks import task
 from pydantic_core._pydantic_core import ValidationError
 
 from tasks import config, doc, tool
+from tasks.azure import doc as azure_doc
 from tasks.azure.common import (
     get_architectures,
     get_default_architecture,
@@ -33,6 +34,10 @@ remote_hostname = "az-vm"
         "debug": doc.debug,
         "interactive": doc.interactive,
         "ssh_user": doc.ssh_user,
+        "os_family": azure_doc.os_family,
+        "architecture": azure_doc.architecture,
+        "instance_type": azure_doc.instance_type,
+        "os_version": doc.os_version,
     }
 )
 def create_vm(
@@ -72,6 +77,12 @@ def create_vm(
         "ddinfra:osDescriptor": f"{os_family}:{os_version if os_version else ''}:{os_arch}",
     }
 
+    if instance_type:
+        if architecture is None or architecture.lower() == get_default_architecture():
+            extra_flags["ddinfra:az/defaultInstanceType"] = instance_type
+        else:
+            extra_flags["ddinfra:az/defaultARMInstanceType"] = instance_type
+
     if ssh_user:
         extra_flags["ddinfra:sshUser"] = ssh_user
 
@@ -106,7 +117,7 @@ def destroy_vm(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = False,
+    yes: Optional[bool] = True,
     clean_known_hosts: Optional[bool] = True,
 ):
     """

@@ -152,7 +152,7 @@ datadog:
 	}
 }
 
-func WithOTELConfig(config string) func(*Params) error {
+func WithOTelConfig(config string) func(*Params) error {
 	return func(p *Params) error {
 		indentedConfig := utils.IndentMultilineString(config, 6)
 		otelCollectorConfigValues := fmt.Sprintf(`

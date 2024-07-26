@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common"
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 
@@ -56,11 +55,10 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(e config.Env, options ...Option) (*Params, error) {
+func NewParams(options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
 	}
-
 	return common.ApplyOption(version, options)
 }
 

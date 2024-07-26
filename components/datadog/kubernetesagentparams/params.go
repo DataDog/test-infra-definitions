@@ -139,7 +139,7 @@ func WithoutDualShipping() func(*Params) error {
 	}
 }
 
-func WithOTELAgent() func(*Params) error {
+func WithOTelAgent() func(*Params) error {
 	return func(p *Params) error {
 		p.OtelAgent = true
 		otelCollectorEnabledValues := `

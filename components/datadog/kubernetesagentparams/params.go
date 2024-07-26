@@ -141,7 +141,7 @@ func WithoutDualShipping() func(*Params) error {
 
 func WithOTelAgent() func(*Params) error {
 	return func(p *Params) error {
-		p.OtelAgent = true
+		p.OTelAgent = true
 		otelCollectorEnabledValues := `
 datadog:
   otelCollector:
@@ -160,7 +160,6 @@ datadog:
   otelCollector:
     config: |
 %s`, indentedConfig)
-		fmt.Println("COCOCOCOCO", otelCollectorConfigValues)
 		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(otelCollectorConfigValues))
 		return nil
 	}

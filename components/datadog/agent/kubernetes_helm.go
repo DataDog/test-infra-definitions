@@ -117,7 +117,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OtelAgent)
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}

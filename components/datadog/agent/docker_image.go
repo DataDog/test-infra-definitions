@@ -48,8 +48,6 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, ote
 		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
 	}
 
-	fmt.Println("USING THE FOLLOWING IMAGE:" + utils.BuildDockerImagePath(repositoryPath, imageTag))
-
 	return utils.BuildDockerImagePath(repositoryPath, imageTag)
 }
 

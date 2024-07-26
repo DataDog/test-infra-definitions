@@ -50,6 +50,8 @@ type Params struct {
 	DisableLogsContainerCollectAll bool
 	// DualShipping is a flag to enable dual shipping.
 	DisableDualShipping bool
+	// OTelAgent is a flag to deploy the OTel agent.
+	OTelAgent bool
 }
 
 type Option = func(*Params) error
@@ -57,25 +59,6 @@ type Option = func(*Params) error
 func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
-	}
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			return nil, fmt.Errorf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
-		}
-		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
-
-		exists, err = e.InternalRegistryImageTagExists(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			return nil, fmt.Errorf("image %s/cluster-agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
-		}
-		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)
@@ -152,6 +135,32 @@ func WithoutLogsContainerCollectAll() func(*Params) error {
 func WithoutDualShipping() func(*Params) error {
 	return func(p *Params) error {
 		p.DisableDualShipping = true
+		return nil
+	}
+}
+
+func WithOTelAgent() func(*Params) error {
+	return func(p *Params) error {
+		p.OTelAgent = true
+		otelCollectorEnabledValues := `
+datadog:
+  otelCollector:
+    enabled: true`
+
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(otelCollectorEnabledValues))
+		return nil
+	}
+}
+
+func WithOTelConfig(config string) func(*Params) error {
+	return func(p *Params) error {
+		indentedConfig := utils.IndentMultilineString(config, 6)
+		otelCollectorConfigValues := fmt.Sprintf(`
+datadog:
+  otelCollector:
+    config: |
+%s`, indentedConfig)
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(otelCollectorConfigValues))
 		return nil
 	}
 }

@@ -41,6 +41,8 @@ type HelmInstallationArgs struct {
 	DisableLogsContainerCollectAll bool
 	// DisableDualShipping is used to disable dual-shipping
 	DisableDualShipping bool
+	// OTelAgent is used to deploy the OTel agent instead of the classic agent
+	OTelAgent bool
 }
 
 type HelmComponent struct {
@@ -115,7 +117,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "")
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}

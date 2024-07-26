@@ -5,7 +5,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
 
 	"github.com/Masterminds/semver"
 )
@@ -14,22 +13,37 @@ const (
 	defaultAgentImageRepo        = "gcr.io/datadoghq/agent"
 	defaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
 	defaultAgentImageTag         = "latest"
+	defaultOTAgentImageTag       = "7-ot-beta"
 )
 
-func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string) string {
+func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
 	}
 
 	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+	if e.PipelineID() != "" && e.CommitSHA() != "" && imageTag == "" {
+		tag := fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())
+		if otel {
+			tag = fmt.Sprintf("%s-7-ot-beta", tag)
+		}
+
+		exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
+		if err != nil || !exists {
+			panic(fmt.Sprintf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())))
+		}
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 	}
 
 	if repositoryPath == "" {
 		repositoryPath = defaultAgentImageRepo
 	}
+
+	if imageTag == "" && otel {
+		imageTag = defaultOTAgentImageTag
+	}
+
 	if imageTag == "" {
 		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
 	}
@@ -45,7 +59,13 @@ func dockerClusterAgentFullImagePath(e config.Env, repositoryPath string) string
 
 	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		return utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+		tag := fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())
+
+		exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), tag)
+		if err != nil || !exists {
+			panic(fmt.Sprintf("image %s/cluster-agent:%s not found in the internal registry", e.InternalRegistry(), tag))
+		}
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), tag)
 	}
 
 	if repositoryPath == "" {

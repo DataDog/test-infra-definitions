@@ -8,26 +8,14 @@ def get_default_os_family() -> str:
 def get_os_families() -> List[str]:
     return [
         get_default_os_family(),
-        "windows",
-        "debian",
-        "redhat",
-        "suse",
-        "fedora",
-        "centos",
-        "rockylinux",
+        "ubuntu",
     ]
 
 
 def get_package_for_os(os: str) -> str:
     package_map = {
-        get_default_os_family(): "deb",
-        "windows": "windows",
-        "debian": "deb",
-        "redhat": "rpm",
-        "suse": "suse_rpm",
-        "fedora": "rpm",
-        "centos": "rpm",
-        "rockylinux": "rpm",
+        get_default_os_family(): "windows",
+        "ubuntu": "deb",
     }
 
     return package_map[os]

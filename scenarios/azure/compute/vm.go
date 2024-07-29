@@ -44,6 +44,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 			if err != nil {
 				return err
 			}
+			password = pulumi.String("").ToStringOutput()
 		} else if vmArgs.osInfo.Family() == os.WindowsFamily {
 			_, privateIP, password, err = compute.NewWindowsInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData), nil, pulumi.Parent(c))
 			if err != nil {

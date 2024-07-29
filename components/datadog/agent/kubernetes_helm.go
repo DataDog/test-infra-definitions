@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
 
@@ -43,6 +45,8 @@ type HelmInstallationArgs struct {
 	DisableDualShipping bool
 	// OTelAgent is used to deploy the OTel agent instead of the classic agent
 	OTelAgent bool
+	// OTelConfig is used to provide a custom OTel configuration
+	OTelConfig string
 }
 
 type HelmComponent struct {
@@ -140,6 +144,9 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	var valuesYAML pulumi.AssetOrArchiveArray
 	valuesYAML = append(valuesYAML, defaultYAMLValues)
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
+	if args.OTelAgent {
+		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
+	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -573,4 +580,45 @@ func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
 		return pulumi.NewStringAsset(string(yamlValues)), nil
 	}).(pulumi.AssetOutput)
 
+}
+
+func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fakeintake) pulumi.AssetOutput {
+
+	return fakeintake.URL.ApplyT(func(url string) (pulumi.Asset, error) {
+		fmt.Println("FAKEINTAKE URL:", url)
+		defaultConfig := map[string]interface{}{
+			"exporters": map[string]interface{}{
+				"datadog": map[string]interface{}{
+					"metrics": map[string]interface{}{
+						"endpoint": url,
+					},
+					"traces": map[string]interface{}{
+						"endpoint": url,
+					},
+					"logs": map[string]interface{}{
+						"endpoint": url,
+					},
+				},
+			},
+		}
+		config := map[string]interface{}{}
+		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
+			return nil, err
+		}
+		fmt.Println("OTEL CONFIG:", otelConfig)
+		mergedConfig := utils.MergeMaps(config, defaultConfig)
+		mergedConfigYAML, err := yaml.Marshal(mergedConfig)
+		if err != nil {
+			return nil, err
+		}
+		otelConfigValues := fmt.Sprintf(`
+datadog:
+  otelCollector:
+    config: |
+%s
+`, utils.IndentMultilineString(string(mergedConfigYAML), 6))
+		fmt.Println("MEEEEERGED CONFIIIIIG:", otelConfigValues)
+		return pulumi.NewStringAsset(otelConfigValues), nil
+
+	}).(pulumi.AssetOutput)
 }

@@ -585,7 +585,6 @@ func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
 func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fakeintake) pulumi.AssetOutput {
 
 	return fakeintake.URL.ApplyT(func(url string) (pulumi.Asset, error) {
-		fmt.Println("FAKEINTAKE URL:", url)
 		defaultConfig := map[string]interface{}{
 			"exporters": map[string]interface{}{
 				"datadog": map[string]interface{}{
@@ -605,7 +604,6 @@ func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fak
 		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
 			return nil, err
 		}
-		fmt.Println("OTEL CONFIG:", otelConfig)
 		mergedConfig := utils.MergeMaps(config, defaultConfig)
 		mergedConfigYAML, err := yaml.Marshal(mergedConfig)
 		if err != nil {
@@ -617,7 +615,6 @@ datadog:
     config: |
 %s
 `, utils.IndentMultilineString(string(mergedConfigYAML), 6))
-		fmt.Println("MEEEEERGED CONFIIIIIG:", otelConfigValues)
 		return pulumi.NewStringAsset(otelConfigValues), nil
 
 	}).(pulumi.AssetOutput)

@@ -19,7 +19,7 @@ import (
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
-type vmArgs struct {
+type VmArgs struct {
 	osInfo          *os.Descriptor
 	ami             string
 	userData        string
@@ -27,10 +27,14 @@ type vmArgs struct {
 	instanceProfile string
 }
 
-type VMOption = func(*vmArgs) error
+func (v *VmArgs) GetOSInfo() *os.Descriptor {
+	return v.osInfo
+}
 
-func buildArgs(options ...VMOption) (*vmArgs, error) {
-	vmArgs := &vmArgs{}
+type VMOption = func(*VmArgs) error
+
+func BuildArgs(options ...VMOption) (*VmArgs, error) {
+	vmArgs := &VmArgs{}
 	return common.ApplyOption(vmArgs, options)
 }
 
@@ -44,7 +48,7 @@ func WithOS(osDesc os.Descriptor) VMOption {
 // WithArch set the architecture and the operating system.
 // Version defaults to latest
 func WithOSArch(osDesc os.Descriptor, arch os.Architecture) VMOption {
-	return func(p *vmArgs) error {
+	return func(p *VmArgs) error {
 		p.osInfo = utils.Pointer(osDesc.WithArch(arch))
 		return nil
 	}
@@ -52,7 +56,7 @@ func WithOSArch(osDesc os.Descriptor, arch os.Architecture) VMOption {
 
 // WithAMI sets the AMI directly, skipping resolve process. `supportedOS` and `arch` must match the AMI requirements.
 func WithAMI(ami string, osDesc os.Descriptor, arch os.Architecture) VMOption {
-	return func(p *vmArgs) error {
+	return func(p *VmArgs) error {
 		p.osInfo = utils.Pointer(osDesc.WithArch(arch))
 		p.ami = ami
 		return nil
@@ -61,7 +65,7 @@ func WithAMI(ami string, osDesc os.Descriptor, arch os.Architecture) VMOption {
 
 // WithInstanceType set the instance type
 func WithInstanceType(instanceType string) VMOption {
-	return func(p *vmArgs) error {
+	return func(p *VmArgs) error {
 		p.instanceType = instanceType
 		return nil
 	}
@@ -69,14 +73,14 @@ func WithInstanceType(instanceType string) VMOption {
 
 // WithUserData set the userdata for the instance. User data contains commands that are run at the startup of the instance.
 func WithUserData(userData string) VMOption {
-	return func(p *vmArgs) error {
+	return func(p *VmArgs) error {
 		p.userData = userData
 		return nil
 	}
 }
 
 func WithInstanceProfile(instanceProfile string) VMOption {
-	return func(p *vmArgs) error {
+	return func(p *VmArgs) error {
 		p.instanceProfile = instanceProfile
 		return nil
 	}

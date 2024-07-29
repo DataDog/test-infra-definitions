@@ -52,9 +52,10 @@ def create_vm(
     if not cfg.get_azure().publicKeyPath:
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
 
-    extra_flags = dict()
-    extra_flags["ddinfra:env"] = f"az/{account if account else cfg.get_azure().account}"
-    extra_flags["ddinfra:az/defaultPublicKeyPath"] = cfg.get_azure().publicKeyPath
+    extra_flags = {
+        "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
+        "ddinfra:az/defaultPublicKeyPath": cfg.get_azure().publicKeyPath,
+    }
 
     if ssh_user:
         extra_flags["ddinfra:sshUser"] = ssh_user

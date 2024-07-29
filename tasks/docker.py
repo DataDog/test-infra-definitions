@@ -3,6 +3,8 @@ from typing import Optional
 from invoke.context import Context
 from invoke.tasks import task
 
+from tasks.aws import doc as aws_doc
+
 from . import doc
 
 
@@ -12,7 +14,7 @@ from . import doc
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "architecture": doc.architecture,
+        "architecture": aws_doc.architecture,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,

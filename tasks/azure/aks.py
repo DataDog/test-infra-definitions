@@ -78,7 +78,7 @@ def destroy_aks(
     destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes, config_path=config_path)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: bool | None):
+def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     kubeconfig_output = yaml.safe_load(outputs["dd-Cluster-az-aks"]["kubeConfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)

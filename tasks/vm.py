@@ -6,6 +6,7 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 from pydantic import ValidationError
 
+from tasks.aws import doc as aws_doc
 from tasks.config import Config, get_full_profile_path
 
 from . import config, doc, tool
@@ -20,13 +21,13 @@ from . import config, doc, tool
         "agent_version": doc.agent_version,
         "stack_name": doc.stack_name,
         "debug": doc.debug,
-        "os_family": doc.os_family,
+        "os_family": aws_doc.os_family,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
-        "ami_id": doc.ami_id,
-        "architecture": doc.architecture,
+        "ami_id": aws_doc.ami_id,
+        "architecture": aws_doc.architecture,
         "interactive": doc.interactive,
-        "instance_type": doc.instance_type,
+        "instance_type": aws_doc.instance_type,
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,

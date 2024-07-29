@@ -55,6 +55,7 @@ def create_vm(
     os_version: Optional[str] = None,
     architecture: Optional[str] = None,
     instance_type: Optional[str] = None,
+    deploy_job: Optional[str] = None,
     no_verify: Optional[bool] = False,
 ) -> None:
     """
@@ -70,6 +71,7 @@ def create_vm(
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
 
     os_family, os_arch = _get_os_information(os_family, architecture)
+    _deploy_job = None if no_verify else get_deploy_job(os_family, os_arch, agent_version)
 
     extra_flags = {
         "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
@@ -96,7 +98,6 @@ def create_vm(
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
-        deploy_job=deploy_job,
     )
 
     if interactive:

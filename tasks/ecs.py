@@ -3,6 +3,8 @@ from typing import Optional
 from invoke.context import Context
 from invoke.tasks import task
 
+from tasks.aws import doc as aws_doc
+
 from . import doc
 
 
@@ -13,7 +15,7 @@ from . import doc
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "use_fargate": doc.use_fargate,
+        "use_fargate": aws_doc.use_fargate,
         "linux_node_group": doc.linux_node_group,
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,

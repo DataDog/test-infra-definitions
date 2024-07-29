@@ -4,9 +4,12 @@ from typing import Optional
 import pyperclip
 import yaml
 from invoke.context import Context
+from invoke.exceptions import Exit
 from invoke.tasks import task
+from pydantic_core._pydantic_core import ValidationError
 
-from tasks import doc, tool
+from tasks import config, doc, tool
+from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy
 
@@ -28,13 +31,23 @@ def create_aks(
     install_agent: Optional[bool] = True,
     install_workload: Optional[bool] = True,
     agent_version: Optional[str] = None,
+    config_path: Optional[str] = None,
+    account: Optional[str] = None,
+    interactive: Optional[bool] = True,
 ):
     """
     Create a new AKS environment. It lasts around 5 minutes.
     """
 
-    extra_flags = {}
-    extra_flags["ddinfra:env"] = "az/sandbox"
+    try:
+        cfg = config.get_local_config(config_path)
+    except ValidationError as e:
+        raise Exit(f"Error in config {get_full_profile_path(config_path)}") from e
+
+    extra_flags = {
+        "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
+        "ddinfra:az/defaultPublicKeyPath": cfg.get_azure().publicKeyPath,
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -46,22 +59,26 @@ def create_aks(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
+        config_path=config_path,
     )
 
-    tool.notify(ctx, "Your AKS cluster is now created")
+    if interactive:
+        tool.notify(ctx, "Your AKS cluster is now created")
 
-    _show_connection_message(ctx, full_stack_name)
+    _show_connection_message(ctx, full_stack_name, interactive)
 
 
 @task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_aks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+def destroy_aks(
+    ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False, config_path: Optional[str] = None
+):
     """
     Destroy a AKS environment created with invoke az.create-aks.
     """
-    destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes)
+    destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes, config_path=config_path)
 
 
-def _show_connection_message(ctx: Context, full_stack_name: str):
+def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     kubeconfig_output = yaml.safe_load(outputs["dd-Cluster-az-aks"]["kubeConfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)
@@ -73,6 +90,6 @@ def _show_connection_message(ctx: Context, full_stack_name: str):
     command = f"KUBECONFIG={kubeconfig} kubectl get nodes"
 
     print(f"\nYou can run the following command to connect to the AKS cluster\n\n{command}\n")
-
-    input("Press a key to copy command to clipboard...")
-    pyperclip.copy(command)
+    if copy_to_clipboard:
+        input("Press a key to copy command to clipboard...")
+        pyperclip.copy(command)

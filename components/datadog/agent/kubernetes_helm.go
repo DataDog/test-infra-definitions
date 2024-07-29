@@ -41,6 +41,8 @@ type HelmInstallationArgs struct {
 	DisableLogsContainerCollectAll bool
 	// DisableDualShipping is used to disable dual-shipping
 	DisableDualShipping bool
+	// OTelAgent is used to deploy the OTel agent instead of the classic agent
+	OTelAgent bool
 }
 
 type HelmComponent struct {
@@ -57,7 +59,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	baseName := "dda"
-	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
+	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
@@ -115,7 +117,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "")
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
@@ -204,6 +206,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"checksCardinality":    pulumi.String("high"),
+			"namespaceLabelsAsTags": pulumi.Map{
+				"related_team": pulumi.String("team"),
+			},
+			"namespaceAnnotationsAsTags": pulumi.Map{
+				"related_email": pulumi.String("email"),
+			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
 				"containerCollectAll": pulumi.Bool(logsContainerCollectAll),

@@ -7,7 +7,7 @@ This repository contains IaC code based on Pulumi to provision dynamic test infr
 To run scripts and code in this repository, you will need:
 
 * [Go](https://golang.org/doc/install) 1.19 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
-* Python 3.7+ along with development libraries for tooling.
+* Python 3.9+ along with development libraries for tooling.
 * `account-admin` role on AWS `agent-sandbox` account. Ensure it by running
   
   ```bash
@@ -54,22 +54,32 @@ inv setup
 Invoke tasks help deploying most common environments - VMs, Docker, ECS, EKS. Run `inv -l` to learn more.
 
 ```bash
-inv -l
-
+❯ inv -l
 Available tasks:
 
-  create-aks       Create a new AKS environment. It lasts around 5 minutes.
-  create-docker    Create a docker environment.
-  create-ecs       Create a new ECS environment.
-  create-eks       Create a new EKS environment. It lasts around 20 minutes.
-  aws.create-vm        Create a new virtual machine on aws.
-  az.create-vm        Create a new virtual machine on azure.
-  destroy-aks      Destroy a AKS environment created with invoke create-aks.
-  destroy-docker   Destroy an environment created by invoke create_docker.
-  destroy-ecs      Destroy a ECS environment created with invoke create-ecs.
-  destroy-eks      Destroy a EKS environment created with invoke create-eks.
-  aws.destroy-vm          Destroy a virtual machine on aws.
-  az.destroy-vm          Destroy a virtual machine on azure.
+  check-s3-image-exists                                     Verify if an image exists in the s3 repository to create a vm
+  retry-job                                                 Retry gitlab pipeline job
+  aws.create-docker                                         Create a docker environment.
+  aws.create-ecs                                            Create a new ECS environment.
+  aws.create-eks                                            Create a new EKS environment. It lasts around 20 minutes.
+  aws.create-installer-lab
+  aws.create-kind                                           Create a kind environment.
+  aws.create-vm                                             Create a new virtual machine on aws.
+  aws.destroy-docker                                        Destroy an environment created by invoke aws.create-docker.
+  aws.destroy-ecs                                           Destroy a ECS environment created with invoke aws.create-ecs.
+  aws.destroy-eks                                           Destroy a EKS environment created with invoke aws.create-eks.
+  aws.destroy-installer-lab
+  aws.destroy-kind                                          Destroy an environment created by invoke aws.create-kind.
+  aws.destroy-vm                                            Destroy a new virtual machine on aws.
+  az.create-aks                                             Create a new AKS environment. It lasts around 5 minutes.
+  az.create-vm                                              Create a new virtual machine on azure.
+  az.destroy-aks                                            Destroy a AKS environment created with invoke az.create-aks.
+  az.destroy-vm                                             Destroy a new virtual machine on azure.
+  ci.create-bump-pr-and-close-stale-ones-on-datadog-agent
+  setup.debug                                               Debug E2E and test-infra-definitions required tools and configuration
+  setup.debug-keys                                          Debug E2E and test-infra-definitions SSH keys
+  setup.setup (setup)                                       Setup a local environment, interactively by default
+  test.check-xslt                                           Checks the XSLT transformations in the scenarios/aws/microVMs/microvms/resources path
 ```
 
 Run any `-h` on any of the available tasks for more information
@@ -111,7 +121,7 @@ In this example, we're going to create an ECS Cluster:
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs-test
+pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs-test
 ```
 
 In case of failure, you may update some parameters or configuration and run the command again.
@@ -122,10 +132,10 @@ Note that all `-c` parameters have been set in your `Pulumi.<stack_name>.yaml` f
 ### Destroying a stack
 
 Once you're finished with the test environment you've created, you can safely delete it.
-To do this, we'll use the `destroy` operation referecing our `Stack` file:
+To do this, we'll use the `destroy` operation referencing our `Stack` file:
 
 ```
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi destroy -s <your_name>-ecs-test
+pulumi destroy -s <your_name>-ecs-test
 ```
 
 Note that we don't need to use `-c` again as the configuration values were put into the `Stack` file.
@@ -140,21 +150,21 @@ pulumi stack rm <your_name>-ecs-test
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/dockervm -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa -s <your_name>-docker
+pulumi up -c scenario=aws/dockervm -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddinfra:aws/defaultPrivateKeyPath=$HOME/.ssh/id_rsa -s <your_name>-docker
 ```
 
 ## Quick start: Create an ECS EC2 (Windows/Linux) + Fargate (Linux) Cluster
 
 ```
 # You need to have a DD APIKey in variable DD_API_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs
+pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -s <your_name>-ecs
 ```
 
 ## Quick start: Create an EKS (Linux/Windows) + Fargate (Linux) Cluster + Agent (Helm)
 
 ```
 # You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
-aws-vault exec sso-agent-sandbox-account-admin -- pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
+pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
 ```
 
 ## Troubleshooting

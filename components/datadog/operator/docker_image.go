@@ -7,7 +7,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
 )
 
 const (
@@ -21,9 +20,9 @@ func dockerOperatorFullImagePath(e config.Env, repositoryPath, imageTag string) 
 		return e.OperatorFullImagePath()
 	}
 
-	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
+	// if operator pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		return utils.BuildDockerImagePath(fmt.Sprintf("%s/operator", aws.AgentQAECR), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/operator", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 	}
 
 	if repositoryPath == "" {

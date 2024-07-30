@@ -98,6 +98,7 @@ def _install_pulumi(ctx: Context):
                     Path().home().joinpath(".pulumi", "bin"),
                     Path().home().joinpath("AppData", "Local", "pulumi", "bin"),
                     'C:\\Program Files (x86)\\Pulumi\\bin',
+                    'C:\\Program Files (x86)\\Pulumi',
                 ]
             ]
             os.environ["PATH"] = ';'.join([os.environ["PATH"]] + paths)

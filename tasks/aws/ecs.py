@@ -27,6 +27,7 @@ scenario_name = "aws/ecs"
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
+        "full_image_path": doc.full_image_path,
     }
 )
 def create_ecs(
@@ -41,16 +42,18 @@ def create_ecs(
     linux_arm_node_group: bool = False,
     bottlerocket_node_group: bool = True,
     windows_node_group: bool = False,
+    full_image_path: Optional[str] = None,
 ):
     """
     Create a new ECS environment.
     """
-    extra_flags = {}
-    extra_flags["ddinfra:aws/ecs/fargateCapacityProvider"] = use_fargate
-    extra_flags["ddinfra:aws/ecs/linuxECSOptimizedNodeGroup"] = linux_node_group
-    extra_flags["ddinfra:aws/ecs/linuxECSOptimizedARMNodeGroup"] = linux_arm_node_group
-    extra_flags["ddinfra:aws/ecs/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
-    extra_flags["ddinfra:aws/ecs/windowsLTSCNodeGroup"] = windows_node_group
+    extra_flags = {
+        "ddinfra:aws/ecs/fargateCapacityProvider": use_fargate,
+        "ddinfra:aws/ecs/linuxECSOptimizedNodeGroup": linux_node_group,
+        "ddinfra:aws/ecs/linuxECSOptimizedARMNodeGroup": linux_arm_node_group,
+        "ddinfra:aws/ecs/linuxBottlerocketNodeGroup": bottlerocket_node_group,
+        "ddinfra:aws/ecs/windowsLTSCNodeGroup": windows_node_group,
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -61,6 +64,7 @@ def create_ecs(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
     )
 
     tool.notify(ctx, "Your ECS cluster is now created")

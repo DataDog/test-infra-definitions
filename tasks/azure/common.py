@@ -40,7 +40,7 @@ def get_deploy_job(os: str, arch: Union[str, None], agent_version: Union[str, No
     # Construct job name
     if os == 'windows':
         suffix = f'-{v}'
-        assert arch == 'x64', f'Invalid architecure {arch} for Windows'
+        assert arch == 'x64', f'Invalid architecture {arch} for Windows'
     elif os == 'suse':
         suffix = f'_{arch}-{v}'
     elif pkg in ('deb', 'rpm'):

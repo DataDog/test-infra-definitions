@@ -50,8 +50,6 @@ def create_kind(
         "ddinfra:osDescriptor": f"amazonlinuxecs::{_get_architecture(architecture)}",
         "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
         "ddinfra:aws/defaultInstanceType": "t3.xlarge",
-        "ddagent:fullImagePath": full_image_path,
-        "ddagent:clusterAgentFullImagePath": cluster_agent_full_image_path,
     }
 
     full_stack_name = deploy(
@@ -65,6 +63,8 @@ def create_kind(
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
         app_key_required=True,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
     )
 
     if interactive:

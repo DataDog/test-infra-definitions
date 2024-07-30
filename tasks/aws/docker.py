@@ -46,7 +46,6 @@ def create_docker(
     extra_flags = {
         "ddinfra:osDescriptor": f"::{_get_architecture(architecture)}",
         "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
-        "ddagent:fullImagePath": full_image_path,
     }
 
     full_stack_name = deploy(
@@ -59,6 +58,7 @@ def create_docker(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
     )
 
     if interactive:

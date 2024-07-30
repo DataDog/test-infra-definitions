@@ -53,7 +53,6 @@ def create_ecs(
         "ddinfra:aws/ecs/linuxECSOptimizedARMNodeGroup": linux_arm_node_group,
         "ddinfra:aws/ecs/linuxBottlerocketNodeGroup": bottlerocket_node_group,
         "ddinfra:aws/ecs/windowsLTSCNodeGroup": windows_node_group,
-        "ddagent:fullImagePath": full_image_path,
     }
 
     full_stack_name = deploy(
@@ -65,6 +64,7 @@ def create_ecs(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
     )
 
     tool.notify(ctx, "Your ECS cluster is now created")

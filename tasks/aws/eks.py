@@ -55,12 +55,10 @@ def create_eks(
     """
 
     extra_flags = {
-        "ddinfra:aws/eks/linuxNodeGroup": linux_node_group,
         "ddinfra:aws/eks/linuxARMNodeGroup": linux_arm_node_group,
         "ddinfra:aws/eks/linuxBottlerocketNodeGroup": bottlerocket_node_group,
+        "ddinfra:aws/eks/linuxNodeGroup": str(linux_node_group),
         "ddinfra:aws/eks/windowsNodeGroup": windows_node_group,
-        "ddagent:fullImagePath": full_image_path,
-        "ddagent:clusterAgentFullImagePath": cluster_agent_full_image_path,
     }
 
     # Override the instance type if specified
@@ -81,6 +79,8 @@ def create_eks(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
     )
 
     tool.notify(ctx, "Your EKS cluster is now created")

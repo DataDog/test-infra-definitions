@@ -24,7 +24,8 @@ scenario_name = "aws/dockervm"
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
-    }
+        "full_image_path": doc.full_image_path,
+    },
 )
 def create_docker(
     ctx: Context,
@@ -36,14 +37,16 @@ def create_docker(
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
+    full_image_path: Optional[str] = None,
 ):
     """
     Create a docker environment.
     """
 
-    extra_flags = {}
-    extra_flags["ddinfra:osDescriptor"] = f"::{_get_architecture(architecture)}"
-    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
+    extra_flags = {
+        "ddinfra:osDescriptor": f"::{_get_architecture(architecture)}",
+        "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -55,6 +58,7 @@ def create_docker(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
     )
 
     if interactive:

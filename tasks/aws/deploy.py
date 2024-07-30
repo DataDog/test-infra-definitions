@@ -31,6 +31,8 @@ def deploy(
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
     deploy_job: Optional[str] = None,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -80,6 +82,8 @@ def deploy(
         debug,
         flags,
         use_fakeintake,
+        full_image_path,
+        cluster_agent_full_image_path,
     )
 
 

@@ -26,6 +26,8 @@ def deploy(
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -51,6 +53,8 @@ def deploy(
     flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
     flags["ddagent:fakeintake"] = use_fakeintake
+    flags["ddagent:fullImagePath"] = full_image_path
+    flags["ddagent:clusterAgentFullImagePath"] = cluster_agent_full_image_path
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)

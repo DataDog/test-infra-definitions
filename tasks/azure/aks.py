@@ -34,6 +34,8 @@ def create_aks(
     config_path: Optional[str] = None,
     account: Optional[str] = None,
     interactive: Optional[bool] = True,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ):
     """
     Create a new AKS environment. It lasts around 5 minutes.
@@ -60,6 +62,8 @@ def create_aks(
         agent_version=agent_version,
         extra_flags=extra_flags,
         config_path=config_path,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
     )
 
     if interactive:

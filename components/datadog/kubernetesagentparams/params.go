@@ -1,8 +1,6 @@
 package kubernetesagentparams
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -51,6 +49,8 @@ type Params struct {
 	DisableDualShipping bool
 	// OTelAgent is a flag to deploy the OTel agent.
 	OTelAgent bool
+	// OTelConfig is the OTel configuration to use for the agent installation.
+	OTelConfig string
 }
 
 type Option = func(*Params) error
@@ -152,13 +152,8 @@ datadog:
 
 func WithOTelConfig(config string) func(*Params) error {
 	return func(p *Params) error {
-		indentedConfig := utils.IndentMultilineString(config, 6)
-		otelCollectorConfigValues := fmt.Sprintf(`
-datadog:
-  otelCollector:
-    config: |
-%s`, indentedConfig)
-		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(otelCollectorConfigValues))
-		return nil
+		var err error
+		p.OTelConfig, err = utils.MergeYAML(p.OTelConfig, config)
+		return err
 	}
 }

@@ -8,6 +8,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net"
 	"net/http"
@@ -80,6 +81,23 @@ func (u *udpDialer) Close() error {
 	return u.c.Close()
 }
 
+func newFileDialer(filePath string) (*fileDialer, error) {
+	logFile, err := os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	return &fileDialer{logFile: logFile}, err
+}
+
+type fileDialer struct {
+	logFile *os.File
+}
+
+func (f *fileDialer) Dial() (io.Writer, io.Writer, error) {
+	return f.logFile, f.logFile, nil
+}
+
+func (f *fileDialer) Close() error {
+	return f.Close()
+}
+
 type stdoutDialer struct{}
 
 func (s *stdoutDialer) Dial() (io.Writer, io.Writer, error) {
@@ -99,6 +117,7 @@ func main() {
 	flag.Int("port", 3333, "port to listen on")
 	flag.Bool("udp", false, "send logs via UDP")
 	flag.Bool("tcp", false, "send logs via TCP")
+	flag.String("file", "", "write logs to a file")
 	flag.String("target", "", "if sending logs via UDP or TCP, specify the target host:port")
 	flag.String("data", "", "path to JSON data file with messages to log")
 
@@ -110,6 +129,7 @@ func main() {
 	port := viper.GetInt("port")
 	useUDP := viper.GetBool("udp")
 	useTCP := viper.GetBool("tcp")
+	useFile := viper.GetString("file")
 	target := viper.GetString("target")
 	data := viper.GetString("data")
 
@@ -118,12 +138,19 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	var dialer Dialer
+	var err error
 	if useUDP {
 		dialer = &udpDialer{target: target}
 	} else if useTCP {
 		dialer = &tcpDialer{target: target}
+	} else if useFile != "" {
+		dialer, err = newFileDialer(useFile)
 	} else {
 		dialer = &stdoutDialer{}
+	}
+
+	if err != nil {
+		log.Fatal(err)
 	}
 
 	l := NewLoggerHandler(dialer)

@@ -539,7 +539,9 @@ def debug_keys(ctx: Context, config_path: Optional[str] = None):
             found = True
         else:
             if keyinfo is not None and keyinfo.is_rsa_pubkey:
-                debug(f"NOTICE: {keyname} is an RSA public key, these cannot be matched to aws keys. To avoid errors, ensure that the privateKeyPath is found in AWS and the privateKeyPath and publicKeyPath fingerprints match.")
+                debug(
+                    f"NOTICE: {keyname} is an RSA public key, these cannot be matched to aws keys. To avoid errors, ensure that the privateKeyPath is found in AWS and the privateKeyPath and publicKeyPath fingerprints match."
+                )
             else:
                 warn(f"WARNING: Configured {keyname} missing from aws!")
 

@@ -8,7 +8,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 )
 
 type Params struct {
@@ -18,8 +17,7 @@ type Params struct {
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
 	HelmValues pulumi.AssetOrArchiveArray
-	// PulumiDependsOn is a list of resources to depend on.
-	FakeIntake            *fakeintake.Fakeintake
+	// PulumiResourceOptions is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 }
 
@@ -50,15 +48,6 @@ func WithNamespace(namespace string) func(*Params) error {
 func WithOperatorFullImagePath(path string) func(*Params) error {
 	return func(p *Params) error {
 		p.OperatorFullImagePath = path
-		return nil
-	}
-}
-
-// WithFakeIntake configures the Agent to use the given fake intake.
-func WithFakeIntake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
-	return func(p *Params) error {
-		p.PulumiResourceOptions = append(p.PulumiResourceOptions, utils.PulumiDependsOn(fakeintake))
-		p.FakeIntake = fakeintake
 		return nil
 	}
 }

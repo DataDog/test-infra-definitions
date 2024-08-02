@@ -58,8 +58,8 @@ func WithDDAConfig(config string) func(*Params) error {
 	}
 }
 
-// WithFakeintake configures the Agent to use the given fake intake.
-func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
+// WithFakeIntake configures the Agent to use the given fake intake.
+func WithFakeIntake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.PulumiResourceOptions = append(p.PulumiResourceOptions, utils.PulumiDependsOn(fakeintake))
 		p.FakeIntake = fakeintake

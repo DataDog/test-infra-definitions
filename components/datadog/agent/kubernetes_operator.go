@@ -33,7 +33,7 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		_, err = dda.K8sAppDefinition(e, kubeProvider, "datadog", operatorParams.FakeIntake, ddaParams.KubeletTLSVerify, e.Ctx().Stack(), ddaParams.DDAConfig, utils.PulumiDependsOn(operatorComp))
+		_, err = dda.K8sAppDefinition(e, kubeProvider, "datadog", ddaParams.FakeIntake, ddaParams.KubeletTLSVerify, e.Ctx().Stack(), ddaParams.DDAConfig, utils.PulumiDependsOn(operatorComp))
 
 		if err != nil {
 			return err

@@ -64,7 +64,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	opts = append(opts, utils.PulumiDependsOn(secret))
 
 	ddaConfig := buildDDAConfig(baseName, clusterName, kubeletTLSVerify)
-	if e.AgentUseFakeintake() {
+	if fakeIntake != nil {
 		configureFakeIntake(ddaConfig, fakeIntake)
 	}
 	ddaConfig, err = mergeYamlToConfig(ddaConfig, customDda)

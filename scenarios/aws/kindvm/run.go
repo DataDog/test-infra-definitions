@@ -133,12 +133,6 @@ agents:
 			operatorOpts,
 			operatorparams.WithNamespace("datadog"),
 		)
-		if fakeIntake != nil {
-			operatorOpts = append(
-				operatorOpts,
-				operatorparams.WithFakeIntake(fakeIntake),
-			)
-		}
 
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(
@@ -146,6 +140,13 @@ agents:
 			agentwithoperatorparams.WithNamespace("datadog"),
 			agentwithoperatorparams.WithTLSKubeletVerify(false),
 		)
+
+		if fakeIntake != nil {
+			ddaOptions = append(
+				ddaOptions,
+				agentwithoperatorparams.WithFakeIntake(fakeIntake),
+			)
+		}
 
 		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
 

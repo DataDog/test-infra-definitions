@@ -7,9 +7,10 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"github.com/DataDog/test-infra-definitions/common/namer"
 )
 
 const (
@@ -46,6 +47,7 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentSite                          = "site"
+	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -87,6 +89,7 @@ type Env interface {
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
 	ResourcesTags() pulumi.StringMap
+	AgentExtraEnvVars() string
 
 	AgentDeploy() bool
 	AgentVersion() string
@@ -273,6 +276,10 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) Site() string {
 	return e.AgentConfig.Get(DDAgentSite)
+}
+
+func (e *CommonEnvironment) AgentExtraEnvVars() string {
+	return e.AgentConfig.Get(DDAgentExtraEnvVars)
 }
 
 // Testing workload namespace

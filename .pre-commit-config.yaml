@@ -23,9 +23,11 @@ repos:
     rev: 'v2.3'
     hooks:
       - id: vulture
-        args:
-          - --ignore-decorators
-          - "@task"
-          - --ignore-names
-          - 'test_*,Test*'
-          - tasks
+  - repo: local
+    hooks:
+      - id: go-tidy
+        name: go-tidy
+        entry: go mod tidy
+        files: .*\.go$
+        language: system
+        pass_filenames: false

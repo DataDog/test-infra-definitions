@@ -36,3 +36,8 @@ func (e *Environment) InternalRegistry() string {
 func (e *Environment) InternalDockerhubMirror() string {
 	return "registry-1.docker.io"
 }
+
+// InternalRegistryImageTagExists returns true if the image tag exists in the internal registry.
+func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) {
+	return true, nil
+}

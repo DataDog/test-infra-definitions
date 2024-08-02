@@ -119,6 +119,7 @@ type Env interface {
 type CloudEnv interface {
 	InternalDockerhubMirror() string
 	InternalRegistry() string
+	InternalRegistryImageTagExists(image, tag string) (bool, error)
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {

@@ -1,19 +1,21 @@
 package agent
 
 import (
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components"
-	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 )
 
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	InstallNameLinux   string `json:"installNameLinux"`
-	InstallNameWindows string `json:"installNameWindows"`
+	LinuxNodeAgent     KubernetesObjRefOutput `json:"linuxNodeAgent"`
+	LinuxClusterAgent  KubernetesObjRefOutput `json:"linuxClusterAgent"`
+	LinuxClusterChecks KubernetesObjRefOutput `json:"linuxClusterChecks"`
+
+	WindowsNodeAgent     KubernetesObjRefOutput `json:"windowsNodeAgent"`
+	WindowsClusterAgent  KubernetesObjRefOutput `json:"windowsClusterAgent"`
+	WindowsClusterChecks KubernetesObjRefOutput `json:"windowsClusterChecks"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
@@ -21,41 +23,15 @@ type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	InstallNameLinux   pulumi.StringOutput `pulumi:"installNameLinux"`
-	InstallNameWindows pulumi.StringOutput `pulumi:"installNameWindows"`
+	LinuxNodeAgent     *KubernetesObjectRef `pulumi:"linuxNodeAgent"`
+	LinuxClusterAgent  *KubernetesObjectRef `pulumi:"linuxClusterAgent"`
+	LinuxClusterChecks *KubernetesObjectRef `pulumi:"linuxClusterChecks"`
+
+	WindowsNodeAgent     *KubernetesObjectRef `pulumi:"windowsNodeAgent"`
+	WindowsClusterAgent  *KubernetesObjectRef `pulumi:"windowsClusterAgent"`
+	WindowsClusterChecks *KubernetesObjectRef `pulumi:"windowsClusterChecks"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {
 	return components.Export(ctx, h, out)
-}
-
-func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*KubernetesAgent, error) {
-	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
-		params, err := kubernetesagentparams.NewParams(e, options...)
-		if err != nil {
-			return err
-		}
-
-		helmComponent, err := NewHelmInstallation(e, HelmInstallationArgs{
-			KubeProvider:                   kubeProvider,
-			DeployWindows:                  params.DeployWindows,
-			Namespace:                      params.Namespace,
-			ValuesYAML:                     params.HelmValues,
-			Fakeintake:                     params.FakeIntake,
-			AgentFullImagePath:             params.AgentFullImagePath,
-			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
-			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
-			DisableDualShipping:            params.DisableDualShipping,
-		}, params.PulumiResourceOptions...)
-		if err != nil {
-			return err
-		}
-
-		// Fill component
-		comp.InstallNameLinux = helmComponent.LinuxHelmReleaseName.Elem()
-		if params.DeployWindows {
-			comp.InstallNameWindows = helmComponent.WindowsHelmReleaseName.Elem()
-		}
-		return nil
-	})
 }

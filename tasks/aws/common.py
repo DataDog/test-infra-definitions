@@ -7,7 +7,7 @@ from invoke.exceptions import Exit
 
 
 def get_default_os_family() -> str:
-    return "debian"
+    return "ubuntu"
 
 
 def get_os_families() -> List[str]:

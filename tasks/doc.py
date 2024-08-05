@@ -27,3 +27,5 @@ debug: str = "Check for common errors in your environment setup and configuratio
 site: str = "Datadog site to contact (default 'datad0g.com')"
 ssh_user: str = "The user to use for ssh connection (default will be selected depending on the OS family). Should only be used if you explicitly need to use a different user"
 os_version: str = "The version of the OS to use (default will be selected depending on the OS family). See https://github.com/DataDog/test-infra-definitions/blob/main/components/os/linux_descriptors.go for a list of version available for a given OS (https://github.com/DataDog/test-infra-definitions/blob/main/components/os/windows_descriptors.go for Windows)"
+full_image_path: str = "The full image path (registry:tag) of the Agent image to deploy"
+cluster_agent_full_image_path: str = "The full image path (registry:tag) of the Cluster Agent image to deploy"

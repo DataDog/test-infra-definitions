@@ -8,3 +8,4 @@ lxml==5.2.2
 python-gitlab==4.8.0
 PyGithub==2.3.0
 boto3>=1.28.0
+semver==2.10.0

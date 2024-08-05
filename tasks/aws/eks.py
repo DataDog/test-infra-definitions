@@ -30,6 +30,8 @@ scenario_name = "aws/eks"
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
         "instance_type": aws_doc.instance_type,
+        "full_image_path": doc.full_image_path,
+        "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
     }
 )
 def create_eks(
@@ -45,16 +47,19 @@ def create_eks(
     bottlerocket_node_group: bool = True,
     windows_node_group: bool = False,
     instance_type: Optional[str] = None,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ):
     """
     Create a new EKS environment. It lasts around 20 minutes.
     """
 
-    extra_flags = {}
-    extra_flags["ddinfra:aws/eks/linuxNodeGroup"] = linux_node_group
-    extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
-    extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
-    extra_flags["ddinfra:aws/eks/windowsNodeGroup"] = windows_node_group
+    extra_flags = {
+        "ddinfra:aws/eks/linuxARMNodeGroup": linux_arm_node_group,
+        "ddinfra:aws/eks/linuxBottlerocketNodeGroup": bottlerocket_node_group,
+        "ddinfra:aws/eks/linuxNodeGroup": str(linux_node_group),
+        "ddinfra:aws/eks/windowsNodeGroup": windows_node_group,
+    }
 
     # Override the instance type if specified
     # ARM node groups use defaultARMInstanceType, all others (Linux, Bottlerocket, Windows) use defaultInstanceType
@@ -74,6 +79,8 @@ def create_eks(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
     )
 
     tool.notify(ctx, "Your EKS cluster is now created")

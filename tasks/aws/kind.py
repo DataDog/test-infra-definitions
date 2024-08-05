@@ -25,6 +25,8 @@ scenario_name = "aws/kind"
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
+        "full_image_path": doc.full_image_path,
+        "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
     }
 )
 def create_kind(
@@ -37,15 +39,18 @@ def create_kind(
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ):
     """
     Create a kind environment.
     """
 
-    extra_flags = {}
-    extra_flags["ddinfra:osDescriptor"] = f"amazonlinuxecs::{_get_architecture(architecture)}"
-    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
-    extra_flags["ddinfra:aws/defaultInstanceType"] = "t3.xlarge"
+    extra_flags = {
+        "ddinfra:osDescriptor": f"amazonlinuxecs::{_get_architecture(architecture)}",
+        "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
+        "ddinfra:aws/defaultInstanceType": "t3.xlarge",
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -58,6 +63,8 @@ def create_kind(
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
         app_key_required=True,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
     )
 
     if interactive:

@@ -4,15 +4,15 @@ go 1.22.0
 
 require (
 	dario.cat/mergo v1.0.0
-	github.com/DataDog/datadog-agent/pkg/util/optional v0.52.1
+	github.com/DataDog/datadog-agent/pkg/util/optional v0.55.2
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2 v1.30.3
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.30.1
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.41.7
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.53.1
-	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.44.0
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.13.0

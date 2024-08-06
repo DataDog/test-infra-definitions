@@ -28,7 +28,7 @@ require (
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
 	github.com/pulumi/pulumi/sdk/v3 v3.126.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.17
-	github.com/samber/lo v1.39.0
+	github.com/samber/lo v1.46.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
 	gopkg.in/yaml.v3 v3.0.1

@@ -22,6 +22,8 @@ on:
       - .github/workflows/docker-publish.yml
       - components/datadog/apps/*/images/**
 
+permissions: {}
+
 env:
   # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io

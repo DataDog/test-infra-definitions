@@ -22,6 +22,8 @@ require (
 	github.com/pulumi/pulumi-command/sdk v0.9.2
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.1
 	github.com/pulumi/pulumi-eks/sdk/v2 v2.7.6
+	github.com/pulumi/pulumi-gcp/sdk/v6 v6.67.1
+	github.com/pulumi/pulumi-gcp/sdk/v7 v7.35.0
 	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.13.1
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0

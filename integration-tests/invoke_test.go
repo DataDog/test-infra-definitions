@@ -69,6 +69,11 @@ func TestInvokes(t *testing.T) {
 		t.Parallel()
 		testInvokeKind(t, tmpConfigFile, *workingDir)
 	})
+
+	t.Run("invoke-kind-operator", func(t *testing.T) {
+		t.Parallel()
+		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
+	})
 }
 
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
@@ -111,7 +116,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory str
 	t.Log("creating vm with docker")
 	var stdOut, stdErr bytes.Buffer
 
-	createCmd := exec.Command("invoke", "create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd := exec.Command("invoke", "aws.create-docker", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
 	createCmd.Stdout = &stdOut
 	createCmd.Stderr = &stdErr
@@ -144,6 +149,26 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
+}
+
+func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+	stackName := "invoke-kind-with-operator"
+	if os.Getenv("CI") == "true" {
+		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_PIPELINE_ID"))
+	}
+
+	t.Log("creating kind cluster with operator")
+	createCmd := exec.Command("invoke", "aws.create-kind", "--install-agent-with-operator", "true", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating kind cluster: %s; %s", string(createOutput), err)
+
+	t.Log("destroying kind cluster with operator")
 	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()

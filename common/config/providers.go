@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp"
 	"sync"
 
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx"
@@ -24,6 +25,7 @@ const (
 	ProviderEKS     ProviderID = "eks"
 	ProviderAzure   ProviderID = "azure"
 	ProviderDocker  ProviderID = "docker"
+	ProviderGCP     ProviderID = "gcp"
 )
 
 func dummyProvidersFactory() map[ProviderID]func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
@@ -50,6 +52,10 @@ func dummyProvidersFactory() map[ProviderID]func(ctx *pulumi.Context, name strin
 		},
 		ProviderDocker: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
 			provider, err := docker.NewProvider(ctx, name, nil)
+			return provider, err
+		},
+		ProviderGCP: func(ctx *pulumi.Context, name string) (pulumi.ProviderResource, error) {
+			provider, err := gcp.NewProvider(ctx, name, nil)
 			return provider, err
 		},
 	}

@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"strings"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/ecsagentparams"
@@ -275,17 +273,13 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 
 func ecsAgentAdditionalEnvFromConfig(e config.Env) []ecs.TaskDefinitionKeyValuePairInput {
 	extraEnvVars := e.AgentExtraEnvVars()
-	extraEnvVarsList := strings.Split(extraEnvVars, ",")
-	options := make([]ecs.TaskDefinitionKeyValuePairInput, 0, len(extraEnvVarsList))
+	options := make([]ecs.TaskDefinitionKeyValuePairInput, 0, len(extraEnvVars))
 
-	for _, envVar := range extraEnvVarsList {
-		name, value, ok := strings.Cut(envVar, "=")
-		if ok {
-			options = append(options, ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr(name),
-				Value: pulumi.StringPtr(value),
-			})
-		}
+	for name, value := range extraEnvVars {
+		options = append(options, ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr(name),
+			Value: pulumi.StringPtr(value),
+		})
 	}
 	return options
 }

@@ -23,21 +23,15 @@ func newLinuxManager(host *remoteComp.Host) agentOSManager {
 
 func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, _ []string) (string, error) {
 	if version.PipelineID != "" {
-		testEnvVars := []string{}
-		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
 		// apt testing repo
-		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="pipeline-%v-a7-%s 7"`, version.PipelineID, am.targetOS.Descriptor().Architecture))
-		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
+		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7-arch 7"
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/pipeline-%v-a7/7", version.PipelineID))
-		commandLine := strings.Join(testEnvVars, " ")
+		return testingInstallCommand(fmt.Sprintf("pipeline-%v-a7-%s", version.PipelineID, am.targetOS.Descriptor().Architecture), fmt.Sprintf("pipeline-%v-a7", version.PipelineID)), nil
+	}
 
-		return fmt.Sprintf(
-			`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && exit 0  || sleep $((2**$i)); done; exit 1`,
-			"install_script_agent7.sh",
-			commandLine), nil
+	if version.CustomVersion != "" {
+		return testingInstallCommand(version.CustomVersion, version.CustomVersion), nil
 	}
 
 	commandLine := fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v ", version.Major)
@@ -62,4 +56,15 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 
 func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", transform, opts...)
+}
+
+func testingInstallCommand(aptRepoVersion string, yumVersionPath string) string {
+	testEnvVars := []string{}
+	testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
+	testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="%v 7"`, aptRepoVersion))
+	testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
+	testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/%v/7", yumVersionPath))
+	commandLine := strings.Join(testEnvVars, " ")
+
+	return fmt.Sprintf(`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && exit 0  || sleep $((2**$i)); done; exit 1`, "install_script_agent7.sh", commandLine)
 }

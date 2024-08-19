@@ -1,6 +1,6 @@
 module github.com/DataDog/test-infra-definitions
 
-go 1.22.0
+go 1.22
 
 require (
 	github.com/DataDog/datadog-agent/pkg/util/optional v0.55.2

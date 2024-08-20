@@ -12,6 +12,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
+	"github.com/DataDog/test-infra-definitions/scenarios/azure/fakeintake"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -57,6 +58,17 @@ providers:
 			kubernetesagentparams.WithNamespace("datadog"),
 			kubernetesagentparams.WithHelmValues(customValues),
 		)
+
+		if env.AgentUseFakeintake() {
+			fakeintake, err := fakeintake.NewVMInstance(env)
+			if err != nil {
+				return err
+			}
+			if err := fakeintake.Export(env.Ctx(), nil); err != nil {
+				return err
+			}
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeintake))
+		}
 
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&env, env.Namer.ResourceName("datadog-agent"), aksCluster.KubeProvider, k8sAgentOptions...)
 

@@ -10,6 +10,7 @@ import (
 
 func FindEnvironmentName(environments []string, prefix string) string {
 	for _, env := range environments {
+		fmt.Println("DEFAULT ENV" + env)
 		if strings.HasPrefix(env, prefix+"/") {
 			return env
 		}

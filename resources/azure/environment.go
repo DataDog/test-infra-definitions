@@ -2,14 +2,15 @@ package azure
 
 import (
 	"fmt"
-	config "github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/namer"
-	sdkazure "github.com/pulumi/pulumi-azure-native-sdk/v2"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
+	sdkazure "github.com/pulumi/pulumi-azure-native-sdk/v2"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const (
@@ -49,6 +50,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		return Environment{}, err
 	}
 	env.CommonEnvironment = &commonEnv
+	fmt.Println("TOTOTO", commonEnv.InfraEnvironmentNames())
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace))
 
 	// TODO: Remove this when we find a better way to automatically log in

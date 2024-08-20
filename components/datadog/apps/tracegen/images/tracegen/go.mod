@@ -1,6 +1,6 @@
 module tracegen
 
-go 1.21.3
+go 1.22
 
 require (
 	golang.org/x/time v0.3.0

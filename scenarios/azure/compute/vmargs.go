@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // Params defines the parameters for a virtual machine.
@@ -20,10 +21,11 @@ import (
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type vmArgs struct {
-	osInfo       *os.Descriptor
-	imageURN     string
-	userData     string
-	instanceType string
+	osInfo                *os.Descriptor
+	imageURN              string
+	userData              string
+	instanceType          string
+	pulumiResourceOptions []pulumi.ResourceOption
 }
 
 type VMOption = func(*vmArgs) error
@@ -70,6 +72,14 @@ func WithInstanceType(instanceType string) VMOption {
 func WithUserData(userData string) VMOption {
 	return func(p *vmArgs) error {
 		p.userData = userData
+		return nil
+	}
+}
+
+// WithPulumiResourceOptions sets the pulumi.ResourceOptions for the VM
+func WithPulumiResourceOptions(opts ...pulumi.ResourceOption) VMOption {
+	return func(p *vmArgs) error {
+		p.pulumiResourceOptions = append(p.pulumiResourceOptions, opts...)
 		return nil
 	}
 }

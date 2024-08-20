@@ -57,6 +57,7 @@ def create_vm(
     instance_type: Optional[str] = None,
     deploy_job: Optional[str] = None,
     no_verify: Optional[bool] = False,
+    use_fakeintake: Optional[bool] = False,
 ) -> None:
     """
     Create a new virtual machine on azure.
@@ -98,6 +99,7 @@ def create_vm(
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
+        use_fakeintake=use_fakeintake,
     )
 
     if interactive:

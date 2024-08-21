@@ -20,7 +20,7 @@ require (
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
 	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.56.0
 	github.com/pulumi/pulumi-command/sdk v1.0.1
-	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.1
+	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.5
 	github.com/pulumi/pulumi-eks/sdk/v2 v2.7.8
 	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.17.1
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.7

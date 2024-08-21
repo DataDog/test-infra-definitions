@@ -6,10 +6,10 @@ This repository contains IaC code based on Pulumi to provision dynamic test infr
 
 To run scripts and code in this repository, you will need:
 
-* [Go](https://golang.org/doc/install) 1.19 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
-* Python 3.9+ along with development libraries for tooling.
-* `account-admin` role on AWS `agent-sandbox` account. Ensure it by running
-  
+- [Go](https://golang.org/doc/install) 1.22 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
+- Python 3.9+ along with development libraries for tooling.
+- `account-admin` role on AWS `agent-sandbox` account. Ensure it by running
+
   ```bash
   aws-vault login sso-agent-sandbox-account-admin
   ```
@@ -27,7 +27,7 @@ sudo apt install libnotify-bin
 1. Clone this repository
 
 ```bash
-cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git 
+cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git
 ```
 
 2. Install Python dependencies
@@ -49,7 +49,6 @@ inv setup
 ```
 
 ### Create an environment for manual tests
-
 
 Invoke tasks help deploying most common environments - VMs, Docker, ECS, EKS. Run `inv -l` to learn more.
 
@@ -88,11 +87,12 @@ Run any `-h` on any of the available tasks for more information
 
 Pulumi requires to store/retrieve the state of your `Stack`.
 In Pulumi, `Stack` objects represent your actual deployment:
+
 - A `Stack` references a `Project` (a folder with a `Pulumi.yaml`, for instance root folder of this repo)
 - A `Stack` references a configuration file called `Pulumi.<stack_name>.yaml`
-This file holds your `Stack` configuration.
-If it does not exist, it will be created.
-If it exists and you input some settings through the command line, using `-c`, it will update the `Stack` file.
+  This file holds your `Stack` configuration.
+  If it does not exist, it will be created.
+  If it exists and you input some settings through the command line, using `-c`, it will update the `Stack` file.
 
 When performing operations on a `Stack`, Pulumi will need to store a state somewhere (the Stack state).
 Normally the state should be stored in a durable storage (e.g. S3-like), but for testing purposes
@@ -170,7 +170,9 @@ pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_
 ## Troubleshooting
 
 ### Environment and configuration
+
 The `setup.debug` invoke task will check for common mistakes such as key unavailable in configured AWS region, ssh-agent not running, invalid key format, and more.
+
 ```
 aws-vault exec sso-agent-sandbox-account-admin -- inv setup.debug
 aws-vault exec sso-agent-sandbox-account-admin -- inv setup --debug --no-interactive

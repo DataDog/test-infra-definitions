@@ -52,7 +52,6 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		return Environment{}, err
 	}
 	env.CommonEnvironment = &commonEnv
-	fmt.Println("TOTOTO", commonEnv.InfraEnvironmentNames())
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace))
 
 	// TODO: Remove this when we find a better way to automatically log in

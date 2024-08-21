@@ -1,6 +1,7 @@
 package fakeintake
 
 import (
+	"fmt"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -12,7 +13,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewVMInstance(e azure.Environment) (*fakeintake.Fakeintake, error) {
+func NewVMInstance(e azure.Environment, option ...Option) (*fakeintake.Fakeintake, error) {
+	params, paramsErr := NewParams(option...)
+	if paramsErr != nil {
+		return nil, paramsErr
+	}
+
 	return components.NewComponent(&e, "fakeintake", func(fi *fakeintake.Fakeintake) error {
 
 		vm, err := compute.NewVM(e, "fakeintake", compute.WithOS(os.UbuntuDefault), compute.WithPulumiResourceOptions(pulumi.Parent(fi)))
@@ -25,7 +31,7 @@ func NewVMInstance(e azure.Environment) (*fakeintake.Fakeintake, error) {
 		}
 
 		_, err = vm.OS.Runner().Command("docker_run_fakeintake", &command.Args{
-			Create: pulumi.String("docker run --restart unless-stopped --name fakeintake -d -p 80:80 public.ecr.aws/datadog/fakeintake:latest"),
+			Create: pulumi.String(fmt.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 %s", params.ImageURL)),
 			Delete: pulumi.String("docker stop fakeintake"),
 		}, utils.PulumiDependsOn(manager), pulumi.DeleteBeforeReplace(true))
 		if err != nil {

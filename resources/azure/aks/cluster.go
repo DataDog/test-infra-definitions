@@ -23,16 +23,16 @@ const (
 	kataRuntime = "KataMshvVmIsolation"
 )
 
-func NewCluster(e azure.Environment, name string, nodePool containerservice.ManagedClusterAgentPoolProfileArray, opts ...pulumi.ResourceOption) (*containerservice.ManagedCluster, pulumi.StringOutput, error) {
+func NewCluster(e azure.Environment, name string, kataNodePoolEnabled bool, opts ...pulumi.ResourceOption) (*containerservice.ManagedCluster, pulumi.StringOutput, error) {
 	sshPublicKey, err := utils.GetSSHPublicKey(e.DefaultPublicKeyPath())
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err
 	}
 
 	// Warning: we're modifying passed array as it should normally never be used anywhere else
-	nodePool = append(nodePool, systemNodePool(e, "system"))
+	nodePool := containerservice.ManagedClusterAgentPoolProfileArray{systemNodePool(e, "system")}
 
-	if e.LinuxKataNodeGroup() {
+	if kataNodePoolEnabled {
 		nodePool = append(nodePool, kataNodePool(e))
 	}
 

@@ -24,8 +24,12 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
+	aksClusterOptions := []Option{}
+	if env.LinuxKataNodeGroup() {
+		aksClusterOptions = append(aksClusterOptions, WithKataNodePool())
+	}
 
-	aksCluster, err := NewAKSCluster(env)
+	aksCluster, err := NewAKSCluster(env, aksClusterOptions...)
 	if err != nil {
 		return err
 	}

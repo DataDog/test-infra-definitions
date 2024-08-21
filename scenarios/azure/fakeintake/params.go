@@ -3,8 +3,8 @@ package fakeintake
 import "github.com/DataDog/test-infra-definitions/common"
 
 type Params struct {
-	ImageURL        string
 	DDDevForwarding bool
+	ImageURL        string
 }
 
 type Option = func(*Params) error

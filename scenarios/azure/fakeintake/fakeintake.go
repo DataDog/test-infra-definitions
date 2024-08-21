@@ -1,7 +1,7 @@
 package fakeintake
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -14,10 +14,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewVMInstance(e azure.Environment, opts ...Option) (*fakeintake.Fakeintake, error) {
-	params, err := NewParams(opts...)
-	if err != nil {
-		return nil, err
+func NewVMInstance(e azure.Environment, option ...Option) (*fakeintake.Fakeintake, error) {
+	params, paramsErr := NewParams(option...)
+	if paramsErr != nil {
+		return nil, paramsErr
 	}
 
 	return components.NewComponent(&e, "fakeintake", func(fi *fakeintake.Fakeintake) error {
@@ -37,9 +37,9 @@ func NewVMInstance(e azure.Environment, opts ...Option) (*fakeintake.Fakeintake,
 		}
 
 		_, err = vm.OS.Runner().Command("docker_run_fakeintake", &command.Args{
-			Create: pulumi.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 -e DD_API_KEY='%s' %s %s", e.AgentAPIKey(), params.ImageURL, strings.Join(cmdArgs, " ")),
-			Delete: pulumi.String("docker stop fakeintake && docker rm fakeintake"),
-		}, utils.PulumiDependsOn(manager), pulumi.DeleteBeforeReplace(true), pulumi.ReplaceOnChanges([]string{"*"}))
+			Create: pulumi.String(fmt.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 %s", params.ImageURL)),
+			Delete: pulumi.String("docker stop fakeintake"),
+		}, utils.PulumiDependsOn(manager), pulumi.DeleteBeforeReplace(true))
 		if err != nil {
 			return err
 		}

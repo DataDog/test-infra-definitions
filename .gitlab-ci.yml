@@ -1,5 +1,5 @@
 variables:
-  BUILD_STABLE_REGISTRY: 486234852809.dkr.ecr.us-east-1.amazonaws.com
+  BUILD_STABLE_REGISTRY: registry.ddbuild.io
   CI_IMAGE_REPO: "ci/${CI_PROJECT_NAME}"
   CI_REGISTRY_IMAGE: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner"
   CI_REGISTRY_IMAGE_TEST: "$BUILD_STABLE_REGISTRY/$CI_IMAGE_REPO/runner-dev"
@@ -30,14 +30,39 @@ build-runner-image:
     - docker buildx build --no-cache --pull --push --label target=build --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} --tag ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHA:0:12} --secret id=github_token,env=GITHUB_TOKEN .
   retry: 2
 
+build-pulumi-go-main:
+  stage: build
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-agent-buildimages/deb_x64:v38375519-53773733
+  tags: ["arch:amd64"]
+  rules:
+    - when: on_success
+  script:
+    - go build -o dist/main -gcflags="all=-c=6" main.go 
+  artifacts:
+    paths:
+      - dist/main
+    expire_in: "1 day"
+  variables:
+    KUBERNETES_MEMORY_REQUEST: 12Gi
+    KUBERNETES_MEMORY_LIMIT: 16Gi
+    KUBERNETES_CPU_REQUEST: 6
 
 integration-testing:
   stage: test
   image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
   tags: ["arch:amd64"]
+  needs:
+    - build-runner-image
+    - build-pulumi-go-main
   rules:
     - when: on_success
   before_script:
+    # Setup Azure credentials. https://www.pulumi.com/registry/packages/azure-native/installation-configuration/#set-configuration-using-pulumi-config
+    # The app is called `agent-e2e-tests`
+    - export ARM_CLIENT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_id --with-decryption --query "Parameter.Value" --out text)
+    - export ARM_CLIENT_SECRET=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_secret --with-decryption --query "Parameter.Value" --out text)
+    - export ARM_TENANT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_tenant_id --with-decryption --query "Parameter.Value" --out text)
+    - export ARM_SUBSCRIPTION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_subscription_id --with-decryption --query "Parameter.Value" --out text)
     # Setup AWS Credentials
     - mkdir -p ~/.aws
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.agent-qa-profile --with-decryption --query "Parameter.Value" --out text >> ~/.aws/config
@@ -50,13 +75,17 @@ integration-testing:
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
   script:
-    - go test ./integration-tests -v -timeout 0s
+    - |
+      if [ ! -f ./dist/main ]; then 
+        echo "no main binary found, please run 'build-pulumi-go-main' job"
+        exit 1
+      fi
+    # execute test from dist directory to use the generated binary
+    - go test ./integration-tests -v -timeout 0s -workingDir=dist
   variables:
     E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
     E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key
     E2E_KEY_PAIR_NAME: e2e-integration-test-ssh-key
-    KUBERNETES_MEMORY_REQUEST: "6Gi"
-    KUBERNETES_MEMORY_LIMIT: "12Gi"
 
 release-runner-image:
   stage: release

@@ -17,7 +17,13 @@ type environmentDefault struct {
 }
 
 type awsProvider struct {
-	region string
+	region  string
+	profile string
+}
+
+type FakeintakeLBConfig struct {
+	listenerArn string
+	baseHost    string
 }
 
 type ddInfra struct {
@@ -39,8 +45,7 @@ type ddInfra struct {
 type ddInfraECS struct {
 	execKMSKeyID                  string
 	fargateFakeintakeClusterArn   string
-	fakeintakeLBListenerArn       string
-	fakeintakeLBBaseHostHeader    string
+	defaultFakeintakeLBs          []FakeintakeLBConfig
 	taskExecutionRole             string
 	taskRole                      string
 	instanceProfile               string
@@ -86,7 +91,8 @@ func getEnvironmentDefault(envName string) environmentDefault {
 func sandboxDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-sandbox-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-d1aac1a8",
@@ -128,7 +134,8 @@ func sandboxDefault() environmentDefault {
 func agentSandboxDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-agent-sandbox-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-029c0faf8f49dee8d",
@@ -145,16 +152,19 @@ func agentSandboxDefault() environmentDefault {
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
 				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs",
-				fakeintakeLBListenerArn:     "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106",
-				fakeintakeLBBaseHostHeader:  ".lb1.fi.sandbox.dda-testing.com",
-				taskExecutionRole:           "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",
-				taskRole:                    "arn:aws:iam::376334461865:role/ecsTaskRole",
-				instanceProfile:             "arn:aws:iam::376334461865:instance-profile/ecsInstanceRole",
-				serviceAllocatePublicIP:     false,
-				fargateCapacityProvider:     true,
-				linuxECSOptimizedNodeGroup:  true,
-				linuxBottlerocketNodeGroup:  true,
-				windowsLTSCNodeGroup:        true,
+				defaultFakeintakeLBs: []FakeintakeLBConfig{
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106", baseHost: ".lb1.fi.sandbox.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/3df6c797d971c13b", baseHost: ".lb2.fi.sandbox.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake3/1af15fb150ca4eb4/88e1d12c35e7aba0", baseHost: ".lb3.fi.sandbox.dda-testing.com"},
+				},
+				taskExecutionRole:          "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",
+				taskRole:                   "arn:aws:iam::376334461865:role/ecsTaskRole",
+				instanceProfile:            "arn:aws:iam::376334461865:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:    false,
+				fargateCapacityProvider:    true,
+				linuxECSOptimizedNodeGroup: true,
+				linuxBottlerocketNodeGroup: true,
+				windowsLTSCNodeGroup:       true,
 			},
 
 			eks: ddInfraEKS{
@@ -186,7 +196,8 @@ func agentSandboxDefault() environmentDefault {
 func agentQADefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-agent-qa-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-0097b9307ec2c8139",
@@ -203,16 +214,19 @@ func agentQADefault() environmentDefault {
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
 				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs",
-				fakeintakeLBListenerArn:     "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake/de7956e70776e471/ddfa738893c2dc0e",
-				fakeintakeLBBaseHostHeader:  ".lb1.fi.qa.dda-testing.com",
-				taskExecutionRole:           "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
-				taskRole:                    "arn:aws:iam::669783387624:role/ecsTaskRole",
-				instanceProfile:             "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole",
-				serviceAllocatePublicIP:     false,
-				fargateCapacityProvider:     true,
-				linuxECSOptimizedNodeGroup:  true,
-				linuxBottlerocketNodeGroup:  true,
-				windowsLTSCNodeGroup:        true,
+				defaultFakeintakeLBs: []FakeintakeLBConfig{
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake/de7956e70776e471/ddfa738893c2dc0e", baseHost: ".lb1.fi.qa.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake2/d59e26c0a29d8567/52a83f7da0f000ee", baseHost: ".lb2.fi.qa.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake3/f90da6a0eaf5638d/647ea5aff700de43", baseHost: ".lb3.fi.qa.dda-testing.com"},
+				},
+				taskExecutionRole:          "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
+				taskRole:                   "arn:aws:iam::669783387624:role/ecsTaskRole",
+				instanceProfile:            "arn:aws:iam::669783387624:instance-profile/ecsInstanceRole",
+				serviceAllocatePublicIP:    false,
+				fargateCapacityProvider:    true,
+				linuxECSOptimizedNodeGroup: true,
+				linuxBottlerocketNodeGroup: true,
+				windowsLTSCNodeGroup:       true,
 			},
 
 			eks: ddInfraEKS{
@@ -245,7 +259,8 @@ func agentQADefault() environmentDefault {
 func tsePlaygroundDefault() environmentDefault {
 	return environmentDefault{
 		aws: awsProvider{
-			region: string(aws.RegionUSEast1),
+			region:  string(aws.RegionUSEast1),
+			profile: "exec-sso-tse-playground-account-admin",
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:               "vpc-0570ac09560a97693",

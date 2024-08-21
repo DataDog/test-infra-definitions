@@ -1,19 +1,11 @@
-import json
-import os
 from typing import Optional
 
-import pyperclip
-import yaml
 from invoke.context import Context
-from invoke.exceptions import Exit
 from invoke.tasks import task
-from pydantic import ValidationError
 
-from . import config, doc, tool
-from .deploy import deploy
-from .destroy import destroy
+from tasks.aws import doc as aws_doc
 
-scenario_name = "aws/eks"
+from . import doc
 
 
 @task(
@@ -27,7 +19,7 @@ scenario_name = "aws/eks"
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
-        "instance_type": doc.instance_type,
+        "instance_type": aws_doc.instance_type,
     }
 )
 def create_eks(
@@ -44,66 +36,30 @@ def create_eks(
     windows_node_group: bool = False,
     instance_type: Optional[str] = None,
 ):
-    """
-    Create a new EKS environment. It lasts around 20 minutes.
-    """
+    print('This command is deprecated, please use `aws.create-eks` instead')
+    print("Running `aws.create-eks`...")
+    from tasks.aws.eks import create_eks as create_eks_aws
 
-    extra_flags = {}
-    extra_flags["ddinfra:aws/eks/linuxNodeGroup"] = linux_node_group
-    extra_flags["ddinfra:aws/eks/linuxARMNodeGroup"] = linux_arm_node_group
-    extra_flags["ddinfra:aws/eks/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
-    extra_flags["ddinfra:aws/eks/windowsNodeGroup"] = windows_node_group
-
-    # Override the instance type if specified
-    # ARM node groups use defaultARMInstanceType, all others (Linux, Bottlerocket, Windows) use defaultInstanceType
-    if instance_type is not None:
-        if linux_arm_node_group:
-            extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
-        else:
-            extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
-
-    full_stack_name = deploy(
+    create_eks_aws(
         ctx,
-        scenario_name,
-        debug=debug,
-        app_key_required=True,
-        stack_name=stack_name,
-        install_agent=install_agent,
-        install_workload=install_workload,
-        agent_version=agent_version,
-        extra_flags=extra_flags,
+        config_path,
+        debug,
+        stack_name,
+        install_agent,
+        install_workload,
+        agent_version,
+        linux_node_group,
+        linux_arm_node_group,
+        bottlerocket_node_group,
+        windows_node_group,
+        instance_type,
     )
-
-    tool.notify(ctx, "Your EKS cluster is now created")
-
-    _show_connection_message(ctx, full_stack_name, config_path)
-
-
-def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Optional[str]):
-    outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    kubeconfig_output = json.loads(outputs["dd-Cluster-aws-eks"]["kubeConfig"])
-    kubeconfig_content = yaml.dump(kubeconfig_output)
-    kubeconfig = f"{full_stack_name}-kubeconfig.yaml"
-    f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)
-    with open(f, "w") as f:
-        f.write(kubeconfig_content)
-
-    try:
-        local_config = config.get_local_config(config_path)
-    except ValidationError as e:
-        raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
-
-    command = f"KUBECONFIG={kubeconfig} {tool.get_aws_wrapper(local_config.get_aws().get_account())} kubectl get nodes"
-
-    print(f"\nYou can run the following command to connect to the EKS cluster\n\n{command}\n")
-
-    input("Press a key to copy command to clipboard...")
-    pyperclip.copy(command)
 
 
 @task(help={"stack_name": doc.stack_name, "yes": doc.yes})
 def destroy_eks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
-    """
-    Destroy a EKS environment created with invoke create-eks.
-    """
-    destroy(ctx, scenario_name, stack_name, force_yes=yes)
+    print('This command is deprecated, please use `aws.create-eks` instead')
+    print("Running `aws.create-eks`...")
+    from tasks.aws.eks import destroy_eks as destroy_eks_aws
+
+    destroy_eks_aws(ctx, stack_name, yes)

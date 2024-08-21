@@ -1,10 +1,7 @@
 package kubernetesagentparams
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common"
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 
@@ -39,7 +36,7 @@ type Params struct {
 	// Namespace is the namespace to deploy the agent to.
 	Namespace string
 	// HelmValues is the Helm values to use for the agent installation.
-	HelmValues string
+	HelmValues pulumi.AssetOrArchiveArray
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 	// FakeIntake is the fake intake to use for the agent installation.
@@ -48,20 +45,20 @@ type Params struct {
 	DeployWindows bool
 	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
 	DisableLogsContainerCollectAll bool
+	// DualShipping is a flag to enable dual shipping.
+	DisableDualShipping bool
+	// OTelAgent is a flag to deploy the OTel agent.
+	OTelAgent bool
+	// OTelConfig is the OTel configuration to use for the agent installation.
+	OTelConfig string
 }
 
 type Option = func(*Params) error
 
-func NewParams(e config.Env, options ...Option) (*Params, error) {
+func NewParams(options ...Option) (*Params, error) {
 	version := &Params{
 		Namespace: defaultAgentNamespace,
 	}
-
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options, WithAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
-		options = append(options, WithClusterAgentFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/cluster-agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
-	}
-
 	return common.ApplyOption(version, options)
 }
 
@@ -107,12 +104,10 @@ func WithDeployWindows() func(*Params) error {
 
 // WithHelmValues adds helm values to the agent installation. If used several times, the helm values are merged together
 // If the same values is defined several times the latter call will override the previous one.
-// TODO: If https://github.com/pulumi/pulumi-kubernetes/pull/2963 is merged we can revert https://github.com/DataDog/test-infra-definitions/pull/779
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
-		var err error
-		p.HelmValues, err = utils.MergeYAML(p.HelmValues, values)
-		return err
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))
+		return nil
 	}
 }
 
@@ -130,5 +125,35 @@ func WithoutLogsContainerCollectAll() func(*Params) error {
 	return func(p *Params) error {
 		p.DisableLogsContainerCollectAll = true
 		return nil
+	}
+}
+
+// WithoutDualShipping disables dual shipping. By default the agent is configured to send data to ddev and to the fakeintake.
+// With that flag data will be sent only to the fakeintake.
+func WithoutDualShipping() func(*Params) error {
+	return func(p *Params) error {
+		p.DisableDualShipping = true
+		return nil
+	}
+}
+
+func WithOTelAgent() func(*Params) error {
+	return func(p *Params) error {
+		p.OTelAgent = true
+		otelCollectorEnabledValues := `
+datadog:
+  otelCollector:
+    enabled: true`
+
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(otelCollectorEnabledValues))
+		return nil
+	}
+}
+
+func WithOTelConfig(config string) func(*Params) error {
+	return func(p *Params) error {
+		var err error
+		p.OTelConfig, err = utils.MergeYAML(p.OTelConfig, config)
+		return err
 	}
 }

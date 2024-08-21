@@ -1,10 +1,10 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM python:3.12-slim-bullseye AS base
+FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.21.5
-ENV GO_SHA=e2bc0b3e4b64111ec117295c088bde5f00eeed1567999ff77bc859d7df70078e
+ENV GO_VERSION=1.22.6
+ENV GO_SHA=999805bed7d9039ec3da1a53bfbcafc13e367da52aa823cb60b68ba22d44c616
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
@@ -109,10 +109,8 @@ RUN --mount=type=secret,id=github_token \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
   pulumi --logflow --logtostderr -v 5 --non-interactive plugin install && \
-  pulumi --non-interactive plugin install resource time v0.0.16 && \
   pulumi --non-interactive plugin ls && \
-  cd / && \
-  rm -rf /tmp/test-infra
+  cd /
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
@@ -121,7 +119,10 @@ RUN --mount=type=secret,id=github_token \
 RUN pip3 install "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
   pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
+  pip3 install -r /tmp/test-infra/requirements.txt & \
   go install gotest.tools/gotestsum@latest
+
+RUN rm -rf /tmp/test-infra
 
 # Configure aws retries
 COPY .awsconfig $HOME/.aws/config

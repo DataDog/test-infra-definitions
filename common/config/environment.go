@@ -7,9 +7,10 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"github.com/DataDog/test-infra-definitions/common/namer"
 )
 
 const (
@@ -46,6 +47,7 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentSite                          = "site"
+	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -87,6 +89,7 @@ type Env interface {
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
 	ResourcesTags() pulumi.StringMap
+	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
 	AgentVersion() string
@@ -117,6 +120,7 @@ type Env interface {
 type CloudEnv interface {
 	InternalDockerhubMirror() string
 	InternalRegistry() string
+	InternalRegistryImageTagExists(image, tag string) (bool, error)
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
@@ -272,6 +276,21 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) Site() string {
 	return e.AgentConfig.Get(DDAgentSite)
+}
+
+func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {
+	extraEnvVarsList := strings.Split(e.AgentConfig.Get(DDAgentExtraEnvVars), ",")
+	result := make(map[string]string, len(extraEnvVarsList))
+
+	for _, envVar := range extraEnvVarsList {
+		name, value, ok := strings.Cut(envVar, "=")
+		if !ok {
+			e.Ctx().Log.Warn(fmt.Sprintf("Invalid extraEnvVar format: %s", envVar), nil)
+			continue
+		}
+		result[name] = value
+	}
+	return result
 }
 
 // Testing workload namespace

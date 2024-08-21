@@ -10,7 +10,7 @@ import (
 )
 
 // InitHost initializes all fields of a Host component with the given connection and OS descriptor.
-func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, osUser string, readyFunc command.ReadyFunc, host *Host) error {
+func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, osUser string, password pulumi.StringOutput, readyFunc command.ReadyFunc, host *Host) error {
 	// Determine OSCommand implementation
 	var osCommand command.OSCommand
 	if osDesc.Family() == os.WindowsFamily {
@@ -38,6 +38,7 @@ func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, 
 	host.OSFamily = pulumi.Int(osDesc.Family()).ToIntOutput()
 	host.OSFlavor = pulumi.Int(osDesc.Flavor).ToIntOutput()
 	host.OSVersion = pulumi.String(osDesc.Version).ToStringOutput()
+	host.Password = password
 
 	// Set the OS for internal usage
 	host.OS = os.NewOS(e, osDesc, runner)

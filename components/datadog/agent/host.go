@@ -14,7 +14,6 @@ import (
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -116,7 +115,7 @@ func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, bas
 	// Create -> Replace -> Delete.
 	// The `DependOn` order is evaluated separately for each of these phases.
 	// Thus, when an integration is deleted, the `Create` of `restartAgentServices` is done as there's no other `Create` from other resources to wait for.
-	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependecy on `Delete` is in reverse order.
+	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependency on `Delete` is in reverse order.
 	//
 	// For this reason we have another `restartAgentServices` in `installIntegrationConfigsAndFiles` that is triggered when an integration is deleted.
 	_, err = h.manager.restartAgentServices(
@@ -137,7 +136,7 @@ func (h *HostAgent) updateCoreAgentConfig(
 	extraAgentConfig []pulumi.StringInput,
 	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, pulumi.StringInput, error) {
+) (pulumi.Resource, pulumi.StringInput, error) {
 	for _, extraConfig := range extraAgentConfig {
 		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
 	}
@@ -153,12 +152,12 @@ func (h *HostAgent) updateConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (pulumi.Resource, error) {
 	var err error
 
 	configFullPath := path.Join(h.manager.getAgentConfigFolder(), configPath)
 
-	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(configContent, configFullPath, true, opts...)
+	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(configContent, configFullPath, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +169,8 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	integrations map[string]*agentparams.FileDefinition,
 	files map[string]*agentparams.FileDefinition,
 	opts ...pulumi.ResourceOption,
-) ([]*remote.Command, string, error) {
-	allCommands := make([]*remote.Command, 0)
+) ([]pulumi.Resource, string, error) {
+	allCommands := make([]pulumi.Resource, 0)
 	var parts []string
 
 	// Build hash beforehand as we need to pass it to the restart command
@@ -205,11 +204,11 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 		configFolder := h.manager.getAgentConfigFolder()
 		fullPath := path.Join(configFolder, filePath)
 
-		cmd, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, fileDef.Permissions, opts...)
+		file, err := h.writeFileDefinition(fullPath, fileDef.Content, fileDef.UseSudo, fileDef.Permissions, opts...)
 		if err != nil {
 			return nil, "", err
 		}
-		allCommands = append(allCommands, cmd)
+		allCommands = append(allCommands, file)
 	}
 
 	for fullPath, fileDef := range files {
@@ -233,14 +232,14 @@ func (h *HostAgent) writeFileDefinition(
 	useSudo bool,
 	perms optional.Option[perms.FilePermissions],
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (pulumi.Resource, error) {
 	// create directory, if it does not exist
 	dirCommand, err := h.Host.OS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, useSudo, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
+	copyCmd, err := h.Host.OS.FileManager().CopyInlineFile(pulumi.String(content), fullPath, utils.MergeOptions(opts, utils.PulumiDependsOn(dirCommand))...)
 	if err != nil {
 		return nil, err
 	}

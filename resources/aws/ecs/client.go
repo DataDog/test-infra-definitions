@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/resources/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	awsECS "github.com/aws/aws-sdk-go-v2/service/ecs"
 )
@@ -15,10 +16,12 @@ type Client struct {
 	ctx context.Context
 }
 
-func NewECSClient(ctx context.Context, region string) (*Client, error) {
+func NewECSClient(ctx context.Context, e aws.Environment) (*Client, error) {
 	cfg, err := awsConfig.LoadDefaultConfig(ctx,
-		awsConfig.WithRegion(region),
+		awsConfig.WithRegion(e.Region()),
+		awsConfig.WithSharedConfigProfile(e.Profile()),
 	)
+
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,7 @@ type Params struct {
 	ImageURL            string
 	CPU                 int
 	Memory              int
+	DDDevForwarding     bool
 }
 
 type Option = func(*Params) error
@@ -50,6 +51,13 @@ func WithCPU(cpu int) Option {
 func WithMemory(memory int) Option {
 	return func(p *Params) error {
 		p.Memory = memory
+		return nil
+	}
+}
+
+func WithDDDevForwarding() Option {
+	return func(p *Params) error {
+		p.DDDevForwarding = true
 		return nil
 	}
 }

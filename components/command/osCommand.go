@@ -19,13 +19,6 @@ type OSCommand interface {
 		useSudo bool,
 		opts ...pulumi.ResourceOption) (*remote.Command, error)
 
-	CopyInlineFile(
-		runner *Runner,
-		fileContent pulumi.StringInput,
-		remotePath string,
-		useSudo bool,
-		opts ...pulumi.ResourceOption) (*remote.Command, error)
-
 	BuildCommandString(
 		command pulumi.StringInput,
 		env pulumi.StringMap,
@@ -34,6 +27,8 @@ type OSCommand interface {
 		user string) pulumi.StringInput
 
 	IsPathAbsolute(path string) bool
+
+	NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 // ------------------------------
@@ -61,25 +56,6 @@ func createDirectory(
 		}, opts...)
 }
 
-func copyInlineFile(
-	name string,
-	runner *Runner,
-	fileContent pulumi.StringInput,
-	useSudo bool,
-	createCmd string,
-	deleteCmd string,
-	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
-	return runner.Command(runner.namer.ResourceName("copy-file", name),
-		&Args{
-			Create:   pulumi.String(createCmd),
-			Delete:   pulumi.String(deleteCmd),
-			Stdin:    fileContent,
-			Sudo:     useSudo,
-			Triggers: pulumi.Array{pulumi.String(createCmd), fileContent, pulumi.BoolPtr(useSudo)},
-		}, opts...)
-}
-
 func buildCommandString(
 	command pulumi.StringInput,
 	envVars pulumi.StringArray,
@@ -94,4 +70,21 @@ func buildCommandString(
 	}).(pulumi.StringOutput)
 
 	return fct(envVarsStr)
+}
+
+func copyRemoteFile(
+	runner *Runner,
+	name string,
+	createCommand pulumi.StringInput,
+	deleteCommand pulumi.StringInput,
+	useSudo bool,
+	opts ...pulumi.ResourceOption,
+) (*remote.Command, error) {
+	return runner.Command(name,
+		&Args{
+			Create:   createCommand,
+			Delete:   deleteCommand,
+			Sudo:     useSudo,
+			Triggers: pulumi.Array{createCommand, deleteCommand, pulumi.BoolPtr(useSudo)},
+		}, opts...)
 }

@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
@@ -11,16 +12,12 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type EcsFargateComponent struct {
-	pulumi.ResourceState
-}
-
-func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeIntake *fakeintakeComp.Fakeintake, opts ...pulumi.ResourceOption) (*EcsFargateComponent, error) {
+func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeIntake *fakeintakeComp.Fakeintake, opts ...pulumi.ResourceOption) (*ecsComp.Workload, error) {
 	namer := e.Namer.WithPrefix("nginx").WithPrefix("fg")
 
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
-	EcsFargateComponent := &EcsFargateComponent{}
+	EcsFargateComponent := &ecsComp.Workload{}
 	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("grp"), EcsFargateComponent, opts...); err != nil {
 		return nil, err
 	}

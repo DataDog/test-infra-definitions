@@ -21,7 +21,7 @@ def create_bump_pr_and_close_stale_ones_on_datadog_agent(ctx, branch: str, new_c
 This PR was automatically created by the test-infra-definitions bump task.
 
 This PR bumps the test-infra-definitions submodule to {new_commit_sha} from {old_commit_sha}.
-Here is the full changelog between the two commits: https://github.com/DataDog/test-infra-definitions/compare/{old_commit_sha}..{new_commit_sha}
+Here is the full changelog between the two commits: https://github.com/DataDog/test-infra-definitions/compare/{old_commit_sha}...{new_commit_sha}
 
 :warning: This PR is opened with the `qa/no-code-change` and `changelog/no-changelog` labels by default. Please make sure this is appropriate
     """
@@ -60,7 +60,7 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         print("Closing PR: ", pr.html_url)
         pr.edit(state="closed")
         pr.create_issue_comment(
-            f"Closing PR since it is considered stale compared to {pr.html_url}. If you really want to merge this PR feel free to re-open it"
+            f"Closing PR since it is considered stale compared to {new_pr.html_url}. If you really want to merge this PR feel free to re-open it"
         )
         closed_stale_prs += 1
     print(f"Closed {closed_stale_prs} stale PRs")

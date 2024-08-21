@@ -26,7 +26,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.7
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.3
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.128.0
+	github.com/pulumi/pulumi/sdk/v3 v3.129.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.17
 	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.9.0

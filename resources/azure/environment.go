@@ -18,6 +18,8 @@ const (
 	azNamerNamespace  = "az"
 
 	// Azure Infra
+	DDInfraDefaultSubscriptionID           = "az/defaultSubscriptionID"
+	DDInfraDefaultContainerRegistry        = "az/defaultContainerRegistry"
 	DDInfraDefaultResourceGroup            = "az/defaultResourceGroup"
 	DDInfraDefaultVNetParamName            = "az/defaultVNet"
 	DDInfraDefaultSubnetParamName          = "az/defaultSubnet"
@@ -72,7 +74,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 // Cross Cloud Provider config
 func (e *Environment) InternalRegistry() string {
-	return "none"
+	return "agentqa.azurecr.io"
 }
 
 func (e *Environment) InternalDockerhubMirror() string {
@@ -84,6 +86,14 @@ func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) 
 }
 
 // Common
+
+func (e *Environment) DefaultSubscriptionID() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultSubscriptionID, e.envDefault.ddInfra.defaultSubscriptionID)
+}
+func (e *Environment) DefaultContainerRegistry() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultContainerRegistry, e.envDefault.ddInfra.defaultContainerRegistry)
+}
+
 func (e *Environment) DefaultResourceGroup() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultResourceGroup, e.envDefault.ddInfra.defaultResourceGroup)
 }

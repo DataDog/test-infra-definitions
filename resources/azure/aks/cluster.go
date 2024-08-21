@@ -8,6 +8,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 
+	"github.com/pulumi/pulumi-azure-native-sdk/authorization/v2"
 	"github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -67,6 +68,17 @@ func NewCluster(e azure.Environment, name string, nodePool containerservice.Mana
 		},
 		Tags: e.ResourcesTags(),
 	}, opts...)
+	if err != nil {
+		return nil, pulumi.StringOutput{}, err
+	}
+	_, err = authorization.NewRoleAssignment(e.Ctx(), e.Namer.ResourceName(name), &authorization.RoleAssignmentArgs{
+		PrincipalId: cluster.IdentityProfile.ApplyT(func(identity map[string]containerservice.UserAssignedIdentityResponse) string {
+			return *identity["kubeletidentity"].ObjectId
+		}).(pulumi.StringOutput),
+		PrincipalType:    pulumi.String("ServicePrincipal"),
+		Scope:            pulumi.String(e.DefaultContainerRegistry()),
+		RoleDefinitionId: pulumi.Sprintf("/subscriptions/%s/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d", e.DefaultSubscriptionID()),
+	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err
 	}
@@ -140,5 +152,6 @@ func BuildNodePool(params NodePoolParams) containerservice.ManagedClusterAgentPo
 		VmSize:             pulumi.String(params.InstanceType),
 		WorkloadRuntime:    pulumi.String(params.WorkloadRuntime),
 		OsSKU:              pulumi.String(params.OsSku),
+		VnetSubnetID:       pulumi.String(e.DefaultSubnet()),
 	}
 }

@@ -1066,14 +1066,6 @@ def debug_env(ctx, config_path: Optional[str] = None):
 
     print()
 
-    # Check if aws creds are valid
-    try:
-        out = ctx.run("aws sts get-caller-identity", hide=True)
-    except UnexpectedExit as e:
-        error(f"{e}")
-        error("No AWS credentials found or they are expired, please configure and/or login")
-        raise Exit(code=1)
-
     # Show AWS account info
     info("Logged-in aws account info:")
     if os.environ.get("AWS_PROFILE"):
@@ -1088,6 +1080,14 @@ def debug_env(ctx, config_path: Optional[str] = None):
             if val is None:
                 raise Exit(f"Missing env var {env}, please login with awscli/aws-vault or set AWS_PROFILE", 1)
             info(f"\t{env}={val}")
+
+    # Check if aws creds are valid
+    try:
+        out = ctx.run("aws sts get-caller-identity", hide=True)
+    except UnexpectedExit as e:
+        error(f"{e}")
+        error("No AWS credentials found or they are expired, please configure and/or login")
+        raise Exit(code=1)
 
     print()
 

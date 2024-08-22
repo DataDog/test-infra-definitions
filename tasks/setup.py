@@ -323,7 +323,9 @@ def resolve_keypair_opts(
         key_format = "pem"
     if not private_key_path:
         if default_private_key_path is None or keypair_name != default_keypair_name:
-            default_private_key_path = Path.home().joinpath(".ssh", f'id_{key_type}_{keypair_name}.{key_format}')
+            default_private_key_path = Path.home().joinpath(
+                ".ssh", f'id_{key_type or "rsa"}_{keypair_name}.{key_format}'
+            )
         while True:
             private_key_path = ask(f"🔑 Private key path (default: {default_private_key_path}): ")
             if not private_key_path:

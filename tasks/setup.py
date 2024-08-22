@@ -329,8 +329,11 @@ def resolve_keypair_opts(
         key_format = "pem"
     if not private_key_path:
         if default_private_key_path is None or keypair_name != default_keypair_name:
+            # Example: ~/.ssh/id_rsa_e2e_agent_sandbox_mykeyname.pem
+            account_part = f"{awsConf.account}_" if awsConf.account else ""
+            account_part = account_part.replace("-", "_")
             default_private_key_path = Path.home().joinpath(
-                ".ssh", f'id_{key_type or "rsa"}_{keypair_name}.{key_format}'
+                ".ssh", f'id_{key_type or "rsa"}_e2e_{keypair_name}.{key_format}'
             )
         while True:
             private_key_path = ask(f"🔑 Private key path (default: {default_private_key_path}): ")

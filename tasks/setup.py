@@ -174,6 +174,81 @@ def setupAWSConfig(ctx: Context, config: Config):
             break
         warn("Provide a non-empty team")
 
+    _setup_aws_sso_config(config)
+
+
+def _setup_aws_sso_config(config: Config):
+    if not config.configParams or not config.configParams.aws:
+        raise Exit("AWS config not found")
+
+    aws = config.configParams.aws
+
+    # agent-sandbox
+    role = 'account-admin'
+    acct_id = 376334461865
+    start_url = 'https://d-906757b57c.awsapps.com/start/#'
+    region = 'us-east-1'
+
+    aws_conf_path = Path.home().joinpath(".aws", "config")
+    profile_name = f'sso-{aws.account}-{role}'
+    sso_session_name = profile_name
+
+    # skip if profile already exists
+    if os.path.isfile(aws_conf_path):
+        with open(aws_conf_path) as f:
+            conf = f.read()
+            if profile_name in conf:
+                info(f"Profile {profile_name} already exists in {aws_conf_path}")
+                return
+
+    if not ask_yesno(f"Do you want to setup AWS SSO profile for {aws.account}?"):
+        return
+
+    # https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-sso.html#cli-configure-sso-manual
+    conf = f"""
+# BEGIN Automatically added by e2e setup script
+
+[profile {profile_name}]
+sso_session = {sso_session_name}
+sso_account_id = {acct_id}
+sso_role_name = {role}
+region = {region}
+
+[sso-session {sso_session_name}]
+sso_start_url = {start_url}
+sso_region = {region}
+sso_registration_scopes = sso:account:access
+
+[profile exec-{profile_name}]
+credential_process = aws-vault exec {profile_name} --json
+
+# END Automatically added by e2e setup script
+"""
+
+    info(conf)
+    if not ask_yesno(f"Add the above config to {aws_conf_path}"):
+        return
+
+    with open(aws_conf_path, "a") as f:
+        f.write(conf)
+
+
+@task
+def aws_sso(ctx: Context, config_path: Optional[str] = None):
+    """
+    Setup AWS SSO profile for the agent-sandbox account if it doesn't exist
+
+    Helper mainly here for Windows users who can't use the macos laptop setup script
+    """
+    try:
+        config = get_local_config(config_path)
+    except Exception as e:
+        error(f"{e}")
+        error("Failed to load config")
+        raise Exit(code=1)
+
+    _setup_aws_sso_config(config)
+
 
 def setup_azure_config(config: Config):
     if config.configParams is None:

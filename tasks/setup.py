@@ -1066,6 +1066,21 @@ def debug_env(ctx, config_path: Optional[str] = None):
 
     print()
 
+    # check .aws/config exists and contains expected profile
+    # some invoke taskes hard code this value.
+    expected_profile = 'sso-agent-sandbox-account-admin'
+    aws_conf_path = Path.home().joinpath(".aws", "config")
+    if not os.path.isfile(aws_conf_path):
+        error(f"Missing aws config file: {aws_conf_path}")
+        info("Please run `inv setup.aws-sso` or create it manually with `aws configure sso`.")
+        raise Exit(code=1)
+    with open(aws_conf_path) as f:
+        conf = f.read()
+        if expected_profile not in conf:
+            error(f"Profile {expected_profile} not found in aws config file: {aws_conf_path}")
+            info("Please run `inv setup.aws-sso` or create it manually with `aws configure sso`.")
+            raise Exit(code=1)
+
     # Show AWS account info
     info("Logged-in aws account info:")
     if os.environ.get("AWS_PROFILE"):

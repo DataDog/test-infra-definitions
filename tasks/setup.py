@@ -721,13 +721,17 @@ def _pulumi_version(ctx: Context) -> Tuple[str, bool]:
 
 
 def ssh_fingerprint_to_bytes(fingerprint: str) -> bytes:
-    out = fingerprint.strip().split(' ')[1].split(':', 1)
-    if ':' in out[1]:
+    out = fingerprint.strip().split(' ')[1]
+    if out.count(':') > 1:
+        # EXAMPLE: MD5(stdin)= 81:e4:46:e9:dd:a6:3d:41:6d:ca:94:21:5c:e5:1d:24
         # EXAMPLE: 2048 MD5:19:b3:a8:5f:13:7e:b9:d3:6c:75:20:d6:18:7f:e2:1d no comment (RSA)
-        return bytes.fromhex(out[1].replace(':', ''))
+        if out.startswith('MD5') or out.startswith('SHA'):
+            out = out.split(':', 1)[1]
+        return bytes.fromhex(out.replace(':', ''))
     else:
         # EXAMPLE: 256 SHA1:41jsg4Z9lgylj6/zmhGxtZ6/qZs testname (ED25519)
         # ssh leaves out padding but python will ignore extra padding so add the missing padding
+        out = out.split(':', 1)
         return base64.b64decode(out[1] + '==')
 
 

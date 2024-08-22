@@ -111,7 +111,7 @@ def get_aws_instance_password_data(
 ) -> str:
     buffer = StringIO()
     with ctx.cd(_get_root_path()):
-        cmd = f"aws ec2 get-password-data --instance-id {vm_id} --priv-launch-key {key_path}"
+        cmd = f'aws ec2 get-password-data --instance-id "{vm_id}" --priv-launch-key "{key_path}"'
         if use_aws_vault:
             if aws_account is None:
                 raise Exit("AWS account is required when using aws-vault.")

@@ -33,6 +33,18 @@ def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
 
+def ask_yesno(question: str, default='N') -> bool:
+    res = ""
+    yes_opts = ["y", "yes"]
+    no_opts = ["n", "no"]
+    while res.lower() not in (yes_opts + no_opts):
+        res = ask(question + f" [Y/N] Default [{default}]: ")
+        if res == "":
+            res = default
+
+    return res.lower() in yes_opts
+
+
 def debug(msg: str):
     print(colored(msg, "white"))
 
@@ -96,6 +108,22 @@ def get_aws_wrapper(
     aws_account: str,
 ) -> str:
     return f"aws-vault exec sso-{aws_account}-account-admin -- "
+
+
+def get_aws_cmd(
+    cmd: str,
+    use_aws_vault: Optional[bool] = True,
+    aws_account: Optional[str] = None,
+) -> str:
+    wrapper = ""
+    if use_aws_vault:
+        if aws_account is None:
+            raise Exit("AWS account is required when using aws-vault.")
+        wrapper = get_aws_wrapper(aws_account)
+    # specify .exe for windows to work around conflicts with aws.rb
+    aws = "aws.exe" if is_windows() else "aws"
+    cmd = f"{wrapper}{aws} {cmd}"
+    return cmd
 
 
 def is_linux():

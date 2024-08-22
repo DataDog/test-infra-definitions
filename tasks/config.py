@@ -48,7 +48,7 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
-            verifyCodeSignature: Optional[bool] = True
+            verifyCodeSignature: Optional[bool] = True  # noqa used in e2e tests
 
         agent: Optional[Agent]
 

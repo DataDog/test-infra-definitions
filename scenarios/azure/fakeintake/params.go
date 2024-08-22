@@ -3,7 +3,8 @@ package fakeintake
 import "github.com/DataDog/test-infra-definitions/common"
 
 type Params struct {
-	ImageURL string
+	DDDevForwarding bool
+	ImageURL        string
 }
 
 type Option = func(*Params) error
@@ -20,6 +21,14 @@ func NewParams(options ...Option) (*Params, error) {
 func WithImageURL(imageURL string) Option {
 	return func(p *Params) error {
 		p.ImageURL = imageURL
+		return nil
+	}
+}
+
+// WithDDDevForwarding sets the flag to enable DD Dev forwarding
+func WithDDDevForwarding() Option {
+	return func(p *Params) error {
+		p.DDDevForwarding = true
 		return nil
 	}
 }

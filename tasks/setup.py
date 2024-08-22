@@ -1076,11 +1076,18 @@ def debug_env(ctx, config_path: Optional[str] = None):
 
     # Show AWS account info
     info("Logged-in aws account info:")
-    for env in ["AWS_VAULT", "AWS_REGION"]:
-        val = os.environ.get(env, None)
-        if val is None:
-            raise Exit(f"Missing env var {env}, please login with awscli/aws-vault", 1)
-        info(f"\t{env}={val}")
+    if os.environ.get("AWS_PROFILE"):
+        info(f"\tAWS_PROFILE={os.environ.get('AWS_PROFILE')}")
+        region = os.environ.get("AWS_REGION")
+        if not region:
+            raise Exit("Missing env var AWS_REGION, please set var", 1)
+        info(f"\tAWS_REGION={region}")
+    else:
+        for env in ["AWS_VAULT", "AWS_REGION"]:
+            val = os.environ.get(env, None)
+            if val is None:
+                raise Exit(f"Missing env var {env}, please login with awscli/aws-vault or set AWS_PROFILE", 1)
+            info(f"\t{env}={val}")
 
     print()
 

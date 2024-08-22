@@ -33,7 +33,10 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-	aksCluster.Export(ctx, nil)
+	err = aksCluster.Export(ctx, nil)
+	if err != nil {
+		return err
+	}
 
 	var dependsOnCrd pulumi.ResourceOption
 

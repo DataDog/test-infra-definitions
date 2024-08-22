@@ -741,6 +741,7 @@ class KeyFingerprint(NamedTuple):
     sha1: bytes  # noqa
     sha256: bytes  # noqa
     ssh_keygen: bytes  # noqa
+    md5_import: bytes  # noqa
 
 
 class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint), ('is_rsa_pubkey', bool)])):
@@ -774,7 +775,7 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
 
     @classmethod
     def from_path(cls, ctx, path):
-        fingerprints = {'ssh_keygen': b''}
+        fingerprints = {'ssh_keygen': b'', 'md5_import': b''}
         is_rsa_pubkey = False
         with open(path, 'rb') as f:
             firstline = f.readline()
@@ -806,9 +807,15 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
                 # such that the sha256 fingerprint doesn't match ssh-agent/ssh-keygen.
                 # It seems like they're hashing the private key instead of the public key.
                 # This also means it's not possible to match a public key to an EC2 RSA fingerprint
+                # if AWS generated the private key.
                 out = ctx.run(f"ssh-keygen -l -f {path}", hide=True)
                 fingerprints['ssh_keygen'] = ssh_fingerprint_to_bytes(out.stdout.strip())
-
+                # If the key was imported to AWS, the fingerprint is calculated off the public key data
+                out = ctx.run(
+                    f"ssh-keygen -ef {path} -m PEM | openssl rsa -RSAPublicKey_in -outform DER | openssl md5 -c",
+                    hide=True,
+                )
+                fingerprints['md5_import'] = ssh_fingerprint_to_bytes(out.stdout.strip())
             else:
                 raise ValueError(f"Key file {path} is not a valid ssh key")
         # aws returns fingerprints in different formats so get a couple

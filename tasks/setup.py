@@ -858,8 +858,9 @@ def get_ssh_keys():
 def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairName: str):
     if keypair["KeyName"] != configuredKeyPairName:
         warn("WARNING: Key name does not match configured keypair name. This key will not be used for provisioning.")
-    if not keyinfo.in_ssh_agent(ctx):
-        warn("WARNING: Key missing from ssh-agent. This key will not be used for connections.")
+    if _ssh_agent_supported():
+        if not keyinfo.in_ssh_agent(ctx):
+            warn("WARNING: Key missing from ssh-agent. This key will not be used for connections.")
     if "rsa" not in keypair["KeyType"].lower():
         warn("WARNING: Key type is not RSA. This key cannot be used to decrypt Windows RDP credentials.")
 
@@ -878,18 +879,23 @@ def _is_key_encrypted(ctx: Context, path: str):
     return not _passphrase_decrypts_privatekey(ctx, path, "")
 
 
+def _ssh_agent_supported():
+    return not is_windows()
+
+
 @task(help={"config_path": doc.config_path})
 def debug_keys(ctx: Context, config_path: Optional[str] = None):
     """
     Debug E2E and test-infra-definitions SSH keys
     """
-    # Ensure ssh-agent is running
-    try:
-        ctx.run("ssh-add -l", hide=True)
-    except UnexpectedExit as e:
-        error(f"{e}")
-        error("ssh-agent not available or no keys are loaded, please start it and load your keys")
-        raise Exit(code=1)
+    if _ssh_agent_supported():
+        # Ensure ssh-agent is running
+        try:
+            ctx.run("ssh-add -l", hide=True)
+        except UnexpectedExit as e:
+            error(f"{e}")
+            error("ssh-agent not available or no keys are loaded, please start it and load your keys")
+            raise Exit(code=1)
 
     found = False
     keypairs = load_ec2_keypairs(ctx)

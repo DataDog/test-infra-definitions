@@ -77,7 +77,7 @@ func NewCluster(e azure.Environment, name string, kataNodePoolEnabled bool, opts
 		}).(pulumi.StringOutput),
 		PrincipalType:    pulumi.String("ServicePrincipal"),
 		Scope:            pulumi.String(e.DefaultContainerRegistry()),
-		RoleDefinitionId: pulumi.Sprintf("/subscriptions/%s/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d", e.DefaultSubscriptionID()),
+		RoleDefinitionId: pulumi.Sprintf("/subscriptions/%s/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d", e.DefaultSubscriptionID()), // AcrPull built-in role
 	}, e.WithProviders(config.ProviderAzure))
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err

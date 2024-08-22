@@ -1,8 +1,6 @@
 package fakeintake
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -37,7 +35,7 @@ func NewVMInstance(e azure.Environment, option ...Option) (*fakeintake.Fakeintak
 		}
 
 		_, err = vm.OS.Runner().Command("docker_run_fakeintake", &command.Args{
-			Create: pulumi.String(fmt.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 %s", params.ImageURL)),
+			Create: pulumi.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 -e DD_API_KEY=%s %s %s", e.AgentAPIKey(), params.ImageURL, cmdArgs),
 			Delete: pulumi.String("docker stop fakeintake"),
 		}, utils.PulumiDependsOn(manager), pulumi.DeleteBeforeReplace(true))
 		if err != nil {

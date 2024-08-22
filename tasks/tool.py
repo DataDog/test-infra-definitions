@@ -41,6 +41,7 @@ def ask_yesno(question: str, default='N') -> bool:
         res = ask(question + f" [Y/N] Default [{default}]: ")
         if res == "":
             res = default
+            break
 
     return res.lower() in yes_opts
 

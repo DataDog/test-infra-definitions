@@ -135,12 +135,18 @@ def setupAWSConfig(ctx: Context, config: Config):
             break
         warn(f"{config.configParams.aws.account} is not a valid aws account")
 
+    if config.configParams.aws.keyPairName and config.configParams.aws.publicKeyPath:
+        info(f"Using key pair name: {config.configParams.aws.keyPairName}")
+        info(f"Using public key path: {config.configParams.aws.publicKeyPath}")
+        info(f"Using private key path: {config.configParams.aws.privateKeyPath}")
+
     # ask user if they want to create a new key or import an existing key
     if ask_yesno("Do you want to create a new key pair?"):
         _aws_create_keypair(ctx, config, use_aws_vault=True, aws_account_name=config.configParams.aws.account)
     elif ask_yesno("Do you want to import an existing key pair?"):
         _aws_import_keypair(ctx, config, use_aws_vault=True, aws_account_name=config.configParams.aws.account)
-    else:
+
+    if not config.configParams.aws.keyPairName or not config.configParams.aws.publicKeyPath:
         warn("No key pair configured, you will need to manually configure a key pair")
 
     # check keypair name
@@ -148,7 +154,7 @@ def setupAWSConfig(ctx: Context, config: Config):
         config.options = Config.Options(checkKeyPair=False)
     default_check_key_pair = "Y" if config.options.checkKeyPair else "N"
     checkKeyPair = ask(
-        f"Do you want check that the keypair is loaded in ssh agent when creating manual environments or running e2e tests [Y/N]? Default [{default_check_key_pair}]: "
+        f"Do you want to check if the keypair is loaded in ssh agent when creating manual environments or running e2e tests [Y/N]? Default [{default_check_key_pair}]: "
     )
     if len(checkKeyPair) > 0:
         config.options.checkKeyPair = checkKeyPair.lower() == "y" or checkKeyPair.lower() == "yes"
@@ -288,7 +294,7 @@ def resolve_keypair_opts(
         raise Exit("Config is missing aws section")
     awsConf = config.configParams.aws
 
-    # defaults
+    # use local config values as defaults if they are set
     if awsConf.keyPairName:
         default_keypair_name = awsConf.keyPairName
     else:

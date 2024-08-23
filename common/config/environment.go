@@ -44,14 +44,14 @@ const (
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
 	DDOperatorVersionParamName           = "operatorVersion"
 	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
-
-	DDImagePullRegistryParamName = "imagePullRegistry"
-	DDImagePullUsernameParamName = "imagePullUsername"
-	DDImagePullPasswordParamName = "imagePullPassword"
-	DDAgentAPIKeyParamName       = "apiKey"
-	DDAgentAPPKeyParamName       = "appKey"
-	DDAgentFakeintake            = "fakeintake"
-	DDAgentSite                  = "site"
+	DDImagePullRegistryParamName         = "imagePullRegistry"
+	DDImagePullUsernameParamName         = "imagePullUsername"
+	DDImagePullPasswordParamName         = "imagePullPassword"
+	DDAgentAPIKeyParamName               = "apiKey"
+	DDAgentAPPKeyParamName               = "appKey"
+	DDAgentFakeintake                    = "fakeintake"
+	DDAgentSite                          = "site"
+	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -94,6 +94,7 @@ type Env interface {
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
 	ResourcesTags() pulumi.StringMap
+	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
 	AgentVersion() string
@@ -297,6 +298,21 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) Site() string {
 	return e.AgentConfig.Get(DDAgentSite)
+}
+
+func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {
+	extraEnvVarsList := strings.Split(e.AgentConfig.Get(DDAgentExtraEnvVars), ",")
+	result := make(map[string]string, len(extraEnvVarsList))
+
+	for _, envVar := range extraEnvVarsList {
+		name, value, ok := strings.Cut(envVar, "=")
+		if !ok {
+			e.Ctx().Log.Warn(fmt.Sprintf("Invalid extraEnvVar format: %s", envVar), nil)
+			continue
+		}
+		result[name] = value
+	}
+	return result
 }
 
 // Testing workload namespace

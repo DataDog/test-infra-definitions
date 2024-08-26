@@ -8,7 +8,7 @@ require (
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.32.1
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.32.2
 	github.com/aws/aws-sdk-go-v2/service/ecs v1.45.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
 	github.com/cenkalti/backoff/v4 v4.3.0

@@ -721,13 +721,17 @@ def _pulumi_version(ctx: Context) -> Tuple[str, bool]:
 
 
 def ssh_fingerprint_to_bytes(fingerprint: str) -> bytes:
-    out = fingerprint.strip().split(' ')[1].split(':', 1)
-    if ':' in out[1]:
+    out = fingerprint.strip().split(' ')[1]
+    if out.count(':') > 1:
+        # EXAMPLE: MD5(stdin)= 81:e4:46:e9:dd:a6:3d:41:6d:ca:94:21:5c:e5:1d:24
         # EXAMPLE: 2048 MD5:19:b3:a8:5f:13:7e:b9:d3:6c:75:20:d6:18:7f:e2:1d no comment (RSA)
-        return bytes.fromhex(out[1].replace(':', ''))
+        if out.startswith('MD5') or out.startswith('SHA'):
+            out = out.split(':', 1)[1]
+        return bytes.fromhex(out.replace(':', ''))
     else:
         # EXAMPLE: 256 SHA1:41jsg4Z9lgylj6/zmhGxtZ6/qZs testname (ED25519)
         # ssh leaves out padding but python will ignore extra padding so add the missing padding
+        out = out.split(':', 1)
         return base64.b64decode(out[1] + '==')
 
 
@@ -737,6 +741,7 @@ class KeyFingerprint(NamedTuple):
     sha1: bytes  # noqa
     sha256: bytes  # noqa
     ssh_keygen: bytes  # noqa
+    md5_import: bytes  # noqa
 
 
 class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFingerprint), ('is_rsa_pubkey', bool)])):
@@ -770,7 +775,7 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
 
     @classmethod
     def from_path(cls, ctx, path):
-        fingerprints = {'ssh_keygen': b''}
+        fingerprints = {'ssh_keygen': b'', 'md5_import': b''}
         is_rsa_pubkey = False
         with open(path, 'rb') as f:
             firstline = f.readline()
@@ -802,9 +807,15 @@ class KeyInfo(NamedTuple('KeyFingerprint', [('path', str), ('fingerprint', KeyFi
                 # such that the sha256 fingerprint doesn't match ssh-agent/ssh-keygen.
                 # It seems like they're hashing the private key instead of the public key.
                 # This also means it's not possible to match a public key to an EC2 RSA fingerprint
+                # if AWS generated the private key.
                 out = ctx.run(f"ssh-keygen -l -f {path}", hide=True)
                 fingerprints['ssh_keygen'] = ssh_fingerprint_to_bytes(out.stdout.strip())
-
+                # If the key was imported to AWS, the fingerprint is calculated off the public key data
+                out = ctx.run(
+                    f"ssh-keygen -ef {path} -m PEM | openssl rsa -RSAPublicKey_in -outform DER | openssl md5 -c",
+                    hide=True,
+                )
+                fingerprints['md5_import'] = ssh_fingerprint_to_bytes(out.stdout.strip())
             else:
                 raise ValueError(f"Key file {path} is not a valid ssh key")
         # aws returns fingerprints in different formats so get a couple
@@ -847,8 +858,9 @@ def get_ssh_keys():
 def _check_key(ctx: Context, keyinfo: KeyInfo, keypair: dict, configuredKeyPairName: str):
     if keypair["KeyName"] != configuredKeyPairName:
         warn("WARNING: Key name does not match configured keypair name. This key will not be used for provisioning.")
-    if not keyinfo.in_ssh_agent(ctx):
-        warn("WARNING: Key missing from ssh-agent. This key will not be used for connections.")
+    if _ssh_agent_supported():
+        if not keyinfo.in_ssh_agent(ctx):
+            warn("WARNING: Key missing from ssh-agent. This key will not be used for connections.")
     if "rsa" not in keypair["KeyType"].lower():
         warn("WARNING: Key type is not RSA. This key cannot be used to decrypt Windows RDP credentials.")
 
@@ -867,18 +879,23 @@ def _is_key_encrypted(ctx: Context, path: str):
     return not _passphrase_decrypts_privatekey(ctx, path, "")
 
 
+def _ssh_agent_supported():
+    return not is_windows()
+
+
 @task(help={"config_path": doc.config_path})
 def debug_keys(ctx: Context, config_path: Optional[str] = None):
     """
     Debug E2E and test-infra-definitions SSH keys
     """
-    # Ensure ssh-agent is running
-    try:
-        ctx.run("ssh-add -l", hide=True)
-    except UnexpectedExit as e:
-        error(f"{e}")
-        error("ssh-agent not available or no keys are loaded, please start it and load your keys")
-        raise Exit(code=1)
+    if _ssh_agent_supported():
+        # Ensure ssh-agent is running
+        try:
+            ctx.run("ssh-add -l", hide=True)
+        except UnexpectedExit as e:
+            error(f"{e}")
+            error("ssh-agent not available or no keys are loaded, please start it and load your keys")
+            raise Exit(code=1)
 
     found = False
     keypairs = load_ec2_keypairs(ctx)
@@ -1049,6 +1066,36 @@ def debug_env(ctx, config_path: Optional[str] = None):
 
     print()
 
+    # check .aws/config exists and contains expected profile
+    # some invoke taskes hard code this value.
+    expected_profile = 'sso-agent-sandbox-account-admin'
+    aws_conf_path = Path.home().joinpath(".aws", "config")
+    if not os.path.isfile(aws_conf_path):
+        error(f"Missing aws config file: {aws_conf_path}")
+        info("Please run `inv setup.aws-sso` or create it manually with `aws configure sso`.")
+        raise Exit(code=1)
+    with open(aws_conf_path) as f:
+        conf = f.read()
+        if expected_profile not in conf:
+            error(f"Profile {expected_profile} not found in aws config file: {aws_conf_path}")
+            info("Please run `inv setup.aws-sso` or create it manually with `aws configure sso`.")
+            raise Exit(code=1)
+
+    # Show AWS account info
+    info("Logged-in aws account info:")
+    if os.environ.get("AWS_PROFILE"):
+        info(f"\tAWS_PROFILE={os.environ.get('AWS_PROFILE')}")
+        region = os.environ.get("AWS_REGION")
+        if not region:
+            raise Exit("Missing env var AWS_REGION, please set var", 1)
+        info(f"\tAWS_REGION={region}")
+    else:
+        for env in ["AWS_VAULT", "AWS_REGION"]:
+            val = os.environ.get(env, None)
+            if val is None:
+                raise Exit(f"Missing env var {env}, please login with awscli/aws-vault or set AWS_PROFILE", 1)
+            info(f"\t{env}={val}")
+
     # Check if aws creds are valid
     try:
         out = ctx.run("aws sts get-caller-identity", hide=True)
@@ -1056,14 +1103,6 @@ def debug_env(ctx, config_path: Optional[str] = None):
         error(f"{e}")
         error("No AWS credentials found or they are expired, please configure and/or login")
         raise Exit(code=1)
-
-    # Show AWS account info
-    info("Logged-in aws account info:")
-    for env in ["AWS_VAULT", "AWS_REGION"]:
-        val = os.environ.get(env, None)
-        if val is None:
-            raise Exit(f"Missing env var {env}, please login with awscli/aws-vault", 1)
-        info(f"\t{env}={val}")
 
     print()
 

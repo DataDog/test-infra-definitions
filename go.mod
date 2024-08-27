@@ -10,17 +10,17 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
 	github.com/aws/aws-sdk-go-v2/service/ecr v1.32.1
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.41.7
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.45.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.44.0
-	github.com/pulumi/pulumi-awsx/sdk/v2 v2.13.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.47.0
+	github.com/pulumi/pulumi-awsx/sdk/v2 v2.14.0
 	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.57.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.56.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.51.0
-	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.57.0
+	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.58.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.58.0
 	github.com/pulumi/pulumi-command/sdk v1.0.1
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.5
 	github.com/pulumi/pulumi-eks/sdk/v2 v2.7.8

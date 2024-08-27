@@ -295,10 +295,6 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"value": pulumi.String("*"),
 				},
 				pulumi.StringMap{
-					"name":  pulumi.String("placeholder_env"),
-					"value": pulumi.String("placeholder_val"),
-				},
-				pulumi.StringMap{
 					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
 					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
 				},

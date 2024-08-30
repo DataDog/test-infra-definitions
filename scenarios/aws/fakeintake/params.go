@@ -19,6 +19,7 @@ func NewParams(options ...Option) (*Params, error) {
 		ImageURL:            "public.ecr.aws/datadog/fakeintake:latest",
 		CPU:                 512,
 		Memory:              1024,
+		DDDevForwarding:     true,
 	}
 	return common.ApplyOption(params, options)
 }

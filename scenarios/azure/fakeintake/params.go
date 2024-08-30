@@ -12,7 +12,8 @@ type Option = func(*Params) error
 // NewParams returns a new instance of Fakeintake Params
 func NewParams(options ...Option) (*Params, error) {
 	params := &Params{
-		ImageURL: "public.ecr.aws/datadog/fakeintake:latest",
+		ImageURL:        "public.ecr.aws/datadog/fakeintake:latest",
+		DDDevForwarding: true,
 	}
 	return common.ApplyOption(params, options)
 }

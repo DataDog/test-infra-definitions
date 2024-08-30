@@ -137,14 +137,29 @@ func (h *HostAgent) updateCoreAgentConfig(
 	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (pulumi.Resource, pulumi.StringInput, error) {
-	for _, extraConfig := range extraAgentConfig {
-		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
-	}
-	if !skipAPIKeyInConfig {
-		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
-	}
 
-	cmd, err := h.updateConfig(configPath, configContent, opts...)
+	mergedConfig := pulumi.All(configContent, extraAgentConfig, env.AgentAPIKey()).ApplyT(func(args []interface{}) (string, error) {
+		baseConfig := args[0].(string)
+		extraConfigs := args[1].([]string)
+		apiKey := args[2].(string)
+
+		if !skipAPIKeyInConfig {
+			extraConfigs = append(extraConfigs, fmt.Sprintf("api_key: %s", apiKey))
+		}
+
+		var err error
+		for _, extraConfig := range extraConfigs {
+			// recursively merge the extra config into the base config
+			baseConfig, err = utils.MergeYAML(baseConfig, extraConfig)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return baseConfig, err
+	}).(pulumi.StringOutput)
+
+	cmd, err := h.updateConfig(configPath, mergedConfig, opts...)
 	return cmd, configContent, err
 }
 

@@ -279,8 +279,15 @@ func (e *CommonEnvironment) Site() string {
 }
 
 func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {
-	extraEnvVarsList := strings.Split(e.AgentConfig.Get(DDAgentExtraEnvVars), ",")
-	result := make(map[string]string, len(extraEnvVarsList))
+	result := make(map[string]string)
+	envVars, err := e.AgentConfig.Try(DDAgentExtraEnvVars)
+
+	// If not found
+	if err != nil {
+		return result
+	}
+
+	extraEnvVarsList := strings.Split(strings.Trim(envVars, " "), ",")
 
 	for _, envVar := range extraEnvVarsList {
 		name, value, ok := strings.Cut(envVar, "=")

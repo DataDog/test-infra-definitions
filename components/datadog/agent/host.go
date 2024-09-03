@@ -137,11 +137,23 @@ func (h *HostAgent) updateCoreAgentConfig(
 	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (pulumi.Resource, pulumi.StringInput, error) {
+	var convertedArgs []interface{}
+	convertedArgs = append(convertedArgs, configContent)
+	convertedArgs = append(convertedArgs, env.AgentAPIKey())
+	for _, c := range extraAgentConfig {
+		convertedArgs = append(convertedArgs, c)
+	}
 
-	mergedConfig := pulumi.All(configContent, extraAgentConfig, env.AgentAPIKey()).ApplyT(func(args []interface{}) (string, error) {
+	mergedConfig := pulumi.All(convertedArgs...).ApplyT(func(args []interface{}) (string, error) {
 		baseConfig := args[0].(string)
-		extraConfigs := args[1].([]string)
-		apiKey := args[2].(string)
+		apiKey := args[1].(string)
+		extraConfigs := []string{}
+
+		if len(args) > 2 {
+			for _, extraConfig := range args[2:] {
+				extraConfigs = append(extraConfigs, extraConfig.(string))
+			}
+		}
 
 		if !skipAPIKeyInConfig {
 			extraConfigs = append(extraConfigs, fmt.Sprintf("api_key: %s", apiKey))

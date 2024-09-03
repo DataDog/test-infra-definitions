@@ -12,7 +12,8 @@ type Option = func(*Params) error
 // NewParams returns a new instance of Fakeintake Params
 func NewParams(options ...Option) (*Params, error) {
 	params := &Params{
-		ImageURL: "public.ecr.aws/datadog/fakeintake:latest",
+		ImageURL:        "public.ecr.aws/datadog/fakeintake:latest",
+		DDDevForwarding: true,
 	}
 	return common.ApplyOption(params, options)
 }
@@ -26,9 +27,9 @@ func WithImageURL(imageURL string) Option {
 }
 
 // WithDDDevForwarding sets the flag to enable DD Dev forwarding
-func WithDDDevForwarding() Option {
+func WithoutDDDevForwarding() Option {
 	return func(p *Params) error {
-		p.DDDevForwarding = true
+		p.DDDevForwarding = false
 		return nil
 	}
 }

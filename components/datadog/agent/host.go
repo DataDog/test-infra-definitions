@@ -147,7 +147,7 @@ func (h *HostAgent) updateCoreAgentConfig(
 	mergedConfig := pulumi.All(convertedArgs...).ApplyT(func(args []interface{}) (string, error) {
 		baseConfig := args[0].(string)
 		apiKey := args[1].(string)
-		extraConfigs := []string{}
+		extraConfigs := make([]string, 0, len(args))
 
 		if len(args) > 2 {
 			for _, extraConfig := range args[2:] {

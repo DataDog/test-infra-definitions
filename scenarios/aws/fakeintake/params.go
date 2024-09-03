@@ -56,9 +56,9 @@ func WithMemory(memory int) Option {
 	}
 }
 
-func WithDDDevForwarding() Option {
+func WithoutDDDevForwarding() Option {
 	return func(p *Params) error {
-		p.DDDevForwarding = true
+		p.DDDevForwarding = false
 		return nil
 	}
 }

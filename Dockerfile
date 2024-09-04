@@ -126,6 +126,3 @@ RUN rm -rf /tmp/test-infra
 
 # Configure aws retries
 COPY .awsconfig $HOME/.aws/config
-
-# I think it's safe to say if we're using this mega image, we want pulumi
-ENTRYPOINT ["pulumi"]

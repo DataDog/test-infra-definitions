@@ -2,7 +2,7 @@ module prometheus
 
 go 1.22
 
-require github.com/prometheus/client_golang v1.20.1
+require github.com/prometheus/client_golang v1.20.3
 
 require (
 	github.com/beorn7/perks v1.0.1 // indirect

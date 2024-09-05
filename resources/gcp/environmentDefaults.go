@@ -12,9 +12,13 @@ type environmentDefault struct {
 
 type gcpProvider struct {
 	project string
+	region  string
 }
 
 type ddInfra struct {
+	defaultInstanceType string
+	defaultNetworkName  string
+	defaultSubnetName   string
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
@@ -31,17 +35,27 @@ func getEnvironmentDefault(envName string) environmentDefault {
 func agentSandboxDefault() environmentDefault {
 	return environmentDefault{
 		gcp: gcpProvider{
-			project: "",
+			project: "datadog-agent-sandbox",
+			region:  "us-central1-a",
 		},
-		ddInfra: ddInfra{},
+		ddInfra: ddInfra{
+			defaultInstanceType: "e2-medium",
+			defaultNetworkName:  "datadog-agent-sandbox-us-central1",
+			defaultSubnetName:   "datadog-agent-sandbox-us-central1-private",
+		},
 	}
 }
 
 func agentQaDefault() environmentDefault {
 	return environmentDefault{
 		gcp: gcpProvider{
-			project: "",
+			project: "datadog-agent-qa",
+			region:  "us-central1-a",
 		},
-		ddInfra: ddInfra{},
+		ddInfra: ddInfra{
+			defaultInstanceType: "e2-medium",
+			defaultNetworkName:  "datadog-agent-qa-us-central1",
+			defaultSubnetName:   "datadog-agent-qa-us-central1-private",
+		},
 	}
 }

@@ -12,9 +12,12 @@ const (
 	gcpNamerNamespace  = "gcp"
 
 	// GCP Infra
-	DDInfraDefaultPublicKeyPath      = "gcp/defaultPublicKeyPath"
-	DDInfraDefaultPrivateKeyPath     = "gcp/defaultPrivateKeyPath"
-	DDInfraDefaultPrivateKeyPassword = "gcp/defaultPrivateKeyPassword"
+	DDInfraDefaultPublicKeyPath         = "gcp/defaultPublicKeyPath"
+	DDInfraDefaultPrivateKeyPath        = "gcp/defaultPrivateKeyPath"
+	DDInfraDefaultPrivateKeyPassword    = "gcp/defaultPrivateKeyPassword"
+	DDInfraDefaultInstanceTypeParamName = "gcp/defaultInstanceType"
+	DDInfraDefaultNetworkNameParamName  = "gcp/defaultNetworkName"
+	DDInfraDefaultSubnetNameParamName   = "gcp/defaultSubnet"
 )
 
 type Environment struct {
@@ -40,6 +43,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	gcpProvider, err := gcp.NewProvider(ctx, string(config.ProviderGCP), &gcp.ProviderArgs{
 		Project: pulumi.StringPtr(env.envDefault.gcp.project),
+		Zone:    pulumi.StringPtr(env.envDefault.gcp.region),
 	})
 	if err != nil {
 		return Environment{}, err
@@ -77,6 +81,17 @@ func (e *Environment) DefaultPrivateKeyPassword() string {
 	return e.InfraConfig.Get(DDInfraDefaultPrivateKeyPassword)
 }
 
+func (e *Environment) DefaultNetworkName() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultNetworkNameParamName, e.envDefault.ddInfra.defaultNetworkName)
+}
+
+func (e *Environment) DefaultSubnet() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultSubnetNameParamName, e.envDefault.ddInfra.defaultSubnetName)
+}
+
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
+}
+func (e *Environment) DefaultInstanceType() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
 }

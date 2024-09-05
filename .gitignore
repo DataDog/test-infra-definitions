@@ -5,6 +5,7 @@
 *.so
 *.dylib
 venv
+.python-version
 
 # Test binary, built with `go test -c`
 *.test

@@ -19,7 +19,6 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
-    install_agent_with_operator: Optional[bool] = None,
     install_updater: Optional[bool] = None,
     install_workload: Optional[bool] = None,
     agent_version: Optional[str] = None,
@@ -35,10 +34,6 @@ def deploy(
         install_agent = tool.get_default_agent_install()
     flags["ddagent:deploy"] = install_agent and not install_updater
     flags["ddupdater:deploy"] = install_updater
-
-    if install_agent_with_operator is None:
-        install_agent_with_operator = tool.get_default_agent_with_operator_install()
-    flags["ddagent:deployWithOperator"] = install_agent_with_operator
 
     if install_workload is None:
         install_workload = tool.get_default_workload_install()

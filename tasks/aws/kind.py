@@ -52,6 +52,7 @@ def create_kind(
         "ddinfra:osDescriptor": f"amazonlinuxecs::{_get_architecture(architecture)}",
         "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
         "ddinfra:aws/defaultInstanceType": "t3.xlarge",
+        "ddagent:deployWithOperator": bool(install_agent_with_operator),
     }
 
     full_stack_name = deploy(
@@ -61,7 +62,6 @@ def create_kind(
         key_pair_required=True,
         stack_name=stack_name,
         install_agent=install_agent,
-        install_agent_with_operator=install_agent_with_operator,
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,

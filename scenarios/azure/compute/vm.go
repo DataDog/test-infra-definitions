@@ -64,7 +64,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 
 		// TODO: Check support of cloud-init on Azure
 		return remote.InitHost(&e, connection.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, password, command.WaitForSuccessfulConnection, c)
-	})
+	}, vmArgs.pulumiResourceOptions...)
 }
 
 func defaultVMArgs(e azure.Environment, vmArgs *vmArgs) error {

@@ -217,7 +217,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"related_team": pulumi.String("team"),
 			},
 			"namespaceAnnotationsAsTags": pulumi.Map{
-				"related_email": pulumi.String("email"),
+				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
 			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
@@ -293,6 +293,14 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
 					"value": pulumi.String("*"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_ANNOTATIONS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesAnnotationsAsTags().toJSONString()),
 				},
 			},
 		},
@@ -545,6 +553,10 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_APM_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_LOGS_DD_URL"),
 				"value": pulumi.Sprintf("%s", fakeintake.URL),
 			},
 			pulumi.StringMap{

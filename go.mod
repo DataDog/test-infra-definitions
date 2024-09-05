@@ -1,36 +1,35 @@
 module github.com/DataDog/test-infra-definitions
 
-go 1.22.0
+go 1.22
 
 require (
-	github.com/DataDog/datadog-agent/pkg/util/optional v0.52.1
+	github.com/DataDog/datadog-agent/pkg/util/optional v0.55.2
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
-	github.com/aws/aws-sdk-go-v2 v1.30.3
+	github.com/aws/aws-sdk-go-v2 v1.30.4
 	github.com/aws/aws-sdk-go-v2/config v1.27.11
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.30.1
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.41.7
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.32.1
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.45.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.51.3
-	github.com/cenkalti/backoff/v4 v4.2.1
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.44.0
-	github.com/pulumi/pulumi-awsx/sdk/v2 v2.13.0
-	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.51.0
-	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.30.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.51.0
-	github.com/pulumi/pulumi-command/sdk v0.9.2
-	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.1
-	github.com/pulumi/pulumi-eks/sdk/v2 v2.7.6
-	github.com/pulumi/pulumi-gcp/sdk/v6 v6.67.1
-	github.com/pulumi/pulumi-gcp/sdk/v7 v7.35.0
-	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.13.1
-	github.com/pulumi/pulumi-libvirt/sdk v0.4.5
-	github.com/pulumi/pulumi-random/sdk/v4 v4.16.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.47.0
+	github.com/pulumi/pulumi-awsx/sdk/v2 v2.14.0
+	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.57.0
+	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.56.0
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.59.0
+	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.58.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.59.0
+	github.com/pulumi/pulumi-command/sdk v1.0.1
+	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.5
+	github.com/pulumi/pulumi-eks/sdk/v2 v2.7.8
+	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.17.1
+	github.com/pulumi/pulumi-libvirt/sdk v0.4.7
+	github.com/pulumi/pulumi-random/sdk/v4 v4.16.3
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.126.0
+	github.com/pulumi/pulumi/sdk/v3 v3.130.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.17
-	github.com/samber/lo v1.39.0
+	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240604190554-fc45aab8b7f8
 	gopkg.in/yaml.v3 v3.0.1
@@ -48,8 +47,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.1 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.11 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.13 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.13 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.16 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.16 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.2 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
@@ -59,7 +58,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.20.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6 // indirect
-	github.com/aws/smithy-go v1.20.3 // indirect
+	github.com/aws/smithy-go v1.20.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/charmbracelet/bubbles v0.18.0 // indirect

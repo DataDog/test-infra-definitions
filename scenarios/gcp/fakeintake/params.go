@@ -26,7 +26,7 @@ func WithImageURL(imageURL string) Option {
 	}
 }
 
-// WithDDDevForwarding sets the flag to enable DD Dev forwarding
+// WithoutDDDevForwarding sets the flag to disable DD Dev forwarding
 func WithoutDDDevForwarding() Option {
 	return func(p *Params) error {
 		p.DDDevForwarding = false

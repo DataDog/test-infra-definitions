@@ -210,8 +210,8 @@ github.com/pulumi/pulumi-aws/sdk/v6 v6.47.0 h1:DEbHd7krLB3p3Qr4PlAaEScA5mQR85jif
 github.com/pulumi/pulumi-aws/sdk/v6 v6.47.0/go.mod h1:gN/y6Gl/c6R2m1H0DlpyeyxpemtLJNhgHWcYz+vBPdo=
 github.com/pulumi/pulumi-awsx/sdk/v2 v2.14.0 h1:GknlrxIweg8X65VcxJaUVdZIHhclZjdzEWxsLGnMR2Y=
 github.com/pulumi/pulumi-awsx/sdk/v2 v2.14.0/go.mod h1:mB6jxy6GjMd1dmTA129GkHH5pyryYG/W0J1X2XznxW4=
-github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.57.0 h1:0QxN2F/yiylylNjYMqqXc5RQoKan/Pq/x1v43QaxE/c=
-github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.57.0/go.mod h1:pv7oEJtA6Tn8dnE8/xya/yCQd6GU0Br9c9nHRkW9LiQ=
+github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.59.0 h1:jNGy+nBdR1wKUUqeqjTaj3qw4/1DTUudtCkrT86tvik=
+github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.59.0/go.mod h1:z7DC69iE4gCrSZevjPlYURMpAo/eA5nmUeDb6m9D4aA=
 github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.56.0 h1:MFOd6X9FPlixzriy14fBHv7pFCCh/mu1pwHtSSjqfJ4=
 github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.56.0/go.mod h1:453Ff5wNscroYfq+zxME7Nbt7HdZv+dh0zLZwLyGBws=
 github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.59.0 h1:ijcCyi+SPlJn3aIEb4p23FTk6fxjPLtVMhfkRaKp85A=

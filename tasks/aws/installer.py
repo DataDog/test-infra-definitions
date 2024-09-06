@@ -28,7 +28,7 @@ def create_installer_lab(
         scenario_name,
         stack_name="installer-lab",
         pipeline_id=pipeline_id,
-        install_updater=True,
+        install_installer=True,
         debug=debug,
         extra_flags={"ddagent:site": site},
     )

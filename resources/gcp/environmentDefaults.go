@@ -16,9 +16,10 @@ type gcpProvider struct {
 }
 
 type ddInfra struct {
-	defaultInstanceType string
-	defaultNetworkName  string
-	defaultSubnetName   string
+	defaultInstanceType     string
+	defaultNetworkName      string
+	defaultSubnetName       string
+	defaultVMServiceAccount string
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
@@ -39,9 +40,10 @@ func agentSandboxDefault() environmentDefault {
 			region:  "us-central1-a",
 		},
 		ddInfra: ddInfra{
-			defaultInstanceType: "e2-medium",
-			defaultNetworkName:  "datadog-agent-sandbox-us-central1",
-			defaultSubnetName:   "datadog-agent-sandbox-us-central1-private",
+			defaultInstanceType:     "e2-medium",
+			defaultNetworkName:      "datadog-agent-sandbox-us-central1",
+			defaultSubnetName:       "datadog-agent-sandbox-us-central1-private",
+			defaultVMServiceAccount: "vmserviceaccount@datadog-agent-sandbox.iam.gserviceaccount.com",
 		},
 	}
 }
@@ -53,9 +55,10 @@ func agentQaDefault() environmentDefault {
 			region:  "us-central1-a",
 		},
 		ddInfra: ddInfra{
-			defaultInstanceType: "e2-medium",
-			defaultNetworkName:  "datadog-agent-qa-us-central1",
-			defaultSubnetName:   "datadog-agent-qa-us-central1-private",
+			defaultInstanceType:     "e2-medium",
+			defaultNetworkName:      "datadog-agent-qa-us-central1",
+			defaultSubnetName:       "datadog-agent-qa-us-central1-private",
+			defaultVMServiceAccount: "vmserviceaccount@datadog-agent-qa.iam.gserviceaccount.com",
 		},
 	}
 }

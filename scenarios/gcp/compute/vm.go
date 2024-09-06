@@ -14,7 +14,7 @@ import (
 )
 
 func NewVM(e gcp.Environment, name string, option ...VMOption) (*remote.Host, error) {
-	params, paramsErr := NewParams(option...)
+	params, paramsErr := newParams(option...)
 	if paramsErr != nil {
 		return nil, paramsErr
 	}
@@ -30,7 +30,7 @@ func NewVM(e gcp.Environment, name string, option ...VMOption) (*remote.Host, er
 
 	return components.NewComponent(&e, name, func(h *remote.Host) error {
 
-		vm, err := compute.NewLinuxInstance(e, e.CommonNamer().ResourceName("vm"), imageInfo.name, params.instanceType, pulumi.Parent(h))
+		vm, err := compute.NewLinuxInstance(e, e.Namer.ResourceName(name), imageInfo.name, params.instanceType, pulumi.Parent(h))
 		if err != nil {
 			return err
 		}
@@ -40,8 +40,7 @@ func NewVM(e gcp.Environment, name string, option ...VMOption) (*remote.Host, er
 			return err
 		}
 
-		remote.InitHost(&e, conn.ToConnectionOutput(), *params.osInfo, "gce", pulumi.String("").ToStringOutput(), command.WaitForSuccessfulConnection, h)
-		return nil
+		return remote.InitHost(&e, conn.ToConnectionOutput(), *params.osInfo, "gce", pulumi.String("").ToStringOutput(), command.WaitForSuccessfulConnection, h)
 	})
 }
 

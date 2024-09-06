@@ -1,13 +1,10 @@
 package compute
 
 import (
-	_ "embed"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/gcp"
 	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp/compute"
-	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp/serviceaccount"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -17,14 +14,8 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 	if err != nil {
 		return nil, err
 	}
-	_, err = serviceaccount.NewAccount(e.Ctx(), "vm-sa", &serviceaccount.AccountArgs{
-		AccountId: pulumi.String("my-vm-sa"),
-	}, e.WithProviders(config.ProviderGCP))
-	if err != nil {
-		return nil, err
-	}
-
-	instance, err := compute.NewInstance(e.Ctx(), "vm", &compute.InstanceArgs{
+	vmOpts := 
+	instance, err := compute.NewInstance(e.Ctx(), e.Namer.ResourceName(name), &compute.InstanceArgs{
 		NetworkInterfaces: compute.InstanceNetworkInterfaceArray{
 			&compute.InstanceNetworkInterfaceArgs{
 				AccessConfigs: compute.InstanceNetworkInterfaceAccessConfigArray{
@@ -34,7 +25,7 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 				Subnetwork: pulumi.String(e.DefaultSubnet()),
 			},
 		},
-		Name:        pulumi.String(e.CommonNamer().ResourceName(name)),
+		Name:        e.Namer.DisplayName(255, pulumi.String(name)),
 		MachineType: pulumi.String(instanceType),
 		Tags: pulumi.StringArray{
 			pulumi.String("appgate-gateway"),
@@ -52,11 +43,12 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 			"ssh-keys":       pulumi.Sprintf("gce:%s", sshPublicKey),
 		},
 		ServiceAccount: &compute.InstanceServiceAccountArgs{
+			Email: pulumi.String(e.DefaultVMServiceAccount()),
 			Scopes: pulumi.StringArray{
 				pulumi.String("cloud-platform"),
 			},
 		},
-	}, e.WithProviders(config.ProviderGCP))
+	}, append(opts, e.WithProviders(config.ProviderGCP))...)
 	if err != nil {
 		return nil, err
 	}

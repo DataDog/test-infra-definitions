@@ -11,7 +11,7 @@ var imageResolvers = map[os.Flavor]imageResolveFunc{
 	os.Ubuntu: resolveUbuntuImage,
 }
 
-func resolveUbuntuImage(e gcp.Environment, osInfo os.Descriptor) (string, error) {
+func resolveUbuntuImage(_ gcp.Environment, osInfo os.Descriptor) (string, error) {
 	if osInfo.Version == "" {
 		osInfo.Version = os.UbuntuDefault.Version
 	}

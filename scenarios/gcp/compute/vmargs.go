@@ -10,6 +10,6 @@ type vmArgs struct {
 
 type VMOption func(*vmArgs) error
 
-func NewParams(options ...VMOption) (*vmArgs, error) {
+func newParams(options ...VMOption) (*vmArgs, error) {
 	return &vmArgs{}, nil
 }

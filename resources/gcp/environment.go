@@ -12,12 +12,13 @@ const (
 	gcpNamerNamespace  = "gcp"
 
 	// GCP Infra
-	DDInfraDefaultPublicKeyPath         = "gcp/defaultPublicKeyPath"
-	DDInfraDefaultPrivateKeyPath        = "gcp/defaultPrivateKeyPath"
-	DDInfraDefaultPrivateKeyPassword    = "gcp/defaultPrivateKeyPassword"
-	DDInfraDefaultInstanceTypeParamName = "gcp/defaultInstanceType"
-	DDInfraDefaultNetworkNameParamName  = "gcp/defaultNetworkName"
-	DDInfraDefaultSubnetNameParamName   = "gcp/defaultSubnet"
+	DDInfraDefaultPublicKeyPath            = "gcp/defaultPublicKeyPath"
+	DDInfraDefaultPrivateKeyPath           = "gcp/defaultPrivateKeyPath"
+	DDInfraDefaultPrivateKeyPassword       = "gcp/defaultPrivateKeyPassword"
+	DDInfraDefaultInstanceTypeParamName    = "gcp/defaultInstanceType"
+	DDInfraDefaultNetworkNameParamName     = "gcp/defaultNetworkName"
+	DDInfraDefaultSubnetNameParamName      = "gcp/defaultSubnet"
+	DDInfraDefautVMServiceAccountParamName = "gcp/defaultVMServiceAccount"
 )
 
 type Environment struct {
@@ -94,4 +95,8 @@ func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 }
 func (e *Environment) DefaultInstanceType() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultInstanceTypeParamName, e.envDefault.ddInfra.defaultInstanceType)
+}
+
+func (e *Environment) DefaultVMServiceAccount() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefautVMServiceAccountParamName, e.envDefault.ddInfra.defaultVMServiceAccount)
 }

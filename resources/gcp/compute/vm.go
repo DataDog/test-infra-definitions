@@ -14,7 +14,6 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 	if err != nil {
 		return nil, err
 	}
-	vmOpts := 
 	instance, err := compute.NewInstance(e.Ctx(), e.Namer.ResourceName(name), &compute.InstanceArgs{
 		NetworkInterfaces: compute.InstanceNetworkInterfaceArray{
 			&compute.InstanceNetworkInterfaceArgs{

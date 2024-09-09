@@ -1,6 +1,9 @@
 package compute
 
-import "github.com/DataDog/test-infra-definitions/components/os"
+import (
+	"github.com/DataDog/test-infra-definitions/common"
+	"github.com/DataDog/test-infra-definitions/components/os"
+)
 
 type vmArgs struct {
 	osInfo       *os.Descriptor
@@ -8,8 +11,10 @@ type vmArgs struct {
 	imageName    string
 }
 
-type VMOption func(*vmArgs) error
+type VMOption = func(*vmArgs) error
 
 func newParams(options ...VMOption) (*vmArgs, error) {
-	return &vmArgs{}, nil
+	vmArgs := &vmArgs{}
+
+	return common.ApplyOption(vmArgs, options)
 }

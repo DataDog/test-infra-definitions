@@ -11,6 +11,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms"
 	"github.com/DataDog/test-infra-definitions/scenarios/azure/aks"
 	computerun "github.com/DataDog/test-infra-definitions/scenarios/azure/compute/run"
+	gcpcompute "github.com/DataDog/test-infra-definitions/scenarios/gcp/compute/run"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -28,6 +29,7 @@ func Scenarios() ScenarioRegistry {
 		"aws/kind":      kindvm.Run,
 		"az/vm":         computerun.VMRun,
 		"az/aks":        aks.Run,
+		"gcp/vm":        gcpcompute.VMRun,
 	}
 }
 

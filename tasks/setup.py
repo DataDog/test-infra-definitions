@@ -35,6 +35,10 @@ def setup(
     if not shutil.which("az"):
         error("Azure CLI not found, please install it: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli")
         raise Exit(code=1)
+    # Ensure gcloud cli is installed
+    if not shutil.which("gcloud"):
+        error("Gcloud CLI not found, please install it: https://cloud.google.com/sdk/docs/install")
+        raise Exit(code=1)
 
     pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
     if pulumi_up_to_date:
@@ -58,6 +62,8 @@ def setup(
         setupAWSConfig(ctx, config)
         # Azure config
         setup_azure_config(config)
+        # Gcp config
+        setup_gcp_config(config)
         # Agent config
         setupAgentConfig(config)
         # Pulumi config
@@ -252,7 +258,7 @@ def aws_sso(ctx: Context, config_path: Optional[str] = None):
 
 def setup_azure_config(config: Config):
     if config.configParams is None:
-        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None)
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None)
     if config.configParams.azure is None:
         config.configParams.azure = Config.Params.Azure(publicKeyPath=None)
 
@@ -275,6 +281,33 @@ def setup_azure_config(config: Config):
     default_account = ask(f"🔑 Default account to use, default [{config.configParams.azure.account}]: ")
     if default_account:
         config.configParams.azure.account = default_account
+
+
+def setup_gcp_config(config: Config):
+    if config.configParams is None:
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None)
+    if config.configParams.gcp is None:
+        config.configParams.gcp = Config.Params.GCP(publicKeyPath=None)
+
+    # gcp public key path
+    if config.configParams.gcp.publicKeyPath is None:
+        config.configParams.gcp.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
+    default_public_key_path = config.configParams.gcp.publicKeyPath
+    while True:
+        config.configParams.gcp.publicKeyPath = default_public_key_path
+        public_key_path = ask(
+            f"🔑 Path to your GCP public ssh key: (default: [{config.configParams.gcp.publicKeyPath}])"
+        )
+        if public_key_path:
+            config.configParams.gcp.publicKeyPath = public_key_path
+
+        if os.path.isfile(config.configParams.gcp.publicKeyPath):
+            break
+        warn(f"{config.configParams.gcp.publicKeyPath} is not a valid ssh key")
+
+    default_account = ask(f"🔑 Default account to use, default [{config.configParams.gcp.account}]: ")
+    if default_account:
+        config.configParams.gcp.account = default_account
 
 
 def setupAgentConfig(config):

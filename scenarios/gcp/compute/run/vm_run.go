@@ -16,7 +16,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	vm, err := compute.NewVM(env, "vm")
+	vm, err := compute.NewVM(env, "gcp-vm")
 	if err != nil {
 		return err
 	}

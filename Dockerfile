@@ -116,7 +116,7 @@ RUN --mount=type=secret,id=github_token \
 # Remove AWS-related deps as we already install AWS CLI v2
 # Remove PyYAML to workaround issues with cpython 3.0.0
 # https://github.com/yaml/pyyaml/issues/724#issuecomment-1638636728
-RUN pip3 install "cython<3.0.0" && \
+RUN pip3 install setuptools "cython<3.0.0" && \
   pip3 install --no-build-isolation PyYAML==5.4.1 && \
   pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
   pip3 install -r /tmp/test-infra/requirements.txt & \

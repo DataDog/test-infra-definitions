@@ -45,6 +45,13 @@ You should consider moving to the agent-sandbox account. Please follow https://d
 
         azure: Optional[Azure] = None
 
+        class GCP(BaseModel, extra=Extra.forbid):
+            _DEFAULT_ACCOUNT = "datadog-agent-sandbox"
+            publicKeyPath: Optional[str] = None
+            account: Optional[str] = _DEFAULT_ACCOUNT
+
+        gcp: Optional[GCP] = None
+
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
@@ -82,6 +89,14 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         if self.configParams.azure is None:
             return default
         return self.configParams.azure
+
+    def get_gcp(self) -> Params.GCP:
+        default = Config.Params.GCP(publicKeyPath=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.gcp is None:
+            return default
+        return self.configParams.gcp
 
     def get_aws(self) -> Params.Aws:
         default = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)

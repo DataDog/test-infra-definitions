@@ -66,6 +66,10 @@ def get_default_agent_install() -> bool:
     return True
 
 
+def get_default_agent_with_operator_install() -> bool:
+    return False
+
+
 def get_default_workload_install() -> bool:
     return True
 

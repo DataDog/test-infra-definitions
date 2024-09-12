@@ -7,6 +7,7 @@ type Params struct {
 	ImageURL            string
 	CPU                 int
 	Memory              int
+	DDDevForwarding     bool
 }
 
 type Option = func(*Params) error
@@ -18,6 +19,7 @@ func NewParams(options ...Option) (*Params, error) {
 		ImageURL:            "public.ecr.aws/datadog/fakeintake:latest",
 		CPU:                 512,
 		Memory:              1024,
+		DDDevForwarding:     true,
 	}
 	return common.ApplyOption(params, options)
 }
@@ -50,6 +52,13 @@ func WithCPU(cpu int) Option {
 func WithMemory(memory int) Option {
 	return func(p *Params) error {
 		p.Memory = memory
+		return nil
+	}
+}
+
+func WithoutDDDevForwarding() Option {
+	return func(p *Params) error {
+		p.DDDevForwarding = false
 		return nil
 	}
 }

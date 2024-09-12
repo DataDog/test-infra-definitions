@@ -80,26 +80,8 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
-	// Retry restart several time, workaround to https://datadoghq.atlassian.net/browse/WINA-747
-	cmd := `
-$tries = 0
-$sleepTime = 1
-while ($tries -lt 5) {
- & "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" restart-service 2>>stderr.txt
- $exitCode = $LASTEXITCODE
- if ($exitCode -eq 0) {
-	   break
- }
- Start-Sleep -Seconds $sleepTime
- $sleepTime = $sleepTime * 2
- $tries++ 
- }
- Get-Content stderr.txt
- Exit $exitCode
- `
-
 	cmdArgs := command.Args{
-		Create: pulumi.String(cmd),
+		Create: pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
 	}
 
 	// If a transform is provided, use it to modify the command name and args
@@ -150,7 +132,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	return finder.findVersion(fullVersion)
 }
 
-func getAgentURLFromPipelineID(pipeline string) (string, error) {
+func getAgentURLFromPipelineID(pipelineID string) (string, error) {
 	// TODO: Replace context.Background() with a Pulumi context.Context.
 	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
 	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
@@ -162,14 +144,14 @@ func getAgentURLFromPipelineID(pipeline string) (string, error) {
 
 	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: aws.String("dd-agent-mstesting"),
-		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipeline)),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
 	})
 	if err != nil {
 		return "", err
 	}
 
 	if len(result.Contents) <= 0 {
-		return "", fmt.Errorf("no agent MSI found for pipeline %v", pipeline)
+		return "", fmt.Errorf("no agent MSI found for pipeline %v", pipelineID)
 	}
 
 	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil

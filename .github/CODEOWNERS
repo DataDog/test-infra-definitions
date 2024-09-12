@@ -15,3 +15,5 @@
 /components/datadog/apps/jmxfetch       @DataDog/agent-metrics-logs
 /components/datadog/apps/logger         @DataDog/agent-metrics-logs
 /components/datadog/apps/tracegen       @DataDog/agent-apm
+/components/datadog/apps/cws            @DataDog/agent-security
+/components/datadog/apps/fips           @DataDog/agent-shared-components

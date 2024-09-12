@@ -14,7 +14,6 @@ import (
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -116,7 +115,7 @@ func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, bas
 	// Create -> Replace -> Delete.
 	// The `DependOn` order is evaluated separately for each of these phases.
 	// Thus, when an integration is deleted, the `Create` of `restartAgentServices` is done as there's no other `Create` from other resources to wait for.
-	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependecy on `Delete` is in reverse order.
+	// Then the `Delete` of `restartAgentServices` is done, which is not waiting for the `Delete` of the integration as the dependency on `Delete` is in reverse order.
 	//
 	// For this reason we have another `restartAgentServices` in `installIntegrationConfigsAndFiles` that is triggered when an integration is deleted.
 	_, err = h.manager.restartAgentServices(
@@ -137,15 +136,42 @@ func (h *HostAgent) updateCoreAgentConfig(
 	extraAgentConfig []pulumi.StringInput,
 	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.CopyFile, pulumi.StringInput, error) {
-	for _, extraConfig := range extraAgentConfig {
-		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
-	}
-	if !skipAPIKeyInConfig {
-		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+) (pulumi.Resource, pulumi.StringInput, error) {
+	var convertedArgs []interface{}
+	convertedArgs = append(convertedArgs, configContent)
+	convertedArgs = append(convertedArgs, env.AgentAPIKey())
+	for _, c := range extraAgentConfig {
+		convertedArgs = append(convertedArgs, c)
 	}
 
-	cmd, err := h.updateConfig(configPath, configContent, opts...)
+	mergedConfig := pulumi.All(convertedArgs...).ApplyT(func(args []interface{}) (string, error) {
+		baseConfig := args[0].(string)
+		apiKey := args[1].(string)
+		extraConfigs := make([]string, 0, len(args))
+
+		if len(args) > 2 {
+			for _, extraConfig := range args[2:] {
+				extraConfigs = append(extraConfigs, extraConfig.(string))
+			}
+		}
+
+		if !skipAPIKeyInConfig {
+			extraConfigs = append(extraConfigs, fmt.Sprintf("api_key: %s", apiKey))
+		}
+
+		var err error
+		for _, extraConfig := range extraConfigs {
+			// recursively merge the extra config into the base config
+			baseConfig, err = utils.MergeYAML(baseConfig, extraConfig)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return baseConfig, err
+	}).(pulumi.StringOutput)
+
+	cmd, err := h.updateConfig(configPath, mergedConfig, opts...)
 	return cmd, configContent, err
 }
 
@@ -153,7 +179,7 @@ func (h *HostAgent) updateConfig(
 	configPath string,
 	configContent pulumi.StringInput,
 	opts ...pulumi.ResourceOption,
-) (*remote.CopyFile, error) {
+) (pulumi.Resource, error) {
 	var err error
 
 	configFullPath := path.Join(h.manager.getAgentConfigFolder(), configPath)
@@ -170,8 +196,8 @@ func (h *HostAgent) installIntegrationConfigsAndFiles(
 	integrations map[string]*agentparams.FileDefinition,
 	files map[string]*agentparams.FileDefinition,
 	opts ...pulumi.ResourceOption,
-) ([]*remote.CopyFile, string, error) {
-	allCommands := make([]*remote.CopyFile, 0)
+) ([]pulumi.Resource, string, error) {
+	allCommands := make([]pulumi.Resource, 0)
 	var parts []string
 
 	// Build hash beforehand as we need to pass it to the restart command
@@ -233,7 +259,7 @@ func (h *HostAgent) writeFileDefinition(
 	useSudo bool,
 	perms optional.Option[perms.FilePermissions],
 	opts ...pulumi.ResourceOption,
-) (*remote.CopyFile, error) {
+) (pulumi.Resource, error) {
 	// create directory, if it does not exist
 	dirCommand, err := h.Host.OS.FileManager().CreateDirectoryForFile(fullPath, useSudo, opts...)
 	if err != nil {
@@ -248,7 +274,7 @@ func (h *HostAgent) writeFileDefinition(
 	// Set permissions if any
 	if value, found := perms.Get(); found {
 		if cmd := value.SetupPermissionsCommand(fullPath); cmd != "" {
-			_, err := h.Host.OS.Runner().Command(
+			return h.Host.OS.Runner().Command(
 				h.namer.ResourceName("set-permissions-"+fullPath, utils.StrHash(cmd)),
 				&command.Args{
 					Create: pulumi.String(cmd),
@@ -256,10 +282,6 @@ func (h *HostAgent) writeFileDefinition(
 					Update: pulumi.String(value.ResetPermissionsCommand(fullPath)),
 				},
 				utils.PulumiDependsOn(copyCmd))
-
-			if err != nil {
-				return nil, err
-			}
 		}
 	}
 

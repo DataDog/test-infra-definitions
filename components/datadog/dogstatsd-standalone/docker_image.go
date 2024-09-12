@@ -5,7 +5,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
 )
 
 const (
@@ -21,7 +20,7 @@ func dockerDogstatsdFullImagePath(e config.Env, repositoryPath string) string {
 
 	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		return utils.BuildDockerImagePath(fmt.Sprintf("%s/dogstatsd", aws.AgentQAECR), fmt.Sprintf("piepline-%s-%s", e.PipelineID(), e.CommitSHA()))
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/dogstatsd", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
 	}
 
 	if repositoryPath == "" {

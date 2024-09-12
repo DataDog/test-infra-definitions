@@ -28,7 +28,7 @@ type OSCommand interface {
 
 	IsPathAbsolute(path string) bool
 
-	NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error)
+	NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 // ------------------------------

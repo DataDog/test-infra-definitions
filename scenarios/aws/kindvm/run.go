@@ -5,6 +5,8 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agentwithoperatorparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
@@ -14,6 +16,9 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
+
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -78,13 +83,14 @@ func Run(ctx *pulumi.Context) error {
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
+
 		if err := fakeIntake.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 	}
 
 	// Deploy the agent
-	if awsEnv.AgentDeploy() {
+	if awsEnv.AgentDeploy() && !awsEnv.AgentDeployWithOperator() {
 		customValues := fmt.Sprintf(`
 datadog:
   kubelet:
@@ -94,22 +100,66 @@ agents:
   useHostNetwork: true
 `, kindClusterName)
 
-		helmComponent, err := agent.NewHelmInstallation(&awsEnv, agent.HelmInstallationArgs{
-			KubeProvider: kindKubeProvider,
-			Namespace:    "datadog",
-			ValuesYAML: pulumi.AssetOrArchiveArray{
-				pulumi.NewStringAsset(customValues),
-			},
-			Fakeintake: fakeIntake,
-		}, nil)
+		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
+		k8sAgentOptions = append(
+			k8sAgentOptions,
+			kubernetesagentparams.WithNamespace("datadog"),
+			kubernetesagentparams.WithHelmValues(customValues),
+		)
+		if fakeIntake != nil {
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithFakeintake(fakeIntake),
+			)
+		}
+
+		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
+
 		if err != nil {
 			return err
 		}
 
-		ctx.Export("agent-linux-helm-install-name", helmComponent.LinuxHelmReleaseName)
-		ctx.Export("agent-linux-helm-install-status", helmComponent.LinuxHelmReleaseStatus)
+		if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
 
-		dependsOnCrd = utils.PulumiDependsOn(helmComponent)
+		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+	}
+
+	// Deploy the operator
+	if awsEnv.AgentDeploy() && awsEnv.AgentDeployWithOperator() {
+		operatorOpts := make([]operatorparams.Option, 0)
+		operatorOpts = append(
+			operatorOpts,
+			operatorparams.WithNamespace("datadog"),
+		)
+
+		ddaOptions := make([]agentwithoperatorparams.Option, 0)
+		ddaOptions = append(
+			ddaOptions,
+			agentwithoperatorparams.WithNamespace("datadog"),
+			agentwithoperatorparams.WithTLSKubeletVerify(false),
+		)
+
+		if fakeIntake != nil {
+			ddaOptions = append(
+				ddaOptions,
+				agentwithoperatorparams.WithFakeIntake(fakeIntake),
+			)
+		}
+
+		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
+
+		if err != nil {
+			return err
+		}
+
+		dependsOnCrd = utils.PulumiDependsOn(operatorAgentComponent)
+
+		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
+
 	}
 
 	// Deploy standalone dogstatsd

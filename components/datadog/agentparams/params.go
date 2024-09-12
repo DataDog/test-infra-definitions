@@ -246,12 +246,17 @@ network_devices.snmp_traps.forwarder.logs_dd_url: %[1]s:80
 network_devices.snmp_traps.forwarder.logs_no_ssl: true
 network_devices.netflow.forwarder.logs_dd_url: %[1]s:80
 network_devices.netflow.forwarder.logs_no_ssl: true
+network_path.forwarder.logs_dd_url: %[1]s:80
+network_path.forwarder.logs_no_ssl: true
 container_lifecycle.logs_dd_url: %[1]s:80
 container_lifecycle.logs_no_ssl: true
 container_image.logs_dd_url: %[1]s:80
 container_image.logs_no_ssl: true
 sbom.logs_dd_url: %[1]s:80
-sbom.logs_no_ssl: true`, hostname)
+sbom.logs_no_ssl: true
+service_discovery.forwarder.logs_dd_url: %[1]s:80
+service_discovery.forwarder.logs_no_ssl: true
+`, hostname)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}
@@ -296,6 +301,14 @@ func WithAdditionalInstallParameters(parameters []string) func(*Params) error {
 func WithSkipAPIKeyInConfig() func(*Params) error {
 	return func(p *Params) error {
 		p.SkipAPIKeyInConfig = true
+		return nil
+	}
+}
+
+// WithTags add tags to the agent configuration
+func WithTags(tags []string) func(*Params) error {
+	return func(p *Params) error {
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.Sprintf("tags: [%s]", strings.Join(tags, ", ")))
 		return nil
 	}
 }

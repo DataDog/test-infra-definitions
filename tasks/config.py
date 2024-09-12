@@ -4,6 +4,7 @@ from typing import Dict, Optional
 import yaml
 from invoke.exceptions import Exit
 from pydantic import BaseModel, Extra
+from termcolor import colored
 
 from .tool import info
 
@@ -23,13 +24,38 @@ class Config(BaseModel, extra=Extra.forbid):
             def get_account(self) -> str:
                 if self.account is None:
                     return "agent-sandbox"
+                if self.account == "sandbox":
+                    print(
+                        colored(
+                            """
+Warning: You are deploying to the sandbox account, this AWS account is no longer supported.
+You should consider moving to the agent-sandbox account. Please follow https://datadoghq.atlassian.net/wiki/spaces/ADX/pages/3492282517/Getting+started+with+E2E to set it up.
+                          """,
+                            "yellow",
+                        )
+                    )
                 return self.account
 
         aws: Optional[Aws]
 
+        class Azure(BaseModel, extra=Extra.forbid):
+            _DEFAULT_ACCOUNT = "agent-sandbox"
+            publicKeyPath: Optional[str] = None
+            account: Optional[str] = _DEFAULT_ACCOUNT
+
+        azure: Optional[Azure] = None
+
+        class GCP(BaseModel, extra=Extra.forbid):
+            _DEFAULT_ACCOUNT = "datadog-agent-sandbox"
+            publicKeyPath: Optional[str] = None
+            account: Optional[str] = _DEFAULT_ACCOUNT
+
+        gcp: Optional[GCP] = None
+
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
+            verifyCodeSignature: Optional[bool] = True  # noqa used in e2e tests
 
         agent: Optional[Agent]
 
@@ -39,6 +65,8 @@ class Config(BaseModel, extra=Extra.forbid):
             verboseProgressStreams: Optional[bool] = None  # noqa used in e2e tests
 
         pulumi: Optional[Pulumi] = None
+
+        devMode: Optional[bool] = False  # noqa used in e2e tests
 
     configParams: Optional[Params] = None
 
@@ -53,6 +81,22 @@ class Config(BaseModel, extra=Extra.forbid):
         if self.options is None:
             return Config.Options(checkKeyPair=False)
         return self.options
+
+    def get_azure(self) -> Params.Azure:
+        default = Config.Params.Azure(publicKeyPath=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.azure is None:
+            return default
+        return self.configParams.azure
+
+    def get_gcp(self) -> Params.GCP:
+        default = Config.Params.GCP(publicKeyPath=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.gcp is None:
+            return default
+        return self.configParams.gcp
 
     def get_aws(self) -> Params.Aws:
         default = Config.Params.Aws(keyPairName=None, publicKeyPath=None, account=None, teamTag=None)

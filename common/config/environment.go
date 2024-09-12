@@ -7,9 +7,10 @@ import (
 	"os/user"
 	"strings"
 
-	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+
+	"github.com/DataDog/test-infra-definitions/common/namer"
 )
 
 const (
@@ -21,6 +22,7 @@ const (
 	DDTestingWorkloadNamespace = "ddtestworkload"
 	DDDogstatsdNamespace       = "dddogstatsd"
 	DDUpdaterConfigNamespace   = "ddupdater"
+	DDOperatorConfigNamespace  = "ddoperator"
 
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
@@ -30,15 +32,19 @@ const (
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
+	DDInfraInitOnly                         = "initOnly"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
+	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
 	DDAgentVersionParamName              = "version"
 	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
+	DDOperatorVersionParamName           = "operatorVersion"
+	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
 	DDImagePullRegistryParamName         = "imagePullRegistry"
 	DDImagePullUsernameParamName         = "imagePullUsername"
 	DDImagePullPasswordParamName         = "imagePullPassword"
@@ -46,6 +52,7 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentSite                          = "site"
+	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -69,6 +76,7 @@ type CommonEnvironment struct {
 	TestingWorkloadConfig *sdkconfig.Config
 	DogstatsdConfig       *sdkconfig.Config
 	UpdaterConfig         *sdkconfig.Config
+	OperatorConfig        *sdkconfig.Config
 
 	username string
 }
@@ -87,6 +95,7 @@ type Env interface {
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
 	ResourcesTags() pulumi.StringMap
+	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
 	AgentVersion() string
@@ -95,6 +104,8 @@ type Env interface {
 	ClusterAgentVersion() string
 	AgentFullImagePath() string
 	ClusterAgentFullImagePath() string
+	OperatorFullImagePath() string
+	OperatorVersion() string
 	ImagePullRegistry() string
 	ImagePullUsername() string
 	ImagePullPassword() pulumi.StringOutput
@@ -102,6 +113,7 @@ type Env interface {
 	AgentAPPKey() pulumi.StringOutput
 	AgentUseFakeintake() bool
 	TestingWorkloadDeploy() bool
+	InitOnly() bool
 	DogstatsdDeploy() bool
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
@@ -117,6 +129,7 @@ type Env interface {
 type CloudEnv interface {
 	InternalDockerhubMirror() string
 	InternalRegistry() string
+	InternalRegistryImageTagExists(image, tag string) (bool, error)
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
@@ -128,6 +141,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 		DogstatsdConfig:       sdkconfig.New(ctx, DDDogstatsdNamespace),
 		UpdaterConfig:         sdkconfig.New(ctx, DDUpdaterConfigNamespace),
 		commonNamer:           namer.NewNamer(ctx, ""),
+		OperatorConfig:        sdkconfig.New(ctx, DDOperatorConfigNamespace),
 		providerRegistry:      newProviderRegistry(ctx),
 	}
 	// store username
@@ -143,6 +157,8 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	ctx.Log.Debug(fmt.Sprintf("pipeline id: %s", env.PipelineID()), nil)
 	ctx.Log.Debug(fmt.Sprintf("deploy: %v", env.AgentDeploy()), nil)
 	ctx.Log.Debug(fmt.Sprintf("full image path: %v", env.AgentFullImagePath()), nil)
+	ctx.Log.Debug(fmt.Sprintf("deploy with Operator: %v", env.AgentDeployWithOperator()), nil)
+	ctx.Log.Debug(fmt.Sprintf("operator full image path: %v", env.OperatorFullImagePath()), nil)
 	return env, nil
 }
 
@@ -179,6 +195,10 @@ func (e *CommonEnvironment) KubernetesVersion() string {
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
 	return map[string]string{"managed-by": "pulumi", "username": e.username}
+}
+
+func (e *CommonEnvironment) InitOnly() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraInitOnly, false)
 }
 
 func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
@@ -222,6 +242,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployParamName, true)
 }
 
+func (e *CommonEnvironment) AgentDeployWithOperator() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
+}
+
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
@@ -244,6 +268,14 @@ func (e *CommonEnvironment) AgentFullImagePath() string {
 
 func (e *CommonEnvironment) ClusterAgentFullImagePath() string {
 	return e.AgentConfig.Get(DDClusterAgentFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) OperatorVersion() string {
+	return e.OperatorConfig.Get(DDOperatorVersionParamName)
+}
+
+func (e *CommonEnvironment) OperatorFullImagePath() string {
+	return e.OperatorConfig.Get(DDOperatorFullImagePathParamName)
 }
 
 func (e *CommonEnvironment) ImagePullRegistry() string {
@@ -272,6 +304,28 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) Site() string {
 	return e.AgentConfig.Get(DDAgentSite)
+}
+
+func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {
+	result := make(map[string]string)
+	envVars, err := e.AgentConfig.Try(DDAgentExtraEnvVars)
+
+	// If not found
+	if err != nil {
+		return result
+	}
+
+	extraEnvVarsList := strings.Split(strings.Trim(envVars, " "), ",")
+
+	for _, envVar := range extraEnvVarsList {
+		name, value, ok := strings.Cut(envVar, "=")
+		if !ok {
+			e.Ctx().Log.Warn(fmt.Sprintf("Invalid extraEnvVar format: %s", envVar), nil)
+			continue
+		}
+		result[name] = value
+	}
+	return result
 }
 
 // Testing workload namespace

@@ -7,5 +7,15 @@ configParams:
     keyPairName: KEY_PAIR_NAME
     publicKeyPath: PUBLIC_KEY_PATH
     teamTag: test-ci
+  azure:
+    publicKeyPath: PUBLIC_KEY_PATH
+    account: ACCOUNT
+  gcp:
+    publicKeyPath: PUBLIC_KEY_PATH
+    account: ACCOUNT
+  pulumi:
+    logLevel: 1
+    logToStdErr: true
+    verboseProgressStreams: false
 options:
   checkKeyPair: false

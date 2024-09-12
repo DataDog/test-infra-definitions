@@ -6,6 +6,8 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"sync"
 	"testing"
 	"time"
@@ -163,7 +165,7 @@ func TestUDPSender(t *testing.T) {
 	if err != nil {
 		t.Fatalf("could not listen on UDP: %v", err)
 	}
-	l.SetDeadline(time.Now().Add(1 * time.Second))
+	_ = l.SetDeadline(time.Now().Add(1 * time.Second))
 	defer l.Close()
 
 	stop := make(chan struct{})
@@ -231,4 +233,49 @@ func TestUDPSender(t *testing.T) {
 	}
 	close(stop)
 	wg.Wait()
+}
+
+func TestFileSender(t *testing.T) {
+	tempDir := t.TempDir()
+	fileToWrite := filepath.Join(tempDir, "test.log")
+	dialer, err := newFileDialer(fileToWrite)
+	if err != nil {
+		t.Fatal("Got an error during newFileDialer:", err)
+	}
+
+	l := NewLoggerHandler(dialer)
+	svr := httptest.NewServer(http.HandlerFunc(l.handleRequest))
+	defer svr.Close()
+	jsonData := []byte(`{
+				"data": [
+				  {
+					"message": "message ONE"
+				  },
+				  {
+					"message": "message TWO"
+				  }
+				]
+			  }`)
+	res, err := http.Post(svr.URL, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		t.Fatalf("could not send POST request: %v", err)
+	}
+	_, _ = io.ReadAll(res.Body)
+	_ = res.Body.Close()
+
+	if 200 != res.StatusCode {
+		t.Fatalf("Didn't get 200 status code, got %d", res.StatusCode)
+	}
+
+	dat, err := os.ReadFile(fileToWrite)
+	if err != nil {
+		t.Fatal("Got an error reading test file:", err)
+	}
+
+	expected := `message ONE
+message TWO
+`
+	if expected != string(dat) {
+		t.Fatalf("Didn't get expected log data, got '%s'", string(dat))
+	}
 }

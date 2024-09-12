@@ -10,12 +10,11 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 	"github.com/DataDog/test-infra-definitions/resources/azure/compute"
 
-	network "github.com/pulumi/pulumi-azure-native-sdk/network/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// NewVM creates an EC2 Instance and returns a Remote component.
-// Without any parameter it creates an Ubuntu VM on AMD64 architecture.
+// NewVM creates an Azure VM Instance and returns a Remote component.
+// Without any parameter it creates an Windows VM on AMD64 architecture.
 func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, error) {
 	vmArgs, err := buildArgs(params...)
 	if err != nil {
@@ -23,7 +22,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 	}
 
 	// Default missing parameters
-	if err = defaultVMArgs(vmArgs); err != nil {
+	if err = defaultVMArgs(e, vmArgs); err != nil {
 		return nil, err
 	}
 
@@ -33,16 +32,24 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 		return nil, err
 	}
 
-	// Create the EC2 instance
+	// Create the Azure VM instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		// Create the Azure instance
 		var err error
-		var nwIface *network.NetworkInterface
+		var privateIP pulumi.StringOutput
+		var password pulumi.StringOutput
 
 		if vmArgs.osInfo.Family() == os.LinuxFamily {
-			_, _, nwIface, err = compute.NewLinuxInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData))
+			_, privateIP, err = compute.NewLinuxInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData), pulumi.Parent(c))
+			if err != nil {
+				return err
+			}
+			password = pulumi.String("").ToStringOutput()
 		} else if vmArgs.osInfo.Family() == os.WindowsFamily {
-			_, _, nwIface, _, err = compute.NewWindowsInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData), nil)
+			_, privateIP, password, err = compute.NewWindowsInstance(e, c.Name(), imageInfo.urn, vmArgs.instanceType, pulumi.StringPtr(vmArgs.userData), nil, pulumi.Parent(c))
+			if err != nil {
+				return err
+			}
 		} else {
 			return fmt.Errorf("unsupported OS family %v", vmArgs.osInfo.Family())
 		}
@@ -50,21 +57,26 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 			return err
 		}
 
-		// Create connection
-		privateIP := nwIface.IpConfigurations.Index(pulumi.Int(0)).PrivateIPAddress()
-		conn, err := remote.NewConnection(privateIP.Elem(), compute.AdminUsername, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		connection, err := remote.NewConnection(privateIP, compute.AdminUsername, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
 		if err != nil {
 			return err
 		}
 
 		// TODO: Check support of cloud-init on Azure
-		return remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, command.WaitForSuccessfulConnection, c)
-	})
+		return remote.InitHost(&e, connection.ToConnectionOutput(), *vmArgs.osInfo, compute.AdminUsername, password, command.WaitForSuccessfulConnection, c)
+	}, vmArgs.pulumiResourceOptions...)
 }
 
-func defaultVMArgs(vmArgs *vmArgs) error {
+func defaultVMArgs(e azure.Environment, vmArgs *vmArgs) error {
 	if vmArgs.osInfo == nil {
-		vmArgs.osInfo = &os.UbuntuDefault
+		vmArgs.osInfo = &os.WindowsDefault
+	}
+
+	if vmArgs.instanceType == "" {
+		vmArgs.instanceType = e.DefaultInstanceType()
+		if vmArgs.osInfo.Architecture == os.ARM64Arch {
+			vmArgs.instanceType = e.DefaultARMInstanceType()
+		}
 	}
 
 	return nil

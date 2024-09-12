@@ -2,5 +2,7 @@ system_probe_config:
   enabled: true
   debug_port: 6666
   telemetry_enabled: true
+  enable_oom_kill: true
+
 network_config:
   enabled: true

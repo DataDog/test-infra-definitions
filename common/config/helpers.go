@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/Masterminds/semver"
-	"github.com/pulumi/pulumi/sdk/v3/go/auto"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -16,14 +15,6 @@ func FindEnvironmentName(environments []string, prefix string) string {
 		}
 	}
 	return ""
-}
-
-func SetConfigDefaultValue(config auto.ConfigMap, key, value string) {
-	if _, found := config[key]; !found {
-		config[key] = auto.ConfigValue{
-			Value: value,
-		}
-	}
 }
 
 func anyAgentSemverVersion(version string) (*semver.Version, error) {
@@ -40,6 +31,10 @@ func AgentSemverVersion(e Env) (*semver.Version, error) {
 
 func ClusterAgentSemverVersion(e Env) (*semver.Version, error) {
 	return anyAgentSemverVersion(e.ClusterAgentVersion())
+}
+
+func OperatorSemverVersion(e Env) (*semver.Version, error) {
+	return anyAgentSemverVersion(e.OperatorVersion())
 }
 
 func tagListToKeyValueMap(tagList []string) (map[string]string, error) {

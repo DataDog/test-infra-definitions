@@ -57,7 +57,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			namer.ResourceName("taskdef"),
 			pulumi.String("fakeintake-ecs"),
 			params.CPU, params.Memory,
-			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600)},
+			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600, params.DDDevForwarding)},
 			apiKeyParam.Name,
 			nil,
 			opts...,
@@ -68,7 +68,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		e.Ctx().Log.Info(fmt.Sprintf("Fakeintake dashboard available at: https://dddev.datadoghq.com/dashboard/xzy-ybs-wz4/e2e-tests--fake-intake?fromUser=true&tpl_var_fake_intake_task_family[0]=%s-fakeintake-ecs", e.Ctx().Stack()), nil)
 		useLoadBalancer := false
 		if params.LoadBalancerEnabled {
-			if e.ECSFakeintakeLBListenerArn() != "" {
+			if len(e.DefaultFakeintakeLBs()) != 0 {
 				useLoadBalancer = true
 			} else {
 				e.Ctx().Log.Warn("Load balancer is enabled but no listener is defined, will not use LB", nil)
@@ -103,7 +103,7 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 		var ipAddress string
 		err := backoff.Retry(func() error {
 			e.Ctx().Log.Debug("waiting for fakeintake task private ip", nil)
-			ecsClient, err := ecs.NewECSClient(e.Ctx().Context(), e.Region())
+			ecsClient, err := ecs.NewECSClient(e.Ctx().Context(), e)
 			if err != nil {
 				return err
 			}
@@ -115,11 +115,12 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 			return err
 		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
 		if err != nil {
+			e.Ctx().Log.Warn(fmt.Sprintf("error while waiting for fakeintake task private ip: %v", err), nil)
 			return nil, err
 		}
 
 		// fail the deployment if the fakeintake is not healthy
-		e.Ctx().Log.Info(fmt.Sprintf("Waiting for fakeintake at %s to be healthy", ipAddress), nil)
+		e.Ctx().Log.Info(fmt.Sprintf("waiting for fakeintake at %s to be healthy", ipAddress), nil)
 		healthURL := buildFakeIntakeURL("http", ipAddress, "/fakeintake/health", httpPort)
 		err = backoff.Retry(func() error {
 			e.Ctx().Log.Debug(fmt.Sprintf("getting fakeintake health at %s", healthURL), nil)
@@ -135,8 +136,10 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 			return nil
 		}, backoff.WithMaxRetries(backoff.NewConstantBackOff(sleepInterval), maxRetries))
 		if err != nil {
+			e.Ctx().Log.Warn(fmt.Sprintf("error while waiting for fakeintake at %s: %v", ipAddress, err), nil)
 			return nil, err
 		}
+		e.Ctx().Log.Info(fmt.Sprintf("fakeintake healthy at %s", ipAddress), nil)
 
 		return []string{ipAddress, buildFakeIntakeURL("http", ipAddress, "", httpPort)}, nil
 	}).(pulumi.StringArrayOutput)
@@ -164,14 +167,16 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 
 	// Hashing fakeintake resource name as prefix for Host header
 	hostPrefix := utils.StrHash(namer.ResourceName(e.Ctx().Stack()))
-	host := hostPrefix + e.ECSFakeintakeLBBaseHost()
+	host := pulumi.Sprintf("%s%s", hostPrefix, e.ECSFakeintakeLBBaseHost())
 
 	_, err = clb.NewListenerRule(e.Ctx(), namer.ResourceName(hostPrefix), &clb.ListenerRuleArgs{
-		ListenerArn: pulumi.String(e.ECSFakeintakeLBListenerArn()),
+		ListenerArn: e.ECSFakeintakeLBListenerArn(),
 		Conditions: clb.ListenerRuleConditionArray{
 			clb.ListenerRuleConditionArgs{
 				HostHeader: clb.ListenerRuleConditionHostHeaderArgs{
-					Values: pulumi.ToStringArray([]string{host}),
+					Values: host.ApplyT(func(host string) []string {
+						return []string{host}
+					}).(pulumi.StringArrayOutput),
 				},
 			},
 		},
@@ -201,16 +206,22 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 
 	fi.Scheme = "https"
 	fi.Port = httpsPort
-	fi.Host = pulumi.String(host).ToStringOutput()
-	fi.URL = pulumi.String(fi.Scheme + "://" + host).ToStringOutput()
+	fi.Host = host
+	fi.URL = pulumi.Sprintf("%s://%s", fi.Scheme, host)
 	return nil
 }
 
-func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput, GoMemLimitMiB int) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
+func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput, GoMemLimitMiB int, dddevForwarding bool) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
+	command := []string{}
+	if dddevForwarding {
+		command = append(command, "--dddev-forward")
+	}
+
 	return &awsxEcs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
 		Image:       pulumi.String(imageURL),
 		Essential:   pulumi.BoolPtr(true),
+		Command:     pulumi.ToStringArray(command),
 		MountPoints: awsxEcs.TaskDefinitionMountPointArray{},
 		Environment: awsxEcs.TaskDefinitionKeyValuePairArray{
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
@@ -219,7 +230,13 @@ func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.
 			},
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("STORAGE_DRIVER"),
-				Value: pulumi.StringPtr("sql"),
+				Value: pulumi.StringPtr("memory"),
+			},
+		},
+		Secrets: awsxEcs.TaskDefinitionSecretArray{
+			awsxEcs.TaskDefinitionSecretArgs{
+				Name:      pulumi.String("DD_API_KEY"),
+				ValueFrom: apiKeySSMParamName,
 			},
 		},
 		PortMappings: awsxEcs.TaskDefinitionPortMappingArray{

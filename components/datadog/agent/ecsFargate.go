@@ -1,17 +1,17 @@
 package agent
 
 import (
+	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-
-	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest")
+		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest", false)
 	}
 
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
@@ -19,7 +19,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 		Name:      pulumi.String("datadog-agent"),
 		Image:     pulumi.String(image),
 		Essential: pulumi.BoolPtr(true),
-		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
+		Environment: append(append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
 				Value: pulumi.StringPtr("/var/run/datadog/dsd.socket"),
@@ -40,7 +40,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 				Name:  pulumi.StringPtr("DD_TELEMETRY_CHECKS"),
 				Value: pulumi.StringPtr("*"),
 			},
-		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
+		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...), ecsAgentAdditionalEnvFromConfig(e)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
 				Name:      pulumi.String("DD_API_KEY"),
@@ -81,5 +81,48 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 				},
 			)),
 		},
+	}
+}
+
+// ECSFargateWindowsContainerDefinition returns the container definition for the Windows agent running on ECS Fargate.
+// Firelens is not supported. Logs could be collected if sent to cloudwatch using the `awslogs` driver. See:
+// https://docs.aws.amazon.com/AmazonECS/latest/developerguide/tutorial-deploy-fluentbit-on-windows.html
+func ECSFargateWindowsContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) *ecs.TaskDefinitionContainerDefinitionArgs {
+	if image == "" {
+		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest", false)
+	}
+
+	return &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:       pulumi.IntPtr(0),
+		Name:      pulumi.String("datadog-agent"),
+		Image:     pulumi.String(image),
+		Essential: pulumi.BoolPtr(true),
+		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("ECS_FARGATE"),
+				Value: pulumi.StringPtr("true"),
+			},
+			ecs.TaskDefinitionKeyValuePairArgs{
+				Name:  pulumi.StringPtr("DD_CHECKS_TAG_CARDINALITY"),
+				Value: pulumi.StringPtr("high"),
+			},
+		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...),
+		Secrets: ecs.TaskDefinitionSecretArray{
+			ecs.TaskDefinitionSecretArgs{
+				Name:      pulumi.String("DD_API_KEY"),
+				ValueFrom: apiKeySSMParamName,
+			},
+		},
+		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
+			Retries:     pulumi.IntPtr(2),
+			Command:     pulumi.ToStringArray([]string{"CMD-SHELL", "agent health"}),
+			StartPeriod: pulumi.IntPtr(10),
+			Interval:    pulumi.IntPtr(30),
+			Timeout:     pulumi.IntPtr(5),
+		},
+		// Firelens is not compatible with windows containers
+		PortMappings:     ecs.TaskDefinitionPortMappingArray{},
+		VolumesFrom:      ecs.TaskDefinitionVolumeFromArray{},
+		WorkingDirectory: pulumi.String(`C:\`),
 	}
 }

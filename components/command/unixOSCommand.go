@@ -72,12 +72,12 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 	return strings.HasPrefix(path, "/")
 }
 
-func (fs unixOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (*remote.CopyFile, error) {
+func (fs unixOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	tempRemotePath := localPath.ToStringOutput().ApplyT(func(path string) string {
 		return filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
 
-	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy-", name), &remote.CopyFileArgs{
+	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: runner.config.connection,
 		LocalPath:  localPath,
 		RemotePath: tempRemotePath,
@@ -88,12 +88,12 @@ func (fs unixOSCommand) NewCopyFile(runner *Runner, name string, localPath, remo
 		return nil, err
 	}
 
-	_, err = fs.copyRemoteFile(runner, name, tempRemotePath, remotePath, true, utils.PulumiDependsOn(tempCopyFile))
+	moveCommand, err := fs.moveRemoteFile(runner, name, tempRemotePath, remotePath, true, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCopyFile))...)
 	if err != nil {
 		return nil, err
 	}
 
-	return tempCopyFile, err
+	return moveCommand, err
 }
 
 func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {
@@ -117,10 +117,10 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool,
 	return formattedCommand
 }
 
-func (fs unixOSCommand) copyRemoteFile(runner *Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
-	var backupPath pulumi.StringInput = pulumi.Sprintf("%v.%s", destination, backupExtension)
-	var copyCommand pulumi.StringInput = pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
-	var createCommand pulumi.StringInput = pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
-	var deleteCommand pulumi.StringInput = pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
-	return copyRemoteFile(runner, fmt.Sprintf("copy-file-%s", filepath.Base(name)), createCommand, deleteCommand, sudo, opts...)
+func (fs unixOSCommand) moveRemoteFile(runner *Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
+	copyCommand := pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
+	createCommand := pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
+	deleteCommand := pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
+	return copyRemoteFile(runner, fmt.Sprintf("move-file-%s", name), createCommand, deleteCommand, sudo, utils.MergeOptions(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))...)
 }

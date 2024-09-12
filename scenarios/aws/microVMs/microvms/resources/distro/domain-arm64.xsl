@@ -27,6 +27,7 @@
         <commandline xmlns="http://libvirt.org/schemas/domain/qemu/1.0">
             {commandLine}
         </commandline>
+        <memballoon model="virtio" autodeflate="on" />
         <xsl:copy>
             <xsl:apply-templates select="@*|node()" />
         </xsl:copy>

@@ -28,6 +28,7 @@ type Host struct {
 
 	Address      pulumi.StringOutput `pulumi:"address"`
 	Username     pulumi.StringOutput `pulumi:"username"`
+	Password     pulumi.StringOutput `pulumi:"password"`
 	Architecture pulumi.StringOutput `pulumi:"architecture"`
 	OSFamily     pulumi.IntOutput    `pulumi:"osFamily"`
 	OSFlavor     pulumi.IntOutput    `pulumi:"osFlavor"`

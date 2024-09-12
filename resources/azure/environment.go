@@ -1,9 +1,14 @@
 package azure
 
 import (
+	"fmt"
+	"os"
+	"os/exec"
+	"strings"
+	"time"
+
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-
 	sdkazure "github.com/pulumi/pulumi-azure-native-sdk/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -13,6 +18,8 @@ const (
 	azNamerNamespace  = "az"
 
 	// Azure Infra
+	DDInfraDefaultSubscriptionID           = "az/defaultSubscriptionID"
+	DDInfraDefaultContainerRegistry        = "az/defaultContainerRegistry"
 	DDInfraDefaultResourceGroup            = "az/defaultResourceGroup"
 	DDInfraDefaultVNetParamName            = "az/defaultVNet"
 	DDInfraDefaultSubnetParamName          = "az/defaultSubnet"
@@ -34,6 +41,7 @@ type Environment struct {
 }
 
 var _ config.Env = (*Environment)(nil)
+var pulumiEnvVariables = []string{"ARM_SUBSCRIPTION_ID", "ARM_TENANT_ID", "ARM_CLIENT_ID", "ARM_CLIENT_SECRET"}
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
@@ -46,10 +54,14 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.CommonEnvironment = &commonEnv
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), azNamerNamespace))
 
+	// TODO: Remove this when we find a better way to automatically log in
+	logIn(ctx, env.envDefault.azure.subscriptionID)
+
 	azureProvider, err := sdkazure.NewProvider(ctx, string(config.ProviderAzure), &sdkazure.ProviderArgs{
 		DisablePulumiPartnerId: pulumi.BoolPtr(true),
 		SubscriptionId:         pulumi.StringPtr(env.envDefault.azure.subscriptionID),
 		TenantId:               pulumi.StringPtr(env.envDefault.azure.tenantID),
+		Location:               pulumi.StringPtr(env.envDefault.azure.location),
 	})
 	if err != nil {
 		return Environment{}, err
@@ -61,14 +73,26 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 // Cross Cloud Provider config
 func (e *Environment) InternalRegistry() string {
-	return "none"
+	return "agentqa.azurecr.io"
 }
 
 func (e *Environment) InternalDockerhubMirror() string {
 	return "registry-1.docker.io"
 }
 
+func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) {
+	return true, nil
+}
+
 // Common
+
+func (e *Environment) DefaultSubscriptionID() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultSubscriptionID, e.envDefault.ddInfra.defaultSubscriptionID)
+}
+func (e *Environment) DefaultContainerRegistry() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultContainerRegistry, e.envDefault.ddInfra.defaultContainerRegistry)
+}
+
 func (e *Environment) DefaultResourceGroup() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultResourceGroup, e.envDefault.ddInfra.defaultResourceGroup)
 }
@@ -112,4 +136,48 @@ func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 // LinuxKataNodeGroup Whether to deploy a kata node pool
 func (e *Environment) LinuxKataNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraAksLinuxKataNodeGroup, e.envDefault.ddInfra.aks.linuxKataNodeGroup)
+}
+
+func logIn(ctx *pulumi.Context, subscription string) {
+	// Don't log in if the env variables are already set, used to avoid running `az login` in CI
+	envVariablesSet := true
+	for _, envVar := range pulumiEnvVariables {
+		if os.Getenv(envVar) == "" {
+			envVariablesSet = false
+			break
+		}
+	}
+
+	if envVariablesSet {
+		return
+	}
+
+	cmd := exec.Command("az", "account", "show", "--subscription", subscription)
+	shouldLogIn := false
+
+	if err := cmd.Run(); err != nil {
+		shouldLogIn = true
+	} else {
+		// Check the token is not expired
+		cmd = exec.Command("az", "account", "get-access-token", "--query", "\"expiresOn\"", "--output", "tsv")
+		out, err := cmd.Output()
+
+		if err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `az account get-access-token`: %v", err), nil)
+			shouldLogIn = true
+		} else {
+			tt, err := time.Parse(time.DateTime, strings.TrimSpace(string(out)))
+			if err != nil {
+				ctx.Log.Error(fmt.Sprintf("Error parsing the token expiration date`: %v", err), nil)
+			} else {
+				shouldLogIn = tt.Before(time.Now())
+			}
+		}
+	}
+
+	if shouldLogIn {
+		if err := exec.Command("az", "login").Run(); err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `az login`: %v", err), nil)
+		}
+	}
 }

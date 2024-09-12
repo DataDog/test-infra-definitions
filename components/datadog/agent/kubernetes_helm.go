@@ -1,7 +1,10 @@
 package agent
 
 import (
+	"fmt"
+
 	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -27,7 +30,7 @@ type HelmInstallationArgs struct {
 	// Namespace is the namespace in which to install the agent
 	Namespace string
 	// ValuesYAML is used to provide installation-specific values
-	ValuesYAML pulumi.AssetOrArchiveArrayInput
+	ValuesYAML pulumi.AssetOrArchiveArray
 	// Fakeintake is used to configure the agent to send data to a fake intake
 	Fakeintake *fakeintake.Fakeintake
 	// DeployWindows is used to deploy the Windows agent
@@ -38,6 +41,12 @@ type HelmInstallationArgs struct {
 	ClusterAgentFullImagePath string
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
+	// DisableDualShipping is used to disable dual-shipping
+	DisableDualShipping bool
+	// OTelAgent is used to deploy the OTel agent instead of the classic agent
+	OTelAgent bool
+	// OTelConfig is used to provide a custom OTel configuration
+	OTelConfig string
 }
 
 type HelmComponent struct {
@@ -54,7 +63,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	baseName := "dda"
-	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
+	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
@@ -112,7 +121,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "")
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
@@ -125,17 +134,26 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := baseName + "-linux"
+
 	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake)
+	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
+
+	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
+
+	var valuesYAML pulumi.AssetOrArchiveArray
+	valuesYAML = append(valuesYAML, defaultYAMLValues)
+	valuesYAML = append(valuesYAML, args.ValuesYAML...)
+	if args.OTelAgent {
+		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
+	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
 		ChartName:   "datadog",
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
-		ValuesYAML:  args.ValuesYAML,
-		Values:      pulumi.Map(values),
+		ValuesYAML:  valuesYAML,
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -152,7 +170,12 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake)
+		values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
+		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
+
+		var windowsValuesYAML pulumi.AssetOrArchiveArray
+		windowsValuesYAML = append(windowsValuesYAML, defaultYAMLValues)
+		windowsValuesYAML = append(windowsValuesYAML, args.ValuesYAML...)
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -160,8 +183,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 			ChartName:   "datadog",
 			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
-			ValuesYAML:  args.ValuesYAML,
-			Values:      pulumi.Map(values),
+			ValuesYAML:  windowsValuesYAML,
 		}, opts...)
 		if err != nil {
 			return nil, err
@@ -191,6 +213,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"checksCardinality":    pulumi.String("high"),
+			"namespaceLabelsAsTags": pulumi.Map{
+				"related_team": pulumi.String("team"),
+			},
+			"namespaceAnnotationsAsTags": pulumi.Map{
+				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
+			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
 				"containerCollectAll": pulumi.Bool(logsContainerCollectAll),
@@ -265,6 +293,14 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
 					"value": pulumi.String("*"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_ANNOTATIONS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesAnnotationsAsTags().toJSONString()),
 				},
 			},
 		},
@@ -453,63 +489,145 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 }
 
-func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake) {
+func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintake.Fakeintake, dualShipping bool) {
 	if fakeintake == nil {
 		return
 	}
 
-	if fakeintake.Scheme != "https" {
-		e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
-	}
-
-	additionalEndpointsEnvVar := pulumi.StringMapArray{
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
-			"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
-		},
+	var endpointsEnvVar pulumi.StringMapArray
+	if dualShipping {
+		if fakeintake.Scheme != "https" {
+			e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
+		}
+		endpointsEnvVar = pulumi.StringMapArray{
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_PROCESS_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`{"%s": ["FAKEAPIKEY"]}`, fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_CONTAINER_IMAGE_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_CONTAINER_LIFECYCLE_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_SBOM_ADDITIONAL_ENDPOINTS"),
+				"value": pulumi.Sprintf(`[{"host": "%s"}]`, fakeintake.Host),
+			},
+		}
+	} else {
+		endpointsEnvVar = pulumi.StringMapArray{
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_PROCESS_CONFIG_PROCESS_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_APM_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_LOGS_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
+				"value": pulumi.String("true"),
+			},
+			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
+				"value": pulumi.String("true"),
+			},
+		}
 	}
 
 	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
-			values[section].(pulumi.Map)["env"] = additionalEndpointsEnvVar
+			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {
-			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), additionalEndpointsEnvVar...)
+			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), endpointsEnvVar...)
 		}
 	}
+}
+
+func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
+	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]interface{}) (pulumi.Asset, error) {
+		yamlValues, err := yaml.Marshal(v)
+		if err != nil {
+			return nil, err
+		}
+		return pulumi.NewStringAsset(string(yamlValues)), nil
+	}).(pulumi.AssetOutput)
+
+}
+
+func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fakeintake) pulumi.AssetOutput {
+
+	return fakeintake.URL.ApplyT(func(url string) (pulumi.Asset, error) {
+		defaultConfig := map[string]interface{}{
+			"exporters": map[string]interface{}{
+				"datadog": map[string]interface{}{
+					"metrics": map[string]interface{}{
+						"endpoint": url,
+					},
+					"traces": map[string]interface{}{
+						"endpoint": url,
+					},
+					"logs": map[string]interface{}{
+						"endpoint": url,
+					},
+				},
+			},
+		}
+		config := map[string]interface{}{}
+		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
+			return nil, err
+		}
+		mergedConfig := utils.MergeMaps(config, defaultConfig)
+		mergedConfigYAML, err := yaml.Marshal(mergedConfig)
+		if err != nil {
+			return nil, err
+		}
+		otelConfigValues := fmt.Sprintf(`
+datadog:
+  otelCollector:
+    config: |
+%s
+`, utils.IndentMultilineString(string(mergedConfigYAML), 6))
+		return pulumi.NewStringAsset(otelConfigValues), nil
+
+	}).(pulumi.AssetOutput)
 }

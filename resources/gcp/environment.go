@@ -1,10 +1,13 @@
 package gcp
 
 import (
+	"fmt"
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"os"
+	"os/exec"
 )
 
 const (
@@ -30,6 +33,7 @@ type Environment struct {
 }
 
 var _ config.Env = (*Environment)(nil)
+var pulumiEnvVariables = []string{"GOOGLE_CREDENTIALS"}
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
@@ -42,6 +46,9 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.CommonEnvironment = &commonEnv
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), gcpNamerNamespace))
 
+	// TODO: Remove this when we find a better way to automatically log in
+	logIn(ctx)
+
 	gcpProvider, err := gcp.NewProvider(ctx, string(config.ProviderGCP), &gcp.ProviderArgs{
 		Project: pulumi.StringPtr(env.envDefault.gcp.project),
 		Zone:    pulumi.StringPtr(env.envDefault.gcp.region),
@@ -52,6 +59,35 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.RegisterProvider(config.ProviderGCP, gcpProvider)
 
 	return env, nil
+}
+
+func logIn(ctx *pulumi.Context) {
+	// Don't log in if the env variables are already set
+	envVariablesSet := false
+	for _, envVar := range pulumiEnvVariables {
+		if os.Getenv(envVar) != "" {
+			fmt.Printf("The env variable %s is set\n", envVar)
+			envVariablesSet = true
+			break
+		}
+	}
+
+	if envVariablesSet {
+		return
+	}
+
+	cmd := exec.Command("gcloud", "auth", "application-default", "print-access-token")
+
+	// There's no error if the token exists and is still valid
+	if err := cmd.Run(); err != nil {
+		// Login if the token is not valid anymore
+		cmd = exec.Command("gcloud", "auth", "application-default", "login")
+		_, err := cmd.Output()
+
+		if err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth application-default login`: %v", err), nil)
+		}
+	}
 }
 
 // Cross Cloud Provider config

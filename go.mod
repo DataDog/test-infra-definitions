@@ -28,7 +28,7 @@ require (
 	github.com/pulumi/pulumi-gcp/sdk/v7 v7.38.0
 	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.17.1
 	github.com/pulumi/pulumi-libvirt/sdk v0.4.7
-	github.com/pulumi/pulumi-random/sdk/v4 v4.16.3
+	github.com/pulumi/pulumi-random/sdk/v4 v4.16.5
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
 	github.com/pulumi/pulumi/sdk/v3 v3.131.0
 	github.com/pulumiverse/pulumi-time/sdk v0.0.17

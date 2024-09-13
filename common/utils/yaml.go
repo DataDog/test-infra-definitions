@@ -1,6 +1,9 @@
 package utils
 
-import "gopkg.in/yaml.v3"
+import (
+	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
+)
 
 func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
 	if oldValuesYamlContent == "" {
@@ -33,20 +36,27 @@ func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string
 }
 
 func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = MergeMaps(bv, v)
+	out := maps.Clone(a)
+	for keyB, valueB := range b {
+		// deep merge nested maps
+		if valueB, ok := valueB.(map[string]interface{}); ok {
+			if valueA, ok := out[keyB]; ok {
+				if valueA, ok := valueA.(map[string]interface{}); ok {
+					out[keyB] = MergeMaps(valueA, valueB)
 					continue
 				}
 			}
 		}
-		out[k] = v
+		// deep merge slices
+		if valueB, ok := valueB.([]interface{}); ok {
+			if valueA, ok := out[keyB]; ok {
+				if valueA, ok := valueA.([]interface{}); ok {
+					out[keyB] = append(valueA, valueB...)
+					continue
+				}
+			}
+		}
+		out[keyB] = valueB
 	}
 	return out
 }

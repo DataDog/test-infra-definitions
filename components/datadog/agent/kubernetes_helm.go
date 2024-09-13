@@ -616,7 +616,8 @@ func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fak
 		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
 			return nil, err
 		}
-		mergedConfig := utils.MergeMaps(config, defaultConfig)
+		mergeSlices := false
+		mergedConfig := utils.MergeMaps(config, defaultConfig, mergeSlices)
 		mergedConfigYAML, err := yaml.Marshal(mergedConfig)
 		if err != nil {
 			return nil, err

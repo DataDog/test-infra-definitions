@@ -6,6 +6,14 @@ import (
 )
 
 func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
+	return mergeYAML(oldValuesYamlContent, newValuesYamlContent, false)
+}
+
+func MergeYAMLWithSlices(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
+	return mergeYAML(oldValuesYamlContent, newValuesYamlContent, true)
+}
+
+func mergeYAML(oldValuesYamlContent string, newValuesYamlContent string, mergeSlices bool) (string, error) {
 	if oldValuesYamlContent == "" {
 		return newValuesYamlContent, nil
 	}
@@ -28,31 +36,33 @@ func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string
 		return "", err
 	}
 
-	mergedValuesYAML := MergeMaps(oldValuesYAML, newValuesYAML)
+	mergedValuesYAML := MergeMaps(oldValuesYAML, newValuesYAML, mergeSlices)
 
 	mergedValues, err := yaml.Marshal(mergedValuesYAML)
 
 	return string(mergedValues), err
 }
 
-func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
+func MergeMaps(a, b map[string]interface{}, mergeSlices bool) map[string]interface{} {
 	out := maps.Clone(a)
 	for keyB, valueB := range b {
 		// deep merge nested maps
 		if valueB, ok := valueB.(map[string]interface{}); ok {
 			if valueA, ok := out[keyB]; ok {
 				if valueA, ok := valueA.(map[string]interface{}); ok {
-					out[keyB] = MergeMaps(valueA, valueB)
+					out[keyB] = MergeMaps(valueA, valueB, mergeSlices)
 					continue
 				}
 			}
 		}
 		// deep merge slices
-		if valueB, ok := valueB.([]interface{}); ok {
-			if valueA, ok := out[keyB]; ok {
-				if valueA, ok := valueA.([]interface{}); ok {
-					out[keyB] = append(valueA, valueB...)
-					continue
+		if mergeSlices {
+			if valueB, ok := valueB.([]interface{}); ok {
+				if valueA, ok := out[keyB]; ok {
+					if valueA, ok := valueA.([]interface{}); ok {
+						out[keyB] = append(valueA, valueB...)
+						continue
+					}
 				}
 			}
 		}

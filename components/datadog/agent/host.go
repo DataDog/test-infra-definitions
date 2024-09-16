@@ -162,7 +162,7 @@ func (h *HostAgent) updateCoreAgentConfig(
 		var err error
 		for _, extraConfig := range extraConfigs {
 			// recursively merge the extra config into the base config
-			baseConfig, err = utils.MergeYAML(baseConfig, extraConfig)
+			baseConfig, err = utils.MergeYAMLWithSlices(baseConfig, extraConfig)
 			if err != nil {
 				return "", err
 			}

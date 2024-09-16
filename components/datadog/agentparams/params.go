@@ -304,3 +304,11 @@ func WithSkipAPIKeyInConfig() func(*Params) error {
 		return nil
 	}
 }
+
+// WithTags add tags to the agent configuration
+func WithTags(tags []string) func(*Params) error {
+	return func(p *Params) error {
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.Sprintf("tags: [%s]", strings.Join(tags, ", ")))
+		return nil
+	}
+}

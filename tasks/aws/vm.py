@@ -4,11 +4,20 @@ from invoke.context import Context
 from invoke.exceptions import Exit
 from invoke.tasks import task
 
-from tasks import doc, tool
+from tasks import doc
+from tasks.aws import doc as aws_doc
+from tasks.aws.common import (
+    get_architectures,
+    get_default_architecture,
+    get_default_os_family,
+    get_deploy_job,
+    get_image_description,
+    get_os_families,
+)
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 from tasks.tool import clean_known_hosts as clean_known_hosts_func
-from tasks.tool import get_host, show_connection_message
+from tasks.tool import get_host, notify, show_connection_message
 
 default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
 scenario_name = "aws/vm"
@@ -19,18 +28,18 @@ remote_hostname = "aws-vm"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
-        "install_updater": doc.install_updater,
+        "install_installer": doc.install_installer,
         "pipeline_id": doc.pipeline_id,
         "agent_version": doc.agent_version,
         "stack_name": doc.stack_name,
         "debug": doc.debug,
-        "os_family": doc.os_family,
+        "os_family": aws_doc.os_family,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
-        "ami_id": doc.ami_id,
-        "architecture": doc.architecture,
+        "ami_id": aws_doc.ami_id,
+        "architecture": aws_doc.architecture,
         "interactive": doc.interactive,
-        "instance_type": doc.instance_type,
+        "instance_type": aws_doc.instance_type,
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
@@ -42,7 +51,7 @@ def create_vm(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = True,
-    install_updater: Optional[bool] = False,
+    install_installer: Optional[bool] = False,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
@@ -62,7 +71,7 @@ def create_vm(
 
     extra_flags = {}
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
-    deploy_job = None if no_verify else tool.get_deploy_job(os_family, os_arch, agent_version)
+    deploy_job = None if no_verify else get_deploy_job(os_family, os_arch, agent_version)
     extra_flags["ddinfra:osDescriptor"] = f"{os_family}:{os_version if os_version else ''}:{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
@@ -73,8 +82,8 @@ def create_vm(
         print(
             "[WARNING] It is currently not possible to deploy a VM with fakeintake and without agent. Your VM will start without fakeintake."
         )
-    if instance_type is not None:
-        if architecture is None or architecture.lower() == tool.get_default_architecture():
+    if instance_type:
+        if not architecture or architecture.lower() == get_default_architecture():
             extra_flags["ddinfra:aws/defaultInstanceType"] = instance_type
         else:
             extra_flags["ddinfra:aws/defaultARMInstanceType"] = instance_type
@@ -91,7 +100,7 @@ def create_vm(
         stack_name=stack_name,
         pipeline_id=pipeline_id,
         install_agent=install_agent,
-        install_updater=install_updater,
+        install_installer=install_installer,
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
@@ -100,7 +109,7 @@ def create_vm(
     )
 
     if interactive:
-        tool.notify(ctx, "Your VM is now created")
+        notify(ctx, "Your VM is now created")
 
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
@@ -136,18 +145,18 @@ def destroy_vm(
 
 
 def _get_os_family(os_family: Optional[str]) -> str:
-    os_families = tool.get_os_families()
+    os_families = get_os_families()
     if not os_family:
-        os_family = tool.get_default_os_family()
+        os_family = get_default_os_family()
     if os_family.lower() not in os_families:
         raise Exit(f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}")
     return os_family
 
 
 def _get_architecture(architecture: Optional[str]) -> str:
-    architectures = tool.get_architectures()
+    architectures = get_architectures()
     if not architecture:
-        architecture = tool.get_default_architecture()
+        architecture = get_default_architecture()
     if architecture.lower() not in architectures:
         raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture
@@ -158,9 +167,9 @@ def _get_os_information(
 ) -> Tuple[str, Optional[str]]:
     family, architecture = os_family, None
     if ami_id is not None:
-        image = tool.get_image_description(ctx, ami_id)
+        image = get_image_description(ctx, ami_id)
         if family is None:  # Try to guess the distribution
-            os_families = tool.get_os_families()
+            os_families = get_os_families()
             try:
                 if "Description" in image:
                     image_info = image["Description"]

@@ -1,8 +1,10 @@
 package compute
 
 import (
+	_ "embed"
 	"fmt"
 	"math"
+	"os"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -19,10 +21,10 @@ const (
 	AdminUsername     = "azureuser"
 )
 
-func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, userData pulumi.StringPtrInput) (*compute.VirtualMachine, *network.NetworkInterface, error) {
+func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, userData pulumi.StringPtrInput, opts ...pulumi.ResourceOption) (vm *compute.VirtualMachine, privateIP pulumi.StringOutput, err error) {
 	sshPublicKey, err := utils.GetSSHPublicKey(e.DefaultPublicKeyPath())
 	if err != nil {
-		return nil, nil, err
+		return nil, pulumi.StringOutput{}, err
 	}
 
 	linuxOsProfile := compute.OSProfileArgs{
@@ -42,16 +44,26 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 		CustomData: userData,
 	}
 
-	return newVMInstance(e, name, imageUrn, instanceType, linuxOsProfile)
+	vm, networkInterface, err := newVMInstance(e, name, imageUrn, instanceType, linuxOsProfile, opts...)
+	if err != nil {
+		return nil, pulumi.StringOutput{}, err
+	}
+	return vm, networkInterface.IpConfigurations.Index(pulumi.Int(0)).PrivateIPAddress().Elem(), nil
 }
 
-func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput) (*compute.VirtualMachine, *network.NetworkInterface, pulumi.StringOutput, error) {
-	windowsAdminPassword, err := random.NewRandomPassword(e.Ctx(), e.Namer.ResourceName(name, "admin-password"), &random.RandomPasswordArgs{
+//go:embed setup-ssh.ps1
+var setupSSHScriptContent string
+
+func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput, opts ...pulumi.ResourceOption) (vm *compute.VirtualMachine, privateIP pulumi.StringOutput, password pulumi.StringOutput, err error) {
+	pwdOpts := make([]pulumi.ResourceOption, 0, len(opts)+1)
+	copy(pwdOpts, opts)
+	pwdOpts = append(pwdOpts, e.WithProviders(config.ProviderRandom))
+	windowsAdminPassword, err := random.NewRandomString(e.Ctx(), e.Namer.ResourceName(name, "admin-password"), &random.RandomStringArgs{
 		Length:  pulumi.Int(20),
 		Special: pulumi.Bool(true),
-	})
+	}, pwdOpts...)
 	if err != nil {
-		return nil, nil, pulumi.StringOutput{}, err
+		return nil, pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
 	windowsOsProfile := compute.OSProfileArgs{
@@ -74,23 +86,60 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 		}
 	}
 
-	vm, nw, err := newVMInstance(e, name, imageUrn, instanceType, windowsOsProfile)
+	vm, nw, err := newVMInstance(e, name, imageUrn, instanceType, windowsOsProfile, opts...)
 	if err != nil {
-		return nil, nil, pulumi.StringOutput{}, err
+		return nil, pulumi.StringOutput{}, pulumi.StringOutput{}, err
 	}
 
-	return vm, nw, windowsAdminPassword.Result, nil
+	publicKey, err := os.ReadFile(e.DefaultPublicKeyPath())
+	if err != nil {
+		return nil, pulumi.StringOutput{}, pulumi.StringOutput{}, err
+	}
+
+	setupSSHCommand, err := compute.NewVirtualMachineRunCommandByVirtualMachine(e.Ctx(), fmt.Sprintf("%s-init-cmd", name), &compute.VirtualMachineRunCommandByVirtualMachineArgs{
+		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
+		VmName:            vm.Name,
+		AsyncExecution:    pulumi.Bool(false),
+		RunCommandName:    pulumi.String("InitVM"),
+		Source: compute.VirtualMachineRunCommandScriptSourceArgs{
+			Script: pulumi.String(setupSSHScriptContent),
+		},
+		Parameters: compute.RunCommandInputParameterArray{
+			compute.RunCommandInputParameterArgs{
+				Name:  pulumi.String("authorizedKey"),
+				Value: pulumi.String(publicKey),
+			},
+		},
+		TimeoutInSeconds:                pulumi.Int(120),
+		TreatFailureAsDeploymentFailure: pulumi.Bool(true),
+	}, pulumi.Parent(vm))
+
+	if err != nil {
+		return nil, pulumi.StringOutput{}, pulumi.StringOutput{}, err
+	}
+
+	privateIP = pulumi.All(nw.IpConfigurations.Index(pulumi.Int(0)).PrivateIPAddress().Elem(), setupSSHCommand.URN()).ApplyT(func(args []interface{}) string {
+		return args[0].(string)
+	}).(pulumi.StringOutput)
+
+	return vm, privateIP, windowsAdminPassword.Result, nil
 }
 
-func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osProfile compute.OSProfilePtrInput) (*compute.VirtualMachine, *network.NetworkInterface, error) {
+func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osProfile compute.OSProfilePtrInput, opts ...pulumi.ResourceOption) (*compute.VirtualMachine, *network.NetworkInterface, error) {
 	vmImageRef, err := parseImageReferenceURN(imageUrn)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	nwOpts := make([]pulumi.ResourceOption, 0, len(opts)+1)
+	copy(nwOpts, opts)
+	nwOpts = append(nwOpts, e.WithProviders(config.ProviderAzure))
 	nwInt, err := network.NewNetworkInterface(e.Ctx(), e.Namer.ResourceName(name), &network.NetworkInterfaceArgs{
 		NetworkInterfaceName: e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName:    pulumi.String(e.DefaultResourceGroup()),
+		NetworkSecurityGroup: network.NetworkSecurityGroupTypeArgs{
+			Id: pulumi.String(e.DefaultSecurityGroup()),
+		},
 		IpConfigurations: network.NetworkInterfaceIPConfigurationArray{
 			network.NetworkInterfaceIPConfigurationArgs{
 				Name: e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
@@ -101,11 +150,14 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 			},
 		},
 		Tags: e.ResourcesTags(),
-	}, e.WithProviders(config.ProviderAzure))
+	}, nwOpts...)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	vmOpts := make([]pulumi.ResourceOption, 0, len(opts)+1)
+	copy(vmOpts, opts)
+	vmOpts = append(vmOpts, e.WithProviders(config.ProviderAzure))
 	vm, err := compute.NewVirtualMachine(e.Ctx(), e.Namer.ResourceName(name), &compute.VirtualMachineArgs{
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
 		VmName:            e.Namer.DisplayName(math.MaxInt, pulumi.String(name)),
@@ -133,7 +185,7 @@ func newVMInstance(e azure.Environment, name, imageUrn, instanceType string, osP
 		},
 		OsProfile: osProfile,
 		Tags:      e.ResourcesTags(),
-	}, e.WithProviders(config.ProviderAzure))
+	}, vmOpts...)
 	if err != nil {
 		return nil, nil, err
 	}

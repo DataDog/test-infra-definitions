@@ -13,7 +13,7 @@ import (
 
 func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*agent.KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *agent.KubernetesAgent) error {
-		params, err := kubernetesagentparams.NewParams(e, options...)
+		params, err := kubernetesagentparams.NewParams(options...)
 		if err != nil {
 			return err
 		}
@@ -27,7 +27,10 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			Fakeintake:                     params.FakeIntake,
 			AgentFullImagePath:             params.AgentFullImagePath,
 			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
+			DisableDualShipping:            params.DisableDualShipping,
 			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
+			OTelAgent:                      params.OTelAgent,
+			OTelConfig:                     params.OTelConfig,
 		}, pulumiResourceOptions...)
 		if err != nil {
 			return err

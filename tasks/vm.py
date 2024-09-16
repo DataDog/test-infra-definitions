@@ -6,6 +6,7 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 from pydantic import ValidationError
 
+from tasks.aws import doc as aws_doc
 from tasks.config import Config, get_full_profile_path
 
 from . import config, doc, tool
@@ -15,18 +16,18 @@ from . import config, doc, tool
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
-        "install_updater": doc.install_updater,
+        "install_installer": doc.install_installer,
         "pipeline_id": doc.pipeline_id,
         "agent_version": doc.agent_version,
         "stack_name": doc.stack_name,
         "debug": doc.debug,
-        "os_family": doc.os_family,
+        "os_family": aws_doc.os_family,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
-        "ami_id": doc.ami_id,
-        "architecture": doc.architecture,
+        "ami_id": aws_doc.ami_id,
+        "architecture": aws_doc.architecture,
         "interactive": doc.interactive,
-        "instance_type": doc.instance_type,
+        "instance_type": aws_doc.instance_type,
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
@@ -38,7 +39,7 @@ def create_vm(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = True,
-    install_updater: Optional[bool] = False,
+    install_installer: Optional[bool] = False,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     os_family: Optional[str] = None,
@@ -62,7 +63,7 @@ def create_vm(
         stack_name,
         pipeline_id,
         install_agent,
-        install_updater,
+        install_installer,
         agent_version,
         debug,
         os_family,

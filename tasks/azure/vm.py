@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from invoke.context import Context
 from invoke.exceptions import Exit
@@ -6,6 +6,14 @@ from invoke.tasks import task
 from pydantic_core._pydantic_core import ValidationError
 
 from tasks import config, doc, tool
+from tasks.azure import doc as azure_doc
+from tasks.azure.common import (
+    get_architectures,
+    get_default_architecture,
+    get_default_os_family,
+    get_deploy_job,
+    get_os_families,
+)
 from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy
@@ -20,12 +28,16 @@ remote_hostname = "az-vm"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
-        "install_updater": doc.install_updater,
+        "install_installer": doc.install_installer,
         "agent_version": doc.agent_version,
         "stack_name": doc.stack_name,
         "debug": doc.debug,
         "interactive": doc.interactive,
         "ssh_user": doc.ssh_user,
+        "os_family": azure_doc.os_family,
+        "architecture": azure_doc.architecture,
+        "instance_type": azure_doc.instance_type,
+        "os_version": doc.os_version,
     }
 )
 def create_vm(
@@ -33,12 +45,19 @@ def create_vm(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
-    install_updater: Optional[bool] = False,
+    install_installer: Optional[bool] = False,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     interactive: Optional[bool] = True,
     ssh_user: Optional[str] = None,
     account: Optional[str] = None,
+    os_family: Optional[str] = None,
+    os_version: Optional[str] = None,
+    architecture: Optional[str] = None,
+    instance_type: Optional[str] = None,
+    deploy_job: Optional[str] = None,
+    no_verify: Optional[bool] = False,
+    use_fakeintake: Optional[bool] = False,
 ) -> None:
     """
     Create a new virtual machine on azure.
@@ -52,9 +71,20 @@ def create_vm(
     if not cfg.get_azure().publicKeyPath:
         raise Exit("The field `azure.publicKeyPath` is required in the config file")
 
-    extra_flags = dict()
-    extra_flags["ddinfra:env"] = f"az/{account if account else cfg.get_azure().account}"
-    extra_flags["ddinfra:az/defaultPublicKeyPath"] = cfg.get_azure().publicKeyPath
+    os_family, os_arch = _get_os_information(os_family, architecture)
+    _deploy_job = None if no_verify else get_deploy_job(os_family, os_arch, agent_version)
+
+    extra_flags = {
+        "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
+        "ddinfra:az/defaultPublicKeyPath": cfg.get_azure().publicKeyPath,
+        "ddinfra:osDescriptor": f"{os_family}:{os_version if os_version else ''}:{os_arch}",
+    }
+
+    if instance_type:
+        if architecture is None or architecture.lower() == get_default_architecture():
+            extra_flags["ddinfra:az/defaultInstanceType"] = instance_type
+        else:
+            extra_flags["ddinfra:az/defaultARMInstanceType"] = instance_type
 
     if ssh_user:
         extra_flags["ddinfra:sshUser"] = ssh_user
@@ -65,10 +95,11 @@ def create_vm(
         config_path,
         stack_name=stack_name,
         install_agent=install_agent,
-        install_updater=install_updater,
+        install_installer=install_installer,
         agent_version=agent_version,
         debug=debug,
         extra_flags=extra_flags,
+        use_fakeintake=use_fakeintake,
     )
 
     if interactive:
@@ -89,7 +120,7 @@ def destroy_vm(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = False,
+    yes: Optional[bool] = True,
     clean_known_hosts: Optional[bool] = True,
 ):
     """
@@ -105,3 +136,25 @@ def destroy_vm(
     )
     if clean_known_hosts:
         clean_known_hosts_func(host)
+
+
+def _get_os_information(os_family: Optional[str], arch: Optional[str]) -> Tuple[str, Optional[str]]:
+    return _get_os_family(os_family), _get_architecture(arch)
+
+
+def _get_os_family(os_family: Optional[str]) -> str:
+    os_families = get_os_families()
+    if not os_family:
+        os_family = get_default_os_family()
+    if os_family.lower() not in os_families:
+        raise Exit(f"The os family '{os_family}' is not supported. Possibles values are {', '.join(os_families)}")
+    return os_family
+
+
+def _get_architecture(architecture: Optional[str]) -> str:
+    architectures = get_architectures()
+    if not architecture:
+        architecture = get_default_architecture()
+    if architecture.lower() not in architectures:
+        raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
+    return architecture

@@ -37,6 +37,6 @@ func NewVM(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*remote.H
 			return err
 		}
 
-		return remote.InitHost(&e, conn.ToConnectionOutput(), os.WindowsServer2022, "<SSH_USER_NAME>", command.WaitForSuccessfulConnection, comp)
+		return remote.InitHost(&e, conn.ToConnectionOutput(), os.WindowsServer2022, "<SSH_USER_NAME>", pulumi.String("").ToStringOutput(), command.WaitForSuccessfulConnection, comp)
 	})
 }

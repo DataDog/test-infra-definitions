@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"fmt"
+
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
 
@@ -41,6 +43,10 @@ type HelmInstallationArgs struct {
 	DisableLogsContainerCollectAll bool
 	// DisableDualShipping is used to disable dual-shipping
 	DisableDualShipping bool
+	// OTelAgent is used to deploy the OTel agent instead of the classic agent
+	OTelAgent bool
+	// OTelConfig is used to provide a custom OTel configuration
+	OTelConfig string
 }
 
 type HelmComponent struct {
@@ -57,7 +63,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	baseName := "dda"
-	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.Parent(args.KubeProvider), pulumi.DeletedWith(args.KubeProvider))
+	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
@@ -115,7 +121,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "")
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
@@ -138,6 +144,9 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	var valuesYAML pulumi.AssetOrArchiveArray
 	valuesYAML = append(valuesYAML, defaultYAMLValues)
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
+	if args.OTelAgent {
+		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
+	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
@@ -204,6 +213,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"checksCardinality":    pulumi.String("high"),
+			"namespaceLabelsAsTags": pulumi.Map{
+				"related_team": pulumi.String("team"),
+			},
+			"namespaceAnnotationsAsTags": pulumi.Map{
+				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
+			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
 				"containerCollectAll": pulumi.Bool(logsContainerCollectAll),
@@ -278,6 +293,14 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
 					"value": pulumi.String("*"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_ANNOTATIONS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesAnnotationsAsTags().toJSONString()),
 				},
 			},
 		},
@@ -533,6 +556,10 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 				"value": pulumi.Sprintf("%s", fakeintake.URL),
 			},
 			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_LOGS_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
 				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
 				"value": pulumi.String("true"),
 			},
@@ -565,4 +592,42 @@ func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
 		return pulumi.NewStringAsset(string(yamlValues)), nil
 	}).(pulumi.AssetOutput)
 
+}
+
+func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fakeintake) pulumi.AssetOutput {
+
+	return fakeintake.URL.ApplyT(func(url string) (pulumi.Asset, error) {
+		defaultConfig := map[string]interface{}{
+			"exporters": map[string]interface{}{
+				"datadog": map[string]interface{}{
+					"metrics": map[string]interface{}{
+						"endpoint": url,
+					},
+					"traces": map[string]interface{}{
+						"endpoint": url,
+					},
+					"logs": map[string]interface{}{
+						"endpoint": url,
+					},
+				},
+			},
+		}
+		config := map[string]interface{}{}
+		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
+			return nil, err
+		}
+		mergedConfig := utils.MergeMaps(config, defaultConfig)
+		mergedConfigYAML, err := yaml.Marshal(mergedConfig)
+		if err != nil {
+			return nil, err
+		}
+		otelConfigValues := fmt.Sprintf(`
+datadog:
+  otelCollector:
+    config: |
+%s
+`, utils.IndentMultilineString(string(mergedConfigYAML), 6))
+		return pulumi.NewStringAsset(otelConfigValues), nil
+
+	}).(pulumi.AssetOutput)
 }

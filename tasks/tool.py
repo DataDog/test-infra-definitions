@@ -4,7 +4,7 @@ import os
 import pathlib
 import platform
 from io import StringIO
-from typing import Any, List, Optional, Union
+from typing import Any, List, Optional
 
 import pyperclip
 from invoke.context import Context
@@ -33,6 +33,19 @@ def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
 
+def ask_yesno(question: str, default='N') -> bool:
+    res = ""
+    yes_opts = ["y", "yes"]
+    no_opts = ["n", "no"]
+    while res.lower() not in (yes_opts + no_opts):
+        res = ask(question + f" [Y/N] Default [{default}]: ")
+        if res == "":
+            res = default
+            break
+
+    return res.lower() in yes_opts
+
+
 def debug(msg: str):
     print(colored(msg, "white"))
 
@@ -49,82 +62,12 @@ def error(msg: str):
     print(colored(msg, "red"))
 
 
-def get_os_families() -> List[str]:
-    return [
-        get_default_os_family(),
-        "windows",
-        "amazonlinux",
-        "amazonlinuxdocker",
-        "debian",
-        "redhat",
-        "suse",
-        "fedora",
-        "centos",
-        "rockylinux",
-    ]
-
-
-def get_package_for_os(os: str) -> str:
-    package_map = {
-        get_default_os_family(): "deb",
-        "windows": "windows",
-        "amazonlinux": "rpm",
-        "amazonlinuxdocker": "rpm",
-        "debian": "deb",
-        "redhat": "rpm",
-        "suse": "suse_rpm",
-        "fedora": "rpm",
-        "centos": "rpm",
-        "rockylinux": "rpm",
-    }
-
-    return package_map[os]
-
-
-def get_deploy_job(os: str, arch: Union[str, None], agent_version: Union[str, None] = None) -> str:
-    """
-    Returns the deploy job name within the datadog agent repo that creates
-    images used in create-vm
-    """
-    pkg = get_package_for_os(os)
-    if agent_version is None:
-        v = 'a7'
-    else:
-        major = agent_version.split('.')[0]
-        assert major in ('6', '7'), f'Invalid agent version {agent_version}'
-        v = f'a{major}'
-
-    if arch == 'x86_64':
-        arch = 'x64'
-
-    # Construct job name
-    if os == 'windows':
-        suffix = f'-{v}'
-        assert arch == 'x64', f'Invalid architecure {arch} for Windows'
-    elif os == 'suse':
-        suffix = f'_{arch}-{v}'
-    elif pkg in ('deb', 'rpm'):
-        suffix = f'-{v}_{arch}'
-    else:
-        raise RuntimeError(f'Cannot deduce deploy job from {os}::{arch}')
-
-    return f'deploy_{pkg}_testing{suffix}'
-
-
-def get_default_os_family() -> str:
-    return "ubuntu"
-
-
-def get_architectures() -> List[str]:
-    return [get_default_architecture(), "arm64"]
-
-
-def get_default_architecture() -> str:
-    return "x86_64"
-
-
 def get_default_agent_install() -> bool:
     return True
+
+
+def get_default_agent_with_operator_install() -> bool:
+    return False
 
 
 def get_default_workload_install() -> bool:
@@ -172,6 +115,22 @@ def get_aws_wrapper(
     return f"aws-vault exec sso-{aws_account}-account-admin -- "
 
 
+def get_aws_cmd(
+    cmd: str,
+    use_aws_vault: Optional[bool] = True,
+    aws_account: Optional[str] = None,
+) -> str:
+    wrapper = ""
+    if use_aws_vault:
+        if aws_account is None:
+            raise Exit("AWS account is required when using aws-vault.")
+        wrapper = get_aws_wrapper(aws_account)
+    # specify .exe for windows to work around conflicts with aws.rb
+    aws = "aws.exe" if is_windows() else "aws"
+    cmd = f"{wrapper}{aws} {cmd}"
+    return cmd
+
+
 def is_linux():
     return platform.system() == "Linux"
 
@@ -185,7 +144,7 @@ def get_aws_instance_password_data(
 ) -> str:
     buffer = StringIO()
     with ctx.cd(_get_root_path()):
-        cmd = f"aws ec2 get-password-data --instance-id {vm_id} --priv-launch-key {key_path}"
+        cmd = f'aws ec2 get-password-data --instance-id "{vm_id}" --priv-launch-key "{key_path}"'
         if use_aws_vault:
             if aws_account is None:
                 raise Exit("AWS account is required when using aws-vault.")

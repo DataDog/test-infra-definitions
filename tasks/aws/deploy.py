@@ -23,13 +23,15 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
-    install_updater: Optional[bool] = None,
+    install_installer: Optional[bool] = None,
     install_workload: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
     deploy_job: Optional[str] = None,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -72,12 +74,14 @@ def deploy(
         stack_name,
         pipeline_id,
         install_agent,
-        install_updater,
+        install_installer,
         install_workload,
         agent_version,
         debug,
         flags,
         use_fakeintake,
+        full_image_path,
+        cluster_agent_full_image_path,
     )
 
 

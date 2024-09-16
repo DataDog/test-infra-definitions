@@ -4,13 +4,14 @@ This is a simple service that allows you to log ondemand. The logger support wri
 
 ## Config options
 
-| Config    | Value     | Default | Description                                                             |
-|-----------|-----------|---------|-------------------------------------------------------------------------|
-| `port`    | int       | `3333`  | port to listen on                                                       |
-| `udp`     | bool      | `false` | if `true` sends logs via UDP to address set in `target`                 |
-| `tcp`     | bool      | `false` | if `true` sends logs via TCP to address set in `target`                 |
-| `target`  | string    | <blank> | if `udp` or `tcp` set then `target` is required (e.g. `127.0.0.1:8080`) |
-| `data`    | string    | <blank> | path to json file to log after server starts up                         |
+| Config   | Value     | Default | Description                                                             |
+|----------|-----------|---------|-------------------------------------------------------------------------|
+| `port`   | int       | `3333`  | port to listen on                                                       |
+| `udp`    | bool      | `false` | if `true` sends logs via UDP to address set in `target`                 |
+| `tcp`    | bool      | `false` | if `true` sends logs via TCP to address set in `target`                 |
+| `file`   | string    | ``      | if not blank will send logs to the file specified                       |
+| `target` | string    | <blank> | if `udp` or `tcp` set then `target` is required (e.g. `127.0.0.1:8080`) |
+| `data`   | string    | <blank> | path to json file to log after server starts up                         |
 
 
 ## Paylod to generate logs

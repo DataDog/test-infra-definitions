@@ -61,7 +61,8 @@ func FargateWindowsTaskDefinitionWithAgent(
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family: e.CommonNamer().DisplayName(255, family),
+		Family:  e.CommonNamer().DisplayName(255, family),
+		PidMode: pulumi.StringPtr("task"),
 		RuntimePlatform: classicECS.TaskDefinitionRuntimePlatformArgs{
 			OperatingSystemFamily: pulumi.String("WINDOWS_SERVER_2022_CORE"),
 		},
@@ -91,7 +92,8 @@ func FargateTaskDefinitionWithAgent(
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family: e.CommonNamer().DisplayName(255, family),
+		Family:  e.CommonNamer().DisplayName(255, family),
+		PidMode: pulumi.StringPtr("task"),
 		Volumes: classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),

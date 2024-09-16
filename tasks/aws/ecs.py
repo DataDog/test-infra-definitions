@@ -7,6 +7,8 @@ from invoke.tasks import task
 from pydantic import ValidationError
 
 from tasks import config, doc, tool
+from tasks.aws import doc as aws_doc
+from tasks.aws.common import get_aws_wrapper
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
@@ -20,11 +22,12 @@ scenario_name = "aws/ecs"
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "use_fargate": doc.use_fargate,
+        "use_fargate": aws_doc.use_fargate,
         "linux_node_group": doc.linux_node_group,
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
+        "full_image_path": doc.full_image_path,
     }
 )
 def create_ecs(
@@ -39,16 +42,18 @@ def create_ecs(
     linux_arm_node_group: bool = False,
     bottlerocket_node_group: bool = True,
     windows_node_group: bool = False,
+    full_image_path: Optional[str] = None,
 ):
     """
     Create a new ECS environment.
     """
-    extra_flags = {}
-    extra_flags["ddinfra:aws/ecs/fargateCapacityProvider"] = use_fargate
-    extra_flags["ddinfra:aws/ecs/linuxECSOptimizedNodeGroup"] = linux_node_group
-    extra_flags["ddinfra:aws/ecs/linuxECSOptimizedARMNodeGroup"] = linux_arm_node_group
-    extra_flags["ddinfra:aws/ecs/linuxBottlerocketNodeGroup"] = bottlerocket_node_group
-    extra_flags["ddinfra:aws/ecs/windowsLTSCNodeGroup"] = windows_node_group
+    extra_flags = {
+        "ddinfra:aws/ecs/fargateCapacityProvider": use_fargate,
+        "ddinfra:aws/ecs/linuxECSOptimizedNodeGroup": linux_node_group,
+        "ddinfra:aws/ecs/linuxECSOptimizedARMNodeGroup": linux_arm_node_group,
+        "ddinfra:aws/ecs/linuxBottlerocketNodeGroup": bottlerocket_node_group,
+        "ddinfra:aws/ecs/windowsLTSCNodeGroup": windows_node_group,
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -59,6 +64,7 @@ def create_ecs(
         install_workload=install_workload,
         agent_version=agent_version,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
     )
 
     tool.notify(ctx, "Your ECS cluster is now created")
@@ -75,9 +81,7 @@ def _show_connection_message(ctx: Context, config_path: Optional[str], full_stac
     except ValidationError as e:
         raise Exit(f"Error in config {config.get_full_profile_path(config_path)}:{e}")
 
-    command = (
-        f"{tool.get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
-    )
+    command = f"{get_aws_wrapper(local_config.get_aws().get_account())} aws ecs list-tasks --cluster {cluster_name}"
     print(f"\nYou can run the following command to list tasks on the ECS cluster\n\n{command}\n")
 
     input("Press a key to copy command to clipboard...")

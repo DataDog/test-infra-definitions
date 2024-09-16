@@ -19,19 +19,21 @@ def deploy(
     stack_name: Optional[str] = None,
     pipeline_id: Optional[str] = None,
     install_agent: Optional[bool] = None,
-    install_updater: Optional[bool] = None,
+    install_installer: Optional[bool] = None,
     install_workload: Optional[bool] = None,
     agent_version: Optional[str] = None,
     debug: Optional[bool] = False,
     extra_flags: Optional[Dict[str, Any]] = None,
     use_fakeintake: Optional[bool] = False,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
     if install_agent is None:
         install_agent = tool.get_default_agent_install()
-    flags["ddagent:deploy"] = install_agent and not install_updater
-    flags["ddupdater:deploy"] = install_updater
+    flags["ddagent:deploy"] = install_agent and not install_installer
+    flags["ddupdater:deploy"] = install_installer
 
     if install_workload is None:
         install_workload = tool.get_default_workload_install()
@@ -46,6 +48,8 @@ def deploy(
     flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
     flags["ddagent:fakeintake"] = use_fakeintake
+    flags["ddagent:fullImagePath"] = full_image_path
+    flags["ddagent:clusterAgentFullImagePath"] = cluster_agent_full_image_path
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)

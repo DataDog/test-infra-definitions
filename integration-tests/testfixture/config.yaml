@@ -9,6 +9,10 @@ configParams:
     teamTag: test-ci
   azure:
     publicKeyPath: PUBLIC_KEY_PATH
+    account: ACCOUNT
+  gcp:
+    publicKeyPath: PUBLIC_KEY_PATH
+    account: ACCOUNT
   pulumi:
     logLevel: 1
     logToStdErr: true

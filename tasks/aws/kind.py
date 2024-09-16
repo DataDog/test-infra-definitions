@@ -6,6 +6,8 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 
 from tasks import doc, tool
+from tasks.aws import doc as aws_doc
+from tasks.aws.common import get_architectures, get_default_architecture
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
@@ -17,12 +19,15 @@ scenario_name = "aws/kind"
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
+        "install_agent_with_operator": doc.install_agent_with_operator,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "architecture": doc.architecture,
+        "architecture": aws_doc.architecture,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
+        "full_image_path": doc.full_image_path,
+        "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
     }
 )
 def create_kind(
@@ -30,20 +35,25 @@ def create_kind(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
+    install_agent_with_operator: Optional[bool] = None,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
 ):
     """
     Create a kind environment.
     """
 
-    extra_flags = {}
-    extra_flags["ddinfra:osDescriptor"] = f"amazonlinuxecs::{_get_architecture(architecture)}"
-    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
-    extra_flags["ddinfra:aws/defaultInstanceType"] = "t3.xlarge"
+    extra_flags = {
+        "ddinfra:osDescriptor": f"amazonlinuxecs::{_get_architecture(architecture)}",
+        "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
+        "ddinfra:aws/defaultInstanceType": "t3.xlarge",
+        "ddagent:deployWithOperator": bool(install_agent_with_operator),
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -56,6 +66,8 @@ def create_kind(
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
         app_key_required=True,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
     )
 
     if interactive:
@@ -104,9 +116,9 @@ def destroy_kind(
 
 
 def _get_architecture(architecture: Optional[str]) -> str:
-    architectures = tool.get_architectures()
+    architectures = get_architectures()
     if architecture is None:
-        architecture = tool.get_default_architecture()
+        architecture = get_default_architecture()
     if architecture.lower() not in architectures:
         raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture

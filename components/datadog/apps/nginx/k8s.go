@@ -50,6 +50,12 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Name: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"related_team": pulumi.String("contp"),
+			},
+			Annotations: pulumi.StringMap{
+				"related_email": pulumi.String("team-container-platform@datadoghq.com"),
+			},
 		},
 	}, opts...)
 	if err != nil {
@@ -63,7 +69,11 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
-				"app": pulumi.String("nginx"),
+				"app":    pulumi.String("nginx"),
+				"x-team": pulumi.String("contp"),
+			},
+			Annotations: pulumi.StringMap{
+				"x-sub-team": pulumi.String("contint"),
 			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
@@ -75,9 +85,11 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app": pulumi.String("nginx"),
+						"app":           pulumi.String("nginx"),
+						"x-parent-type": pulumi.String("deployment"),
 					},
 					Annotations: pulumi.StringMap{
+						"x-parent-name": pulumi.String("nginx"),
 						"ad.datadoghq.com/nginx.checks": pulumi.String(utils.JSONMustMarshal(
 							map[string]interface{}{
 								"nginx": map[string]interface{}{

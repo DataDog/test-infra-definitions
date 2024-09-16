@@ -6,6 +6,8 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 
 from tasks import doc, tool
+from tasks.aws import doc as aws_doc
+from tasks.aws.common import get_architectures, get_default_architecture
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
 
@@ -18,11 +20,12 @@ scenario_name = "aws/dockervm"
         "install_agent": doc.install_agent,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
-        "architecture": doc.architecture,
+        "architecture": aws_doc.architecture,
         "use_fakeintake": doc.fakeintake,
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
-    }
+        "full_image_path": doc.full_image_path,
+    },
 )
 def create_docker(
     ctx: Context,
@@ -34,14 +37,16 @@ def create_docker(
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
+    full_image_path: Optional[str] = None,
 ):
     """
     Create a docker environment.
     """
 
-    extra_flags = {}
-    extra_flags["ddinfra:osDescriptor"] = f"::{_get_architecture(architecture)}"
-    extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
+    extra_flags = {
+        "ddinfra:osDescriptor": f"::{_get_architecture(architecture)}",
+        "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
+    }
 
     full_stack_name = deploy(
         ctx,
@@ -53,6 +58,7 @@ def create_docker(
         agent_version=agent_version,
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
+        full_image_path=full_image_path,
     )
 
     if interactive:
@@ -105,9 +111,9 @@ def destroy_docker(
 
 
 def _get_architecture(architecture: Optional[str]) -> str:
-    architectures = tool.get_architectures()
+    architectures = get_architectures()
     if architecture is None:
-        architecture = tool.get_default_architecture()
+        architecture = get_default_architecture()
     if architecture.lower() not in architectures:
         raise Exit(f"The os family '{architecture}' is not supported. Possibles values are {', '.join(architectures)}")
     return architecture

@@ -57,6 +57,9 @@ integration-testing:
   rules:
     - when: on_success
   before_script:
+    # Setup GCP credentials. https://www.pulumi.com/registry/packages/gcp/installation-configuration/
+    # The service account is called `agent-e2e-tests`
+    - export GOOGLE_CREDENTIALS=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.gcp_credentials --with-decryption --query "Parameter.Value" --out text)
     # Setup Azure credentials. https://www.pulumi.com/registry/packages/azure-native/installation-configuration/#set-configuration-using-pulumi-config
     # The app is called `agent-e2e-tests`
     - export ARM_CLIENT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_id --with-decryption --query "Parameter.Value" --out text)

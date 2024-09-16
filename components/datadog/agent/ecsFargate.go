@@ -45,7 +45,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 				Value: pulumi.StringPtr("true"),
 			},
 		}, ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...), ecsAgentAdditionalEnvFromConfig(e)...),
-			Secrets: ecs.TaskDefinitionSecretArray{
+		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{
 				Name:      pulumi.String("DD_API_KEY"),
 				ValueFrom: apiKeySSMParamName,

@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"github.com/DataDog/test-infra-definitions/scenarios/gcp/gke"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
@@ -30,6 +31,7 @@ func Scenarios() ScenarioRegistry {
 		"az/vm":         computerun.VMRun,
 		"az/aks":        aks.Run,
 		"gcp/vm":        gcpcompute.VMRun,
+		"gcp/gke":       gke.Run,
 	}
 }
 

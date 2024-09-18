@@ -31,6 +31,9 @@ Pulumi.*.yaml
 *-kubeconfig.yaml
 *-config.yaml
 
+# Google cloud CLI files
+*gcloud_auth_plugin_cache
+
 # JetBrains IDE
 .idea/
 

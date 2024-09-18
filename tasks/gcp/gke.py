@@ -68,7 +68,7 @@ def create_gke(
     )
 
     if interactive:
-        tool.notify(ctx, "Your AKS cluster is now created")
+        tool.notify(ctx, "Your GKE cluster is now created")
 
     _show_connection_message(ctx, full_stack_name, interactive)
 

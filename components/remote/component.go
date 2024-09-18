@@ -11,12 +11,17 @@ import (
 type HostOutput struct {
 	components.JSONImporter
 
-	Address   string    `json:"address"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password,omitempty"`
-	OSFamily  os.Family `json:"osFamily"`
-	OSFlavor  os.Flavor `json:"osFlavor"`
-	OSVersion string    `json:"osVersion"`
+	Address      string          `json:"address"`
+	Username     string          `json:"username"`
+	Password     string          `json:"password,omitempty"`
+	Architecture os.Architecture `json:"architecture"`
+	OSFamily     os.Family       `json:"osFamily"`
+	OSFlavor     os.Flavor       `json:"osFlavor"`
+	OSVersion    string          `json:"osVersion"`
+}
+
+func (h *HostOutput) Descriptor() os.Descriptor {
+	return os.NewDescriptorWithArch(h.OSFlavor, h.OSVersion, h.Architecture)
 }
 
 // Host represents a remote host (for instance, a VM)

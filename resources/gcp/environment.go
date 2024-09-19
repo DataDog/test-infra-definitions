@@ -21,6 +21,8 @@ const (
 	DDInfraDefaultInstanceTypeParamName    = "gcp/defaultInstanceType"
 	DDInfraDefaultNetworkNameParamName     = "gcp/defaultNetworkName"
 	DDInfraDefaultSubnetNameParamName      = "gcp/defaultSubnet"
+	DDInfraDefaultRegionNameParamName      = "gcp/defaultRegion"
+	DDInfraDefaultZoneNameParamName        = "gcp/defaultZone"
 	DDInfraDefautVMServiceAccountParamName = "gcp/defaultVMServiceAccount"
 )
 
@@ -51,7 +53,8 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	gcpProvider, err := gcp.NewProvider(ctx, string(config.ProviderGCP), &gcp.ProviderArgs{
 		Project: pulumi.StringPtr(env.envDefault.gcp.project),
-		Zone:    pulumi.StringPtr(env.envDefault.gcp.region),
+		Region:  pulumi.StringPtr(env.envDefault.gcp.region),
+		Zone:    pulumi.StringPtr(env.envDefault.gcp.zone),
 	})
 	if err != nil {
 		return Environment{}, err
@@ -135,4 +138,14 @@ func (e *Environment) DefaultInstanceType() string {
 
 func (e *Environment) DefaultVMServiceAccount() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefautVMServiceAccountParamName, e.envDefault.ddInfra.defaultVMServiceAccount)
+}
+
+// Region returns the default region for the GCP environment
+func (e *Environment) Region() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultRegionNameParamName, e.envDefault.gcp.region)
+}
+
+// Zone returns the default zone for the GCP environment
+func (e *Environment) Zone() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultZoneNameParamName, e.envDefault.gcp.zone)
 }

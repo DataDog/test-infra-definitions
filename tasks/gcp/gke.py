@@ -36,6 +36,7 @@ def create_gke(
     full_image_path: Optional[str] = None,
     cluster_agent_full_image_path: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
+    use_autopilot: Optional[bool] = False,
 ) -> None:
     """
     Create a new GKE environment.
@@ -49,6 +50,7 @@ def create_gke(
     extra_flags = {
         "ddinfra:env": f"gcp/{account if account else cfg.get_gcp().account}",
         "ddinfra:gcp/defaultPublicKeyPath": cfg.get_gcp().publicKeyPath,
+        "ddinfra:gcp/gke/enableAutopilot": use_autopilot,
     }
 
     full_stack_name = deploy(

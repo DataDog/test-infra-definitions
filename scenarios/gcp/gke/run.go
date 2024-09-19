@@ -24,6 +24,10 @@ func Run(ctx *pulumi.Context) error {
 	}
 	clusterOptions := []Option{}
 
+	if env.GKEAutopilot() {
+		clusterOptions = append(clusterOptions, WithAutopilot())
+	}
+
 	cluster, err := NewGKECluster(env, clusterOptions...)
 	if err != nil {
 		return err
@@ -42,6 +46,13 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog"),
 		)
+
+		if env.GKEAutopilot() {
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithNamespace("datadog"),
+			)
+		}
 
 		if env.AgentUseFakeintake() {
 			fakeintake, err := fakeintake.NewVMInstance(env)
@@ -70,7 +81,7 @@ func Run(ctx *pulumi.Context) error {
 	// Deploy testing workload
 	if env.TestingWorkloadDeploy() {
 		// Deploy standalone dogstatsd
-		if env.DogstatsdDeploy() {
+		if env.DogstatsdDeploy() && !env.GKEAutopilot() {
 			if _, err := dogstatsdstandalone.K8sAppDefinition(&env, cluster.KubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
 				return err
 			}

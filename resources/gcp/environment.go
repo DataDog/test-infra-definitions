@@ -24,6 +24,7 @@ const (
 	DDInfraDefaultRegionNameParamName      = "gcp/defaultRegion"
 	DDInfraDefaultZoneNameParamName        = "gcp/defaultZone"
 	DDInfraDefautVMServiceAccountParamName = "gcp/defaultVMServiceAccount"
+	DDInfraGKEEnableAutopilot              = "gcp/gke/enableAutopilot"
 )
 
 type Environment struct {
@@ -138,6 +139,11 @@ func (e *Environment) DefaultInstanceType() string {
 
 func (e *Environment) DefaultVMServiceAccount() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefautVMServiceAccountParamName, e.envDefault.ddInfra.defaultVMServiceAccount)
+}
+
+// GKEAutopilot Whether to enable GKE Autopilot or not
+func (e *Environment) GKEAutopilot() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraGKEEnableAutopilot, e.envDefault.ddInfra.gke.autopilot)
 }
 
 // Region returns the default region for the GCP environment

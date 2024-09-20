@@ -2,6 +2,7 @@ package microvms
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -20,9 +21,37 @@ type LibvirtVolume interface {
 }
 
 type filesystemImage struct {
-	imageName   string
-	imagePath   string
-	imageSource string
+	imageName   string // name of the image
+	imagePath   string // path on the image in the target filesystem after download and decompression if needed
+	imageSource string // source URL of the image. Can end with .xz to indicate compression, image will be decompressed on download.
+}
+
+func (fsi *filesystemImage) isCompressed() bool {
+	return strings.HasSuffix(fsi.imageSource, ".xz")
+}
+
+// downloadPath returns the path where the image will be downloaded to on the target filesystem.
+// If the image is compressed, the path will have a .xz extension and it will be an intermediate file
+// until it is decompressed.
+func (fsi *filesystemImage) downloadPath() string {
+	if fsi.isCompressed() {
+		return fsi.imagePath + ".xz"
+	}
+	return fsi.imagePath
+}
+
+// checksumSource returns the source URL of the checksum file for the image.
+func (fsi *filesystemImage) checksumSource() string {
+	if fsi.isCompressed() {
+		return strings.Replace(fsi.imageSource, ".xz", ".sum", 1)
+	}
+	return fsi.imageSource + ".sum"
+}
+
+// checksumPath returns the path where the checksum file will be downloaded to on the target filesystem.
+func (fsi *filesystemImage) checksumPath() string {
+	// Download paths never end with .xz, so we can safely append .sum to the download path.
+	return fsi.imagePath + ".sum"
 }
 
 type volume struct {

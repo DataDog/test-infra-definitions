@@ -42,15 +42,11 @@ func (fsi *filesystemImage) downloadPath() string {
 
 // checksumSource returns the source URL of the checksum file for the image.
 func (fsi *filesystemImage) checksumSource() string {
-	if fsi.isCompressed() {
-		return strings.Replace(fsi.imageSource, ".xz", ".sum", 1)
-	}
 	return fsi.imageSource + ".sum"
 }
 
 // checksumPath returns the path where the checksum file will be downloaded to on the target filesystem.
 func (fsi *filesystemImage) checksumPath() string {
-	// Download paths never end with .xz, so we can safely append .sum to the download path.
 	return fsi.imagePath + ".sum"
 }
 

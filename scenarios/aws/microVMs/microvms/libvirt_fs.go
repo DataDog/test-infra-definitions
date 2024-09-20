@@ -245,7 +245,7 @@ func downloadAndCheckImage(runner *Runner, fsImage *filesystemImage, namer namer
 	checksumTargetDir := filepath.Dir(fsImage.checksumPath())
 
 	checkCmd := fmt.Sprintf("cd %s && sha256sum --strict --check %s", checksumTargetDir, fsImage.checksumPath())
-	curlArgs := "--silent --show-error --retry 3 --parallel "
+	curlArgs := "--no-progress-meter --fail --show-error --retry 3 --parallel"
 	clearPreviousFiles := fmt.Sprintf("rm -f %s %s", fsImage.downloadPath(), fsImage.checksumPath())
 	downloadCmd := fmt.Sprintf("curl %s %s -o %s %s -o %s", curlArgs, fsImage.imageSource, fsImage.downloadPath(), fsImage.checksumSource(), fsImage.checksumPath())
 	args := command.Args{

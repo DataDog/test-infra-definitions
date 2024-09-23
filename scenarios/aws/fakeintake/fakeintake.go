@@ -91,15 +91,16 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 // fargateSvcNoLB deploys one fakeintake container to a dedicated Fargate cluster
 // Hardcoded on sandbox
 func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.FargateTaskDefinition, fi *fakeintake.Fakeintake, opts ...pulumi.ResourceOption) error {
-	fargateService, err := ecs.FargateService(e, namer.ResourceName("srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn(), nil, opts...)
+	fargateService, err := ecs.FargateService(e, namer.ResourceName("srv"), e.ECSFargateFakeintakeClusterArn(), taskDef.TaskDefinition.Arn(), nil, opts...)
 	if err != nil {
 		return err
 	}
 
 	// Hack passing taskDef.TaskDefinition.Arn() to execute apply function
 	// when taskDef has an ARN, thus it is defined on AWS side
-	output := pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name()).ApplyT(func(args []any) ([]string, error) {
+	output := pulumi.All(taskDef.TaskDefinition.Arn(), fargateService.Service.Name(), e.ECSFargateFakeintakeClusterArn()).ApplyT(func(args []any) ([]string, error) {
 		serviceName := args[1].(string)
+		fakeintakeECSArn := args[2].(string)
 		var ipAddress string
 		err := backoff.Retry(func() error {
 			e.Ctx().Log.Debug("waiting for fakeintake task private ip", nil)
@@ -107,7 +108,7 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 			if err != nil {
 				return err
 			}
-			ipAddress, err = ecsClient.GetTaskPrivateIP(e.ECSFargateFakeintakeClusterArn(), serviceName)
+			ipAddress, err = ecsClient.GetTaskPrivateIP(fakeintakeECSArn, serviceName)
 			if err != nil {
 				return err
 			}
@@ -199,7 +200,7 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 		},
 	}
 
-	_, err = ecs.FargateService(e, namer.ResourceName("srv"), pulumi.String(e.ECSFargateFakeintakeClusterArn()), taskDef.TaskDefinition.Arn(), balancerArray, opts...)
+	_, err = ecs.FargateService(e, namer.ResourceName("srv"), e.ECSFargateFakeintakeClusterArn(), taskDef.TaskDefinition.Arn(), balancerArray, opts...)
 	if err != nil {
 		return err
 	}

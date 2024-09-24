@@ -61,8 +61,7 @@ func FargateWindowsTaskDefinitionWithAgent(
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family:  e.CommonNamer().DisplayName(255, family),
-		PidMode: pulumi.StringPtr("task"),
+		Family: e.CommonNamer().DisplayName(255, family),
 		RuntimePlatform: classicECS.TaskDefinitionRuntimePlatformArgs{
 			OperatingSystemFamily: pulumi.String("WINDOWS_SERVER_2022_CORE"),
 		},

@@ -1,6 +1,7 @@
 package ec2
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -10,6 +11,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 
 	goremote "github.com/pulumi/pulumi-command/sdk/go/command/remote"
+	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -58,7 +60,38 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			return err
 		}
 
-		return remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, sshUser, pulumi.String("").ToStringOutput(), amiInfo.readyFunc, c)
+		var password pulumi.StringOutput
+		if vmArgs.osInfo.Family() == os.WindowsFamily {
+			randomPassword, err := random.NewRandomString(e.Ctx(), e.Namer.ResourceName(name, "win-admin-password"), &random.RandomStringArgs{
+				Length:  pulumi.Int(20),
+				Special: pulumi.Bool(true),
+			}, pulumi.Parent(c), e.WithProviders(config.ProviderRandom))
+			if err != nil {
+				return err
+			}
+			password = randomPassword.Result
+		}
+
+		err = remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, sshUser, password, amiInfo.readyFunc, c)
+
+		if err != nil {
+			return err
+		}
+
+		// reset the windows password on Windows
+		if vmArgs.osInfo.Family() == os.WindowsFamily {
+			_, err = c.OS.Runner().Command(
+				e.CommonNamer().ResourceName("reset-admin-password"),
+				&command.Args{
+					Create: pulumi.Sprintf("$Password = ConvertTo-SecureString -String %s -AsPlainText -Force; Get-LocalUser -Name \"Administrator\" | Set-LocalUser -Password $Password", c.Password),
+				}, pulumi.Parent(c))
+
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	})
 }
 

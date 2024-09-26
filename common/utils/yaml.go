@@ -1,8 +1,19 @@
 package utils
 
-import "gopkg.in/yaml.v3"
+import (
+	"golang.org/x/exp/maps"
+	"gopkg.in/yaml.v3"
+)
 
 func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
+	return mergeYAML(oldValuesYamlContent, newValuesYamlContent, false)
+}
+
+func MergeYAMLWithSlices(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
+	return mergeYAML(oldValuesYamlContent, newValuesYamlContent, true)
+}
+
+func mergeYAML(oldValuesYamlContent string, newValuesYamlContent string, mergeSlices bool) (string, error) {
 	if oldValuesYamlContent == "" {
 		return newValuesYamlContent, nil
 	}
@@ -14,7 +25,7 @@ func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string
 	var oldValuesYAML map[string]interface{}
 	var newValuesYAML map[string]interface{}
 
-	err := yaml.Unmarshal([]byte(oldValuesYamlContent), &oldValuesYamlContent)
+	err := yaml.Unmarshal([]byte(oldValuesYamlContent), &oldValuesYAML)
 	if err != nil {
 		return "", err
 	}
@@ -25,28 +36,37 @@ func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string
 		return "", err
 	}
 
-	mergedValuesYAML := MergeMaps(oldValuesYAML, newValuesYAML)
+	mergedValuesYAML := MergeMaps(oldValuesYAML, newValuesYAML, mergeSlices)
 
 	mergedValues, err := yaml.Marshal(mergedValuesYAML)
 
 	return string(mergedValues), err
 }
 
-func MergeMaps(a, b map[string]interface{}) map[string]interface{} {
-	out := make(map[string]interface{}, len(a))
-	for k, v := range a {
-		out[k] = v
-	}
-	for k, v := range b {
-		if v, ok := v.(map[string]interface{}); ok {
-			if bv, ok := out[k]; ok {
-				if bv, ok := bv.(map[string]interface{}); ok {
-					out[k] = MergeMaps(bv, v)
+func MergeMaps(a, b map[string]interface{}, mergeSlices bool) map[string]interface{} {
+	out := maps.Clone(a)
+	for keyB, valueB := range b {
+		// deep merge nested maps
+		if valueB, ok := valueB.(map[string]interface{}); ok {
+			if valueA, ok := out[keyB]; ok {
+				if valueA, ok := valueA.(map[string]interface{}); ok {
+					out[keyB] = MergeMaps(valueA, valueB, mergeSlices)
 					continue
 				}
 			}
 		}
-		out[k] = v
+		// deep merge slices
+		if mergeSlices {
+			if valueB, ok := valueB.([]interface{}); ok {
+				if valueA, ok := out[keyB]; ok {
+					if valueA, ok := valueA.([]interface{}); ok {
+						out[keyB] = append(valueA, valueB...)
+						continue
+					}
+				}
+			}
+		}
+		out[keyB] = valueB
 	}
 	return out
 }

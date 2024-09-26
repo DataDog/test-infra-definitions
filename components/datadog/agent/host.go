@@ -137,14 +137,41 @@ func (h *HostAgent) updateCoreAgentConfig(
 	skipAPIKeyInConfig bool,
 	opts ...pulumi.ResourceOption,
 ) (pulumi.Resource, pulumi.StringInput, error) {
-	for _, extraConfig := range extraAgentConfig {
-		configContent = pulumi.Sprintf("%v\n%v", configContent, extraConfig)
-	}
-	if !skipAPIKeyInConfig {
-		configContent = pulumi.Sprintf("api_key: %v\n%v", env.AgentAPIKey(), configContent)
+	var convertedArgs []interface{}
+	convertedArgs = append(convertedArgs, configContent)
+	convertedArgs = append(convertedArgs, env.AgentAPIKey())
+	for _, c := range extraAgentConfig {
+		convertedArgs = append(convertedArgs, c)
 	}
 
-	cmd, err := h.updateConfig(configPath, configContent, opts...)
+	mergedConfig := pulumi.All(convertedArgs...).ApplyT(func(args []interface{}) (string, error) {
+		baseConfig := args[0].(string)
+		apiKey := args[1].(string)
+		extraConfigs := make([]string, 0, len(args))
+
+		if len(args) > 2 {
+			for _, extraConfig := range args[2:] {
+				extraConfigs = append(extraConfigs, extraConfig.(string))
+			}
+		}
+
+		if !skipAPIKeyInConfig {
+			extraConfigs = append(extraConfigs, fmt.Sprintf("api_key: %s", apiKey))
+		}
+
+		var err error
+		for _, extraConfig := range extraConfigs {
+			// recursively merge the extra config into the base config
+			baseConfig, err = utils.MergeYAMLWithSlices(baseConfig, extraConfig)
+			if err != nil {
+				return "", err
+			}
+		}
+
+		return baseConfig, err
+	}).(pulumi.StringOutput)
+
+	cmd, err := h.updateConfig(configPath, mergedConfig, opts...)
 	return cmd, configContent, err
 }
 

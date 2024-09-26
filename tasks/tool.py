@@ -33,6 +33,19 @@ def ask(question: str) -> str:
     return input(colored(question, "blue"))
 
 
+def ask_yesno(question: str, default='N') -> bool:
+    res = ""
+    yes_opts = ["y", "yes"]
+    no_opts = ["n", "no"]
+    while res.lower() not in (yes_opts + no_opts):
+        res = ask(question + f" [Y/N] Default [{default}]: ")
+        if res == "":
+            res = default
+            break
+
+    return res.lower() in yes_opts
+
+
 def debug(msg: str):
     print(colored(msg, "white"))
 
@@ -51,6 +64,10 @@ def error(msg: str):
 
 def get_default_agent_install() -> bool:
     return True
+
+
+def get_default_agent_with_operator_install() -> bool:
+    return False
 
 
 def get_default_workload_install() -> bool:
@@ -73,7 +90,16 @@ def get_stack_name_prefix() -> str:
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
 
-    cmd_parts: List[str] = ["pulumi", "stack", "output", "--json", "-s", full_stack_name, get_pulumi_dir_flag()]
+    cmd_parts: List[str] = [
+        "pulumi",
+        "stack",
+        "output",
+        "--json",
+        "--show-secrets",
+        "-s",
+        full_stack_name,
+        get_pulumi_dir_flag(),
+    ]
     ctx.run(
         " ".join(cmd_parts),
         out_stream=buffer,
@@ -98,6 +124,22 @@ def get_aws_wrapper(
     return f"aws-vault exec sso-{aws_account}-account-admin -- "
 
 
+def get_aws_cmd(
+    cmd: str,
+    use_aws_vault: Optional[bool] = True,
+    aws_account: Optional[str] = None,
+) -> str:
+    wrapper = ""
+    if use_aws_vault:
+        if aws_account is None:
+            raise Exit("AWS account is required when using aws-vault.")
+        wrapper = get_aws_wrapper(aws_account)
+    # specify .exe for windows to work around conflicts with aws.rb
+    aws = "aws.exe" if is_windows() else "aws"
+    cmd = f"{wrapper}{aws} {cmd}"
+    return cmd
+
+
 def is_linux():
     return platform.system() == "Linux"
 
@@ -111,7 +153,7 @@ def get_aws_instance_password_data(
 ) -> str:
     buffer = StringIO()
     with ctx.cd(_get_root_path()):
-        cmd = f"aws ec2 get-password-data --instance-id {vm_id} --priv-launch-key {key_path}"
+        cmd = f'aws ec2 get-password-data --instance-id "{vm_id}" --priv-launch-key "{key_path}"'
         if use_aws_vault:
             if aws_account is None:
                 raise Exit("AWS account is required when using aws-vault.")

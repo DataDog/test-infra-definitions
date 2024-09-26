@@ -114,11 +114,7 @@ RUN --mount=type=secret,id=github_token \
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
-# Remove PyYAML to workaround issues with cpython 3.0.0
-# https://github.com/yaml/pyyaml/issues/724#issuecomment-1638636728
-RUN pip3 install "cython<3.0.0" && \
-  pip3 install --no-build-isolation PyYAML==5.4.1 && \
-  pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
+RUN pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
   pip3 install -r /tmp/test-infra/requirements.txt & \
   go install gotest.tools/gotestsum@latest
 
@@ -126,6 +122,3 @@ RUN rm -rf /tmp/test-infra
 
 # Configure aws retries
 COPY .awsconfig $HOME/.aws/config
-
-# I think it's safe to say if we're using this mega image, we want pulumi
-ENTRYPOINT ["pulumi"]

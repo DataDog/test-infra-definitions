@@ -217,7 +217,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"related_team": pulumi.String("team"),
 			},
 			"namespaceAnnotationsAsTags": pulumi.Map{
-				"related_email": pulumi.String("email"),
+				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
 			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
@@ -293,6 +293,14 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
 					"value": pulumi.String("*"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_ANNOTATIONS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(getResourcesAnnotationsAsTags().toJSONString()),
 				},
 			},
 		},
@@ -548,6 +556,10 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 				"value": pulumi.Sprintf("%s", fakeintake.URL),
 			},
 			pulumi.StringMap{
+				"name":  pulumi.String("DD_LOGS_CONFIG_LOGS_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
 				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
 				"value": pulumi.String("true"),
 			},
@@ -604,7 +616,8 @@ func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fak
 		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
 			return nil, err
 		}
-		mergedConfig := utils.MergeMaps(config, defaultConfig)
+		mergeSlices := false
+		mergedConfig := utils.MergeMaps(config, defaultConfig, mergeSlices)
 		mergedConfigYAML, err := yaml.Marshal(mergedConfig)
 		if err != nil {
 			return nil, err

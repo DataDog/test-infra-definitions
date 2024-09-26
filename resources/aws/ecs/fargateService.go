@@ -91,7 +91,8 @@ func FargateTaskDefinitionWithAgent(
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family: e.CommonNamer().DisplayName(255, family),
+		Family:  e.CommonNamer().DisplayName(255, family),
+		PidMode: pulumi.StringPtr("task"),
 		Volumes: classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),
@@ -105,7 +106,7 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 		Cpu:       pulumi.IntPtr(0),
 		User:      pulumi.StringPtr("0"),
 		Name:      pulumi.String("log_router"),
-		Image:     pulumi.String("amazon/aws-for-fluent-bit:stable"),
+		Image:     pulumi.String("public.ecr.aws/aws-observability/aws-for-fluent-bit:stable"),
 		Essential: pulumi.BoolPtr(true),
 		FirelensConfiguration: ecs.TaskDefinitionFirelensConfigurationArgs{
 			Type: pulumi.String("fluentbit"),

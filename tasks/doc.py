@@ -1,7 +1,10 @@
 from . import tool
 
 install_agent: str = f"Install the Agent (default {tool.get_default_agent_install()})."
-install_updater: str = "Install the Updater (default False)."
+install_agent_with_operator: str = (
+    f"Install the Agent with Operator (default {tool.get_default_agent_with_operator_install()})."
+)
+install_installer: str = "Install the Installer (default False)."
 install_workload: str = f"Install test workload (default {tool.get_default_workload_install()})."
 pipeline_id: str = (
     "The pipeline id of the custom Agent build for example '16497585' (may be taken form the gitlab url)'"

@@ -75,6 +75,8 @@ Available tasks:
   az.destroy-aks                                            Destroy a AKS environment created with invoke az.create-aks.
   az.destroy-vm                                             Destroy a new virtual machine on azure.
   ci.create-bump-pr-and-close-stale-ones-on-datadog-agent
+  gcp.create-vm                                             Create a new virtual machine on GCP.
+  gcp.destroy-vm                                            Destroy a virtual machine environment created with invoke gcp.create-vm.
   setup.debug                                               Debug E2E and test-infra-definitions required tools and configuration
   setup.debug-keys                                          Debug E2E and test-infra-definitions SSH keys
   setup.setup (setup)                                       Setup a local environment, interactively by default

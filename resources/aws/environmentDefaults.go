@@ -151,7 +151,7 @@ func agentSandboxDefault() environmentDefault {
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
-				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-stress-test"},
+				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-2", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-3", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs"},
 				defaultFakeintakeLBs: []FakeintakeLBConfig{
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106", baseHost: ".lb1.fi.sandbox.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/3df6c797d971c13b", baseHost: ".lb2.fi.sandbox.dda-testing.com"},

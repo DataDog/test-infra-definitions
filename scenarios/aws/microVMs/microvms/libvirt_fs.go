@@ -1,6 +1,7 @@
 package microvms
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -17,6 +18,9 @@ const (
 	refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
 	RootMountpoint = "/"
 )
+
+//go:embed files/download-vm-images.py
+var downloadScriptContents string
 
 type LibvirtFilesystem struct {
 	ctx           *pulumi.Context
@@ -266,6 +270,9 @@ func downloadAndCheckImage(runner *Runner, fsImage *filesystemImage, namer namer
 
 func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
+	var downloadSpecs []filesystemImageDownload
+	var retrieveImage []pulumi.Resource
+	var imagesToExtract []*filesystemImage
 
 	for _, volume := range fs.volumes {
 		// only download backing stores for volumes inside default pool since these are
@@ -282,30 +289,68 @@ func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []p
 			return nil, fmt.Errorf("error parsing url %s: %w", fsImage.imageSource, err)
 		}
 
-		volumeNamer := fs.fsNamer.WithPrefix(fsImage.imageName)
-
-		var retrieveImage []pulumi.Resource
 		if url.Scheme == "file" {
 			retrieveImage, err = refreshFromBackingStore(volume, runner, url.Path, fs.isLocal, depends)
 			if err != nil {
 				return waitFor, err
 			}
 		} else {
-			retrieveImage, err = downloadAndCheckImage(runner, fsImage, volumeNamer, depends)
-			if err != nil {
-				return waitFor, err
-			}
+			downloadSpecs = append(downloadSpecs, fsImage.toDownloadSpec())
 		}
 
 		if fsImage.isCompressed() {
-			extractImage, err := extractImage(fsImage, runner, volumeNamer, retrieveImage)
-			if err != nil {
-				return waitFor, err
-			}
-			waitFor = append(waitFor, extractImage...)
-		} else {
-			waitFor = append(waitFor, retrieveImage...)
+			imagesToExtract = append(imagesToExtract, fsImage)
 		}
+	}
+
+	if len(downloadSpecs) > 0 {
+		var retrievePrepare []pulumi.Resource
+
+		downloadSpecJson, err := json.Marshal(downloadSpecs)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal to JSON download specs: %w", err)
+		}
+
+		downloadSpecsPath := fmt.Sprintf("/tmp/download-specs-%s.json", fs.fsNamer.ResourceName("download-specs"))
+		writeConfigFile := command.Args{
+			Create: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJson), downloadSpecsPath),
+			Update: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJson), downloadSpecsPath),
+			Delete: pulumi.Sprintf("rm -f %s", downloadSpecsPath),
+		}
+		writeConfigDone, err := runner.Command(fs.fsNamer.ResourceName("write-download-specs"), &writeConfigFile, pulumi.DependsOn(depends))
+		if err != nil {
+			return retrieveImage, err
+		}
+		retrievePrepare = append(retrievePrepare, writeConfigDone)
+
+		downloadScriptFile := fmt.Sprintf("/tmp/download-vm-images-%s.py", fs.fsNamer.ResourceName("download-vm-images-script"))
+		copyDownloadScriptFile := command.Args{
+			Create: pulumi.Sprintf("echo '%s' > %s", downloadScriptContents, downloadScriptFile),
+			Update: pulumi.Sprintf("echo '%s' > %s", downloadScriptContents, downloadScriptFile),
+			Delete: pulumi.Sprintf("rm -f %s", downloadScriptFile),
+		}
+		copyDownloadScriptDone, err := runner.Command(fs.fsNamer.ResourceName("write-download-specs"), &copyDownloadScriptFile, pulumi.DependsOn(depends))
+		if err != nil {
+			return retrieveImage, err
+		}
+		retrievePrepare = append(retrievePrepare, copyDownloadScriptDone)
+
+		downloadImagesArgs := command.Args{
+			Create: pulumi.Sprintf("python3 %s %s", downloadScriptFile, downloadSpecsPath),
+		}
+		downloadImagesDone, err := runner.Command(fs.fsNamer.ResourceName("download-vm-images"), &downloadImagesArgs, pulumi.DependsOn(retrievePrepare))
+		if err != nil {
+			return retrieveImage, err
+		}
+		retrieveImage = append(retrieveImage, downloadImagesDone)
+	}
+
+	for _, fsImage := range imagesToExtract {
+		extractImage, err := extractImage(fsImage, runner, fs.fsNamer, retrieveImage)
+		if err != nil {
+			return waitFor, err
+		}
+		waitFor = append(waitFor, extractImage...)
 	}
 
 	return waitFor, nil

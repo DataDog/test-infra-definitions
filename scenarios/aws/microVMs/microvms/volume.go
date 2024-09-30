@@ -50,6 +50,24 @@ func (fsi *filesystemImage) checksumPath() string {
 	return fsi.imagePath + ".sum"
 }
 
+type filesystemImageDownload struct {
+	ImageName string `json:"image_name"`
+	ImagePath string `json:"image_path"`
+	ImageSource string `json:"image_source"`
+	ChecksumSource string `json:"checksum_source"`
+	ChecksumPath string `json:"checksum_path"`
+}
+
+func (fsi *filesystemImage) toDownloadSpec() filesystemImageDownload {
+	return filesystemImageDownload{
+		ImageName: fsi.imageName,
+		ImagePath: fsi.imagePath,
+		ImageSource: fsi.imageSource,
+		ChecksumSource: fsi.checksumSource(),
+		ChecksumPath: fsi.checksumPath(),
+	}
+}
+
 type volume struct {
 	filesystemImage
 	pool        LibvirtPool

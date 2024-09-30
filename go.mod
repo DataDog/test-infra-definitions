@@ -1,6 +1,6 @@
 module github.com/DataDog/test-infra-definitions
 
-go 1.22
+go 1.22.1
 
 require (
 	dario.cat/mergo v1.0.0

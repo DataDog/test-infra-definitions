@@ -24,7 +24,7 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 				Subnetwork: pulumi.String(e.DefaultSubnet()),
 			},
 		},
-		Name:        e.Namer.DisplayName(255, pulumi.String(name)),
+		Name:        e.Namer.DisplayName(64, pulumi.String(name)),
 		MachineType: pulumi.String(instanceType),
 		Tags: pulumi.StringArray{
 			pulumi.String("appgate-gateway"),

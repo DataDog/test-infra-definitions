@@ -5,7 +5,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -53,7 +52,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	var imagePullSecrets corev1.LocalObjectReferenceArray
 	if e.ImagePullRegistry() != "" {
-		imgPullSecret, err := agent.NewImagePullSecret(e, namespace, opts...)
+		imgPullSecret, err := utils.NewImagePullSecret(e, namespace, opts...)
 		if err != nil {
 			return nil, err
 		}

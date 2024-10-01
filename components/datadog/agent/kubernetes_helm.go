@@ -113,7 +113,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	// Create image pull secret if necessary
 	var imgPullSecret *corev1.Secret
 	if e.ImagePullRegistry() != "" {
-		imgPullSecret, err = NewImagePullSecret(e, args.Namespace, opts...)
+		imgPullSecret, err = utils.NewImagePullSecret(e, args.Namespace, opts...)
 		if err != nil {
 			return nil, err
 		}

@@ -47,6 +47,8 @@ type HelmInstallationArgs struct {
 	OTelAgent bool
 	// OTelConfig is used to provide a custom OTel configuration
 	OTelConfig string
+	// GKEAutopilot is used to enable the GKE Autopilot mode and keep only compatible values
+	GKEAutopilot bool
 }
 
 type HelmComponent struct {
@@ -134,8 +136,13 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := baseName + "-linux"
+	values := HelmValues{}
+	if args.GKEAutopilot {
+		values = buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
+	} else {
+		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 
-	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
+	}
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
 
@@ -419,6 +426,35 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"cpu":    pulumi.String("200m"),
 					"memory": pulumi.String("400Mi"),
 				},
+			},
+		},
+	}
+}
+
+func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {
+	return HelmValues{
+		"datadog": pulumi.Map{
+			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+		},
+		"clusterAgent": pulumi.Map{
+			"enabled": pulumi.Bool(true),
+			"metricsProvider": pulumi.Map{
+				"enabled":           pulumi.Bool(true),
+				"useDatadogMetrics": pulumi.Bool(true),
+			},
+			"image": pulumi.Map{
+				"repository":    pulumi.String(clusterAgentImagePath),
+				"tag":           pulumi.String(clusterAgentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"token": clusterAgentToken,
+		},
+		"agents": pulumi.Map{
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
 			},
 		},
 	}

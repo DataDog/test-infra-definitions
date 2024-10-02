@@ -63,8 +63,11 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		password := pulumi.String("").ToStringOutput()
 		if vmArgs.osInfo.Family() == os.WindowsFamily {
 			randomPassword, err := random.NewRandomString(e.Ctx(), e.Namer.ResourceName(name, "win-admin-password"), &random.RandomStringArgs{
-				Length:  pulumi.Int(20),
-				Special: pulumi.Bool(false),
+				Length:     pulumi.Int(20),
+				Special:    pulumi.Bool(false),
+				MinLower:   pulumi.Int(1),
+				MinUpper:   pulumi.Int(1),
+				MinNumeric: pulumi.Int(1),
 			}, pulumi.Parent(c), e.WithProviders(config.ProviderRandom))
 			if err != nil {
 				return err

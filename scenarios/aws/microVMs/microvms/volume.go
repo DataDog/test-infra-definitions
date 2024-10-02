@@ -61,7 +61,7 @@ type filesystemImageDownload struct {
 func (fsi *filesystemImage) toDownloadSpec() filesystemImageDownload {
 	return filesystemImageDownload{
 		ImageName: fsi.imageName,
-		ImagePath: fsi.imagePath,
+		ImagePath: fsi.downloadPath(),
 		ImageSource: fsi.imageSource,
 		ChecksumSource: fsi.checksumSource(),
 		ChecksumPath: fsi.checksumPath(),

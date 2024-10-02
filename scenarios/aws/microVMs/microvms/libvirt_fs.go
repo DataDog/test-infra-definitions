@@ -330,7 +330,7 @@ func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []p
 			Update: pulumi.Sprintf("echo '%s' > %s", downloadScriptContents, downloadScriptFile),
 			Delete: pulumi.Sprintf("rm -f %s", downloadScriptFile),
 		}
-		copyDownloadScriptDone, err := runner.Command(fs.fsNamer.ResourceName("write-download-specs"), &copyDownloadScriptFile, pulumi.DependsOn(depends))
+		copyDownloadScriptDone, err := runner.Command(fs.fsNamer.ResourceName("copy-download-script"), &copyDownloadScriptFile, pulumi.DependsOn(depends))
 		if err != nil {
 			return retrieveImage, err
 		}
@@ -347,7 +347,7 @@ func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []p
 	}
 
 	for _, fsImage := range imagesToExtract {
-		extractImage, err := extractImage(fsImage, runner, fs.fsNamer, retrieveImage)
+		extractImage, err := extractImage(fsImage, runner, fs.fsNamer.WithPrefix(fsImage.imageName), retrieveImage)
 		if err != nil {
 			return waitFor, err
 		}
@@ -360,7 +360,7 @@ func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []p
 func extractImage(fsImage *filesystemImage, runner *Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	// Extract archive from the download path assuming it is xz compressed
 	extractTopLevelArchive := command.Args{
-		Create: pulumi.Sprintf("xz -d %s", fsImage.downloadPath()),
+		Create: pulumi.Sprintf("rm %s || true; xz -d %s", fsImage.imagePath, fsImage.downloadPath()),
 	}
 	res, err := runner.Command(namer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
 	if err != nil {

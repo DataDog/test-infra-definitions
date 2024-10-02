@@ -22,10 +22,24 @@ def main(data_file):
             print(f"Integrity check failed for checksum file: {checksum_file}, downloading image")
             images_to_download.append(image)
 
-    curl_args = ["curl", "--no-progress-meter", "--fail", "--show-error", "--retry", "3", "--parallel"]
+    curl_args = [
+        "curl",
+        "--no-progress-meter",
+        "--fail",
+        "--show-error",
+        "--retry",
+        "3",
+        "--parallel",
+        "-w",
+        "'file: %{url_effective}'\n",
+    ]
     for image in images_to_download:
-        curl_args += [image["image_source"], "-o", image["image_path"]]
-        curl_args += [image["checksum_source"], "-o", image["checksum_path"]]
+        source, path = image["image_source"], image["image_path"]
+        csum_source, csum_path = image["checksum_source"], image["checksum_path"]
+        print(f"Downloading image: {source} -> {path}")
+        curl_args += [source, "-o", path]
+        print(f"Downloading checksum: {csum_source} -> {csum_path}")
+        curl_args += [csum_source, "-o", csum_path]
 
     try:
         subprocess.run(curl_args, check=True)
@@ -35,8 +49,9 @@ def main(data_file):
 
     failed_integrity = False
     for image in images_to_download:
-        if not check_integrity(Path(image["checksum_path"])):
-            print(f"Integrity check failed for downloaded image: {image['download_path']}")
+        csum_path = Path(image["checksum_path"])
+        if not check_integrity(csum_path):
+            print(f"Integrity check from {csum_path} failed")
             failed_integrity = True
 
     if failed_integrity:

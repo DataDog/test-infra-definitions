@@ -1,6 +1,7 @@
 package microvms
 
 import (
+	_ "embed"
 	"encoding/json"
 	"fmt"
 	"net/url"

@@ -148,13 +148,28 @@ func (d *Manager) install() (*remote.Command, error) {
 		return nil, err
 	}
 
+	// Patch ip range that docker uses to create its bridge networks
+	// This is to avoid conflicts with other IP ranges used internally
+	daemonPatch, err := d.Host.OS.Runner().Command(d.namer.ResourceName("daemon-patch"), &command.Args{
+		Create: pulumi.Sprintf("sudo mkdir -p /etc/docker && echo '{\"bip\": \"192.168.16.1/24\", \"default-address-pools\":[{\"base\":\"192.168.32.0/24\", \"size\":24}]}' | sudo tee /etc/docker/daemon.json"),
+		Sudo:   true,
+	}, utils.MergeOptions(opts, utils.PulumiDependsOn(dockerInstall))...)
+	if err != nil {
+		return nil, err
+	}
+
+	restartDockerDaemon, err := d.Host.OS.ServiceManger().EnsureRestarted("docker", nil, utils.MergeOptions(opts, utils.PulumiDependsOn(daemonPatch))...)
+	if err != nil {
+		return nil, err
+	}
+
 	whoami, err := d.Host.OS.Runner().Command(
 		d.namer.ResourceName("whoami"),
 		&command.Args{
 			Create: pulumi.String("whoami"),
 			Sudo:   false,
 		},
-		utils.MergeOptions(opts, utils.PulumiDependsOn(dockerInstall))...,
+		utils.MergeOptions(opts, utils.PulumiDependsOn(restartDockerDaemon))...,
 	)
 	if err != nil {
 		return nil, err

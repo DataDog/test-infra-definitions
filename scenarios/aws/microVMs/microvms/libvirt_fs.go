@@ -246,29 +246,6 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 	return []pulumi.Resource{res}, err
 }
 
-func downloadAndCheckImage(runner *Runner, fsImage *filesystemImage, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	checksumTargetDir := filepath.Dir(fsImage.checksumPath())
-
-	checkCmd := fmt.Sprintf("cd %s && sha256sum --strict --check %s", checksumTargetDir, fsImage.checksumPath())
-	curlArgs := "--no-progress-meter --fail --show-error --retry 3 --parallel"
-	clearPreviousFiles := fmt.Sprintf("rm -f %s %s", fsImage.downloadPath(), fsImage.checksumPath())
-	downloadCmd := fmt.Sprintf("curl %s %s -o %s %s -o %s", curlArgs, fsImage.imageSource, fsImage.downloadPath(), fsImage.checksumSource(), fsImage.checksumPath())
-	args := command.Args{
-		// The idea of the command is:
-		// 1. Check if the file is already downloaded and checksummed. If they work, just exit
-		// 2. If not, clear the previous files (because curl will refuse to overwrite existing files, and the --clobber option only works for modern curl versions that aren't always available)
-		// 3. Then download the image
-		// 4. Finally, check the checksum again
-		Create: pulumi.Sprintf("(%[1]s) || (%[2]s; %[3]s && %[1]s)", checkCmd, clearPreviousFiles, downloadCmd),
-	}
-
-	downloadWithCurlDone, err := runner.Command(namer.ResourceName("download-with-curl"), &args, pulumi.DependsOn(depends))
-	if err != nil {
-		return nil, err
-	}
-	return []pulumi.Resource{downloadWithCurlDone}, nil
-}
-
 func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var downloadSpecs []filesystemImageDownload
@@ -307,15 +284,15 @@ func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []p
 	if len(downloadSpecs) > 0 {
 		var retrievePrepare []pulumi.Resource
 
-		downloadSpecJson, err := json.Marshal(downloadSpecs)
+		downloadSpecJSON, err := json.Marshal(downloadSpecs)
 		if err != nil {
 			return nil, fmt.Errorf("cannot marshal to JSON download specs: %w", err)
 		}
 
 		downloadSpecsPath := fmt.Sprintf("/tmp/download-specs-%s.json", fs.fsNamer.ResourceName("download-specs"))
 		writeConfigFile := command.Args{
-			Create: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJson), downloadSpecsPath),
-			Update: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJson), downloadSpecsPath),
+			Create: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJSON), downloadSpecsPath),
+			Update: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJSON), downloadSpecsPath),
 			Delete: pulumi.Sprintf("rm -f %s", downloadSpecsPath),
 		}
 		writeConfigDone, err := runner.Command(fs.fsNamer.ResourceName("write-download-specs"), &writeConfigFile, pulumi.DependsOn(depends))

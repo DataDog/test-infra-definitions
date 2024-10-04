@@ -60,22 +60,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			return err
 		}
 
-		password := pulumi.String("").ToStringOutput()
-		if vmArgs.osInfo.Family() == os.WindowsFamily {
-			randomPassword, err := random.NewRandomString(e.Ctx(), e.Namer.ResourceName(name, "win-admin-password"), &random.RandomStringArgs{
-				Length:     pulumi.Int(20),
-				Special:    pulumi.Bool(false),
-				MinLower:   pulumi.Int(1),
-				MinUpper:   pulumi.Int(1),
-				MinNumeric: pulumi.Int(1),
-			}, pulumi.Parent(c), e.WithProviders(config.ProviderRandom))
-			if err != nil {
-				return err
-			}
-			password = randomPassword.Result
-		}
-
-		err = remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, sshUser, password, amiInfo.readyFunc, c)
+		err = remote.InitHost(&e, conn.ToConnectionOutput(), *vmArgs.osInfo, sshUser, pulumi.String("").ToStringOutput(), amiInfo.readyFunc, c)
 
 		if err != nil {
 			return err
@@ -83,15 +68,33 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 
 		// reset the windows password on Windows
 		if vmArgs.osInfo.Family() == os.WindowsFamily {
+			// The password contains characters from three of the following categories:
+			// 		* Uppercase letters of European languages (A through Z, with diacritic marks, Greek and Cyrillic characters).
+			// 		* Lowercase letters of European languages (a through z, sharp-s, with diacritic marks, Greek and Cyrillic characters).
+			// 		* Base 10 digits (0 through 9).
+			// 		* Non-alphanumeric characters (special characters): '-!"#$%&()*,./:;?@[]^_`{|}~+<=>
+			// Source: https://learn.microsoft.com/en-us/previous-versions/windows/it-pro/windows-10/security/threat-protection/security-policy-settings/password-must-meet-complexity-requirements
+			randomPassword, err := random.NewRandomString(e.Ctx(), e.Namer.ResourceName(name, "win-admin-password"), &random.RandomStringArgs{
+				Length:     pulumi.Int(20),
+				Special:    pulumi.Bool(true),
+				MinLower:   pulumi.Int(1),
+				MinUpper:   pulumi.Int(1),
+				MinNumeric: pulumi.Int(1),
+			}, pulumi.Parent(c), e.WithProviders(config.ProviderRandom))
+			if err != nil {
+				return err
+			}
 			_, err = c.OS.Runner().Command(
 				e.CommonNamer().ResourceName("reset-admin-password"),
 				&command.Args{
-					Create: pulumi.Sprintf("$Password = ConvertTo-SecureString -String \"%s\" -AsPlainText -Force; Get-LocalUser -Name \"Administrator\" | Set-LocalUser -Password $Password", c.Password),
+					Create: pulumi.Sprintf("$Password = ConvertTo-SecureString -String '%s' -AsPlainText -Force; Get-LocalUser -Name \"Administrator\" | Set-LocalUser -Password $Password", randomPassword.Result),
 				}, pulumi.Parent(c))
 
 			if err != nil {
 				return err
 			}
+
+			c.Password = randomPassword.Result
 		}
 
 		return nil

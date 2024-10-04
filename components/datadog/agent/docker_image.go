@@ -13,7 +13,8 @@ const (
 	defaultAgentImageRepo        = "gcr.io/datadoghq/agent"
 	defaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
 	defaultAgentImageTag         = "latest"
-	defaultOTAgentImageTag       = "7-ot-beta"
+	defaultOTAgentImageRepo      = "datadog/agent-dev"
+	defaultOTAgentImageTag       = "nightly-ot-beta-main"
 )
 
 func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool) string {
@@ -34,6 +35,10 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, ote
 			panic(fmt.Sprintf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), tag))
 		}
 		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
+	}
+
+	if repositoryPath == "" && otel {
+		repositoryPath = defaultOTAgentImageRepo
 	}
 
 	if repositoryPath == "" {

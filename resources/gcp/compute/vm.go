@@ -28,6 +28,7 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 		MachineType: pulumi.String(instanceType),
 		Tags: pulumi.StringArray{
 			pulumi.String("appgate-gateway"),
+			pulumi.String("nat-us-central1"),
 		},
 		BootDisk: &compute.InstanceBootDiskArgs{
 			InitializeParams: &compute.InstanceBootDiskInitializeParamsArgs{

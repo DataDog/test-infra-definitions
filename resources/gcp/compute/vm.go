@@ -24,10 +24,11 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 				Subnetwork: pulumi.String(e.DefaultSubnet()),
 			},
 		},
-		Name:        e.Namer.DisplayName(255, pulumi.String(name)),
+		Name:        e.Namer.DisplayName(63, pulumi.String(name)),
 		MachineType: pulumi.String(instanceType),
 		Tags: pulumi.StringArray{
 			pulumi.String("appgate-gateway"),
+			pulumi.String("nat-us-central1"),
 		},
 		BootDisk: &compute.InstanceBootDiskArgs{
 			InitializeParams: &compute.InstanceBootDiskInitializeParamsArgs{

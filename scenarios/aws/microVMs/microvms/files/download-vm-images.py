@@ -32,7 +32,7 @@ def main(data_file):
         "--parallel",
         "-w",
         "'file: %{url_effective}'\n",  # Better output so we know which file actually failed
-        "--parallel-max",
+        "--parallel-max",  # Default is 50, we want just one thread per download
         str(len(images_to_download)),
     ]
     for image in images_to_download:

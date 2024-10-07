@@ -31,7 +31,9 @@ def main(data_file):
         "3",
         "--parallel",
         "-w",
-        "'file: %{url_effective}'\n",
+        "'file: %{url_effective}'\n",  # Better output so we know which file actually failed
+        "--parallel-max",
+        str(len(images_to_download)),
     ]
     for image in images_to_download:
         source, path = image["image_source"], image["image_path"]

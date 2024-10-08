@@ -9,7 +9,7 @@
 # Rules are matched bottom-to-top, so one team can own subdirectories
 # and another the rest of the directory.
 
-*                                       @DataDog/agent-e2e-testing
+*                                       @DataDog/agent-devx-loops 
 /scenarios/aws/microVMs/                @DataDog/ebpf-platform
 /scenarios/aws/installer/               @DataDog/fleet
 /components/datadog/apps/jmxfetch       @DataDog/agent-metrics-logs

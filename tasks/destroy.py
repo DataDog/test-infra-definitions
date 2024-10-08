@@ -17,7 +17,7 @@ def destroy(
     scenario_name: str,
     config_path: Optional[str] = None,
     stack: Optional[str] = None,
-    force_yes: Optional[bool] = False,
+    force_yes: Optional[bool] = True,
 ):
     """
     Destroy an environment

@@ -74,14 +74,12 @@ def create_aks(
     _show_connection_message(ctx, full_stack_name, interactive)
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_aks(
-    ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False, config_path: Optional[str] = None
-):
+@task(help={"stack_name": doc.stack_name})
+def destroy_aks(ctx: Context, stack_name: Optional[str] = None, config_path: Optional[str] = None):
     """
     Destroy a AKS environment created with invoke az.create-aks.
     """
-    destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes, config_path=config_path)
+    destroy(ctx, scenario_name=scenario_name, stack=stack_name, config_path=config_path)
 
 
 def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):

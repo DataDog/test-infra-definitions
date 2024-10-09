@@ -25,13 +25,13 @@ RUN apt-get update -y && \
   wget \
   unzip && \
   # Get all of the signatures we need all at once.
-  curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key  | apt-key add - && \
-  curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg              | apt-key add - && \
-  curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg          | apt-key add - && \
-  curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
-  curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc     | apt-key add - && \
+  curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key    | apt-key add - && \
+  curl --retry 10 -fsSL https://dl.yarnpkg.com/debian/pubkey.gpg                | apt-key add - && \
+  curl --retry 10 -fsSL https://download.docker.com/linux/debian/gpg            | apt-key add - && \
+  curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg   | apt-key add - && \
+  curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc       | apt-key add - && \
   curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /usr/share/keyrings/kubernetes-archive-keyring.gpg && \
-  curl --retry 10 -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+  curl --retry 10 -fsSL https://apt.releases.hashicorp.com/gpg                  | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
   # IAM Authenticator for EKS
   curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
@@ -42,11 +42,11 @@ RUN apt-get update -y && \
   rm -rf aws && \
   rm awscliv2.zip && \
   # Add additional apt repos all at once
-  echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"                               | tee /etc/apt/sources.list.d/docker.list           && \
-  echo "deb https://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                        | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
-  echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list && \
-  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main"                          | tee /etc/apt/sources.list.d/azure.list            && \
-  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list &&\
+  echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"                                          | tee /etc/apt/sources.list.d/docker.list           && \
+  echo "deb https://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                                  | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
+  echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /"            | tee /etc/apt/sources.list.d/kubernetes.list       && \
+  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main"                                     | tee /etc/apt/sources.list.d/azure.list            && \
+  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list        && \
   # Install second wave of dependencies
   apt-get update -y && \
   apt-get install -y \
@@ -59,6 +59,8 @@ RUN apt-get update -y && \
   vault \
   # xsltproc is required by libvirt-sdk used in the micro-vms scenario
   xsltproc && \
+  # Remove the cap_ipc_lock capability from vault https://github.com/hashicorp/vault/issues/10924
+  setcap -r /usr/bin/vault && \
   # Install the datadog-ci-uploader
   curl --retry 10 -fsSL https://github.com/DataDog/datadog-ci/releases/download/v${CI_UPLOADER_VERSION}/datadog-ci_linux-x64 --output "/usr/local/bin/datadog-ci" && \
   echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \

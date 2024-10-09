@@ -31,20 +31,12 @@ def create_installer_lab(
     )
 
 
-@task(
-    help={
-        "yes": doc.yes,
-    }
-)
+@task
 def destroy_installer_lab(
     ctx: Context,
-    yes: Optional[bool] = False,
 ):
     print('This command is deprecated, please use `aws.destroy-installer-lab` instead')
     print("Running `aws.destroy-installer-lab`...")
     from tasks.aws.installer import create_installer_lab as create_installer_lab_aws
 
-    create_installer_lab_aws(
-        ctx,
-        yes,
-    )
+    create_installer_lab_aws(ctx)

@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"unicode"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -80,6 +81,8 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 	t.Helper()
 
 	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName = sanitizeStackName(stackName)
+
 	t.Log("creating vm")
 	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	createCmd.Dir = workingDirectory
@@ -87,7 +90,7 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
 
 	t.Log("destroying vm")
-	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "az.destroy-vm", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
@@ -97,6 +100,8 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 	t.Helper()
 
 	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName = sanitizeStackName(stackName)
+
 	t.Log("creating vm")
 	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
 	createCmd.Dir = workingDirectory
@@ -104,7 +109,7 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
 
 	t.Log("destroying vm")
-	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--yes", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
@@ -113,6 +118,7 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName = sanitizeStackName(stackName)
 	t.Log("creating vm with docker")
 	var stdOut, stdErr bytes.Buffer
 
@@ -127,7 +133,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory str
 	stdErr.Reset()
 
 	t.Log("destroying vm with docker")
-	destroyCmd := exec.Command("invoke", "destroy-docker", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-docker", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyCmd.Stdout = &stdOut
 	destroyCmd.Stderr = &stdErr
@@ -142,6 +148,7 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
 	}
 	stackName := strings.Join(stackParts, "-")
+	stackName = sanitizeStackName(stackName)
 	t.Log("creating kind cluster")
 	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
@@ -149,7 +156,7 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
@@ -161,7 +168,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory
 	if os.Getenv("CI") == "true" {
 		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_PIPELINE_ID"))
 	}
-
+	stackName = sanitizeStackName(stackName)
 	t.Log("creating kind cluster with operator")
 	createCmd := exec.Command("invoke", "aws.create-kind", "--install-agent-with-operator", "true", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
 	createCmd.Dir = workingDirectory
@@ -169,7 +176,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory
 	assert.NoError(t, err, "Error found creating kind cluster: %s; %s", string(createOutput), err)
 
 	t.Log("destroying kind cluster with operator")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--yes", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
@@ -227,4 +234,18 @@ func rootPath() (string, error) {
 		return "", err
 	}
 	return strings.TrimSpace(string(path)), nil
+}
+
+func sanitizeStackName(s string) string {
+	return strings.Map(
+		func(r rune) rune {
+			// valid values are alphanumeric and hyphen
+			if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || unicode.IsDigit(r) || r == '-' {
+				return r
+			}
+			// drop invalid runes
+			return -1
+		},
+		s,
+	)
 }

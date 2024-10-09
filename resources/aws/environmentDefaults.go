@@ -58,6 +58,8 @@ type ddInfraECS struct {
 }
 
 type ddInfraEKS struct {
+	accountAdminSSORole          string
+	readOnlySSORole              string
 	podSubnets                   []DDInfraEKSPodSubnets
 	allowedInboundSecurityGroups []string
 	allowedInboundPrefixList     []string
@@ -168,6 +170,8 @@ func agentSandboxDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				readOnlySSORole:     "arn:aws:iam::376334461865:role/AWSReservedSSO_read-only_14b5d3ee971c41e7",
+				accountAdminSSORole: "arn:aws:iam::376334461865:role/AWSReservedSSO_account-admin_6b545a7026a0a2d4",
 				podSubnets: []DDInfraEKSPodSubnets{
 					{
 						AZ:       "us-east-1a",
@@ -230,6 +234,8 @@ func agentQADefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				readOnlySSORole:     "arn:aws:iam::669783387624:role/AWSReservedSSO_read-only_e9a50f8c3009a8ce",
+				accountAdminSSORole: "arn:aws:iam::669783387624:role/AWSReservedSSO_account-admin_2730b1ac7bbae8eb",
 				podSubnets: []DDInfraEKSPodSubnets{
 					{
 						AZ:       "us-east-1a",

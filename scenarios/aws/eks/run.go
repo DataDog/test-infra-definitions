@@ -168,7 +168,7 @@ func Run(ctx *pulumi.Context) error {
 		nodeDeps := make([]pulumi.Resource, 0)
 		workloadDeps := make([]pulumi.Resource, 0)
 
-		v1.NewClusterRoleBinding(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-cluster-role-binding-read-only"), &v1.ClusterRoleBindingArgs{
+		_, err = v1.NewClusterRoleBinding(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-cluster-role-binding-read-only"), &v1.ClusterRoleBindingArgs{
 			RoleRef: v1.RoleRefArgs{
 				ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
 				Kind:     pulumi.String("ClusterRole"),
@@ -182,6 +182,9 @@ func Run(ctx *pulumi.Context) error {
 				},
 			},
 		}, pulumi.Provider(eksKubeProvider))
+		if err != nil {
+			return err
+		}
 
 		// Create configuration for POD subnets if any
 		if podSubnets := awsEnv.EKSPODSubnets(); len(podSubnets) > 0 {

@@ -56,17 +56,15 @@ def create_kind(
     help={
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
-        "yes": doc.yes,
     }
 )
 def destroy_kind(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = False,
 ):
     print('This command is deprecated, please use `aws.destroy-kind` instead')
     print("Running `aws.destroy-kind`...")
     from tasks.aws.kind import destroy_kind as destroy_kind_aws
 
-    destroy_kind_aws(ctx, config_path, stack_name, yes)
+    destroy_kind_aws(ctx, config_path, stack_name)

@@ -94,14 +94,12 @@ def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboa
     help={
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
-        "yes": doc.yes,
     }
 )
 def destroy_kind(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = False,
 ):
     """
     Destroy an environment created by invoke aws.create-kind.
@@ -111,7 +109,6 @@ def destroy_kind(
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
-        force_yes=yes,
     )
 
 

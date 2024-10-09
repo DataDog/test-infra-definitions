@@ -17,7 +17,6 @@ def destroy(
     scenario_name: str,
     config_path: Optional[str] = None,
     stack: Optional[str] = None,
-    force_yes: Optional[bool] = False,
 ):
     """
     Destroy an environment
@@ -25,7 +24,6 @@ def destroy(
 
     full_stack_name = get_stack_name(stack, scenario_name)
     short_stack_names, full_stack_names = _get_existing_stacks()
-    force_destroy = "--yes --skip-preview" if force_yes else ""
 
     if len(short_stack_names) == 0:
         info("No stack to destroy")
@@ -52,7 +50,7 @@ def destroy(
         for stack_name in short_stack_names:
             error(f" {stack_name}")
     else:
-        cmd = f"pulumi destroy --remove -s {full_stack_name} {force_destroy}"
+        cmd = f"pulumi destroy --remove --yes --skip-preview -s {full_stack_name}"
         pty = True
         if tool.is_windows():
             pty = False

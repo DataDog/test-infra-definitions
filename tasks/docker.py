@@ -52,17 +52,15 @@ def create_docker(
     help={
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
-        "yes": doc.yes,
     }
 )
 def destroy_docker(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = False,
 ):
     print('This command is deprecated, please use `aws.destroy-docker` instead')
     print("Running `aws.destroy-docker`...")
     from tasks.aws.docker import destroy_docker as destroy_docker_aws
 
-    destroy_docker_aws(ctx, config_path, stack_name, yes)
+    destroy_docker_aws(ctx, config_path, stack_name)

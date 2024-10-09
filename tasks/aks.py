@@ -36,10 +36,10 @@ def create_aks(
     )
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_aks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+@task(help={"stack_name": doc.stack_name})
+def destroy_aks(ctx: Context, stack_name: Optional[str] = None):
     print('This command is deprecated, please use `az.destroy-aks` instead')
     print("Running `az.destroy-aks`...")
     from tasks.azure.aks import destroy_aks as destroy_aks_azure
 
-    destroy_aks_azure(ctx, stack_name=stack_name, yes=yes)
+    destroy_aks_azure(ctx, stack_name=stack_name)

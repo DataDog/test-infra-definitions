@@ -110,9 +110,9 @@ def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Op
     pyperclip.copy(command)
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_eks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+@task(help={"stack_name": doc.stack_name})
+def destroy_eks(ctx: Context, stack_name: Optional[str] = None):
     """
     Destroy a EKS environment created with invoke aws.create-eks.
     """
-    destroy(ctx, scenario_name=scenario_name, stack=stack_name, force_yes=yes)
+    destroy(ctx, scenario_name=scenario_name, stack=stack_name)

@@ -11,7 +11,7 @@ import (
 
 func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest", false)
+		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false)
 	}
 
 	return &ecs.TaskDefinitionContainerDefinitionArgs{

@@ -1,13 +1,14 @@
 package compute
 
 import (
-	_ "embed"
 	"fmt"
 	"math"
 	"os"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+
+	componentsos "github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/resources/azure"
 
 	compute "github.com/pulumi/pulumi-azure-native-sdk/compute/v2"
@@ -50,9 +51,6 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 	}
 	return vm, networkInterface.IpConfigurations.Index(pulumi.Int(0)).PrivateIPAddress().Elem(), nil
 }
-
-//go:embed setup-ssh.ps1
-var setupSSHScriptContent string
 
 func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput, opts ...pulumi.ResourceOption) (vm *compute.VirtualMachine, privateIP pulumi.StringOutput, password pulumi.StringOutput, err error) {
 	pwdOpts := make([]pulumi.ResourceOption, 0, len(opts)+1)
@@ -102,7 +100,7 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 		AsyncExecution:    pulumi.Bool(false),
 		RunCommandName:    pulumi.String("InitVM"),
 		Source: compute.VirtualMachineRunCommandScriptSourceArgs{
-			Script: pulumi.String(setupSSHScriptContent),
+			Script: pulumi.String(componentsos.SetupSSHScriptContent),
 		},
 		Parameters: compute.RunCommandInputParameterArray{
 			compute.RunCommandInputParameterArgs{

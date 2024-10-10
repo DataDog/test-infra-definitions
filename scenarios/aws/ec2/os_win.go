@@ -3,6 +3,9 @@ package ec2
 import (
 	"fmt"
 	"os"
+	"strings"
+
+	componentsos "github.com/DataDog/test-infra-definitions/components/os"
 )
 
 func getWindowsOpenSSHUserData(publicKeyPath string) (string, error) {
@@ -10,18 +13,49 @@ func getWindowsOpenSSHUserData(publicKeyPath string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return buildAWSPowerShellUserData(
+			componentsos.SetupSSHScriptContent,
+			windowsPowerShellArgument{name: "authorizedKey", value: string(publicKey)},
+		),
+		nil
+}
 
-	openSSHInstallCmd := `<powershell>
-	$service = Get-Service -Name sshd -ErrorAction SilentlyContinue
-	# Don't try to reinstall OpenSSH if the user uses <persist>true</persist> on UserData.
-	if ($service -eq $null) {
-		Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-		Set-Service -Name sshd -StartupType Automatic
-		Add-Content -Path $env:ProgramData\ssh\administrators_authorized_keys -Value '%v'
-		icacls.exe ""$env:ProgramData\ssh\administrators_authorized_keys"" /inheritance:r /grant ""Administrators:F"" /grant ""SYSTEM:F""
-		New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
-		Start-Service sshd
+type windowsPowerShellArgument struct {
+	name  string
+	value string
+}
+
+func (a windowsPowerShellArgument) String() string {
+	return fmt.Sprintf("-%s %s", a.name, a.value)
+}
+
+func buildAWSPowerShellUserData(scriptContent string, arguments ...windowsPowerShellArgument) string {
+	scriptLines := strings.Split(scriptContent, "\n")
+	userDataLines := make([]string, 0, len(scriptLines)+6+len(arguments))
+	userDataLines = append(userDataLines, "<powershell>")
+	for _, line := range scriptLines {
+		// indent script lines by one tab
+		userDataLines = append(userDataLines, fmt.Sprintf("		%s", line))
 	}
-	</powershell>`
-	return fmt.Sprintf(openSSHInstallCmd, string(publicKey)), nil
+	userDataLines = append(userDataLines, "</powershell>")
+	userDataLines = append(userDataLines, "<persist>true</persist>")
+	if len(arguments) > 0 {
+		// You can specify one or more PowerShell arguments with the <powershellArguments> tag.
+		// If no arguments are passed, EC2Launch and EC2Launch v2 add the following argument by default:
+		// -ExecutionPolicy Unrestricted
+		argumentsWithDefaults := make([]windowsPowerShellArgument, len(arguments)+1)
+		argumentsWithDefaults[0] = windowsPowerShellArgument{name: "ExecutionPolicy", value: "Unrestricted"}
+		copy(argumentsWithDefaults[1:], arguments)
+		argumentsLine := fmt.Sprintf("<powershellArguments>%s</powershellArguments>", windowsArgumentsToString(argumentsWithDefaults))
+		userDataLines = append(userDataLines, argumentsLine)
+	}
+	return strings.Join(userDataLines, "\n")
+}
+
+func windowsArgumentsToString(arguments []windowsPowerShellArgument) string {
+	argumentStrings := make([]string, len(arguments))
+	for i, arg := range arguments {
+		argumentStrings[i] = arg.String()
+	}
+	return strings.Join(argumentStrings, " ")
 }

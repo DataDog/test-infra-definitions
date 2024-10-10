@@ -51,6 +51,8 @@ type Params struct {
 	OTelAgent bool
 	// OTelConfig is the OTel configuration to use for the agent installation.
 	OTelConfig string
+	// GKEAutopilot is a flag to deploy the agent with only GKE Autopilot compatible values.
+	GKEAutopilot bool
 }
 
 type Option = func(*Params) error
@@ -155,5 +157,12 @@ func WithOTelConfig(config string) func(*Params) error {
 		var err error
 		p.OTelConfig, err = utils.MergeYAML(p.OTelConfig, config)
 		return err
+	}
+}
+
+func WithGKEAutopilot() func(*Params) error {
+	return func(p *Params) error {
+		p.GKEAutopilot = true
+		return nil
 	}
 }

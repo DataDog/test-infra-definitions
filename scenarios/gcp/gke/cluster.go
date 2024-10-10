@@ -14,6 +14,7 @@ import (
 )
 
 type Params struct {
+	autopilot bool
 }
 
 type Option = func(*Params) error
@@ -23,14 +24,21 @@ func NewParams(options ...Option) (*Params, error) {
 	return common.ApplyOption(params, options)
 }
 
+func WithAutopilot() Option {
+	return func(params *Params) error {
+		params.autopilot = true
+		return nil
+	}
+}
+
 func NewGKECluster(env gcp.Environment, opts ...Option) (*kubeComp.Cluster, error) {
-	_, err := NewParams(opts...)
+	params, err := NewParams(opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	return components.NewComponent(&env, env.Namer.ResourceName("gke"), func(comp *kubeComp.Cluster) error {
-		cluster, kubeConfig, err := gke.NewCluster(env, "gke")
+		cluster, kubeConfig, err := gke.NewCluster(env, "gke", params.autopilot)
 		if err != nil {
 			return err
 		}

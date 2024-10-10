@@ -1,9 +1,11 @@
 package compute
 
 import (
+	_ "embed"
 	"fmt"
 	"math"
 	"os"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -51,6 +53,9 @@ func NewLinuxInstance(e azure.Environment, name, imageUrn, instanceType string, 
 	}
 	return vm, networkInterface.IpConfigurations.Index(pulumi.Int(0)).PrivateIPAddress().Elem(), nil
 }
+
+//go:embed setup-ssh-param.ps1
+var setupSSHParamScriptContent string
 
 func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string, userData, firstLogonCommand pulumi.StringPtrInput, opts ...pulumi.ResourceOption) (vm *compute.VirtualMachine, privateIP pulumi.StringOutput, password pulumi.StringOutput, err error) {
 	pwdOpts := make([]pulumi.ResourceOption, 0, len(opts)+1)
@@ -100,7 +105,7 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 		AsyncExecution:    pulumi.Bool(false),
 		RunCommandName:    pulumi.String("InitVM"),
 		Source: compute.VirtualMachineRunCommandScriptSourceArgs{
-			Script: pulumi.String(componentsos.SetupSSHScriptContent),
+			Script: pulumi.String(strings.Join([]string{setupSSHParamScriptContent, componentsos.SetupSSHScriptContent}, "\n\n")),
 		},
 		Parameters: compute.RunCommandInputParameterArray{
 			compute.RunCommandInputParameterArgs{

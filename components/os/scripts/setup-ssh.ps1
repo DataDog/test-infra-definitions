@@ -1,8 +1,3 @@
-param(
-    [Parameter(Mandatory,HelpMessage='authorizedkey for ssh private key for the user')]
-    $authorizedKey
-)
-
 $service = Get-Service -Name sshd -ErrorAction SilentlyContinue
 
 if ($service -ne $null) {

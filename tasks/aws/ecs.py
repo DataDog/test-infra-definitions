@@ -74,7 +74,7 @@ def create_ecs(
 
 def _show_connection_message(ctx: Context, config_path: Optional[str], full_stack_name: str):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    cluster_name = outputs["ecs-cluster-name"]
+    cluster_name = outputs["dd-Cluster-ecs-cluster"]["clusterName"]
 
     try:
         local_config = config.get_local_config(config_path)

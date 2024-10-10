@@ -11,6 +11,7 @@ func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.R
 	opts = append(opts, e.WithProviders(config.ProviderGCP))
 
 	cluster, err := container.NewCluster(e.Ctx(), e.Namer.ResourceName(name), &container.ClusterArgs{
+		InitialNodeCount:   pulumi.Int(1),
 		MinMasterVersion:   pulumi.String(e.KubernetesVersion()),
 		NodeVersion:        pulumi.String(e.KubernetesVersion()),
 		DeletionProtection: pulumi.Bool(false),

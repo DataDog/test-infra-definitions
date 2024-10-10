@@ -28,6 +28,9 @@ import (
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+
+	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -115,6 +118,21 @@ func Run(ctx *pulumi.Context) error {
 			ProviderCredentialOpts: &eks.KubeconfigOptionsArgs{
 				ProfileName: pulumi.String(awsEnv.Profile()),
 			},
+			// Add account-admin role mapping to the cluster, which make investigations on cluster created in the CI easier.
+			RoleMappings: eks.RoleMappingArray{
+				eks.RoleMappingArgs{
+					RoleArn: pulumi.String(awsEnv.EKSAccountAdminSSORole()),
+					Groups: pulumi.StringArray{
+						pulumi.String("system:masters"),
+					},
+				},
+				eks.RoleMappingArgs{
+					RoleArn: pulumi.String(awsEnv.EKSReadOnlySSORole()),
+					Groups: pulumi.StringArray{
+						pulumi.String("read-only"),
+					},
+				},
+			},
 		}, pulumi.Timeouts(&pulumi.CustomTimeouts{
 			Create: "30m",
 			Update: "30m",
@@ -149,6 +167,24 @@ func Run(ctx *pulumi.Context) error {
 		// Deps for nodes and workloads
 		nodeDeps := make([]pulumi.Resource, 0)
 		workloadDeps := make([]pulumi.Resource, 0)
+
+		_, err = v1.NewClusterRoleBinding(awsEnv.Ctx(), awsEnv.Namer.ResourceName("eks-cluster-role-binding-read-only"), &v1.ClusterRoleBindingArgs{
+			RoleRef: v1.RoleRefArgs{
+				ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
+				Kind:     pulumi.String("ClusterRole"),
+				Name:     pulumi.String("view"),
+			},
+			Subjects: v1.SubjectArray{
+				v1.SubjectArgs{
+					Kind:      pulumi.String("Group"),
+					Name:      pulumi.String("read-only"),
+					Namespace: pulumi.String(""),
+				},
+			},
+		}, pulumi.Provider(eksKubeProvider))
+		if err != nil {
+			return err
+		}
 
 		// Create configuration for POD subnets if any
 		if podSubnets := awsEnv.EKSPODSubnets(); len(podSubnets) > 0 {

@@ -61,6 +61,8 @@ const (
 	DDInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
 	DDInfraEksLinuxBottlerocketNodeGroup   = "aws/eks/linuxBottlerocketNodeGroup"
 	DDInfraEksWindowsNodeGroup             = "aws/eks/windowsNodeGroup"
+	DDInfraEksAccountAdminSSORole          = "aws/eks/accountAdminSSORole"
+	DDInfraEksReadOnlySSORole              = "aws/eks/readOnlySSORole"
 )
 
 type Environment struct {
@@ -366,6 +368,13 @@ func (e *Environment) EKSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
 }
 
+func (e *Environment) EKSAccountAdminSSORole() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEksAccountAdminSSORole, e.envDefault.ddInfra.eks.accountAdminSSORole)
+}
+
+func (e *Environment) EKSReadOnlySSORole() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEksReadOnlySSORole, e.envDefault.ddInfra.eks.readOnlySSORole)
+}
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
 }

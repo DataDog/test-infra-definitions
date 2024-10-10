@@ -13,7 +13,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, apiKeySSMParamName pulumi.
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest", false)),
+		Image:     pulumi.String(dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false)),
 		Essential: pulumi.BoolPtr(true),
 		Environment: append(append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
@@ -91,7 +91,7 @@ func ECSFargateWindowsContainerDefinition(e config.Env, apiKeySSMParamName pulum
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
 		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "latest", false)),
+		Image:     pulumi.String(dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false)),
 		Essential: pulumi.BoolPtr(true),
 		Environment: append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{

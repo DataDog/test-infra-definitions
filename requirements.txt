@@ -1,5 +1,5 @@
 invoke==2.2.0
-termcolor==2.4.0
+termcolor==2.5.0
 pyyaml==6.0.2
 pyperclip==1.9.0
 pydantic==2.9.2

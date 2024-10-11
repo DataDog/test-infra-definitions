@@ -83,6 +83,14 @@
         </xsl:copy>
     </xsl:template>
 
+    <xsl:template match="/domain/memory">
+        <xsl:copy>
+            <!--  Required by QEMU in recent versions https://gitlab.com/libvirt/libvirt/-/issues/679 -->
+            <xsl:attribute name="dumpCore">on</xsl:attribute>
+            <xsl:apply-templates select="node()|@*" />
+        </xsl:copy>
+    </xsl:template>
+
     <xsl:template match="domain/devices/graphics" />
     <xsl:template match="domain/devices/audio" />
     <xsl:template match="domain/devices/video" />

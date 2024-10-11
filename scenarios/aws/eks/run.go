@@ -32,6 +32,11 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	err = cluster.Export(ctx, nil)
+	if err != nil {
+		return err
+	}
+
 	if awsEnv.InitOnly() {
 		return nil
 	}

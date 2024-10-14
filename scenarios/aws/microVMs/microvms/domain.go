@@ -154,7 +154,7 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 		// We use the stack ID to ensure uniqueness.
 		// We have to use QEMU network devices because libvirt does not support the macOS
 		// network devices.
-		netID := pulumi.Sprintf("net%s", e.Ctx().Stack())
+		netID := libvirtResourceName(domainName, "netdev")
 		qemuArgs := map[string]pulumi.StringInput{
 			"-netdev": pulumi.Sprintf("vmnet-shared,id=%s", netID),
 			// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI

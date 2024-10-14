@@ -150,8 +150,6 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 		hypervisor = "kvm"
 	} else if hostOS == "darwin" {
 		hypervisor = "hvf"
-		// Network ID must be unique for each stack, as they must be on the same network.
-		// We use the stack ID to ensure uniqueness.
 		// We have to use QEMU network devices because libvirt does not support the macOS
 		// network devices.
 		netID := libvirtResourceName(domainName, "netdev")

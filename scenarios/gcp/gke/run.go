@@ -48,14 +48,8 @@ func Run(ctx *pulumi.Context) error {
 		)
 
 		if env.GKEAutopilot() {
-			autopilotHelmValues := `
-providers:
-  gke:
-    autopilot: true`
-
 			k8sAgentOptions = append(
 				k8sAgentOptions,
-				kubernetesagentparams.WithHelmValues(autopilotHelmValues),
 				kubernetesagentparams.WithGKEAutopilot(),
 			)
 		}

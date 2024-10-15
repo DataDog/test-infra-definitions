@@ -2,12 +2,13 @@ package gcp
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"os"
-	"os/exec"
 )
 
 const (

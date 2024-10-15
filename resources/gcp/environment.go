@@ -77,11 +77,11 @@ func logIn(ctx *pulumi.Context) {
 		}
 	}
 
-	if os.Getenv("GOOGLE_CREDENTIALS") != "" {
-		fmt.Println("GOOGLE_CREDENTIALS environment detected, activating service account authentication")
-		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", os.Getenv("GOOGLE_CREDENTIALS"))
+	if os.Getenv("GOOGLE_CREDENTIALS_FILE") != "" {
+		fmt.Println("GOOGLE_CREDENTIALS_FILE environment detected, activating service account authentication")
+		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", os.Getenv("GOOGLE_CREDENTIALS_FILE"))
 		if err := cmd.Run(); err != nil {
-			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth activate-service-account --key-file $GOOGLE_CREDENTIALS`: %v %v", err, cmd.Stderr), nil)
+			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth activate-service-account --key-file $GOOGLE_CREDENTIALS_FILE`: %v", err), nil)
 		}
 	}
 

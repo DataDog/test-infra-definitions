@@ -433,6 +433,11 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 
 func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {
 	return HelmValues{
+		"providers": pulumi.Map{
+			"gke": pulumi.Map{
+				"autopilot": pulumi.Bool(true),
+			},
+		},
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -611,6 +616,9 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 	}
 
 	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
+		if _, ok := values[section].(pulumi.Map); !ok {
+			continue
+		}
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {

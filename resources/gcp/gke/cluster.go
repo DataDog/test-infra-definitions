@@ -7,14 +7,16 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewCluster(e gcp.Environment, name string, opts ...pulumi.ResourceOption) (*container.Cluster, pulumi.StringOutput, error) {
+func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.ResourceOption) (*container.Cluster, pulumi.StringOutput, error) {
 	opts = append(opts, e.WithProviders(config.ProviderGCP))
 
 	cluster, err := container.NewCluster(e.Ctx(), e.Namer.ResourceName(name), &container.ClusterArgs{
-		InitialNodeCount:   pulumi.Int(2),
+		InitialNodeCount:   pulumi.Int(1),
 		MinMasterVersion:   pulumi.String(e.KubernetesVersion()),
 		NodeVersion:        pulumi.String(e.KubernetesVersion()),
 		DeletionProtection: pulumi.Bool(false),
+		EnableAutopilot:    pulumi.Bool(autopilot),
+		NodeLocations:      pulumi.StringArray{pulumi.String(e.Zone())},
 		NodeConfig: &container.ClusterNodeConfigArgs{
 			MachineType: pulumi.String(e.DefaultInstanceType()),
 

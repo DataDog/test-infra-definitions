@@ -21,6 +21,11 @@ type ddInfra struct {
 	defaultNetworkName      string
 	defaultSubnetName       string
 	defaultVMServiceAccount string
+	gke                     ddInfraGKE
+}
+
+type ddInfraGKE struct {
+	autopilot bool
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
@@ -46,6 +51,7 @@ func agentSandboxDefault() environmentDefault {
 			defaultNetworkName:      "datadog-agent-sandbox-us-central1",
 			defaultSubnetName:       "datadog-agent-sandbox-us-central1-private",
 			defaultVMServiceAccount: "vmserviceaccount@datadog-agent-sandbox.iam.gserviceaccount.com",
+			gke:                     ddInfraGKE{autopilot: false},
 		},
 	}
 }
@@ -62,6 +68,7 @@ func agentQaDefault() environmentDefault {
 			defaultNetworkName:      "datadog-agent-qa-us-central1",
 			defaultSubnetName:       "datadog-agent-qa-us-central1-private",
 			defaultVMServiceAccount: "vmserviceaccount@datadog-agent-qa.iam.gserviceaccount.com",
+			gke:                     ddInfraGKE{autopilot: false},
 		},
 	}
 }

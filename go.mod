@@ -3,7 +3,7 @@ module github.com/DataDog/test-infra-definitions
 go 1.22.5
 
 require (
-	dario.cat/mergo v1.0.0
+	dario.cat/mergo v1.0.1
 	github.com/DataDog/datadog-agent/pkg/util/optional v0.55.2
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2

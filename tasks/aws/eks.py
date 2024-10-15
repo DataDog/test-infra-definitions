@@ -90,7 +90,7 @@ def create_eks(
 
 def _show_connection_message(ctx: Context, full_stack_name: str, config_path: Optional[str]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
-    kubeconfig_output = json.loads(outputs["dd-Cluster-aws-eks"]["kubeConfig"])
+    kubeconfig_output = json.loads(outputs["dd-Cluster-eks"]["kubeConfig"])
     kubeconfig_content = yaml.dump(kubeconfig_output)
     kubeconfig = f"{full_stack_name}-kubeconfig.yaml"
     f = os.open(path=kubeconfig, flags=(os.O_WRONLY | os.O_CREAT | os.O_TRUNC), mode=0o600)

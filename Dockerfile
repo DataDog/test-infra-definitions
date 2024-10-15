@@ -3,7 +3,7 @@
 
 FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.22.6
+ENV GO_VERSION=1.22.8
 ENV GO_SHA=999805bed7d9039ec3da1a53bfbcafc13e367da52aa823cb60b68ba22d44c616
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5

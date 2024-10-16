@@ -77,6 +77,7 @@ func logIn(ctx *pulumi.Context) {
 		}
 	}
 
+	// Environment variable provided in the CI, to activate the service-account authentication
 	if os.Getenv("GOOGLE_CREDENTIALS_FILE") != "" {
 		fmt.Println("GOOGLE_CREDENTIALS_FILE environment detected, activating service account authentication")
 		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", os.Getenv("GOOGLE_CREDENTIALS_FILE"))

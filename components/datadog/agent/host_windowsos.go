@@ -115,7 +115,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
 
 	if version.PipelineID != "" {
-		return getAgentURLFromPipelineID(version.PipelineID)
+		return getAgentURLFromPipelineID(version.PipelineID, version.Major)
 	}
 
 	if version.Channel == agentparams.BetaChannel {
@@ -150,7 +150,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	return finder.findVersion(fullVersion)
 }
 
-func getAgentURLFromPipelineID(pipelineID string) (string, error) {
+func getAgentURLFromPipelineID(pipelineID string, majorVersion string) (string, error) {
 	// TODO: Replace context.Background() with a Pulumi context.Context.
 	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
 	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
@@ -162,7 +162,7 @@ func getAgentURLFromPipelineID(pipelineID string) (string, error) {
 
 	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: aws.String("dd-agent-mstesting"),
-		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A%v/%v", majorVersion, pipelineID)),
 	})
 	if err != nil {
 		return "", err

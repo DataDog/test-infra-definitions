@@ -72,7 +72,13 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
+
 	options = append([]Option{defaultVersion}, options...)
+
+	if env.MajorVersion() != "" {
+		options = append([]Option{WithMajorVersion(env.MajorVersion())}, options...)
+	}
+
 	return common.ApplyOption(p, options)
 }
 
@@ -109,9 +115,15 @@ func WithVersion(version string) func(*Params) error {
 // WithPipeline use a specific version of the Agent by pipeline id
 func WithPipeline(pipelineID string) func(*Params) error {
 	return func(p *Params) error {
-		p.Version = PackageVersion{
-			PipelineID: pipelineID,
-		}
+		p.Version.PipelineID = pipelineID
+		return nil
+	}
+}
+
+// WithMajorVersion specify the major version of the Agent
+func WithMajorVersion(majorVersion string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Major = majorVersion
 		return nil
 	}
 }

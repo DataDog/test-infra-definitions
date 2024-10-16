@@ -309,11 +309,7 @@ func (e *CommonEnvironment) Site() string {
 }
 
 func (e *CommonEnvironment) MajorVersion() string {
-	version := e.AgentConfig.Get(DDAgentMajorVersion)
-	if version == "" {
-		return "7"
-	}
-	return version
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentMajorVersion, "7")
 }
 
 func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {

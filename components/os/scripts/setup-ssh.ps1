@@ -8,7 +8,10 @@ if ($service -ne $null) {
     # Add-WindowsCapability does NOT install a consistent version across Windows versions, this lead to
     # compatability issues (different command line quoting rules).
     # Prefer installing sshd via MSI  
-    start-process -passthru -wait msiexec.exe -args '/i https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64-v9.5.0.0.msi /qn'
+    $p=start-process -passthru -wait msiexec.exe -args '/i https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64-v9.5.0.0.msi /qn'
+    if ($p.ExitCode -ne 0) {
+        throw "SSH install failed: $($p.ExitCode)"
+    }
     # Confirm the Firewall rule is configured. It should be created automatically by setup. Run the following to verify
     if (!(Get-NetFirewallRule -Name "OpenSSH-Server-In-TCP" -ErrorAction SilentlyContinue | Select-Object Name, Enabled)) {
           Write-Output "Firewall Rule 'OpenSSH-Server-In-TCP' does not exist, creating it..."

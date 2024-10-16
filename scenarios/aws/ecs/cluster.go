@@ -15,7 +15,7 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*ecsComp.Cluste
 		return nil, err
 	}
 
-	return components.NewComponent(&e, e.Namer.ResourceName(name), func(comp *ecsComp.Cluster) error {
+	return components.NewComponent(&e, name, func(comp *ecsComp.Cluster) error {
 		ecsCluster, err := ecs.CreateEcsCluster(e, e.Namer.ResourceName(name))
 		if err != nil {
 			return err

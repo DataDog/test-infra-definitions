@@ -12,8 +12,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const DefaultMajorVersion = "7"
-
 type agentLinuxManager struct {
 	targetOS os.OS
 }
@@ -24,26 +22,19 @@ func newLinuxManager(host *remoteComp.Host) agentOSManager {
 
 func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, _ []string) (string, error) {
 	var commandLine string
-	var majorVersion string
 	testEnvVars := []string{}
-
-	if version.Major != "" {
-		majorVersion = version.Major
-	} else {
-		majorVersion = DefaultMajorVersion
-	}
 
 	if version.PipelineID != "" {
 		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
 		// apt testing repo
 		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="pipeline-%v-a%v-%s %v"`, version.PipelineID, majorVersion, am.targetOS.Descriptor().Architecture, majorVersion))
+		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="pipeline-%v-a%v-%s %v"`, version.PipelineID, version.Major, am.targetOS.Descriptor().Architecture, version.Major))
 		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/pipeline-%v-a%v/%v", version.PipelineID, majorVersion, majorVersion))
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/pipeline-%v-a%v/%v", version.PipelineID, version.Major, version.Major))
 	} else {
-		testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v", majorVersion))
+		testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v", version.Major))
 
 		if version.Minor != "" {
 			testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_MINOR_VERSION=%v", version.Minor))
@@ -59,7 +50,7 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 
 	return fmt.Sprintf(
 		`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && exit 0 || sleep $((2**$i)); done; exit 1`,
-		fmt.Sprintf("install_script_agent%s.sh", majorVersion),
+		fmt.Sprintf("install_script_agent%s.sh", version.Major),
 		commandLine), nil
 }
 

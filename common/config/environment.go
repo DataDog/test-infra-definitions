@@ -64,6 +64,8 @@ const (
 	// Dogstatsd namespace
 	DDDogstatsdDeployParamName        = "deploy"
 	DDDogstatsdFullImagePathParamName = "fullImagePath"
+
+	DefaultMajorVersion = "7"
 )
 
 type CommonEnvironment struct {
@@ -309,7 +311,7 @@ func (e *CommonEnvironment) Site() string {
 }
 
 func (e *CommonEnvironment) MajorVersion() string {
-	return e.GetStringWithDefault(e.AgentConfig, DDAgentMajorVersion, "7")
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentMajorVersion, DefaultMajorVersion)
 }
 
 func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {

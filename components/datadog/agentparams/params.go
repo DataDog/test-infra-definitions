@@ -60,8 +60,6 @@ type Params struct {
 
 type Option = func(*Params) error
 
-const DefaultMajorVersion = "7"
-
 func NewParams(env config.Env, options ...Option) (*Params, error) {
 	p := &Params{
 		Integrations: make(map[string]*FileDefinition),
@@ -75,10 +73,7 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
 
-	if env.MajorVersion() != "" {
-		options = append([]Option{WithMajorVersion(env.MajorVersion())}, options...)
-	}
-
+	options = append([]Option{WithMajorVersion(env.MajorVersion())}, options...)
 	options = append([]Option{defaultVersion}, options...)
 	return common.ApplyOption(p, options)
 }
@@ -117,7 +112,6 @@ func WithVersion(version string) func(*Params) error {
 func WithPipeline(pipelineID string) func(*Params) error {
 	return func(p *Params) error {
 		p.Version.PipelineID = pipelineID
-		p.Version.Major = DefaultMajorVersion
 		return nil
 	}
 }

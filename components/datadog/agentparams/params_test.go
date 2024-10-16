@@ -33,7 +33,6 @@ func TestParams(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, result.Version, PackageVersion{
 			PipelineID: "16362517",
-			Major:      "7",
 		})
 	})
 	t.Run("WithIntegration should correctly add conf.d/integration/conf.yaml to the path", func(t *testing.T) {

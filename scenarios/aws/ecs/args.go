@@ -20,6 +20,13 @@ func NewParams(options ...Option) (*Params, error) {
 	return common.ApplyOption(version, options)
 }
 
+func WithFargateCapacityProvider() Option {
+	return func(p *Params) error {
+		p.FargateCapacityProvider = true
+		return nil
+	}
+}
+
 func WithLinuxNodeGroup() Option {
 	return func(p *Params) error {
 		p.LinuxNodeGroup = true
@@ -51,6 +58,9 @@ func WithWindowsNodeGroup() Option {
 func buildClusterOptionsFromConfigMap(e aws.Environment) []Option {
 	clusterOptions := []Option{}
 	// Add the cluster options from the config map
+	if e.ECSFargateCapacityProvider() {
+		clusterOptions = append(clusterOptions, WithFargateCapacityProvider())
+	}
 	if e.ECSWindowsNodeGroup() {
 		clusterOptions = append(clusterOptions, WithWindowsNodeGroup())
 	}

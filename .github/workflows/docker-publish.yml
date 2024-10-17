@@ -72,6 +72,8 @@ jobs:
             image: jmx-test-app
           - app: fips
             image: fips-server
+          - app: otel
+            image: calendar-go
 
     steps:
       - name: Checkout repository

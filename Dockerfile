@@ -1,7 +1,7 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
+FROM public.ecr.aws/docker/library/python:3.13-slim-bullseye AS base
 
 ENV GO_VERSION=1.22.8
 ENV GO_SHA=5f467d29fc67c7ae6468cb6ad5b047a274bae8180cac5e0b7ddbfeba3e47e18f

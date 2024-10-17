@@ -80,8 +80,26 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
+	// Retry restart several time, workaround to https://datadoghq.atlassian.net/browse/WINA-747
+	cmd := `
+$tries = 0
+$sleepTime = 1
+while ($tries -lt 5) {
+ & "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" restart-service 2>>stderr.txt
+ $exitCode = $LASTEXITCODE
+ if ($exitCode -eq 0) {
+	   break
+ }
+ Start-Sleep -Seconds $sleepTime
+ $sleepTime = $sleepTime * 2
+ $tries++ 
+ }
+ Get-Content stderr.txt
+ Exit $exitCode
+ `
+
 	cmdArgs := command.Args{
-		Create: pulumi.String(`Start-Process "$($env:ProgramFiles)\Datadog\Datadog Agent\bin\agent.exe" -Wait -ArgumentList restart-service`),
+		Create: pulumi.String(cmd),
 	}
 
 	// If a transform is provided, use it to modify the command name and args
@@ -97,7 +115,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
 
 	if version.PipelineID != "" {
-		return getAgentURLFromPipelineID(version.PipelineID)
+		return getAgentURLFromPipelineID(version)
 	}
 
 	if version.Channel == agentparams.BetaChannel {
@@ -132,7 +150,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	return finder.findVersion(fullVersion)
 }
 
-func getAgentURLFromPipelineID(pipelineID string) (string, error) {
+func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, error) {
 	// TODO: Replace context.Background() with a Pulumi context.Context.
 	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
 	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
@@ -144,14 +162,14 @@ func getAgentURLFromPipelineID(pipelineID string) (string, error) {
 
 	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
 		Bucket: aws.String("dd-agent-mstesting"),
-		Prefix: aws.String(fmt.Sprintf("pipelines/A7/%v", pipelineID)),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A%v/%v", version.Major, version.PipelineID)),
 	})
 	if err != nil {
 		return "", err
 	}
 
 	if len(result.Contents) <= 0 {
-		return "", fmt.Errorf("no agent MSI found for pipeline %v", pipelineID)
+		return "", fmt.Errorf("no agent MSI found for pipeline %v", version.PipelineID)
 	}
 
 	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil

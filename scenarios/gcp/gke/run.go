@@ -24,6 +24,10 @@ func Run(ctx *pulumi.Context) error {
 	}
 	clusterOptions := []Option{}
 
+	if env.GKEAutopilot() {
+		clusterOptions = append(clusterOptions, WithAutopilot())
+	}
+
 	cluster, err := NewGKECluster(env, clusterOptions...)
 	if err != nil {
 		return err
@@ -42,6 +46,13 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog"),
 		)
+
+		if env.GKEAutopilot() {
+			k8sAgentOptions = append(
+				k8sAgentOptions,
+				kubernetesagentparams.WithGKEAutopilot(),
+			)
+		}
 
 		if env.AgentUseFakeintake() {
 			fakeintake, err := fakeintake.NewVMInstance(env)
@@ -69,12 +80,6 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy testing workload
 	if env.TestingWorkloadDeploy() {
-		// Deploy standalone dogstatsd
-		if env.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(&env, cluster.KubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
-				return err
-			}
-		}
 
 		if _, err := nginx.K8sAppDefinition(&env, cluster.KubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
 			return err
@@ -84,26 +89,36 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnCrd); err != nil {
-			return err
-		}
-
-		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnCrd); err != nil {
-			return err
-		}
-
-		if _, err := tracegen.K8sAppDefinition(&env, cluster.KubeProvider, "workload-tracegen", dependsOnCrd); err != nil {
-			return err
-		}
-
 		if _, err := prometheus.K8sAppDefinition(&env, cluster.KubeProvider, "workload-prometheus", dependsOnCrd); err != nil {
 			return err
 		}
 
 		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&env, cluster.KubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnCrd); err != nil {
 			return err
+		}
+
+		// These workloads cannot be deployed on Autopilot because of the constraints on hostPath volumes
+		if !env.GKEAutopilot() {
+			// Deploy standalone dogstatsd
+			if env.DogstatsdDeploy() {
+				if _, err := dogstatsdstandalone.K8sAppDefinition(&env, cluster.KubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
+					return err
+				}
+			}
+
+			// dogstatsd clients that report to the Agent
+			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnCrd); err != nil {
+				return err
+			}
+
+			// dogstatsd clients that report to the dogstatsd standalone deployment
+			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnCrd); err != nil {
+				return err
+			}
+
+			if _, err := tracegen.K8sAppDefinition(&env, cluster.KubeProvider, "workload-tracegen", dependsOnCrd); err != nil {
+				return err
+			}
 		}
 	}
 

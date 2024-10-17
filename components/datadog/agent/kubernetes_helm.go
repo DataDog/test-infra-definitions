@@ -47,6 +47,8 @@ type HelmInstallationArgs struct {
 	OTelAgent bool
 	// OTelConfig is used to provide a custom OTel configuration
 	OTelConfig string
+	// GKEAutopilot is used to enable the GKE Autopilot mode and keep only compatible values
+	GKEAutopilot bool
 }
 
 type HelmComponent struct {
@@ -134,8 +136,13 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	clusterAgentImagePath, clusterAgentImageTag := utils.ParseImageReference(clusterAgentImagePath)
 
 	linuxInstallName := baseName + "-linux"
+	var values HelmValues
 
-	values := buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
+	if args.GKEAutopilot {
+		values = buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
+	} else {
+		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
+	}
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
 
@@ -424,6 +431,40 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 	}
 }
 
+func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {
+	return HelmValues{
+		"providers": pulumi.Map{
+			"gke": pulumi.Map{
+				"autopilot": pulumi.Bool(true),
+			},
+		},
+		"datadog": pulumi.Map{
+			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+		},
+		"clusterAgent": pulumi.Map{
+			"enabled": pulumi.Bool(true),
+			"metricsProvider": pulumi.Map{
+				"enabled":           pulumi.Bool(true),
+				"useDatadogMetrics": pulumi.Bool(true),
+			},
+			"image": pulumi.Map{
+				"repository":    pulumi.String(clusterAgentImagePath),
+				"tag":           pulumi.String(clusterAgentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"token": clusterAgentToken,
+		},
+		"agents": pulumi.Map{
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+		},
+	}
+}
+
 func buildWindowsHelmValues(baseName string, agentImagePath, agentImageTag, _, _ string) HelmValues {
 	return HelmValues{
 		"targetSystem": pulumi.String("windows"),
@@ -479,6 +520,9 @@ func (values HelmValues) configureImagePullSecret(secret *corev1.Secret) {
 	}
 
 	for _, section := range []string{"agents", "clusterAgent", "clusterChecksRunner"} {
+		if _, ok := values[section].(pulumi.Map); !ok {
+			continue
+		}
 		if _, found := values[section].(pulumi.Map)["image"]; found {
 			values[section].(pulumi.Map)["image"].(pulumi.Map)["pullSecrets"] = pulumi.MapArray{
 				pulumi.Map{
@@ -575,6 +619,9 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 	}
 
 	for _, section := range []string{"datadog", "clusterAgent", "clusterChecksRunner"} {
+		if _, ok := values[section].(pulumi.Map); !ok {
+			continue
+		}
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {

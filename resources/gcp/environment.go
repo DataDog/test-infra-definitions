@@ -2,12 +2,13 @@ package gcp
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+
 	config "github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"os"
-	"os/exec"
 )
 
 const (
@@ -24,6 +25,7 @@ const (
 	DDInfraDefaultRegionNameParamName      = "gcp/defaultRegion"
 	DDInfraDefaultZoneNameParamName        = "gcp/defaultZone"
 	DDInfraDefautVMServiceAccountParamName = "gcp/defaultVMServiceAccount"
+	DDInfraGKEEnableAutopilot              = "gcp/gke/enableAutopilot"
 )
 
 type Environment struct {
@@ -75,6 +77,15 @@ func logIn(ctx *pulumi.Context) {
 		}
 	}
 
+	// Environment variable provided in the CI, to activate the service-account authentication
+	if os.Getenv("GOOGLE_CREDENTIALS_FILE") != "" {
+		fmt.Println("GOOGLE_CREDENTIALS_FILE environment detected, activating service account authentication")
+		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", os.Getenv("GOOGLE_CREDENTIALS_FILE"))
+		if err := cmd.Run(); err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth activate-service-account --key-file $GOOGLE_CREDENTIALS_FILE`: %v", err), nil)
+		}
+	}
+
 	if envVariablesSet {
 		return
 	}
@@ -89,6 +100,19 @@ func logIn(ctx *pulumi.Context) {
 
 		if err != nil {
 			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth application-default login`: %v", err), nil)
+		}
+	}
+
+	cmd = exec.Command("gcloud", "auth", "print-access-token")
+
+	// There's no error if the token exists and is still valid
+	if err := cmd.Run(); err != nil {
+		// Login if the token is not valid anymore
+		cmd = exec.Command("gcloud", "auth", "login")
+		_, err := cmd.Output()
+
+		if err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth login`: %v", err), nil)
 		}
 	}
 }
@@ -138,6 +162,11 @@ func (e *Environment) DefaultInstanceType() string {
 
 func (e *Environment) DefaultVMServiceAccount() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefautVMServiceAccountParamName, e.envDefault.ddInfra.defaultVMServiceAccount)
+}
+
+// GKEAutopilot Whether to enable GKE Autopilot or not
+func (e *Environment) GKEAutopilot() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraGKEEnableAutopilot, e.envDefault.ddInfra.gke.autopilot)
 }
 
 // Region returns the default region for the GCP environment

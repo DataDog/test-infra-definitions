@@ -1,6 +1,8 @@
 package microvms
 
 import (
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"path/filepath"
@@ -17,6 +19,9 @@ const (
 	refreshFromEBS = "fio --filename=%s --rw=read --bs=64m --iodepth=32 --ioengine=libaio --direct=1 --name=volume-initialize"
 	RootMountpoint = "/"
 )
+
+//go:embed files/download-vm-images.py
+var downloadScriptContents string
 
 type LibvirtFilesystem struct {
 	ctx           *pulumi.Context
@@ -226,7 +231,6 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 	if urlPath != fsImage.imagePath {
 		downloadCmd = fmt.Sprintf("%s && mv %s %s", refreshCmd, urlPath, fsImage.imagePath)
 	} else {
-
 		downloadCmd = refreshCmd
 	}
 	downloadRootfsArgs := command.Args{
@@ -242,15 +246,15 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 	return []pulumi.Resource{res}, err
 }
 
-func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
+	var downloadSpecs []filesystemImageDownload
+	var retrieveImage []pulumi.Resource
+	var imagesToExtract []*filesystemImage
 
-	var webDownload bool
-	var curlDownload strings.Builder
-	var parallelDownloadMax int
 	for _, volume := range fs.volumes {
 		// only download backing stores for volumes inside default pool since these are
-		// the iamges from which VMs boot
+		// the images from which VMs boot
 		//
 		// ignore other volume types since they are created by this scenario and not downloaded.
 		if volume.Pool().Type() != resources.DefaultPool {
@@ -264,56 +268,83 @@ func downloadRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Reso
 		}
 
 		if url.Scheme == "file" {
-			resources, err := refreshFromBackingStore(volume, runner, url.Path, fs.isLocal, depends)
+			retrieveImage, err = refreshFromBackingStore(volume, runner, url.Path, fs.isLocal, depends)
 			if err != nil {
 				return waitFor, err
 			}
-
-			waitFor = append(waitFor, resources...)
 		} else {
-			webDownload = true
-			parallelDownloadMax++
-			fmt.Fprintf(&curlDownload, "%s -o %s ", fsImage.imageSource, fsImage.imagePath)
+			downloadSpecs = append(downloadSpecs, fsImage.toDownloadSpec())
+		}
+
+		if fsImage.isCompressed() {
+			imagesToExtract = append(imagesToExtract, fsImage)
 		}
 	}
 
-	if webDownload {
-		downloadWithCurlArgs := command.Args{
-			Create: pulumi.Sprintf("curl -fs --retry 3 -Z --parallel-max %d %s", parallelDownloadMax, curlDownload.String()),
+	if len(downloadSpecs) > 0 {
+		var retrievePrepare []pulumi.Resource
+
+		downloadSpecJSON, err := json.Marshal(downloadSpecs)
+		if err != nil {
+			return nil, fmt.Errorf("cannot marshal to JSON download specs: %w", err)
 		}
-		downloadWithCurlDone, err := runner.Command(fs.fsNamer.ResourceName("download-with-curl"), &downloadWithCurlArgs)
+
+		downloadSpecsPath := fmt.Sprintf("/tmp/download-specs-%s.json", fs.fsNamer.ResourceName("download-specs"))
+		writeConfigFile := command.Args{
+			Create: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJSON), downloadSpecsPath),
+			Update: pulumi.Sprintf("echo '%s' > %s", string(downloadSpecJSON), downloadSpecsPath),
+			Delete: pulumi.Sprintf("rm -f %s", downloadSpecsPath),
+		}
+		writeConfigDone, err := runner.Command(fs.fsNamer.ResourceName("write-download-specs"), &writeConfigFile, pulumi.DependsOn(depends))
+		if err != nil {
+			return retrieveImage, err
+		}
+		retrievePrepare = append(retrievePrepare, writeConfigDone)
+
+		downloadScriptFile := fmt.Sprintf("/tmp/download-vm-images-%s.py", fs.fsNamer.ResourceName("download-vm-images-script"))
+		copyDownloadScriptFile := command.Args{
+			Create: pulumi.Sprintf("echo '%s' > %s", downloadScriptContents, downloadScriptFile),
+			Update: pulumi.Sprintf("echo '%s' > %s", downloadScriptContents, downloadScriptFile),
+			Delete: pulumi.Sprintf("rm -f %s", downloadScriptFile),
+		}
+		copyDownloadScriptDone, err := runner.Command(fs.fsNamer.ResourceName("copy-download-script"), &copyDownloadScriptFile, pulumi.DependsOn(depends))
+		if err != nil {
+			return retrieveImage, err
+		}
+		retrievePrepare = append(retrievePrepare, copyDownloadScriptDone)
+
+		downloadImagesArgs := command.Args{
+			Create: pulumi.Sprintf("python3 %s %s", downloadScriptFile, downloadSpecsPath),
+		}
+		downloadImagesDone, err := runner.Command(fs.fsNamer.ResourceName("download-vm-images"), &downloadImagesArgs, pulumi.DependsOn(retrievePrepare))
+		if err != nil {
+			return retrieveImage, err
+		}
+		retrieveImage = append(retrieveImage, downloadImagesDone)
+	}
+
+	for _, fsImage := range imagesToExtract {
+		extractImage, err := extractImage(fsImage, runner, fs.fsNamer.WithPrefix(fsImage.imageName), retrieveImage)
 		if err != nil {
 			return waitFor, err
 		}
-		waitFor = append(waitFor, downloadWithCurlDone)
+		waitFor = append(waitFor, extractImage...)
 	}
 
 	return waitFor, nil
 }
 
-func extractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
-	var waitFor []pulumi.Resource
-	for _, volume := range fs.volumes {
-		fsImage := volume.UnderlyingImage()
-
-		// Extract archive if it is xz compressed, which will be the case when downloading from remote S3 bucket.
-		// To do this we check if the magic bytes of the file at imagePath is fd377a585a00. If so then this is already
-		// a qcow2 file. No need to extract it. Otherwise it SHOULD be xz compressed file. Attempt to uncompress.
-		//
-		// Magic bytes of xz: fd377a585a00
-		// Magic bytes of qcow2: 514649fb
-		extractTopLevelArchive := command.Args{
-			Create: pulumi.Sprintf("if xxd -p -l 6 %[1]s | grep -E '^fd377a585a00$'; then mv %[1]s %[2]s && xz -d %[2]s; elif xxd -p -l 4 %[1]s | grep -E '^514649fb$'; then echo '%[1]s is qcow2 file'; else false; fi", fsImage.imagePath, fmt.Sprintf("%s.xz", fsImage.imagePath)),
-		}
-		res, err := runner.Command(volume.FullResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
-		if err != nil {
-			return []pulumi.Resource{}, err
-		}
-
-		waitFor = append(waitFor, res)
+func extractImage(fsImage *filesystemImage, runner *Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	// Extract archive from the download path assuming it is xz compressed
+	extractTopLevelArchive := command.Args{
+		Create: pulumi.Sprintf("rm %s || true; xz -d %s", fsImage.imagePath, fsImage.downloadPath()),
+	}
+	res, err := runner.Command(namer.ResourceName("extract-base-volume-package"), &extractTopLevelArchive, pulumi.DependsOn(depends))
+	if err != nil {
+		return []pulumi.Resource{}, err
 	}
 
-	return waitFor, nil
+	return []pulumi.Resource{res}, nil
 }
 
 func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
@@ -323,17 +354,12 @@ func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn
 	//
 	// [IMPORTANT] The download may start as the first step. So if the setup changes such that the download
 	// becomes dependent on some prior step, this call should change !!
-	downloadRootfsDone, err := downloadRootfs(fs, runner, nil)
+	downloadExtractRootfsDone, err := downloadAndExtractRootfs(fs, runner, nil)
 	if err != nil {
 		return nil, err
 	}
 
-	extractRootfsDone, err := extractRootfs(fs, runner, downloadRootfsDone)
-	if err != nil {
-		return nil, err
-	}
-
-	depends = append(depends, extractRootfsDone...)
+	depends = append(depends, downloadExtractRootfsDone...)
 	return setupLibvirtFilesystem(fs, runner, providerFn, depends)
 }
 

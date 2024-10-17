@@ -52,6 +52,7 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentSite                          = "site"
+	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 
 	// Updater Namespace
@@ -63,6 +64,8 @@ const (
 	// Dogstatsd namespace
 	DDDogstatsdDeployParamName        = "deploy"
 	DDDogstatsdFullImagePathParamName = "fullImagePath"
+
+	DefaultMajorVersion = "7"
 )
 
 type CommonEnvironment struct {
@@ -117,6 +120,7 @@ type Env interface {
 	DogstatsdDeploy() bool
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
+	MajorVersion() string
 
 	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
 	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
@@ -304,6 +308,10 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) Site() string {
 	return e.AgentConfig.Get(DDAgentSite)
+}
+
+func (e *CommonEnvironment) MajorVersion() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentMajorVersion, DefaultMajorVersion)
 }
 
 func (e *CommonEnvironment) AgentExtraEnvVars() map[string]string {

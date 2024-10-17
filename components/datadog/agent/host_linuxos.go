@@ -12,7 +12,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-const DefaultMajorVersion = "7"
 
 type agentLinuxManager struct {
 	targetOS os.OS

@@ -18,33 +18,36 @@ const (
 )
 
 func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool, useLatestStableAgent bool) string {
-	if !useLatestStableAgent {
-		// return agent image path if defined
-		if e.AgentFullImagePath() != "" {
-			return e.AgentFullImagePath()
-		}
-
-		// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
-		if e.PipelineID() != "" && e.CommitSHA() != "" && imageTag == "" {
-			tag := fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())
-			if otel {
-				tag = fmt.Sprintf("%s-7-ot-beta", tag)
-			}
-
-			exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
-			if err != nil || !exists {
-				panic(fmt.Sprintf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), tag))
-			}
-			return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
-		}
-	}
-
 	if repositoryPath == "" && otel {
 		repositoryPath = defaultOTAgentImageRepo
 	}
 
 	if repositoryPath == "" {
 		repositoryPath = defaultAgentImageRepo
+	}
+
+	// return latest stable agent image path
+	if useLatestStableAgent {
+		return utils.BuildDockerImagePath(repositoryPath, "latest")
+	}
+
+	// return agent image path if defined
+	if e.AgentFullImagePath() != "" {
+		return e.AgentFullImagePath()
+	}
+
+	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
+	if e.PipelineID() != "" && e.CommitSHA() != "" && imageTag == "" {
+		tag := fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())
+		if otel {
+			tag = fmt.Sprintf("%s-7-ot-beta", tag)
+		}
+
+		exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
+		if err != nil || !exists {
+			panic(fmt.Sprintf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), tag))
+		}
+		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
 	}
 
 	if imageTag == "" && otel {

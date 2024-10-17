@@ -49,7 +49,7 @@ func FargateWindowsTaskDefinitionWithAgent(
 	fakeintake *fakeintake.Fakeintake,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(&e, apiKeySSMParamName, fakeintake)
+	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake)
 	// aws-for-fluent-bit:windowsservercore-latest can only be used with cloudwatch logs.
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
@@ -78,7 +78,7 @@ func FargateTaskDefinitionWithAgent(
 	fakeintake *fakeintake.Fakeintake,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{

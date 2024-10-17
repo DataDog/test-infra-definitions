@@ -18,7 +18,6 @@ const (
 )
 
 func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool, useLatestStableAgent bool) string {
-	// comment to fix commit signing
 	if !useLatestStableAgent {
 		// return agent image path if defined
 		if e.AgentFullImagePath() != "" {

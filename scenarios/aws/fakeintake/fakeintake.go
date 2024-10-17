@@ -60,6 +60,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600, params.DDDevForwarding)},
 			apiKeyParam.Name,
 			nil,
+			true,
 			opts...,
 		)
 		if err != nil {

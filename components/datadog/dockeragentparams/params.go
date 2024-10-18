@@ -107,7 +107,7 @@ func WithEnvironmentVariables(environmentVariables pulumi.StringMap) func(*Param
 }
 
 func WithTags(tags []string) func(*Params) error {
-	WithAgentServiceEnvVariable("DD_TAGS", pulumi.String(strings.Join(tags, ",")))
+	return WithAgentServiceEnvVariable("DD_TAGS", pulumi.String(strings.Join(tags, ",")))
 }
 
 // WithAgentServiceEnvVariable set an environment variable in the docker compose agent service's environment.

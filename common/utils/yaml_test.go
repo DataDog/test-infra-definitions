@@ -2,6 +2,7 @@ package utils
 
 import (
 	_ "embed"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -68,7 +69,6 @@ func TestMergeYAMLWithSlices(t *testing.T) {
 		"slices value, merge slices":             {oldValues: tagsA, newValues: tagsB, expectedResult: tagsAB, expectError: false},
 		"slices value inverted, merge slices":    {oldValues: tagsB, newValues: tagsA, expectedResult: tagsAB, expectError: false},
 	}
-
 	for name, tc := range tests {
 		t.Run(name, func(t *testing.T) {
 			got, err := MergeYAMLWithSlices(tc.oldValues, tc.newValues)
@@ -80,10 +80,42 @@ func TestMergeYAMLWithSlices(t *testing.T) {
 
 			var gotYAML map[string]interface{}
 			var expectedYAML map[string]interface{}
-
-			gotMap := yaml.Unmarshal([]byte(got), &gotYAML)
-			expectedMap := yaml.Unmarshal([]byte(tc.expectedResult), &expectedYAML)
-			assert.Equal(t, gotMap, expectedMap, "expected %v, got %v", expectedMap, gotMap)
+			err = yaml.Unmarshal([]byte(got), &gotYAML)
+			require.NoError(t, err, "unexpected error: %v", err)
+			err = yaml.Unmarshal([]byte(tc.expectedResult), &expectedYAML)
+			require.NoError(t, err, "unexpected error: %v", err)
+			assertMapsEqual(t, expectedYAML, gotYAML)
 		})
+	}
+}
+
+func assertMapsEqual(t *testing.T, expected, actual map[string]interface{}) {
+	assert.Equal(t, len(expected), len(actual), "expected %v, got %v", expected, actual)
+	for k, v := range expected {
+		switch v.(type) {
+		case map[string]interface{}:
+			assertMapsEqual(t, v.(map[string]interface{}), actual[k].(map[string]interface{}))
+		case []interface{}:
+			assertSlicesEqual(t, v.([]interface{}), actual[k].([]interface{}))
+		default:
+			assert.Equal(t, v, actual[k], "expected %v, got %v", v, actual[k])
+		}
+	}
+}
+
+func assertSlicesEqual(t *testing.T, expected, actual []interface{}) {
+	assert.Equal(t, len(expected), len(actual), "expected %v, got %v", expected, actual)
+	expectedElements := make(map[interface{}]struct{})
+	actualelements := make(map[interface{}]struct{})
+	for _, v := range expected {
+		expectedElements[v] = struct{}{}
+	}
+	for _, v := range actual {
+		actualelements[v] = struct{}{}
+	}
+
+	for k := range expectedElements {
+		_, ok := actualelements[k]
+		assert.True(t, ok, "expected %v, got %v", expected, actual)
 	}
 }

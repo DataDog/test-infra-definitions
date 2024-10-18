@@ -2,7 +2,6 @@ package utils
 
 import (
 	_ "embed"
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

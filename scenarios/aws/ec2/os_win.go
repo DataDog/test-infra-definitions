@@ -15,7 +15,7 @@ func getWindowsOpenSSHUserData(publicKeyPath string) (string, error) {
 	}
 
 	return buildAWSPowerShellUserData(
-			componentsos.SetupSSHScriptContent,
+			componentsos.WindowsSetupSSHScriptContent,
 			windowsPowerShellArgument{name: "authorizedKey", value: string(publicKey)},
 		),
 		nil

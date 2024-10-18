@@ -95,26 +95,9 @@ func assertMapsEqual(t *testing.T, expected, actual map[string]interface{}) {
 		case map[string]interface{}:
 			assertMapsEqual(t, v.(map[string]interface{}), actual[k].(map[string]interface{}))
 		case []interface{}:
-			assertSlicesEqual(t, v.([]interface{}), actual[k].([]interface{}))
+			assert.ElementsMatch(t, v.([]interface{}), actual[k].([]interface{}), "expected %v, got %v", v, actual[k])
 		default:
 			assert.Equal(t, v, actual[k], "expected %v, got %v", v, actual[k])
 		}
-	}
-}
-
-func assertSlicesEqual(t *testing.T, expected, actual []interface{}) {
-	assert.Equal(t, len(expected), len(actual), "expected %v, got %v", expected, actual)
-	expectedElements := make(map[interface{}]struct{})
-	actualelements := make(map[interface{}]struct{})
-	for _, v := range expected {
-		expectedElements[v] = struct{}{}
-	}
-	for _, v := range actual {
-		actualelements[v] = struct{}{}
-	}
-
-	for k := range expectedElements {
-		_, ok := actualelements[k]
-		assert.True(t, ok, "expected %v, got %v", expected, actual)
 	}
 }

@@ -16,7 +16,7 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.54.2
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.16.1
-	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.60.0
+	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.67.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.56.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.59.0
 	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.59.0

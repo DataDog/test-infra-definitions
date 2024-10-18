@@ -59,7 +59,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		PortMappings: ecs.TaskDefinitionPortMappingArray{},
 	}
 
-	serverTaskDef, err := ecsClient.FargateWindowsTaskDefinitionWithAgent(e, "aspnet-fg-server", pulumi.String("aspnet-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"aspnetsample": *serverContainer}, apiKeySSMParamName, fakeIntake, opts...)
+	serverTaskDef, err := ecsClient.FargateWindowsTaskDefinitionWithAgent(e, "aspnet-fg-server", pulumi.String("aspnet-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"aspnetsample": *serverContainer}, apiKeySSMParamName, fakeIntake, "", opts...)
 	if err != nil {
 		return nil, err
 	}

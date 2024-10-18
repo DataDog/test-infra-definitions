@@ -47,9 +47,10 @@ func FargateWindowsTaskDefinitionWithAgent(
 	containers map[string]ecs.TaskDefinitionContainerDefinitionArgs,
 	apiKeySSMParamName pulumi.StringInput,
 	fakeintake *fakeintake.Fakeintake,
+	image string,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(&e, apiKeySSMParamName, fakeintake)
+	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(&e, image, apiKeySSMParamName, fakeintake)
 	// aws-for-fluent-bit:windowsservercore-latest can only be used with cloudwatch logs.
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,

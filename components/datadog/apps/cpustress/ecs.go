@@ -14,7 +14,7 @@ type EcsComponent struct {
 }
 
 func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...pulumi.ResourceOption) (*ecsComp.Workload, error) {
-	namer := e.Namer.WithPrefix("cpustress")
+	namer := e.Namer.WithPrefix("cpustress").WithPrefix("ec2")
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	ecsComponent := &ecsComp.Workload{}

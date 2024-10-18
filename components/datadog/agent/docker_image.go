@@ -17,20 +17,7 @@ const (
 	defaultOTAgentImageTag       = "nightly-ot-beta-main"
 )
 
-func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool, useLatestStableAgent bool) string {
-	if repositoryPath == "" && otel {
-		repositoryPath = defaultOTAgentImageRepo
-	}
-
-	if repositoryPath == "" {
-		repositoryPath = defaultAgentImageRepo
-	}
-
-	// return latest stable agent image path
-	if useLatestStableAgent {
-		return utils.BuildDockerImagePath(repositoryPath, "latest")
-	}
-
+func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
@@ -48,6 +35,14 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, ote
 			panic(fmt.Sprintf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), tag))
 		}
 		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
+	}
+
+	if repositoryPath == "" && otel {
+		repositoryPath = defaultOTAgentImageRepo
+	}
+
+	if repositoryPath == "" {
+		repositoryPath = defaultAgentImageRepo
 	}
 
 	if imageTag == "" && otel {

@@ -142,8 +142,9 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		if err != nil {
 			return err
 		}
-
 		vmArgs.userData = vmArgs.userData + sshUserData
+	} else if vmArgs.osInfo.Flavor == os.Ubuntu || vmArgs.osInfo.Flavor == os.Debian {
+		vmArgs.userData = vmArgs.userData + os.DebianDisableUnattendedUpgradesScriptContent
 	}
 
 	return nil

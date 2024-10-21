@@ -1,6 +1,8 @@
 package ec2
 
 import (
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -142,9 +144,9 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		if err != nil {
 			return err
 		}
-		vmArgs.userData = vmArgs.userData + sshUserData
+		vmArgs.userData = strings.Join([]string{vmArgs.userData, sshUserData}, "\n")
 	} else if vmArgs.osInfo.Flavor == os.Ubuntu || vmArgs.osInfo.Flavor == os.Debian {
-		vmArgs.userData = vmArgs.userData + os.DebianDisableUnattendedUpgradesScriptContent
+		vmArgs.userData = strings.Join([]string{vmArgs.userData, os.DebianDisableUnattendedUpgradesScriptContent}, "\n")
 	}
 
 	return nil

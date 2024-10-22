@@ -1,6 +1,8 @@
 package ec2
 
 import (
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -136,16 +138,25 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		}
 	}
 
-	// Handle custom user data
+	// Handle custom user data and defaults per os
+	defaultUserData := ""
 	if vmArgs.osInfo.Family() == os.WindowsFamily {
-		sshUserData, err := getWindowsOpenSSHUserData(e.DefaultPublicKeyPath())
+		var err error
+		defaultUserData, err = getWindowsOpenSSHUserData(e.DefaultPublicKeyPath())
 		if err != nil {
 			return err
 		}
-		vmArgs.userData = vmArgs.userData + sshUserData
 	} else if vmArgs.osInfo.Flavor == os.Ubuntu || vmArgs.osInfo.Flavor == os.Debian {
-		vmArgs.userData = vmArgs.userData + os.DebianDisableUnattendedUpgradesScriptContent
+		defaultUserData = os.DebianDisableUnattendedUpgradesScriptContent
 	}
+	userDataParts := make([]string, 0, 2)
+	if vmArgs.userData != "" {
+		userDataParts = append(userDataParts, vmArgs.userData)
+	}
+	if defaultUserData != "" {
+		userDataParts = append(userDataParts, defaultUserData)
+	}
+	vmArgs.userData = strings.Join(userDataParts, "\n")
 
 	return nil
 }

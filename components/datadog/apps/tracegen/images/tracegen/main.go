@@ -57,7 +57,7 @@ func main() {
 	spt := flag.Uint64("spt", 2, "Number of spans to put in each trace. (>=1)")
 	testDuration := flag.Duration("testtime", 0, "Amount of time to run the test. A value of '0' means the test will continue indefinitely.")
 	additionalSpanTagsFlat := flag.String("addspantags", "", "Comma separated list of additional tags to add to each span.")
-	additionalSpanTags = make(map[string]string, 0)
+	additionalSpanTags = make(map[string]string)
 	flag.Parse()
 
 	var err error

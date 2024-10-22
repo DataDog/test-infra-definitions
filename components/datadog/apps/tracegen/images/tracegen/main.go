@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"strconv"
+	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -21,6 +22,7 @@ import (
 
 var tracecount atomic.Uint32
 var spancount atomic.Uint32
+var additionalSpanTags map[string]string
 
 func reportStats(done chan struct{}) {
 	for {
@@ -54,6 +56,8 @@ func main() {
 	tps := flag.Float64("tps", 1, "Target number of traces to generate per second.")
 	spt := flag.Uint64("spt", 2, "Number of spans to put in each trace. (>=1)")
 	testDuration := flag.Duration("testtime", 0, "Amount of time to run the test. A value of '0' means the test will continue indefinitely.")
+	additionalSpanTagsFlat := flag.String("addspantags", "", "Comma separated list of additional tags to add to each span.")
+	additionalSpanTags = make(map[string]string, 0)
 	flag.Parse()
 
 	var err error
@@ -73,6 +77,28 @@ func main() {
 		*testDuration, err = time.ParseDuration(v)
 		if err != nil {
 			panic(fmt.Sprintf("Invalid TRACEGEN_TESTTIME=%v: %v", v, err))
+		}
+	}
+	if v, ok := os.LookupEnv("TRACEGEN_ADDSPANTAGS"); ok {
+		*additionalSpanTagsFlat = v
+	}
+
+	if *additionalSpanTagsFlat != "" {
+		for _, tagFull := range strings.Split(*additionalSpanTagsFlat, ",") {
+			tagParts := strings.Split(tagFull, ":")
+			if len(tagParts) < 1 || len(tagParts) > 2 {
+				panic(fmt.Sprintf("Invalid addspantags flag=%v", tagFull))
+			}
+
+			tagKey := tagParts[0]
+			tagVal := ""
+			if len(tagParts) == 2 {
+				tagVal = tagParts[1]
+			}
+			additionalSpanTags[tagKey] = tagVal
+		}
+		if len(additionalSpanTags) == 0 {
+			panic(fmt.Sprintf("Invalid addspantags flag=%v", additionalSpanTagsFlat))
 		}
 	}
 
@@ -147,11 +173,18 @@ traceloop:
 // The trace is structured with each span N being the child of span N-1.
 func genChain(spans uint64) {
 	sp := tracer.StartSpan("tracegen_chain")
+	for tagKey, tagVal := range additionalSpanTags {
+		sp.SetTag(tagKey, tagVal)
+	}
+
 	for i := uint64(1); i < spans; i++ {
 		defer sp.Finish()
 		spancount.Add(1)
 		sp = tracer.StartSpan(fmt.Sprintf("tracegen_chain(%d)", i),
 			tracer.ChildOf(sp.Context()))
+		for tagKey, tagVal := range additionalSpanTags {
+			sp.SetTag(tagKey, tagVal)
+		}
 	}
 	sp.Finish()
 	spancount.Add(1)
@@ -166,6 +199,9 @@ func genFlat(spans uint64) {
 	tdelta := traceDuration / time.Duration(spans) // Duration of each child span
 	start := time.Now()
 	root := tracer.StartSpan("tracegen_flat")
+	for tagKey, tagVal := range additionalSpanTags {
+		root.SetTag(tagKey, tagVal)
+	}
 	defer func() {
 		root.Finish(tracer.FinishTime(start.Add(traceDuration)))
 		spancount.Add(1)
@@ -175,6 +211,9 @@ func genFlat(spans uint64) {
 		sp := tracer.StartSpan(fmt.Sprintf("tracegen_flat(%d)", i),
 			tracer.StartTime(start.Add(tdelta*time.Duration(i))),
 			tracer.ChildOf(root.Context()))
+		for tagKey, tagVal := range additionalSpanTags {
+			sp.SetTag(tagKey, tagVal)
+		}
 		sp.Finish(tracer.FinishTime(start.Add(tdelta*time.Duration(i) + tdelta)))
 		spancount.Add(1)
 	}

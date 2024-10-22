@@ -123,7 +123,7 @@ func sandboxDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-46506837", "sg-b9e2ebcb"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -187,7 +187,7 @@ func agentSandboxDefault() environmentDefault {
 					},
 				},
 				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -252,7 +252,7 @@ func agentQADefault() environmentDefault {
 				},
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -292,7 +292,7 @@ func tsePlaygroundDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-091a00b0944f04fd2", "sg-0a3ec6b0ee295e826"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,

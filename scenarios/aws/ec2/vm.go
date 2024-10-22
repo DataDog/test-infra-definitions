@@ -138,16 +138,25 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		}
 	}
 
-	// Handle custom user data
+	// Handle custom user data and defaults per os
+	defaultUserData := ""
 	if vmArgs.osInfo.Family() == os.WindowsFamily {
-		sshUserData, err := getWindowsOpenSSHUserData(e.DefaultPublicKeyPath())
+		var err error
+		defaultUserData, err = getWindowsOpenSSHUserData(e.DefaultPublicKeyPath())
 		if err != nil {
 			return err
 		}
-		vmArgs.userData = strings.Join([]string{vmArgs.userData, sshUserData}, "\n")
 	} else if vmArgs.osInfo.Flavor == os.Ubuntu || vmArgs.osInfo.Flavor == os.Debian {
-		vmArgs.userData = strings.Join([]string{vmArgs.userData, os.DebianDisableUnattendedUpgradesScriptContent}, "\n")
+		defaultUserData = os.DebianDisableUnattendedUpgradesScriptContent
 	}
+	userDataParts := make([]string, 0, 2)
+	if vmArgs.userData != "" {
+		userDataParts = append(userDataParts, vmArgs.userData)
+	}
+	if defaultUserData != "" {
+		userDataParts = append(userDataParts, defaultUserData)
+	}
+	vmArgs.userData = strings.Join(userDataParts, "\n")
 
 	return nil
 }

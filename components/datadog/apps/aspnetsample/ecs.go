@@ -47,8 +47,8 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 			)),
 			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
 		},
-		Cpu:       pulumi.IntPtr(1024),
-		Memory:    pulumi.IntPtr(2048),
+		Cpu:       pulumi.IntPtr(4096),
+		Memory:    pulumi.IntPtr(8192),
 		Essential: pulumi.BoolPtr(true),
 		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
 			ecs.TaskDefinitionContainerDependencyArgs{
@@ -59,7 +59,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		PortMappings: ecs.TaskDefinitionPortMappingArray{},
 	}
 
-	serverTaskDef, err := ecsClient.FargateWindowsTaskDefinitionWithAgent(e, "aspnet-fg-server", pulumi.String("aspnet-fg"), 1024, 2048, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"aspnetsample": *serverContainer}, apiKeySSMParamName, fakeIntake, "", opts...)
+	serverTaskDef, err := ecsClient.FargateWindowsTaskDefinitionWithAgent(e, "aspnet-fg-server", pulumi.String("aspnet-fg"), 4096, 8192, map[string]ecs.TaskDefinitionContainerDefinitionArgs{"aspnetsample": *serverContainer}, apiKeySSMParamName, fakeIntake, "", opts...)
 	if err != nil {
 		return nil, err
 	}

@@ -147,7 +147,7 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 			return err
 		}
 	} else if vmArgs.osInfo.Flavor == os.Ubuntu || vmArgs.osInfo.Flavor == os.Debian {
-		defaultUserData = os.DebianDisableUnattendedUpgradesScriptContent
+		defaultUserData = os.APTDisableUnattendedUpgradesScriptContent
 	}
 	userDataParts := make([]string, 0, 2)
 	if vmArgs.userData != "" {

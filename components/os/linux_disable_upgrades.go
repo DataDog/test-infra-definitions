@@ -4,5 +4,5 @@ import (
 	_ "embed"
 )
 
-//go:embed scripts/debian-disable-unattended-upgrades.sh
-var DebianDisableUnattendedUpgradesScriptContent string
+//go:embed scripts/apt-disable-unattended-upgrades.sh
+var APTDisableUnattendedUpgradesScriptContent string

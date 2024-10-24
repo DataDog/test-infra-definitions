@@ -2,6 +2,7 @@ package ecsagentparams
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
 )
@@ -51,4 +52,8 @@ func WithNetworkMode(mode string) func(*Params) error {
 		p.NetworkMode = mode
 		return nil
 	}
+}
+
+func WithTags(tags []string) func(*Params) error {
+	return WithAgentServiceEnvVariable("DD_TAGS", strings.Join(tags, ","))
 }

@@ -11,4 +11,4 @@ RUN make
 
 # Second stage, we build the final image with the runtime image
 FROM nvidia/cuda:${CUDA_VERSION}-runtime-${BASE_DISTRO}
-COPY --from=builder /src/bin/* /usr/local/bin/
+COPY --from=builder /src/bin/cuda-basic /usr/local/bin/cuda-basic

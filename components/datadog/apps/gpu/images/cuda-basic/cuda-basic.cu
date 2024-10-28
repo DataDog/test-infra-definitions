@@ -48,7 +48,7 @@ int main(int argc, const char **argv) {
 
 	// Print the vector length to be used, and compute its size
 	size_t size = numElements * sizeof(float);
-	printf("Vector size: %d elements (%d bytes)\n", numElements, size);
+	printf("Vector size: %d elements (%zu bytes)\n", numElements, size);
 
 	float *h_A = (float *)malloc(size);
 	float *h_B = (float *)malloc(size);

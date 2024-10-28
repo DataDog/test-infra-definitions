@@ -17,4 +17,3 @@ bin/%: %.cu
 	-gencode arch=compute_90,code=sm_90 \
 	-gencode arch=compute_90,code=compute_90 \
 	-o $@ $^
-	ls $@

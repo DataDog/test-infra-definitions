@@ -1,7 +1,10 @@
 // Sample from NVIDIA:
 // https://github.com/NVIDIA/cuda-samples/blob/master/Samples/0_Introduction/vectorAdd/vectorAdd.cu
 
+#include <stdexcept>
 #include <stdio.h>
+#include <string>
+#include <unistd.h>
 
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
@@ -12,7 +15,7 @@ __global__ void vectorSumKernel(const float *A, const float *B, float *C,
 								int numElements, int loops) {
 	int i = blockDim.x * blockIdx.x + threadIdx.x;
 
-	for (size_t loopIdx; loopIdx < loops; loopIdx++) {
+	for (size_t loopIdx = 0; loopIdx < loops; loopIdx++) {
 		if (i < numElements) {
 			C[i] = A[i] + B[i] + 0.0f;
 		}
@@ -121,12 +124,13 @@ int main(int argc, const char **argv) {
 	int blocksPerGrid = (numElements + threadsPerBlock - 1) / threadsPerBlock;
 	printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid,
 		   threadsPerBlock);
-	vectorAdd<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C, numElements,
-												  loops);
+	vectorSumKernel<<<blocksPerGrid, threadsPerBlock>>>(d_A, d_B, d_C,
+														numElements, loops);
 	err = cudaGetLastError();
 
 	if (err != cudaSuccess) {
-		fprintf(stderr, "Failed to launch vectorAdd kernel (error code %s)!\n",
+		fprintf(stderr,
+				"Failed to launch vectorSumKernel kernel (error code %s)!\n",
 				cudaGetErrorString(err));
 		exit(EXIT_FAILURE);
 	}

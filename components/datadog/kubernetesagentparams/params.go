@@ -2,7 +2,6 @@ package kubernetesagentparams
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -173,15 +172,7 @@ func WithGKEAutopilot() func(*Params) error {
 
 func WithTags(tags []string) func(*Params) error {
 	return func(p *Params) error {
-		tagsMap := make(map[string]string)
-		for _, tag := range tags {
-			splittedTag := strings.Split(tag, ":")
-			if len(splittedTag) != 2 {
-				return fmt.Errorf("tag must be in the format key:value, invalid tag: %s", tag)
-			}
-			tagsMap[splittedTag[0]] = splittedTag[1]
-		}
-		tagsYAML, err := yaml.Marshal(tagsMap)
+		tagsYAML, err := yaml.Marshal(tags)
 		if err != nil {
 			return err
 		}

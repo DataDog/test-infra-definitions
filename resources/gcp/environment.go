@@ -37,7 +37,7 @@ type Environment struct {
 }
 
 var _ config.Env = (*Environment)(nil)
-var pulumiEnvVariables = []string{"GOOGLE_APPLICATION_CREDENTIALS"}
+var pulumiEnvVariables = []string{"GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CREDENTIALS"}
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
@@ -74,6 +74,16 @@ func logIn(ctx *pulumi.Context) {
 			fmt.Printf("The env variable %s is set\n", envVar)
 			envVariablesSet = true
 			break
+		}
+	}
+
+	// Passing the environment variable is not enough for the gcloud CLI to work, per https://cloud.google.com/docs/authentication/provide-credentials-adc
+	// We need the CLI to be working for accessing GKE cluster with Pulumi Kubernetes provider.
+	if path, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
+		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", path)
+		_, err := cmd.Output()
+		if err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth activate-service-account --key-file %s`: %v", path, err), nil)
 		}
 	}
 

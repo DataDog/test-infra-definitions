@@ -18,7 +18,7 @@ var (
 	AmazonLinuxECS2       = NewDescriptor(AmazonLinuxECS, "2")
 
 	RedHatDefault = RedHat9
-	RedHat9       = NewDescriptor(RedHat, "9.1")
+	RedHat9       = NewDescriptor(RedHat, "9")
 
 	SuseDefault = Suse15
 	Suse15      = NewDescriptor(Suse, "15-sp4")

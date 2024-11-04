@@ -37,7 +37,7 @@ type Environment struct {
 }
 
 var _ config.Env = (*Environment)(nil)
-var pulumiEnvVariables = []string{"GOOGLE_APPLICATION_CREDENTIALS", "GOOGLE_CREDENTIALS"}
+var pulumiEnvVariables = []string{"GOOGLE_APPLICATION_CREDENTIALS"}
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{

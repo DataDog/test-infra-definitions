@@ -40,7 +40,7 @@ const (
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
-	DDInfraEcsFargateFakeintakeClusterArn   = "aws/ecs/fargateFakeintakeClusterArn"
+	DDInfraEcsFargateFakeintakeClusterArns  = "aws/ecs/fargateFakeintakeClusterArns"
 	DDInfraEcsFakeintakeLBs                 = "aws/ecs/defaultfakeintakeLBs"
 	DDInfraEcsTaskExecutionRole             = "aws/ecs/taskExecutionRole"
 	DDInfraEcsTaskRole                      = "aws/ecs/taskRole"
@@ -61,6 +61,8 @@ const (
 	DDInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
 	DDInfraEksLinuxBottlerocketNodeGroup   = "aws/eks/linuxBottlerocketNodeGroup"
 	DDInfraEksWindowsNodeGroup             = "aws/eks/windowsNodeGroup"
+	DDInfraEksAccountAdminSSORole          = "aws/eks/accountAdminSSORole"
+	DDInfraEksReadOnlySSORole              = "aws/eks/readOnlySSORole"
 )
 
 type Environment struct {
@@ -73,6 +75,7 @@ type Environment struct {
 
 	randomSubnets pulumi.StringArrayOutput
 	randomLBIdx   pulumi.IntOutput
+	randomECSArn  pulumi.StringOutput
 }
 
 var _ config.Env = (*Environment)(nil)
@@ -139,6 +142,14 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.randomLBIdx = shuffleLB.Result
 
+	shuffleFakeintakeECS, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-ecs"), &random.RandomShuffleArgs{
+		Inputs:      pulumi.ToStringArray(env.DefaultFakeintakeECSArns()),
+		ResultCount: pulumi.IntPtr(1),
+	}, env.WithProviders(config.ProviderRandom))
+	if err != nil {
+		return Environment{}, err
+	}
+	env.randomECSArn = shuffleFakeintakeECS.Results.Index(pulumi.Int(0))
 	return env, nil
 }
 
@@ -201,6 +212,10 @@ func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 
+func (e *Environment) DefaultFakeintakeECSArns() []string {
+	return e.GetStringListWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArns, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
+}
+
 func (e *Environment) DefaultFakeintakeLBs() []FakeintakeLBConfig {
 	var fakeintakeLBConfig FakeintakeLBConfig
 	return e.GetObjectWithDefault(e.InfraConfig, DDInfraEcsFakeintakeLBs, fakeintakeLBConfig, e.envDefault.ddInfra.ecs.defaultFakeintakeLBs).([]FakeintakeLBConfig)
@@ -257,8 +272,8 @@ func (e *Environment) ECSExecKMSKeyID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsExecKMSKeyID, e.envDefault.ddInfra.ecs.execKMSKeyID)
 }
 
-func (e *Environment) ECSFargateFakeintakeClusterArn() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArn, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
+func (e *Environment) ECSFargateFakeintakeClusterArn() pulumi.StringOutput {
+	return e.randomECSArn
 }
 
 func (e *Environment) ECSFakeintakeLBListenerArn() pulumi.StringOutput {
@@ -353,6 +368,13 @@ func (e *Environment) EKSWindowsNodeGroup() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEksWindowsNodeGroup, e.envDefault.ddInfra.eks.windowsLTSCNodeGroup)
 }
 
+func (e *Environment) EKSAccountAdminSSORole() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEksAccountAdminSSORole, e.envDefault.ddInfra.eks.accountAdminSSORole)
+}
+
+func (e *Environment) EKSReadOnlySSORole() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraEksReadOnlySSORole, e.envDefault.ddInfra.eks.readOnlySSORole)
+}
 func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
 	return e.CommonEnvironment
 }

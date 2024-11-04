@@ -47,9 +47,10 @@ func FargateWindowsTaskDefinitionWithAgent(
 	containers map[string]ecs.TaskDefinitionContainerDefinitionArgs,
 	apiKeySSMParamName pulumi.StringInput,
 	fakeintake *fakeintake.Fakeintake,
+	image string,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake)
+	containers["datadog-agent"] = *agent.ECSFargateWindowsContainerDefinition(&e, image, apiKeySSMParamName, fakeintake)
 	// aws-for-fluent-bit:windowsservercore-latest can only be used with cloudwatch logs.
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
@@ -61,8 +62,7 @@ func FargateWindowsTaskDefinitionWithAgent(
 		TaskRole: &awsx.DefaultRoleWithPolicyArgs{
 			RoleArn: pulumi.StringPtr(e.ECSTaskRole()),
 		},
-		Family:  e.CommonNamer().DisplayName(255, family),
-		PidMode: pulumi.StringPtr("task"),
+		Family: e.CommonNamer().DisplayName(255, family),
 		RuntimePlatform: classicECS.TaskDefinitionRuntimePlatformArgs{
 			OperatingSystemFamily: pulumi.String("WINDOWS_SERVER_2022_CORE"),
 		},
@@ -77,9 +77,10 @@ func FargateTaskDefinitionWithAgent(
 	containers map[string]ecs.TaskDefinitionContainerDefinitionArgs,
 	apiKeySSMParamName pulumi.StringInput,
 	fakeintake *fakeintake.Fakeintake,
+	image string,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, image, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
@@ -107,7 +108,7 @@ func FargateFirelensContainerDefinition() *ecs.TaskDefinitionContainerDefinition
 		Cpu:       pulumi.IntPtr(0),
 		User:      pulumi.StringPtr("0"),
 		Name:      pulumi.String("log_router"),
-		Image:     pulumi.String("amazon/aws-for-fluent-bit:stable"),
+		Image:     pulumi.String("public.ecr.aws/aws-observability/aws-for-fluent-bit:stable"),
 		Essential: pulumi.BoolPtr(true),
 		FirelensConfiguration: ecs.TaskDefinitionFirelensConfigurationArgs{
 			Type: pulumi.String("fluentbit"),

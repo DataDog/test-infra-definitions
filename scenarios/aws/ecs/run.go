@@ -11,8 +11,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
-	"github.com/DataDog/test-infra-definitions/resources/aws/ecs"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ssm"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -25,63 +25,13 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Create cluster
-	ecsCluster, err := ecs.CreateEcsCluster(awsEnv, "ecs")
+	ecsOpts := buildClusterOptionsFromConfigMap(awsEnv)
+	cluster, err := NewCluster(awsEnv, "ecs", ecsOpts...)
 	if err != nil {
 		return err
 	}
 
-	// Export cluster’s properties
-	ctx.Export("ecs-cluster-name", ecsCluster.Name)
-	ctx.Export("ecs-cluster-arn", ecsCluster.Arn)
-
-	// Handle capacity providers
-	capacityProviders := pulumi.StringArray{}
-	if awsEnv.ECSFargateCapacityProvider() {
-		capacityProviders = append(capacityProviders, pulumi.String("FARGATE"))
-	}
-
-	linuxNodeGroupPresent := false
-	if awsEnv.ECSLinuxECSOptimizedNodeGroup() {
-		cpName, err := ecs.NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, false)
-		if err != nil {
-			return err
-		}
-
-		capacityProviders = append(capacityProviders, cpName)
-		linuxNodeGroupPresent = true
-	}
-
-	if awsEnv.ECSLinuxECSOptimizedARMNodeGroup() {
-		cpName, err := ecs.NewECSOptimizedNodeGroup(awsEnv, ecsCluster.Name, true)
-		if err != nil {
-			return err
-		}
-
-		capacityProviders = append(capacityProviders, cpName)
-		linuxNodeGroupPresent = true
-	}
-
-	if awsEnv.ECSLinuxBottlerocketNodeGroup() {
-		cpName, err := ecs.NewBottlerocketNodeGroup(awsEnv, ecsCluster.Name)
-		if err != nil {
-			return err
-		}
-
-		capacityProviders = append(capacityProviders, cpName)
-		linuxNodeGroupPresent = true
-	}
-
-	if awsEnv.ECSWindowsNodeGroup() {
-		cpName, err := ecs.NewWindowsNodeGroup(awsEnv, ecsCluster.Name)
-		if err != nil {
-			return err
-		}
-
-		capacityProviders = append(capacityProviders, cpName)
-	}
-
-	// Associate capacity providers
-	_, err = ecs.NewClusterCapacityProvider(awsEnv, ctx.Stack(), ecsCluster.Name, capacityProviders)
+	err = cluster.Export(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -113,57 +63,51 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		// Deploy EC2 Agent
-		if linuxNodeGroupPresent {
-			agentDaemon, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, fakeIntake, ecsCluster.Arn)
-			if err != nil {
-				return err
-			}
-
-			ctx.Export("agent-ec2-linux-task-arn", agentDaemon.TaskDefinition.Arn())
-			ctx.Export("agent-ec2-linux-task-family", agentDaemon.TaskDefinition.Family())
-			ctx.Export("agent-ec2-linux-task-version", agentDaemon.TaskDefinition.Revision())
+		_, err := agent.ECSLinuxDaemonDefinition(awsEnv, "ec2-linux-dd-agent", apiKeyParam.Name, fakeIntake, cluster.ClusterArn)
+		if err != nil {
+			return err
 		}
+
 	}
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+		if _, err := nginx.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 
-		if _, err := redis.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+		if _, err := redis.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 
-		if _, err := cpustress.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+		if _, err := cpustress.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 
-		if _, err := dogstatsd.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+		if _, err := dogstatsd.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 
-		if _, err := prometheus.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+		if _, err := prometheus.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 
-		if _, err := tracegen.EcsAppDefinition(awsEnv, ecsCluster.Arn); err != nil {
+		if _, err := tracegen.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 	}
 
 	// Deploy Fargate Agents
 	if awsEnv.TestingWorkloadDeploy() && awsEnv.AgentDeploy() {
-		if _, err := redis.FargateAppDefinition(awsEnv, ecsCluster.Arn, apiKeyParam.Name, fakeIntake); err != nil {
+		if _, err := redis.FargateAppDefinition(awsEnv, cluster.ClusterArn, apiKeyParam.Name, fakeIntake); err != nil {
 			return err
 		}
 
-		if _, err = nginx.FargateAppDefinition(awsEnv, ecsCluster.Arn, apiKeyParam.Name, fakeIntake); err != nil {
+		if _, err = nginx.FargateAppDefinition(awsEnv, cluster.ClusterArn, apiKeyParam.Name, fakeIntake); err != nil {
 			return err
 		}
 
-		if _, err = aspnetsample.FargateAppDefinition(awsEnv, ecsCluster.Arn, apiKeyParam.Name, fakeIntake); err != nil {
+		if _, err = aspnetsample.FargateAppDefinition(awsEnv, cluster.ClusterArn, apiKeyParam.Name, fakeIntake); err != nil {
 			return err
 		}
 	}

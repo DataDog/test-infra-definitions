@@ -44,7 +44,7 @@ type ddInfra struct {
 
 type ddInfraECS struct {
 	execKMSKeyID                  string
-	fargateFakeintakeClusterArn   string
+	fargateFakeintakeClusterArn   []string
 	defaultFakeintakeLBs          []FakeintakeLBConfig
 	taskExecutionRole             string
 	taskRole                      string
@@ -58,6 +58,8 @@ type ddInfraECS struct {
 }
 
 type ddInfraEKS struct {
+	accountAdminSSORole          string
+	readOnlySSORole              string
 	podSubnets                   []DDInfraEKSPodSubnets
 	allowedInboundSecurityGroups []string
 	allowedInboundPrefixList     []string
@@ -108,7 +110,7 @@ func sandboxDefault() environmentDefault {
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:601427279990:key/c84f93c2-a562-4a59-a326-918fbe7235c7",
-				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:601427279990:cluster/fakeintake-ecs",
+				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:601427279990:cluster/fakeintake-ecs"},
 				taskExecutionRole:           "arn:aws:iam::601427279990:role/ecsExecTaskExecutionRole",
 				taskRole:                    "arn:aws:iam::601427279990:role/ecsExecTaskRole",
 				instanceProfile:             "arn:aws:iam::601427279990:instance-profile/ecsInstanceRole",
@@ -121,7 +123,7 @@ func sandboxDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-46506837", "sg-b9e2ebcb"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -151,11 +153,11 @@ func agentSandboxDefault() environmentDefault {
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:376334461865:key/1d1fe533-a4f1-44ee-99ec-225b44fcb9ed",
-				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs",
+				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-2", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-3", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs"},
 				defaultFakeintakeLBs: []FakeintakeLBConfig{
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106", baseHost: ".lb1.fi.sandbox.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/3df6c797d971c13b", baseHost: ".lb2.fi.sandbox.dda-testing.com"},
-					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake3/1af15fb150ca4eb4/88e1d12c35e7aba0", baseHost: ".lb3.fi.sandbox.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake3/1af15fb150ca4eb4/041c6a59952354c1", baseHost: ".lb3.fi.sandbox.dda-testing.com"},
 				},
 				taskExecutionRole:          "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",
 				taskRole:                   "arn:aws:iam::376334461865:role/ecsTaskRole",
@@ -168,6 +170,8 @@ func agentSandboxDefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				readOnlySSORole:     "arn:aws:iam::376334461865:role/AWSReservedSSO_read-only_14b5d3ee971c41e7",
+				accountAdminSSORole: "arn:aws:iam::376334461865:role/AWSReservedSSO_account-admin_6b545a7026a0a2d4",
 				podSubnets: []DDInfraEKSPodSubnets{
 					{
 						AZ:       "us-east-1a",
@@ -183,7 +187,7 @@ func agentSandboxDefault() environmentDefault {
 					},
 				},
 				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -213,7 +217,7 @@ func agentQADefault() environmentDefault {
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:669783387624:key/384373bc-6d99-4d68-84b5-b76b756b0af3",
-				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs",
+				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs", "arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs-2", "arn:aws:ecs:us-east-1:669783387624:cluster/fakeintake-ecs-3"},
 				defaultFakeintakeLBs: []FakeintakeLBConfig{
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake/de7956e70776e471/ddfa738893c2dc0e", baseHost: ".lb1.fi.qa.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake2/d59e26c0a29d8567/52a83f7da0f000ee", baseHost: ".lb2.fi.qa.dda-testing.com"},
@@ -230,6 +234,8 @@ func agentQADefault() environmentDefault {
 			},
 
 			eks: ddInfraEKS{
+				readOnlySSORole:     "arn:aws:iam::669783387624:role/AWSReservedSSO_read-only_e9a50f8c3009a8ce",
+				accountAdminSSORole: "arn:aws:iam::669783387624:role/AWSReservedSSO_account-admin_2730b1ac7bbae8eb",
 				podSubnets: []DDInfraEKSPodSubnets{
 					{
 						AZ:       "us-east-1a",
@@ -246,7 +252,7 @@ func agentQADefault() environmentDefault {
 				},
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -273,7 +279,7 @@ func tsePlaygroundDefault() environmentDefault {
 
 			ecs: ddInfraECS{
 				execKMSKeyID:                "arn:aws:kms:us-east-1:570690476889:key/f1694e5a-bb52-42a7-b414-dfd34fbd6759",
-				fargateFakeintakeClusterArn: "arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs",
+				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs", "arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs-2", "arn:aws:ecs:us-east-1:570690476889:cluster/fakeintake-ecs-3"},
 				taskExecutionRole:           "arn:aws:iam::570690476889:role/ecsExecTaskExecutionRole",
 				taskRole:                    "arn:aws:iam::570690476889:role/ecsExecTaskRole",
 				instanceProfile:             "arn:aws:iam::570690476889:instance-profile/ecsInstanceRole",
@@ -286,7 +292,7 @@ func tsePlaygroundDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-091a00b0944f04fd2", "sg-0a3ec6b0ee295e826"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,

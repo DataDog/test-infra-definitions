@@ -56,10 +56,10 @@ def create_eks(
     )
 
 
-@task(help={"stack_name": doc.stack_name, "yes": doc.yes})
-def destroy_eks(ctx: Context, stack_name: Optional[str] = None, yes: Optional[bool] = False):
+@task(help={"stack_name": doc.stack_name})
+def destroy_eks(ctx: Context, stack_name: Optional[str] = None):
     print('This command is deprecated, please use `aws.create-eks` instead')
     print("Running `aws.create-eks`...")
     from tasks.aws.eks import destroy_eks as destroy_eks_aws
 
-    destroy_eks_aws(ctx, stack_name, yes)
+    destroy_eks_aws(ctx, stack_name)

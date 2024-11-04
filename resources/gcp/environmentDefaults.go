@@ -13,6 +13,7 @@ type environmentDefault struct {
 type gcpProvider struct {
 	project string
 	region  string
+	zone    string
 }
 
 type ddInfra struct {
@@ -20,6 +21,11 @@ type ddInfra struct {
 	defaultNetworkName      string
 	defaultSubnetName       string
 	defaultVMServiceAccount string
+	gke                     ddInfraGKE
+}
+
+type ddInfraGKE struct {
+	autopilot bool
 }
 
 func getEnvironmentDefault(envName string) environmentDefault {
@@ -37,13 +43,15 @@ func agentSandboxDefault() environmentDefault {
 	return environmentDefault{
 		gcp: gcpProvider{
 			project: "datadog-agent-sandbox",
-			region:  "us-central1-a",
+			region:  "us-central1",
+			zone:    "us-central1-a",
 		},
 		ddInfra: ddInfra{
-			defaultInstanceType:     "e2-medium",
+			defaultInstanceType:     "e2-standard-2",
 			defaultNetworkName:      "datadog-agent-sandbox-us-central1",
 			defaultSubnetName:       "datadog-agent-sandbox-us-central1-private",
 			defaultVMServiceAccount: "vmserviceaccount@datadog-agent-sandbox.iam.gserviceaccount.com",
+			gke:                     ddInfraGKE{autopilot: false},
 		},
 	}
 }
@@ -52,13 +60,15 @@ func agentQaDefault() environmentDefault {
 	return environmentDefault{
 		gcp: gcpProvider{
 			project: "datadog-agent-qa",
-			region:  "us-central1-a",
+			region:  "us-central1",
+			zone:    "us-central1-a",
 		},
 		ddInfra: ddInfra{
-			defaultInstanceType:     "e2-medium",
+			defaultInstanceType:     "e2-standard-2",
 			defaultNetworkName:      "datadog-agent-qa-us-central1",
 			defaultSubnetName:       "datadog-agent-qa-us-central1-private",
 			defaultVMServiceAccount: "vmserviceaccount@datadog-agent-qa.iam.gserviceaccount.com",
+			gke:                     ddInfraGKE{autopilot: false},
 		},
 	}
 }

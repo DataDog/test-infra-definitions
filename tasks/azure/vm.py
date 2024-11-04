@@ -112,7 +112,6 @@ def create_vm(
     help={
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
-        "yes": doc.yes,
         "clean_known_hosts": doc.clean_known_hosts,
     }
 )
@@ -120,7 +119,6 @@ def destroy_vm(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = True,
     clean_known_hosts: Optional[bool] = True,
 ):
     """
@@ -132,7 +130,6 @@ def destroy_vm(
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
-        force_yes=yes,
     )
     if clean_known_hosts:
         clean_known_hosts_func(host)

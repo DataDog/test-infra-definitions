@@ -13,6 +13,7 @@ from . import doc
     help={
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
+        "install_agent_with_operator": doc.install_agent_with_operator,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "architecture": aws_doc.architecture,
@@ -26,6 +27,7 @@ def create_kind(
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
+    install_agent_with_operator: Optional[bool] = None,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
@@ -41,6 +43,7 @@ def create_kind(
         config_path,
         stack_name,
         install_agent,
+        install_agent_with_operator,
         agent_version,
         architecture,
         use_fakeintake,
@@ -53,17 +56,15 @@ def create_kind(
     help={
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
-        "yes": doc.yes,
     }
 )
 def destroy_kind(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    yes: Optional[bool] = False,
 ):
     print('This command is deprecated, please use `aws.destroy-kind` instead')
     print("Running `aws.destroy-kind`...")
     from tasks.aws.kind import destroy_kind as destroy_kind_aws
 
-    destroy_kind_aws(ctx, config_path, stack_name, yes)
+    destroy_kind_aws(ctx, config_path, stack_name)

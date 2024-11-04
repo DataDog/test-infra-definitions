@@ -40,6 +40,9 @@ def setup(
         error("Gcloud CLI not found, please install it: https://cloud.google.com/sdk/docs/install")
         raise Exit(code=1)
 
+    # Ensure gke-gcloud-auth-plugin is installed
+    _install_gcloud_auth_plugin(ctx)
+
     pulumi_version, pulumi_up_to_date = _pulumi_version(ctx)
     if pulumi_up_to_date:
         info(f"Pulumi is up to date: {pulumi_version}")
@@ -112,6 +115,22 @@ def _install_pulumi(ctx: Context):
         elif is_linux():
             path = Path().home().joinpath(".pulumi", "bin")
             os.environ["PATH"] = f"{os.environ['PATH']}:{path}"
+
+
+# Check if gke-gcloud-auth-plugin is installed and install it if not
+def _install_gcloud_auth_plugin(ctx):
+    res = ctx.run("gcloud components list --format=json --filter 'name: gke-gcloud-auth-plugin'", hide=True)
+    installed_component = json.loads(res.stdout)
+    if installed_component[0]["state"]["name"] == "Installed":
+        print("✅ gke-gcloud-auth-plugin is already installed")
+        return
+    print("🤖 Installing gke-gcloud-auth-plugin")
+    install = ctx.run("gcloud components install -q gke-gcloud-auth-plugin", hide=True)
+    if install is None:
+        raise Exit("Failed to install gke-gcloud-auth-plugin")
+    if install.exited != 0:
+        raise Exit(f"Failed to install gke-gcloud-auth-plugin: {install.stderr}")
+    print("✅ gke-gcloud-auth-plugin installed")
 
 
 def _check_config(config: Config):
@@ -704,7 +723,7 @@ def _aws_import_keypair(
     )
     keypair_name = str(keypair_opts["keypair_name"])
     private_key_path = str(keypair_opts["private_key_path"])
-    public_key_path = keypair_opts["public_key_path"]
+    public_key_path = str(keypair_opts["public_key_path"])
 
     def _get_aws_cmd(cmd):
         return get_aws_cmd(cmd, use_aws_vault=use_aws_vault, aws_account=aws_account_name)

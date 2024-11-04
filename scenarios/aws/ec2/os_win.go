@@ -3,6 +3,9 @@ package ec2
 import (
 	"fmt"
 	"os"
+	"strings"
+
+	componentsos "github.com/DataDog/test-infra-definitions/components/os"
 )
 
 func getWindowsOpenSSHUserData(publicKeyPath string) (string, error) {
@@ -11,17 +14,36 @@ func getWindowsOpenSSHUserData(publicKeyPath string) (string, error) {
 		return "", err
 	}
 
-	openSSHInstallCmd := `<powershell>
-	$service = Get-Service -Name sshd -ErrorAction SilentlyContinue
-	# Don't try to reinstall OpenSSH if the user uses <persist>true</persist> on UserData.
-	if ($service -eq $null) {
-		Add-WindowsCapability -Online -Name OpenSSH.Server~~~~0.0.1.0
-		Set-Service -Name sshd -StartupType Automatic
-		Add-Content -Path $env:ProgramData\ssh\administrators_authorized_keys -Value '%v'
-		icacls.exe ""$env:ProgramData\ssh\administrators_authorized_keys"" /inheritance:r /grant ""Administrators:F"" /grant ""SYSTEM:F""
-		New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
-		Start-Service sshd
+	return buildAWSPowerShellUserData(
+			componentsos.WindowsSetupSSHScriptContent,
+			windowsPowerShellArgument{name: "authorizedKey", value: string(publicKey)},
+		),
+		nil
+}
+
+type windowsPowerShellArgument struct {
+	name  string
+	value string
+}
+
+func (a windowsPowerShellArgument) String() string {
+	return fmt.Sprintf("-%s %s", a.name, a.value)
+}
+
+func buildAWSPowerShellUserData(scriptContent string, arguments ...windowsPowerShellArgument) string {
+	for _, arg := range arguments {
+		scriptContent = strings.ReplaceAll(scriptContent, fmt.Sprintf("$%s", arg.name), fmt.Sprintf("'%s'", arg.value))
 	}
-	</powershell>`
-	return fmt.Sprintf(openSSHInstallCmd, string(publicKey)), nil
+
+	scriptLines := strings.Split(scriptContent, "\n")
+	userDataLines := make([]string, 0, len(scriptLines)+6+len(arguments))
+	userDataLines = append(userDataLines, "<powershell>")
+	for _, line := range scriptLines {
+		// indent script lines by one tab
+		userDataLines = append(userDataLines, fmt.Sprintf("		%s", line))
+	}
+	userDataLines = append(userDataLines, "</powershell>")
+	userDataLines = append(userDataLines, "<persist>true</persist>")
+
+	return strings.Join(userDataLines, "\n")
 }

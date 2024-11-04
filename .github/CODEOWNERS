@@ -17,3 +17,5 @@
 /components/datadog/apps/tracegen       @DataDog/agent-apm
 /components/datadog/apps/cws            @DataDog/agent-security
 /components/datadog/apps/fips           @DataDog/agent-shared-components
+/components/datadog/apps/otel           @DataDog/opentelemetry
+/components/datadog/apps/gpu            @DataDog/ebpf-platform

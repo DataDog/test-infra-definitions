@@ -66,6 +66,10 @@ def get_default_agent_install() -> bool:
     return True
 
 
+def get_default_agent_with_operator_install() -> bool:
+    return False
+
+
 def get_default_workload_install() -> bool:
     return True
 
@@ -86,7 +90,16 @@ def get_stack_name_prefix() -> str:
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:
     buffer = StringIO()
 
-    cmd_parts: List[str] = ["pulumi", "stack", "output", "--json", "-s", full_stack_name, get_pulumi_dir_flag()]
+    cmd_parts: List[str] = [
+        "pulumi",
+        "stack",
+        "output",
+        "--json",
+        "--show-secrets",
+        "-s",
+        full_stack_name,
+        get_pulumi_dir_flag(),
+    ]
     ctx.run(
         " ".join(cmd_parts),
         out_stream=buffer,

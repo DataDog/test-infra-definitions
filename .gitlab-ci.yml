@@ -57,7 +57,8 @@ integration-testing:
   rules:
     - when: on_success
   before_script:
-    # Setup GCP credentials. https://www.pulumi.com/registry/packages/gcp/installation-configuration/
+    # Setup GCP credentials. https://www.pulumi.com/registry/packages/gcp/service-account/
+    # The GOOGLE_CREDENTIALS variable can accept either the contents or the filepath pointing at the location of your credentials file.
     # The service account is called `agent-e2e-tests`
     - export GOOGLE_CREDENTIALS=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.gcp_credentials --with-decryption --query "Parameter.Value" --out text)
     # Setup Azure credentials. https://www.pulumi.com/registry/packages/azure-native/installation-configuration/#set-configuration-using-pulumi-config

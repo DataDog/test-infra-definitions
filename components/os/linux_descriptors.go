@@ -23,8 +23,8 @@ var (
 	SuseDefault = Suse15
 	Suse15      = NewDescriptor(Suse, "15-sp4")
 
-	FedoraDefault = Fedora37
-	Fedora37      = NewDescriptor(Fedora, "37")
+	FedoraDefault = Fedora40
+	Fedora40      = NewDescriptor(Fedora, "40")
 
 	CentOSDefault = CentOS7
 	CentOS7       = NewDescriptor(CentOS, "7")

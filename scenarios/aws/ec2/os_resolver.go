@@ -181,7 +181,7 @@ func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.FedoraDefault.Version
 	}
 
-	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base-%s-*", osInfo.Version), string(osInfo.Architecture))
+	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base*-%s-*", osInfo.Version), string(osInfo.Architecture))
 }
 
 func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

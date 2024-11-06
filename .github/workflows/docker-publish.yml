@@ -74,6 +74,8 @@ jobs:
             image: fips-server
           - app: otel
             image: calendar-go
+          - app: gpu
+            image: cuda-basic
 
     steps:
       - name: Checkout repository

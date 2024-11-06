@@ -105,7 +105,7 @@ func NewWindowsInstance(e azure.Environment, name, imageUrn, instanceType string
 		AsyncExecution:    pulumi.Bool(false),
 		RunCommandName:    pulumi.String("InitVM"),
 		Source: compute.VirtualMachineRunCommandScriptSourceArgs{
-			Script: pulumi.String(strings.Join([]string{setupSSHParamScriptContent, componentsos.SetupSSHScriptContent}, "\n\n")),
+			Script: pulumi.String(strings.Join([]string{setupSSHParamScriptContent, componentsos.WindowsSetupSSHScriptContent}, "\n\n")),
 		},
 		Parameters: compute.RunCommandInputParameterArray{
 			compute.RunCommandInputParameterArgs{

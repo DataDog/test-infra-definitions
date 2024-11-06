@@ -3,6 +3,7 @@ package dockeragentparams
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -103,6 +104,10 @@ func WithEnvironmentVariables(environmentVariables pulumi.StringMap) func(*Param
 		p.EnvironmentVariables = environmentVariables
 		return nil
 	}
+}
+
+func WithTags(tags []string) func(*Params) error {
+	return WithAgentServiceEnvVariable("DD_TAGS", pulumi.String(strings.Join(tags, ",")))
 }
 
 // WithAgentServiceEnvVariable set an environment variable in the docker compose agent service's environment.

@@ -67,6 +67,21 @@ func NewParams(options ...Option) (*Params, error) {
 	return common.ApplyOption(version, options)
 }
 
+// WithClusterName sets the name of the cluster. Should only be used if you know what you are doing. Must no be necessary in most cases.
+func WithClusterName(clusterName pulumi.StringOutput) func(*Params) error {
+	return func(p *Params) error {
+		values := pulumi.Sprintf(`
+datadog:
+  clusterName: %s
+`, clusterName)
+
+		p.HelmValues = append(p.HelmValues, values.ApplyT(func(clusterName string) (pulumi.Asset, error) {
+			return pulumi.NewStringAsset(clusterName), nil
+		}).(pulumi.AssetOutput))
+		return nil
+	}
+}
+
 // WithAgentFullImagePath sets the full path of the agent image to use.
 func WithAgentFullImagePath(fullImagePath string) func(*Params) error {
 	return func(p *Params) error {

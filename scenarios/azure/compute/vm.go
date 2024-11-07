@@ -35,7 +35,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 	// Create the Azure VM instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		// Create the Azure instance
-		c.CloudProvider = components.CloudProviderAzure
+		c.CloudProvider = pulumi.String(components.CloudProviderAzure).ToStringOutput()
 		var err error
 		var privateIP pulumi.StringOutput
 		var password pulumi.StringOutput

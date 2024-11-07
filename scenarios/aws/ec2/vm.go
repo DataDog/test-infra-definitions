@@ -43,7 +43,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 
 	// Create the EC2 instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
-		c.CloudProvider = components.CloudProviderAWS
+		c.CloudProvider = pulumi.String(components.CloudProviderAWS).ToStringOutput()
 
 		instanceArgs := ec2.InstanceArgs{
 			AMI:             amiInfo.id,

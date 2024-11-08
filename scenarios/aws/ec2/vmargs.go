@@ -25,6 +25,8 @@ type vmArgs struct {
 	userData        string
 	instanceType    string
 	instanceProfile string
+
+	httpTokensRequired bool
 }
 
 type VMOption = func(*vmArgs) error
@@ -78,6 +80,13 @@ func WithUserData(userData string) VMOption {
 func WithInstanceProfile(instanceProfile string) VMOption {
 	return func(p *vmArgs) error {
 		p.instanceProfile = instanceProfile
+		return nil
+	}
+}
+
+func WithHTTPTokensRequired() VMOption {
+	return func(p *vmArgs) error {
+		p.httpTokensRequired = true
 		return nil
 	}
 }

@@ -29,7 +29,7 @@ var kindClusterConfig string
 // Install Kind on a Linux virtual machine.
 func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
-		kindClusterName := env.CommonNamer().DisplayName(50) // We can have some issues if the name is longer than 50 characters
+		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		runner := vm.OS.Runner()
 		commonEnvironment := env
@@ -112,7 +112,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 
 func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
-		kindClusterName := env.CommonNamer().DisplayName(50) // We can have some issues if the name is longer than 50 characters
+		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
 

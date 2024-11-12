@@ -1,9 +1,12 @@
 package kubernetesagentparams
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"gopkg.in/yaml.v3"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -164,5 +167,23 @@ func WithGKEAutopilot() func(*Params) error {
 	return func(p *Params) error {
 		p.GKEAutopilot = true
 		return nil
+	}
+}
+
+func WithTags(tags []string) func(*Params) error {
+	return func(p *Params) error {
+		tagsYAML, err := yaml.Marshal(tags)
+		if err != nil {
+			return err
+		}
+		tagsHelmValues := fmt.Sprintf(`
+datadog:
+  tags:
+%s
+  dogstatsd:
+    tags:
+%s
+`, utils.IndentMultilineString(string(tagsYAML), 4), utils.IndentMultilineString(string(tagsYAML), 6))
+		return WithHelmValues(tagsHelmValues)(p)
 	}
 }

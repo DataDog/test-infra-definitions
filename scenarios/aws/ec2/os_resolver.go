@@ -159,7 +159,9 @@ func resolveRedHatAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.RedHatDefault.Version
 	}
 
-	return ec2.SearchAMI(e, "309956199498", fmt.Sprintf("RHEL-%s*_HVM-*-2-Hourly2-GP2", osInfo.Version), string(osInfo.Architecture))
+	// Use recommended name query filter by RedHat https://access.redhat.com/solutions/15356
+	redhatOwner := "309956199498"
+	return ec2.SearchAMI(e, redhatOwner, fmt.Sprintf("RHEL-%s*", osInfo.Version), string(osInfo.Architecture))
 }
 
 func resolveSuseAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -179,7 +181,7 @@ func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.FedoraDefault.Version
 	}
 
-	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base-%s-*", osInfo.Version), string(osInfo.Architecture))
+	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base*-%s-*", osInfo.Version), string(osInfo.Architecture))
 }
 
 func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

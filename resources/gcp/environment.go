@@ -37,7 +37,7 @@ type Environment struct {
 }
 
 var _ config.Env = (*Environment)(nil)
-var pulumiEnvVariables = []string{"GOOGLE_CREDENTIALS"}
+var pulumiEnvVariables = []string{"GOOGLE_APPLICATION_CREDENTIALS"}
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
@@ -77,12 +77,13 @@ func logIn(ctx *pulumi.Context) {
 		}
 	}
 
-	// Environment variable provided in the CI, to activate the service-account authentication
-	if os.Getenv("GOOGLE_CREDENTIALS_FILE") != "" {
-		fmt.Println("GOOGLE_CREDENTIALS_FILE environment detected, activating service account authentication")
-		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", os.Getenv("GOOGLE_CREDENTIALS_FILE"))
-		if err := cmd.Run(); err != nil {
-			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth activate-service-account --key-file $GOOGLE_CREDENTIALS_FILE`: %v", err), nil)
+	// Passing the environment variable is not enough for the gcloud CLI to work, per https://cloud.google.com/docs/authentication/provide-credentials-adc
+	// We need the CLI to be working for accessing GKE cluster with Pulumi Kubernetes provider.
+	if path, ok := os.LookupEnv("GOOGLE_APPLICATION_CREDENTIALS"); ok {
+		cmd := exec.Command("gcloud", "auth", "activate-service-account", "--key-file", path)
+		_, err := cmd.Output()
+		if err != nil {
+			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth activate-service-account --key-file %s`: %v", path, err), nil)
 		}
 	}
 
@@ -100,19 +101,6 @@ func logIn(ctx *pulumi.Context) {
 
 		if err != nil {
 			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth application-default login`: %v", err), nil)
-		}
-	}
-
-	cmd = exec.Command("gcloud", "auth", "print-access-token")
-
-	// There's no error if the token exists and is still valid
-	if err := cmd.Run(); err != nil {
-		// Login if the token is not valid anymore
-		cmd = exec.Command("gcloud", "auth", "login")
-		_, err := cmd.Output()
-
-		if err != nil {
-			ctx.Log.Error(fmt.Sprintf("Error running `gcloud auth login`: %v", err), nil)
 		}
 	}
 }

@@ -1,8 +1,6 @@
 package kindvm
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
@@ -51,7 +49,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, awsEnv.CommonNamer().ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -91,20 +89,20 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy the agent
 	if awsEnv.AgentDeploy() && !awsEnv.AgentDeployWithOperator() {
-		customValues := fmt.Sprintf(`
+		customValues := `
 datadog:
   kubelet:
     tlsVerify: false
-  clusterName: "%s"
 agents:
   useHostNetwork: true
-`, kindClusterName)
+`
 
 		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
 		k8sAgentOptions = append(
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog"),
 			kubernetesagentparams.WithHelmValues(customValues),
+			kubernetesagentparams.WithClusterName(kindCluster.ClusterName),
 		)
 		if fakeIntake != nil {
 			k8sAgentOptions = append(

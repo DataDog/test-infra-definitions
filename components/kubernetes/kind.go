@@ -27,10 +27,10 @@ const (
 var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine.
-func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
-	return components.NewComponent(env, resourceName, func(clusterComp *Cluster) error {
+func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
+		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
-
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
@@ -65,7 +65,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 			return err
 		}
 
-		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", kindClusterName)
+		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", name)
 		clusterConfig, err := vm.OS.FileManager().CopyInlineFile(
 			pulumi.String(kindClusterConfig),
 			clusterConfigFilePath, opts...)
@@ -75,7 +75,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 
 		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
-			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
@@ -88,7 +88,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 		}
 
 		kubeConfigCmd, err := runner.Command(
-			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig"),
 			&command.Args{
 				Create: pulumi.Sprintf("kind get kubeconfig --name %s", kindClusterName),
 			},
@@ -104,14 +104,15 @@ func NewKindCluster(env config.Env, vm *remote.Host, resourceName, kindClusterNa
 			allowInsecure := regexp.MustCompile("certificate-authority-data:.+").ReplaceAllString(args[0].(string), "insecure-skip-tls-verify: true")
 			return strings.ReplaceAll(allowInsecure, "0.0.0.0", args[1].(string))
 		}).(pulumi.StringOutput)
-		clusterComp.ClusterName = pulumi.String(kindClusterName).ToStringOutput()
+		clusterComp.ClusterName = kindClusterName.ToStringOutput()
 
 		return nil
 	}, opts...)
 }
 
-func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
-	return components.NewComponent(env, resourceName, func(clusterComp *Cluster) error {
+func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
+		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
 
@@ -125,7 +126,7 @@ func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, k
 			OSCommand: command.NewUnixOSCommand(),
 		})
 
-		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", kindClusterName)
+		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", name)
 		clusterConfig, err := runner.Command("kind-config", &command.Args{
 			Create: pulumi.Sprintf("cat - | tee %s > /dev/null", clusterConfigFilePath),
 			Delete: pulumi.Sprintf("rm -f %s", clusterConfigFilePath),
@@ -137,7 +138,7 @@ func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, k
 
 		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
 		createCluster, err := runner.Command(
-			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
@@ -150,7 +151,7 @@ func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, k
 		}
 
 		kubeConfigCmd, err := runner.Command(
-			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig", resourceName),
+			commonEnvironment.CommonNamer().ResourceName("kind-kubeconfig"),
 			&command.Args{
 				Create: pulumi.Sprintf("kind get kubeconfig --name %s", kindClusterName),
 			},
@@ -161,7 +162,7 @@ func NewLocalKindCluster(env config.Env, resourceName, kindClusterName string, k
 		}
 
 		clusterComp.KubeConfig = kubeConfigCmd.Stdout
-		clusterComp.ClusterName = pulumi.String(kindClusterName).ToStringOutput()
+		clusterComp.ClusterName = kindClusterName.ToStringOutput()
 
 		return nil
 	}, opts...)

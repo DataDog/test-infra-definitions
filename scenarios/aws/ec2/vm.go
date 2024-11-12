@@ -44,10 +44,11 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	// Create the EC2 instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
 		instanceArgs := ec2.InstanceArgs{
-			AMI:             amiInfo.id,
-			InstanceType:    vmArgs.instanceType,
-			UserData:        vmArgs.userData,
-			InstanceProfile: vmArgs.instanceProfile,
+			AMI:                amiInfo.id,
+			InstanceType:       vmArgs.instanceType,
+			UserData:           vmArgs.userData,
+			InstanceProfile:    vmArgs.instanceProfile,
+			HTTPTokensRequired: vmArgs.httpTokensRequired,
 		}
 
 		// Create the EC2 instance

@@ -21,13 +21,14 @@ type InstanceArgs struct {
 	InstanceProfile string
 
 	// Optional
-	UserData string
+	UserData           string
+	HTTPTokensRequired bool
 }
 
 func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulumi.ResourceOption) (*ec2.Instance, error) {
 	defaultInstanceArgs(e, &args)
 
-	instance, err := ec2.NewInstance(e.Ctx(), e.Namer.ResourceName(name), &ec2.InstanceArgs{
+	instanceArgs := &ec2.InstanceArgs{
 		Ami:                     pulumi.StringPtr(args.AMI),
 		SubnetId:                e.RandomSubnets().Index(pulumi.Int(0)),
 		IamInstanceProfile:      pulumi.StringPtr(args.InstanceProfile),
@@ -44,7 +45,16 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 			"Name": e.Namer.DisplayName(255, pulumi.String(name)),
 		},
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
-	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
+	}
+
+	if args.HTTPTokensRequired {
+		instanceArgs.MetadataOptions = &ec2.InstanceMetadataOptionsArgs{
+			HttpTokens: pulumi.String("required"),
+		}
+	}
+
+	instance, err := ec2.NewInstance(e.Ctx(), e.Namer.ResourceName(name), instanceArgs, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
+
 	return instance, err
 }
 

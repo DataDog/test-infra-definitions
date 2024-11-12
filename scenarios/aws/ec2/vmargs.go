@@ -84,7 +84,7 @@ func WithInstanceProfile(instanceProfile string) VMOption {
 	}
 }
 
-func WithHTTPTokensRequired() VMOption {
+func WithIMDSv1Disable() VMOption {
 	return func(p *vmArgs) error {
 		p.httpTokensRequired = true
 		return nil

@@ -68,6 +68,8 @@ func NewParams(options ...Option) (*Params, error) {
 }
 
 // WithClusterName sets the name of the cluster. Should only be used if you know what you are doing. Must no be necessary in most cases.
+// Mainly used to set the clusterName when the agent is installed on Kind clusters. Because the agent is not able to detect the cluster name.
+// It takes a pulumi.StringOutput as input to be able to use the pulumi output of the cluster name.
 func WithClusterName(clusterName pulumi.StringOutput) func(*Params) error {
 	return func(p *Params) error {
 		values := pulumi.Sprintf(`

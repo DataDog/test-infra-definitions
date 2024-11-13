@@ -32,7 +32,7 @@ build-runner-image:
 
 build-pulumi-go-main:
   stage: build
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-agent-buildimages/deb_x64:v38375519-53773733
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/deb_x64:v48866977-9bfad02c
   tags: ["arch:amd64"]
   rules:
     - when: on_success
@@ -79,7 +79,7 @@ integration-testing:
     - pip install -r requirements.txt
   script:
     - |
-      if [ ! -f ./dist/main ]; then 
+      if [ ! -f ./dist/main ]; then
         echo "no main binary found, please run 'build-pulumi-go-main' job"
         exit 1
       fi

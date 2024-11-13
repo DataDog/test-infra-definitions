@@ -12,6 +12,7 @@ type HostOutput struct {
 	components.JSONImporter
 
 	Address   string    `json:"address"`
+	Port      int       `json:"port"`
 	Username  string    `json:"username"`
 	Password  string    `json:"password,omitempty"`
 	OSFamily  os.Family `json:"osFamily"`
@@ -27,6 +28,7 @@ type Host struct {
 	OS os.OS
 
 	Address      pulumi.StringOutput `pulumi:"address"`
+	Port         pulumi.IntOutput    `pulumi:"port"`
 	Username     pulumi.StringOutput `pulumi:"username"`
 	Password     pulumi.StringOutput `pulumi:"password"`
 	Architecture pulumi.StringOutput `pulumi:"architecture"`

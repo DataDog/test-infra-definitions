@@ -13,6 +13,7 @@ type connectionArgs struct {
 	privateKeyPath     string
 	privateKeyPassword string
 	sshAgentPath       string
+	port               int
 }
 
 type ConnectionOption = func(*connectionArgs) error
@@ -21,6 +22,7 @@ func buildConnectionArgs(host pulumi.StringInput, user string, options ...Connec
 	args := &connectionArgs{
 		host: host,
 		user: user,
+		port: 22,
 	}
 	return common.ApplyOption(args, options)
 }
@@ -45,6 +47,14 @@ func WithPrivateKeyPassword(password string) ConnectionOption {
 func WithSSHAgentPath(path string) ConnectionOption {
 	return func(args *connectionArgs) error {
 		args.sshAgentPath = path
+		return nil
+	}
+}
+
+// WithPort [optional] sets the port to use for the connection. Default to 22.
+func WithPort(port int) ConnectionOption {
+	return func(args *connectionArgs) error {
+		args.port = port
 		return nil
 	}
 }

@@ -26,6 +26,7 @@ func NewConnection(host pulumi.StringInput, user string, options ...ConnectionOp
 		User:           pulumi.String(args.user),
 		PerDialTimeout: pulumi.IntPtr(dialTimeoutSeconds),
 		DialErrorLimit: pulumi.IntPtr(dialErrorLimit),
+		Port:           pulumi.Float64Ptr(float64(args.port)),
 	}
 
 	if args.privateKeyPath != "" {

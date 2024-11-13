@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -47,6 +48,30 @@ func main() {
 	period := flag.Duration("period", 5*time.Minute, "Period of the sine wave data")
 	nbSeries := flag.Uint("nb-series", 10, "Number of time series to emit")
 	flag.Parse()
+
+	// To test only the external data, we can set the DD_EXTERNAL_DATA_ONLY environment variable to true.
+	// Instead of using the DogStatsD client, we will send data directly to the agent.
+	// We need to do this as is it not possible to disable local data in the DogStatsD client.
+	if v, ok := os.LookupEnv("DD_EXTERNAL_DATA_ONLY"); ok && v == "true" {
+		conn, err := net.Dial("udp", os.Getenv("STATSD_URL"))
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		defer conn.Close()
+
+		for {
+			for i := uint(0); i < *nbSeries; i++ {
+				value := math.Sin(2 * math.Pi * (float64(time.Now().Unix())/period.Seconds() + float64(i)/float64(*nbSeries)))
+				_, err = conn.Write([]byte(fmt.Sprintf("custom.metric:%f|g|e:%s|series:%d", value, os.Getenv("DD_EXTERNAL_ENV"), i)))
+				if err != nil {
+					log.Fatal(err)
+					return
+				}
+				time.Sleep(1 * time.Second)
+			}
+		}
+	}
 
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGUSR1, syscall.SIGUSR2)

@@ -15,16 +15,21 @@ const (
 
 // NewConnection creates a remote connection to a host.
 // Host and user are mandatory.
-func NewConnection(host pulumi.StringInput, user, sshKeyPath, sshKeyPassword, sshAgentPath string) (*remote.ConnectionArgs, error) {
+func NewConnection(host pulumi.StringInput, user string, options ...ConnectionOption) (*remote.ConnectionArgs, error) {
+	args, err := buildConnectionArgs(host, user, options...)
+
+	if err != nil {
+		return nil, err
+	}
 	conn := &remote.ConnectionArgs{
-		Host:           host,
-		User:           pulumi.String(user),
+		Host:           args.host,
+		User:           pulumi.String(args.user),
 		PerDialTimeout: pulumi.IntPtr(dialTimeoutSeconds),
 		DialErrorLimit: pulumi.IntPtr(dialErrorLimit),
 	}
 
-	if sshKeyPath != "" {
-		privateKey, err := utils.ReadSecretFile(sshKeyPath)
+	if args.privateKeyPath != "" {
+		privateKey, err := utils.ReadSecretFile(args.privateKeyPath)
 		if err != nil {
 			return nil, err
 		}
@@ -32,12 +37,12 @@ func NewConnection(host pulumi.StringInput, user, sshKeyPath, sshKeyPassword, ss
 		conn.PrivateKey = privateKey
 	}
 
-	if sshKeyPassword != "" {
-		conn.PrivateKeyPassword = pulumi.StringPtr(sshKeyPassword)
+	if args.privateKeyPassword != "" {
+		conn.PrivateKeyPassword = pulumi.StringPtr(args.privateKeyPassword)
 	}
 
-	if sshAgentPath != "" {
-		conn.AgentSocketPath = pulumi.StringPtr(sshAgentPath)
+	if args.sshAgentPath != "" {
+		conn.AgentSocketPath = pulumi.StringPtr(args.sshAgentPath)
 	}
 
 	return conn, nil

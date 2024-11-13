@@ -57,7 +57,12 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		}
 
 		// Create connection
-		conn, err := remote.NewConnection(instance.PrivateIp, sshUser, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(
+			instance.PrivateIp,
+			sshUser,
+			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
+			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+		)
 		if err != nil {
 			return err
 		}

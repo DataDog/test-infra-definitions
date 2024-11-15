@@ -320,3 +320,11 @@ func WithTags(tags []string) func(*Params) error {
 		return nil
 	}
 }
+
+// WithHostname add hostname to the agent configuration
+func WithHostname(hostname string) func(*Params) error {
+	return func(p *Params) error {
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.Sprintf("hostname: %s", hostname))
+		return nil
+	}
+}

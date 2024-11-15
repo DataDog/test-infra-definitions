@@ -11,7 +11,7 @@ import (
 
 func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false, false)
+		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false)
 	}
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),
@@ -96,7 +96,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 // https://docs.aws.amazon.com/AmazonECS/latest/developerguide/tutorial-deploy-fluentbit-on-windows.html
 func ECSFargateWindowsContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake) *ecs.TaskDefinitionContainerDefinitionArgs {
 	if image == "" {
-		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false, false)
+		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false)
 	}
 	return &ecs.TaskDefinitionContainerDefinitionArgs{
 		Cpu:       pulumi.IntPtr(0),

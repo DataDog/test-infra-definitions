@@ -223,15 +223,12 @@ func WithLogs() func(*Params) error {
 	return WithAgentServiceEnvVariable("DD_LOGS_ENABLED", pulumi.String("true"))
 }
 
-// WithExtraComposeContent adds a cpm
+// WithExtraComposeManifest adds a docker.ComposeInlineManifest
 func WithExtraComposeManifest(name string, content pulumi.StringInput) func(*Params) error {
-	return func(p *Params) error {
-		p.ExtraComposeManifests = append(p.ExtraComposeManifests, docker.ComposeInlineManifest{
-			Name:    name,
-			Content: content,
-		})
-		return nil
-	}
+	return WithExtraComposeInlineManifest(docker.ComposeInlineManifest{
+		Name:    name,
+		Content: content,
+	})
 }
 
 // WithExtraComposeInlineManifest adds extra docker.ComposeInlineManifest

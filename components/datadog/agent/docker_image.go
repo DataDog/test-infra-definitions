@@ -17,7 +17,7 @@ const (
 	defaultOTAgentImageTag       = "nightly-ot-beta-main"
 )
 
-func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel, jmx bool) string {
+func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
@@ -51,10 +51,6 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, ote
 
 	if imageTag == "" {
 		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
-	}
-
-	if jmx {
-		imageTag = fmt.Sprintf("%s-jmx", imageTag)
 	}
 
 	return utils.BuildDockerImagePath(repositoryPath, imageTag)

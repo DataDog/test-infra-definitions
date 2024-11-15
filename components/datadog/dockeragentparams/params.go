@@ -39,6 +39,8 @@ type Params struct {
 	ImageTag string
 	// Repository is the docker repository to use.
 	Repository string
+	// JMX is true if the JMX image is needed
+	JMX bool
 	// AgentServiceEnvironment is a map of environment variables to set in the docker compose agent service's environment.
 	AgentServiceEnvironment pulumi.Map
 	// ExtraComposeManifests is a list of extra docker compose manifests to add beside the agent service.
@@ -81,6 +83,14 @@ func WithImageTag(agentImageTag string) func(*Params) error {
 func WithRepository(repository string) func(*Params) error {
 	return func(p *Params) error {
 		p.Repository = repository
+		return nil
+	}
+}
+
+// WithJMX makes the image be the one with Java installed
+func WithJMX() func(*Params) error {
+	return func(p *Params) error {
+		p.JMX = true
 		return nil
 	}
 }
@@ -220,6 +230,14 @@ func WithExtraComposeManifest(name string, content pulumi.StringInput) func(*Par
 			Name:    name,
 			Content: content,
 		})
+		return nil
+	}
+}
+
+// WithExtraComposeInlineManifest adds extra docker.ComposeInlineManifest
+func WithExtraComposeInlineManifest(cpms ...docker.ComposeInlineManifest) func(*Params) error {
+	return func(p *Params) error {
+		p.ExtraComposeManifests = append(p.ExtraComposeManifests, cpms...)
 		return nil
 	}
 }

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -127,4 +128,8 @@ func defaultAgentParams(params *dockeragentparams.Params) {
 		params.ImageTag = defaultAgentImageTag
 	}
 	params.FullImagePath = utils.BuildDockerImagePath(params.Repository, params.ImageTag)
+
+	if params.JMX {
+		params.FullImagePath = fmt.Sprintf("%s-jmx", params.FullImagePath)
+	}
 }

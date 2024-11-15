@@ -11,7 +11,23 @@ import (
 //go:embed docker-compose.yaml
 var dockerComposeContent string
 
+//go:embed docker-compose-all-metrics.yaml
+var dockerComposeAllMetricsContent string
+
+//go:embed docker-compose-slow-metrics.yaml
+var dockerComposeSlowMetricsContent string
+
 var DockerComposeManifest = docker.ComposeInlineManifest{
-	Name:    "jmxfetch-test",
+	Name:    "jmx-test-app",
 	Content: pulumi.String(dockerComposeContent),
+}
+
+var DockerComposeAllMetricsManifest = docker.ComposeInlineManifest{
+	Name:    "jmx-test-all-metrics",
+	Content: pulumi.String(dockerComposeAllMetricsContent),
+}
+
+var DockerComposeSlowMetricsManifest = docker.ComposeInlineManifest{
+	Name:    "jmx-test-slow-metrics",
+	Content: pulumi.String(dockerComposeSlowMetricsContent),
 }

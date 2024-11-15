@@ -63,7 +63,7 @@ func main() {
 		for {
 			for i := uint(0); i < *nbSeries; i++ {
 				value := math.Sin(2 * math.Pi * (float64(time.Now().Unix())/period.Seconds() + float64(i)/float64(*nbSeries)))
-				_, err = conn.Write([]byte(fmt.Sprintf("custom.metric:%f|g|e:%s|series:%d", value, os.Getenv("DD_EXTERNAL_ENV"), i)))
+				_, err = conn.Write([]byte(fmt.Sprintf("custom.metric:%f|g|e:%s|#series:%d", value, os.Getenv("DD_EXTERNAL_ENV"), i)))
 				if err != nil {
 					log.Fatal(err)
 					return

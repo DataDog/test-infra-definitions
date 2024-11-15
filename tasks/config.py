@@ -52,6 +52,11 @@ You should consider moving to the agent-sandbox account. Please follow https://d
 
         gcp: Optional[GCP] = None
 
+        class Local(BaseModel, extra=Extra.forbid):
+            publicKeyPath: Optional[str] = None
+
+        local: Optional[Local] = None
+
         class Agent(BaseModel, extra=Extra.forbid):
             apiKey: Optional[str]
             appKey: Optional[str]
@@ -105,6 +110,14 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         if self.configParams.aws is None:
             return default
         return self.configParams.aws
+
+    def get_local(self) -> Params.Local:
+        default = Config.Params.Local(publicKeyPath=None)
+        if self.configParams is None:
+            return default
+        if self.configParams.local is None:
+            return default
+        return self.configParams.local
 
     def get_agent(self) -> Params.Agent:
         default = Config.Params.Agent(apiKey=None, appKey=None)

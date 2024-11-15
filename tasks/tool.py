@@ -240,6 +240,7 @@ class RemoteHost:
         remoteHost: Any = stack_outputs[f"dd-Host-{name}"]
         self.host: str = remoteHost["address"]
         self.user: str = remoteHost["username"]
+        self.port: int | None = "port" in remoteHost and remoteHost["port"] or None
 
 
 def show_connection_message(
@@ -251,6 +252,9 @@ def show_connection_message(
     user = remoteHost.user
 
     command = f"ssh {user}@{host}"
+
+    if remoteHost.port:
+        command += f" -p {remoteHost.port}"
 
     print(f"\nYou can run the following command to connect to the host `{command}`.\n")
     if copy_to_clipboard:

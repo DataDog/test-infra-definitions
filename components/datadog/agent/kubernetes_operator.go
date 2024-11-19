@@ -15,14 +15,7 @@ import (
 
 func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, operatorOpts []operatorparams.Option, ddaOptions ...agentwithoperatorparams.Option) (*KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
-
-		operatorParams, err := operatorparams.NewParams(e, operatorOpts...)
-		if err != nil {
-			return err
-		}
-
 		ddaParams, err := agentwithoperatorparams.NewParams(ddaOptions...)
-
 		if err != nil {
 			return err
 		}
@@ -33,36 +26,37 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		_, err = dda.K8sAppDefinition(e, kubeProvider, "datadog", ddaParams.FakeIntake, ddaParams.KubeletTLSVerify, e.Ctx().Stack(), ddaParams.DDAConfig, utils.PulumiDependsOn(operatorComp))
+		dda, err := dda.K8sAppDefinition(e, kubeProvider, ddaParams.Namespace, ddaParams.FakeIntake, ddaParams.KubeletTLSVerify, e.Ctx().Stack(), ddaParams.DDAConfig, utils.PulumiDependsOn(operatorComp))
 
 		if err != nil {
 			return err
 		}
 
-		baseName := "dda-linux"
+		if dda != nil {
+			baseName := "dda-linux"
 
-		comp.LinuxNodeAgent, err = NewKubernetesObjRef(e, baseName+"-nodeAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{"app": baseName + "-datadog"})
+			comp.LinuxNodeAgent, err = NewKubernetesObjRef(e, baseName+"-nodeAgent", ddaParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{"app": baseName + "-datadog"})
 
-		if err != nil {
-			return err
+			if err != nil {
+				return err
+			}
+
+			comp.LinuxClusterAgent, err = NewKubernetesObjRef(e, baseName+"-clusterAgent", ddaParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{
+				"app": baseName + "-datadog-cluster-agent",
+			})
+
+			if err != nil {
+				return err
+			}
+
+			comp.LinuxClusterChecks, err = NewKubernetesObjRef(e, baseName+"-clusterChecks", ddaParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("version").ToStringOutput(), map[string]string{
+				"app": baseName + "-datadog-clusterchecks",
+			})
+
+			if err != nil {
+				return err
+			}
 		}
-
-		comp.LinuxClusterAgent, err = NewKubernetesObjRef(e, baseName+"-clusterAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{
-			"app": baseName + "-datadog-cluster-agent",
-		})
-
-		if err != nil {
-			return err
-		}
-
-		comp.LinuxClusterChecks, err = NewKubernetesObjRef(e, baseName+"-clusterChecks", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("version").ToStringOutput(), map[string]string{
-			"app": baseName + "-datadog-clusterchecks",
-		})
-
-		if err != nil {
-			return err
-		}
-
 		return nil
 	})
 }

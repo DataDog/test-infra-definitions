@@ -20,9 +20,7 @@ type Params struct {
 type Option = func(*Params) error
 
 func NewParams(options ...Option) (*Params, error) {
-	version := &Params{
-		Namespace: "datadog",
-	}
+	version := &Params{}
 	return common.ApplyOption(version, options)
 }
 

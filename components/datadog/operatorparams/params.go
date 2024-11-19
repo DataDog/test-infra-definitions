@@ -24,10 +24,7 @@ type Params struct {
 type Option = func(*Params) error
 
 func NewParams(e config.Env, options ...Option) (*Params, error) {
-	version := &Params{
-		Namespace:             "datadog",
-		OperatorFullImagePath: "gcr.io/datadoghq/operator:latest",
-	}
+	version := &Params{}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
 		options = append(options, WithOperatorFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/operator", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))

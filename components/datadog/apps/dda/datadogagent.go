@@ -84,12 +84,17 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		configureImagePullSecret(ddaConfig, imagePullSecret)
 	}
 
+	ddaName := "datadog-agent"
+	if e.PipelineID() != "" {
+		ddaName = fmt.Sprintf("datadog-agent-%s", e.PipelineID())
+	}
+
 	_, err = apiextensions.NewCustomResource(e.Ctx(), "datadog-agent", &apiextensions.CustomResourceArgs{
 		ApiVersion: pulumi.String("datadoghq.com/v2alpha1"),
 		Kind:       pulumi.String("DatadogAgent"),
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("datadog"),
-			Namespace: pulumi.String("datadog"),
+			Name:      pulumi.String(ddaName),
+			Namespace: pulumi.String(namespace),
 		},
 		OtherFields: ddaConfig,
 	}, opts...)

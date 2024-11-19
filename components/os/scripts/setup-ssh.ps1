@@ -6,7 +6,7 @@ if ($service -ne $null) {
 } else {
   Write-Host "sshd service not found, installing OpenSSH Server"
   # Add-WindowsCapability does NOT install a consistent version across Windows versions, this lead to
-  # compatability issues (different command line quoting rules).
+  # compatibility issues (different command line quoting rules).
   # Prefer installing sshd via MSI  
   $res = start-process -passthru -wait msiexec.exe -args '/i https://github.com/PowerShell/Win32-OpenSSH/releases/download/v9.5.0.0p1-Beta/OpenSSH-Win64-v9.5.0.0.msi /qn'
   if ($res.ExitCode -ne 0) {

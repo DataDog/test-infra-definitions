@@ -18,6 +18,9 @@ jobs:
 
       - name: Build
         run: go build ./...
-      
+
+      - name: Install orchestrion
+        run: go install github.com/DataDog/orchestrion@latest
+
       - name: Test
-        run: go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job
+        run: orchestrion go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job

@@ -77,6 +77,7 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
+    - go install github.com/DataDog/orchestrion@latest
   script:
     - |
       if [ ! -f ./dist/main ]; then
@@ -84,7 +85,7 @@ integration-testing:
         exit 1
       fi
     # execute test from dist directory to use the generated binary
-    - go test ./integration-tests -v -timeout 0s -workingDir=dist
+    - orchestrion go test ./integration-tests -v -timeout 0s -workingDir=dist
   variables:
     E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
     E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key

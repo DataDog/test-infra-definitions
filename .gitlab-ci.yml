@@ -80,6 +80,9 @@ integration-testing:
     - go install github.com/DataDog/orchestrion@latest
     - orchestrion pin
     - export DD_CIVISIBILITY_ENABLED=true
+    - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
+    - export DD_ENV=ci
+    - export DD_API_KEY=$(vault kv get -field=api_key kv/k8s/gitlab-runner/test-infra-definitions/dd-token)
   script:
     - |
       if [ ! -f ./dist/main ]; then

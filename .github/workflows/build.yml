@@ -28,3 +28,6 @@ jobs:
         run: orchestrion go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job
         env:
           DD_CIVISIBILITY_ENABLED: true
+          DD_CIVISIBILITY_AGENTLESS_ENABLED: true
+          DD_ENV: ci
+          DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}

@@ -20,7 +20,9 @@ jobs:
         run: go build ./...
 
       - name: Install orchestrion
-        run: go install github.com/DataDog/orchestrion@latest
+        run: |
+          go install github.com/DataDog/orchestrion@latest
+          orchestrion pin
 
       - name: Test
         run: orchestrion go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job

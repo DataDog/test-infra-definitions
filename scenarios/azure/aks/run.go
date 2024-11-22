@@ -120,9 +120,11 @@ providers:
 			return err
 		}
 
-		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
-			return err
+		if env.DogstatsdDeploy() {
+			// dogstatsd clients that report to the dogstatsd standalone deployment
+			if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+				return err
+			}
 		}
 
 		if _, err := prometheus.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-prometheus"); err != nil {

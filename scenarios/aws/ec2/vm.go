@@ -90,9 +90,8 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			_, err = c.OS.Runner().Command(
 				e.CommonNamer().ResourceName("reset-admin-password"),
 				&command.Args{
-					Create: pulumi.Sprintf("$Password = ConvertTo-SecureString -String '%s' -AsPlainText -Force; Get-LocalUser -Name \"Administrator\" | Set-LocalUser -Password $Password", randomPassword.Result),
+					Create: pulumi.Sprintf("$Password = ConvertTo-SecureString -String '%s' -AsPlainText -Force; Get-LocalUser -Name 'Administrator' | Set-LocalUser -Password $Password", randomPassword.Result),
 				}, pulumi.Parent(c))
-
 			if err != nil {
 				return err
 			}

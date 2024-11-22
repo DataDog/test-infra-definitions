@@ -1,29 +1,28 @@
+import com.sun.net.httpserver.HttpExchange;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpServer;
+
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.lang.management.ManagementFactory;
 import java.net.InetSocketAddress;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.TimeUnit;
 import java.util.Hashtable;
 import java.util.Random;
-
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.MalformedObjectNameException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
-
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpHandler;
-import com.sun.net.httpserver.HttpServer;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 class SimpleApp {
     public interface SampleMBean {
 
         Integer getShouldBe100();
 
-        Double getShouldBe1000();
+        Double getShouldBe200();
 
         Long getShouldBe1337();
 
@@ -31,16 +30,21 @@ class SimpleApp {
 
         int getShouldBeCounter();
 
+        int getShouldBeSlowCounter();
+
         int incrementAndGet();
 
         int getSpecialCounter();
 
         int incrementSpecialCounter();
+
+        int getIncrementCounter();
     }
 
     public static class Sample implements SampleMBean {
 
         private final AtomicInteger counter = new AtomicInteger(0);
+        private final AtomicInteger incrementCounter = new AtomicInteger(0);
         private final AtomicInteger specialCounter = new AtomicInteger(0);
         private final Random random = new Random();
 
@@ -50,7 +54,7 @@ class SimpleApp {
         }
 
         @Override
-        public Double getShouldBe1000() {
+        public Double getShouldBe200() {
             return 200.0;
         }
 
@@ -66,6 +70,11 @@ class SimpleApp {
 
         @Override
         public int getShouldBeCounter() {
+            return this.counter.get();
+        }
+
+        @Override
+        public int getShouldBeSlowCounter() {
             try {
                 final int seconds = this.random.nextInt(15) + 20;
                 Thread.sleep(seconds * 1000);
@@ -81,17 +90,22 @@ class SimpleApp {
         }
 
         @Override
-        public int getSpecialCounter(){
+        public int getSpecialCounter() {
             return this.specialCounter.get();
         }
 
         @Override
-        public int incrementSpecialCounter(){
+        public int incrementSpecialCounter() {
             return this.specialCounter.incrementAndGet();
+        }
+
+        @Override
+        public int getIncrementCounter() {
+            return this.incrementCounter.incrementAndGet();
         }
     }
 
-    public static void main(String[] args) throws Exception{
+    public static void main(String[] args) throws Exception {
         System.out.println("Starting sample app...");
         try {
             final Hashtable<String, String> pairs = new Hashtable<>();
@@ -113,7 +127,7 @@ class SimpleApp {
 
     private static class IncHandler implements HttpHandler {
         private final SampleMBean sample;
-        
+
         public IncHandler(final SampleMBean sample) {
             this.sample = sample;
         }
@@ -128,10 +142,10 @@ class SimpleApp {
             os.close();
         }
     }
-    
+
     private static class TestHandler implements HttpHandler {
         private final SampleMBean sample;
-        
+
         public TestHandler(final SampleMBean sample) {
             this.sample = sample;
         }

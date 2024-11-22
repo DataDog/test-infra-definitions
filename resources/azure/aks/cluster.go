@@ -10,6 +10,7 @@ import (
 
 	"github.com/pulumi/pulumi-azure-native-sdk/authorization/v2"
 	"github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2"
+	"github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -37,6 +38,37 @@ func NewCluster(e azure.Environment, name string, kataNodePoolEnabled bool, opts
 	}
 
 	opts = append(opts, e.WithProviders(config.ProviderAzure))
+
+	// create a user assigned identity to use for the cluster
+	identity, err := managedidentity.NewUserAssignedIdentity(e.Ctx(), "identity", &managedidentity.UserAssignedIdentityArgs{
+		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
+	}, opts...)
+	if err != nil {
+		return nil, pulumi.StringOutput{}, err
+	}
+
+	// assign Network Contributor role to the identity
+	nwcontributorRoleAssignment, err := authorization.NewRoleAssignment(e.Ctx(), "role-assignment", &authorization.RoleAssignmentArgs{
+		PrincipalId:      identity.PrincipalId,
+		PrincipalType:    pulumi.String("ServicePrincipal"),
+		Scope:            pulumi.Sprintf("/subscriptions/%s", e.DefaultSubscriptionID()),
+		RoleDefinitionId: pulumi.Sprintf("/subscriptions/%s/providers/Microsoft.Authorization/roleDefinitions/4d97b98b-1d4f-4787-a291-c67834d212e7", e.DefaultSubscriptionID()), // Network Contributor built-in role
+	}, opts...)
+	if err != nil {
+		return nil, pulumi.StringOutput{}, err
+	}
+
+	// assign ACR Pull role to the identity
+	acrPullRoleAssignment, err := authorization.NewRoleAssignment(e.Ctx(), "role-assignment-acr", &authorization.RoleAssignmentArgs{
+		PrincipalId:      identity.PrincipalId,
+		Scope:            pulumi.String(e.DefaultContainerRegistry()),
+		PrincipalType:    pulumi.String("ServicePrincipal"),
+		RoleDefinitionId: pulumi.Sprintf("/subscriptions/%s/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d", e.DefaultSubscriptionID()), // AcrPull built-in role
+	}, opts...)
+	if err != nil {
+		return nil, pulumi.StringOutput{}, err
+	}
+
 	cluster, err := containerservice.NewManagedCluster(e.Ctx(), e.Namer.ResourceName(name), &containerservice.ManagedClusterArgs{
 		ResourceName:      e.CommonNamer().DisplayName(math.MaxInt, pulumi.String(name)),
 		ResourceGroupName: pulumi.String(e.DefaultResourceGroup()),
@@ -63,22 +95,14 @@ func NewCluster(e azure.Environment, name string, kataNodePoolEnabled bool, opts
 		NetworkProfile: containerservice.ContainerServiceNetworkProfileArgs{
 			NetworkPlugin: pulumi.String(containerservice.NetworkPluginKubenet),
 		},
-		Identity: containerservice.ManagedClusterIdentityArgs{
-			Type: containerservice.ResourceIdentityTypeSystemAssigned,
+		Identity: &containerservice.ManagedClusterIdentityArgs{
+			Type: containerservice.ResourceIdentityTypeUserAssigned,
+			UserAssignedIdentities: pulumi.StringArray{
+				identity.ID(),
+			},
 		},
 		Tags: e.ResourcesTags(),
-	}, opts...)
-	if err != nil {
-		return nil, pulumi.StringOutput{}, err
-	}
-	_, err = authorization.NewRoleAssignment(e.Ctx(), e.Namer.ResourceName(name), &authorization.RoleAssignmentArgs{
-		PrincipalId: cluster.IdentityProfile.ApplyT(func(identity map[string]containerservice.UserAssignedIdentityResponse) string {
-			return *identity["kubeletidentity"].ObjectId
-		}).(pulumi.StringOutput),
-		PrincipalType:    pulumi.String("ServicePrincipal"),
-		Scope:            pulumi.String(e.DefaultContainerRegistry()),
-		RoleDefinitionId: pulumi.Sprintf("/subscriptions/%s/providers/Microsoft.Authorization/roleDefinitions/7f951dda-4ed3-4680-a7ca-43fe172d538d", e.DefaultSubscriptionID()), // AcrPull built-in role
-	}, e.WithProviders(config.ProviderAzure))
+	}, append(opts, pulumi.DependsOn([]pulumi.Resource{nwcontributorRoleAssignment, acrPullRoleAssignment}))...)
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err
 	}

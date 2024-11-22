@@ -3,6 +3,7 @@ package dda
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"dario.cat/mergo"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -18,7 +19,7 @@ import (
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 )
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, customDda string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, customDda string, opts ...pulumi.ResourceOption) (*componentskube.Workload, *componentskube.KubernetesObjectRef, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	baseName := "dda-with-operator"
@@ -26,7 +27,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	k8sComponent := &componentskube.Workload{}
 	if err := e.Ctx().RegisterComponentResource("dd:agent-with-operator", "dda", k8sComponent, opts...); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
@@ -42,7 +43,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		opts...,
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
@@ -59,7 +60,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		},
 	}, opts...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	opts = append(opts, utils.PulumiDependsOn(secret))
 
@@ -70,7 +71,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	ddaConfig, err = mergeYamlToConfig(ddaConfig, customDda)
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Image pull secrets need to be configured after custom DDA config merge because pulumi.StringOutput cannot be marshalled to JSON
@@ -78,7 +79,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	if e.ImagePullRegistry() != "" {
 		imagePullSecret, err = utils.NewImagePullSecret(e, namespace, opts...)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		opts = append(opts, utils.PulumiDependsOn(imagePullSecret))
 		configureImagePullSecret(ddaConfig, imagePullSecret)
@@ -86,7 +87,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	ddaName := "datadog-agent"
 	if e.PipelineID() != "" {
-		ddaName = fmt.Sprintf("datadog-agent-%s", e.PipelineID())
+		ddaName = strings.Join([]string{ddaName, e.PipelineID()}, "-")
 	}
 
 	_, err = apiextensions.NewCustomResource(e.Ctx(), "datadog-agent", &apiextensions.CustomResourceArgs{
@@ -99,10 +100,12 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		OtherFields: ddaConfig,
 	}, opts...)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return k8sComponent, nil
+	ddaRef, err := componentskube.NewKubernetesObjRef(e, baseName, namespace, "DatadogAgent", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq.com/v2alpha1").ToStringOutput(), map[string]string{"app": baseName})
+
+	return k8sComponent, ddaRef, nil
 }
 
 func buildDDAConfig(baseName string, clusterName string, kubeletTLSVerify bool) kubernetes.UntypedArgs {

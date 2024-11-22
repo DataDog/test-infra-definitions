@@ -104,6 +104,9 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	}
 
 	ddaRef, err := componentskube.NewKubernetesObjRef(e, baseName, namespace, "DatadogAgent", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq.com/v2alpha1").ToStringOutput(), map[string]string{"app": baseName})
+	if err != nil {
+		return nil, nil, err
+	}
 
 	return k8sComponent, ddaRef, nil
 }

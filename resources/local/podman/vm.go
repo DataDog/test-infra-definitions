@@ -1,4 +1,4 @@
-package localdocker
+package localpodman
 
 import (
 	_ "embed"

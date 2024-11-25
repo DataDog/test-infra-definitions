@@ -1,10 +1,10 @@
-package localdockerrun
+package localpodmanrun
 
 import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/resources/local"
-	localdocker "github.com/DataDog/test-infra-definitions/scenarios/local/docker"
+	localpodman "github.com/DataDog/test-infra-definitions/scenarios/local/podman"
 
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -16,7 +16,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	vm, err := localdocker.NewVM(env, "vm")
+	vm, err := localpodman.NewVM(env, "vm")
 	if err != nil {
 		return err
 	}
@@ -37,7 +37,7 @@ func VMRun(ctx *pulumi.Context) error {
 			}
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
-		agentOptions = append(agentOptions, agentparams.WithHostname("localdocker-vm"))
+		agentOptions = append(agentOptions, agentparams.WithHostname("localpodman-vm"))
 		_, err = agent.NewHostAgent(&env, vm, agentOptions...)
 		return err
 	}

@@ -14,7 +14,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/azure/aks"
 	computerun "github.com/DataDog/test-infra-definitions/scenarios/azure/compute/run"
 	gcpcompute "github.com/DataDog/test-infra-definitions/scenarios/gcp/compute/run"
-	localdockerrun "github.com/DataDog/test-infra-definitions/scenarios/local/docker/run"
+	localpodmanrun "github.com/DataDog/test-infra-definitions/scenarios/local/podman/run"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -34,7 +34,7 @@ func Scenarios() ScenarioRegistry {
 		"az/aks":         aks.Run,
 		"gcp/vm":         gcpcompute.VMRun,
 		"gcp/gke":        gke.Run,
-		"localdocker/vm": localdockerrun.VMRun,
+		"localpodman/vm": localpodmanrun.VMRun,
 	}
 }
 

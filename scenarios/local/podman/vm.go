@@ -1,4 +1,4 @@
-package localdocker
+package localpodman
 
 import (
 	"github.com/DataDog/test-infra-definitions/components"
@@ -6,22 +6,22 @@ import (
 	componentsos "github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/resources/local"
-	localdocker "github.com/DataDog/test-infra-definitions/resources/local/docker"
+	localpodman "github.com/DataDog/test-infra-definitions/resources/local/podman"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// NewVM creates an localdocker Ubuntu VM Instance and returns a Remote component.
+// NewVM creates an localpodman Ubuntu VM Instance and returns a Remote component.
 // Without any parameter it creates an Ubuntu VM on AMD64 architecture.
 func NewVM(e local.Environment, name string) (*remote.Host, error) {
 	// Create the EC2 instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
-		vmArgs := &localdocker.VMArgs{
+		vmArgs := &localpodman.VMArgs{
 			Name: name,
 		}
 
 		// Create the EC2 instance
-		address, user, port, err := localdocker.NewInstance(e, *vmArgs, pulumi.Parent(c))
+		address, user, port, err := localpodman.NewInstance(e, *vmArgs, pulumi.Parent(c))
 		if err != nil {
 			return err
 		}

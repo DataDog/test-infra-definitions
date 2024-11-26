@@ -223,6 +223,9 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),
 			},
+			"originDetectionUnified": pulumi.Map{
+				"enabled": pulumi.Bool(true),
+			},
 			"namespaceAnnotationsAsTags": pulumi.Map{
 				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
 			},

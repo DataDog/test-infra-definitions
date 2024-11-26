@@ -99,16 +99,9 @@ func getSSHKeyPairFiles(m *config.DDMicroVMConfig, arch string) sshKeyPair {
 	return pair
 }
 
-// User data shell scripts must start with the #! characters and the path to the interpreter you want to read the
-// script (commonly /bin/bash).
-const metalUserData = `#!/bin/bash
-apt-get -y remove unattended-upgrades
-`
-
 func buildUserData(instanceEnv *InstanceEnvironment, m *config.DDMicroVMConfig) string {
 	var sb strings.Builder
 
-	sb.WriteString(metalUserData)
 	if instanceEnv.DefaultShutdownBehavior() == "terminate" {
 		shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
 		sb.WriteString(fmt.Sprintf("sudo shutdown -P +%.0f\n", shutdownPeriod.Minutes()))

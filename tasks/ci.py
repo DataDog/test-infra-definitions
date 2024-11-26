@@ -48,6 +48,11 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         if pr_commit_sha_match is None:
             print(f"No commit sha found in PR title: {pr.html_url}")
             continue
+
+        if pr.base.ref != 'main':
+            print(f"PR #{pr.html_url} is not merged to main, skipping")
+            continue
+
         pr_commit_sha = pr_commit_sha_match.group(1)
         res = ctx.run(f'git merge-base --is-ancestor {pr_commit_sha} {new_commit_sha}', warn=True, hide="both")
         if res.exited != 0:

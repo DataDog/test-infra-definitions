@@ -9,6 +9,14 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type CloudProviderIdentifier string
+
+const (
+	CloudProviderAWS   CloudProviderIdentifier = "aws"
+	CloudProviderAzure CloudProviderIdentifier = "azure"
+	CloudProviderGCP   CloudProviderIdentifier = "gcp"
+)
+
 // Importable needs to be implemented by the fully resolved type used outside of Pulumi
 type Importable interface {
 	SetKey(string)

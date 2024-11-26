@@ -37,7 +37,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	var dependsOnCrd pulumi.ResourceOption
+	var dependsOnDDAgent pulumi.ResourceOption
 
 	// Deploy the agent
 	if env.AgentDeploy() {
@@ -75,25 +75,25 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy testing workload
 	if env.TestingWorkloadDeploy() {
 
-		if _, err := nginx.K8sAppDefinition(&env, cluster.KubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&env, cluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */); err != nil {
 			return err
 		}
 
-		if _, err := cpustress.K8sAppDefinition(&env, cluster.KubeProvider, "workload-cpustress", dependsOnCrd); err != nil {
+		if _, err := cpustress.K8sAppDefinition(&env, cluster.KubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
 
-		if _, err := prometheus.K8sAppDefinition(&env, cluster.KubeProvider, "workload-prometheus", dependsOnCrd); err != nil {
+		if _, err := prometheus.K8sAppDefinition(&env, cluster.KubeProvider, "workload-prometheus"); err != nil {
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&env, cluster.KubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnCrd); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&env, cluster.KubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 
@@ -104,19 +104,19 @@ func Run(ctx *pulumi.Context) error {
 				if _, err := dogstatsdstandalone.K8sAppDefinition(&env, cluster.KubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
 					return err
 				}
+
+				// dogstatsd clients that report to the dogstatsd standalone deployment
+				if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
+					return err
+				}
 			}
 
 			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnCrd); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 				return err
 			}
 
-			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnCrd); err != nil {
-				return err
-			}
-
-			if _, err := tracegen.K8sAppDefinition(&env, cluster.KubeProvider, "workload-tracegen", dependsOnCrd); err != nil {
+			if _, err := tracegen.K8sAppDefinition(&env, cluster.KubeProvider, "workload-tracegen"); err != nil {
 				return err
 			}
 		}

@@ -1,8 +1,6 @@
 package kindvm
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
@@ -51,7 +49,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, awsEnv.CommonNamer().ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -68,8 +66,6 @@ func Run(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-
-	var dependsOnCrd pulumi.ResourceOption
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.AgentUseFakeintake() {
@@ -89,22 +85,24 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
+	var dependsOnDDAgent pulumi.ResourceOption
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() && !awsEnv.AgentDeployWithOperator() {
-		customValues := fmt.Sprintf(`
+		customValues := `
 datadog:
   kubelet:
     tlsVerify: false
-  clusterName: "%s"
 agents:
   useHostNetwork: true
-`, kindClusterName)
+`
 
 		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
 		k8sAgentOptions = append(
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog"),
 			kubernetesagentparams.WithHelmValues(customValues),
+			kubernetesagentparams.WithClusterName(kindCluster.ClusterName),
 		)
 		if fakeIntake != nil {
 			k8sAgentOptions = append(
@@ -123,7 +121,7 @@ agents:
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy the operator
@@ -154,7 +152,7 @@ agents:
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(operatorAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(operatorAgentComponent)
 
 		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
@@ -171,11 +169,11 @@ agents:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */); err != nil {
 			return err
 		}
 
@@ -184,13 +182,15 @@ agents:
 		}
 
 		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 
 		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
-			return err
+		if awsEnv.DogstatsdDeploy() {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
+				return err
+			}
 		}
 
 		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel
@@ -202,7 +202,7 @@ agents:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

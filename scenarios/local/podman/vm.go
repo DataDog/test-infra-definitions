@@ -11,8 +11,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// NewVM creates an localpodman Ubuntu VM Instance and returns a Remote component.
-// Without any parameter it creates an Ubuntu VM on AMD64 architecture.
+// NewVM creates an Ubuntu container instance on podman that emulates a VM and returns a Host component.
 func NewVM(e local.Environment, name string) (*remote.Host, error) {
 	// Create the EC2 instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {

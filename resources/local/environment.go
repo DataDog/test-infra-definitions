@@ -57,7 +57,3 @@ func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) 
 func (e *Environment) DefaultPublicKeyPath() string {
 	return e.InfraConfig.Get(DDInfraDefaultPublicKeyPath)
 }
-
-func (e *Environment) GetCommonEnvironment() *config.CommonEnvironment {
-	return e.CommonEnvironment
-}

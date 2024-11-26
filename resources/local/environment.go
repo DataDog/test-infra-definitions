@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	localdockerNamerNamespace = "localdocker"
+	localNamerNamespace = "local"
 	// local Infra (local)
 	DDInfraDefaultPublicKeyPath = "local/defaultPublicKeyPath"
 )
@@ -23,7 +23,7 @@ var _ config.Env = (*Environment)(nil)
 
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env := Environment{
-		Namer: namer.NewNamer(ctx, localdockerNamerNamespace),
+		Namer: namer.NewNamer(ctx, localNamerNamespace),
 	}
 
 	commonEnv, err := config.NewCommonEnvironment(ctx)

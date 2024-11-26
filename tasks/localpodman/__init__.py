@@ -2,7 +2,7 @@
 
 from invoke.collection import Collection
 
-from tasks.localdocker.vm import create_vm, destroy_vm
+from tasks.localpodman.vm import create_vm, destroy_vm
 
 collection = Collection()
 collection.add_task(destroy_vm)

@@ -16,7 +16,7 @@ func VMRun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	vm, err := localpodman.NewVM(env, "vm")
+	vm, err := localpodman.NewVM(env, "podman-vm")
 	if err != nil {
 		return err
 	}

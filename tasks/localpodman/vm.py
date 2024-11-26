@@ -10,8 +10,8 @@ from tasks.deploy import deploy
 from tasks.destroy import destroy
 from tasks.tool import notify, show_connection_message
 
-scenario_name = "localdocker/vm"
-remote_hostname = "localdocker-vm"
+scenario_name = "localpodman/vm"
+remote_hostname = "local-podman-vm"
 
 
 @task(
@@ -38,7 +38,7 @@ def create_vm(
     interactive: Optional[bool] = True,
 ) -> None:
     """
-    Create a new virtual machine on local docker.
+    Create a new virtual machine on local podman.
     """
 
     try:

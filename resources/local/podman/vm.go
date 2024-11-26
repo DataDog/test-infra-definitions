@@ -36,7 +36,7 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 	if err != nil {
 		return pulumi.StringOutput{}, "", -1, err
 	}
-	dataPath := path.Join(homeDir, ".localdocker")
+	dataPath := path.Join(homeDir, ".localpodman")
 	// TODO clean up the folder on stack destroy
 	// Requires a Runner refactor to reuse crossplatform commands
 	err = os.MkdirAll(dataPath, 0700)

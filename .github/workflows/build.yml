@@ -21,7 +21,7 @@ jobs:
 
       - name: Install orchestrion
         run: |
-          go install github.com/DataDog/orchestrion@latest
+          go install github.com/DataDog/orchestrion@v0.9.4
           orchestrion pin
 
       - name: Test

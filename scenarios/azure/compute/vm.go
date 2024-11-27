@@ -58,7 +58,12 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 			return err
 		}
 
-		connection, err := remote.NewConnection(privateIP, compute.AdminUsername, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		connection, err := remote.NewConnection(
+			privateIP,
+			compute.AdminUsername,
+			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
+			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+		)
 		if err != nil {
 			return err
 		}

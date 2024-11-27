@@ -131,8 +131,11 @@ type Env interface {
 	CloudEnv
 }
 type CloudEnv interface {
+	// InternalDockerhubMirror returns the internal Dockerhub mirror.
 	InternalDockerhubMirror() string
+	// InternalRegistry returns the internal registry.
 	InternalRegistry() string
+	// InternalRegistryImageTagExists returns true if the image tag exists in the internal registry.
 	InternalRegistryImageTagExists(image, tag string) (bool, error)
 }
 

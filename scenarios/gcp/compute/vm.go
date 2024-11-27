@@ -35,7 +35,12 @@ func NewVM(e gcp.Environment, name string, option ...VMOption) (*remote.Host, er
 			return err
 		}
 
-		conn, err := remote.NewConnection(vm.NetworkInterfaces.Index(pulumi.Int(0)).NetworkIp().Elem(), "gce", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(
+			vm.NetworkInterfaces.Index(pulumi.Int(0)).NetworkIp().Elem(),
+			"gce",
+			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
+			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+		)
 		if err != nil {
 			return err
 		}

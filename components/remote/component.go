@@ -14,6 +14,7 @@ type HostOutput struct {
 	CloudProvider components.CloudProviderIdentifier `json:"cloudProvider"`
 
 	Address   string    `json:"address"`
+	Port      int       `json:"port"`
 	Username  string    `json:"username"`
 	Password  string    `json:"password,omitempty"`
 	OSFamily  os.Family `json:"osFamily"`
@@ -28,14 +29,15 @@ type Host struct {
 
 	OS os.OS
 
-	CloudProvider pulumi.StringOutput `pulumi:"cloudProvider"`
 	Address       pulumi.StringOutput `pulumi:"address"`
+	Port          pulumi.IntOutput    `pulumi:"port"`
 	Username      pulumi.StringOutput `pulumi:"username"`
 	Password      pulumi.StringOutput `pulumi:"password"`
 	Architecture  pulumi.StringOutput `pulumi:"architecture"`
 	OSFamily      pulumi.IntOutput    `pulumi:"osFamily"`
 	OSFlavor      pulumi.IntOutput    `pulumi:"osFlavor"`
 	OSVersion     pulumi.StringOutput `pulumi:"osVersion"`
+	CloudProvider pulumi.StringOutput `pulumi:"cloudProvider"`
 }
 
 func (h *Host) Export(ctx *pulumi.Context, out *HostOutput) error {

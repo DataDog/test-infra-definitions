@@ -119,6 +119,10 @@ func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) 
 	return true, nil
 }
 
+func (e *Environment) InternalRegistryFullImagePathExists(_ string) (bool, error) {
+	return true, nil
+}
+
 // Common
 
 func (e *Environment) DefaultPublicKeyPath() string {

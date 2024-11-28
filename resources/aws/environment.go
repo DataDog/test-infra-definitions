@@ -187,6 +187,27 @@ func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, e
 	return true, nil
 }
 
+func (e *Environment) InternalRegistryFullImagePathExists(fullImagePath string) (bool, error) {
+	var image, tag string
+	lastColonIdx := strings.LastIndex(fullImagePath, ":")
+	if lastColonIdx > 0 &&
+		lastColonIdx < len(fullImagePath)-1 &&
+		// Check not part of registry address (e.g., "registry:5000/image")
+		!strings.Contains(fullImagePath[lastColonIdx:], "/") {
+		image = fullImagePath[:lastColonIdx]
+		tag = fullImagePath[lastColonIdx+1:]
+	} else {
+		image = fullImagePath
+		tag = "latest"
+	}
+
+	// Remove trailing ":" if image name has one.
+	if image[len(image)-1:] == ":" {
+		image = image[:len(image)-1]
+	}
+	return e.InternalRegistryImageTagExists(image, tag)
+}
+
 // Common
 func (e *Environment) Region() string {
 	return e.GetStringWithDefault(e.awsConfig, awsRegionParamName, e.envDefault.aws.region)

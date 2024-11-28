@@ -60,17 +60,10 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		baseTag := fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())
-		for _, tag := range []string{baseTag, fmt.Sprintf("%s-jmx", baseTag)} {
-			exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
-			if err != nil {
-				return nil, err
-			}
-			if !exists {
-				return nil, fmt.Errorf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), tag)
-			}
-		}
-		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", baseTag)))
+		options = append(options,
+			WithFullImagePath(utils.BuildDockerImagePath(
+				"669783387624.dkr.ecr.us-east-1.amazonaws.com/agent",
+				fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
 	}
 
 	return common.ApplyOption(version, options)

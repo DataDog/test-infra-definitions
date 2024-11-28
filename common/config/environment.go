@@ -137,6 +137,8 @@ type CloudEnv interface {
 	InternalRegistry() string
 	// InternalRegistryImageTagExists returns true if the image tag exists in the internal registry.
 	InternalRegistryImageTagExists(image, tag string) (bool, error)
+	// InternalRegistryFullImagePathExists returns true if the image and tag exists in the internal registry.
+	InternalRegistryFullImagePathExists(fullImagePath string) (bool, error)
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {

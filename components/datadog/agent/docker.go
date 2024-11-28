@@ -45,7 +45,17 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 		if err != nil {
 			return err
 		}
+
 		defaultAgentParams(params)
+
+		// Check FullImagePath exists in internal registry
+		exists, err := e.InternalRegistryFullImagePathExists(params.FullImagePath)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("image %q not found in the internal registry", params.FullImagePath)
+		}
 
 		// We can have multiple compose files in compose.
 		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(params.FullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}

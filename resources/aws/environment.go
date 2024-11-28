@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"regexp"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -77,6 +79,8 @@ type Environment struct {
 	randomLBIdx   pulumi.IntOutput
 	randomECSArn  pulumi.StringOutput
 }
+
+var registryIDCheck, _ = regexp.Compile("^[0-9]{12}")
 
 var _ config.Env = (*Environment)(nil)
 
@@ -165,6 +169,11 @@ func (e *Environment) InternalDockerhubMirror() string {
 // Check if the image exists in the internal registry
 func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, error) {
 
+	if !registryIDCheck.MatchString(image) {
+		// Return true as most likely not an ECR Docker image
+		return true, nil
+	}
+
 	cfg, err := awsConfig.LoadDefaultConfig(e.Ctx().Context(),
 		awsConfig.WithRegion(e.Region()),
 		awsConfig.WithSharedConfigProfile(e.Profile()),
@@ -188,23 +197,7 @@ func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, e
 }
 
 func (e *Environment) InternalRegistryFullImagePathExists(fullImagePath string) (bool, error) {
-	var image, tag string
-	lastColonIdx := strings.LastIndex(fullImagePath, ":")
-	if lastColonIdx > 0 &&
-		lastColonIdx < len(fullImagePath)-1 &&
-		// Check not part of registry address (e.g., "registry:5000/image")
-		!strings.Contains(fullImagePath[lastColonIdx:], "/") {
-		image = fullImagePath[:lastColonIdx]
-		tag = fullImagePath[lastColonIdx+1:]
-	} else {
-		image = fullImagePath
-		tag = "latest"
-	}
-
-	// Remove trailing ":" if image name has one.
-	if image[len(image)-1:] == ":" {
-		image = image[:len(image)-1]
-	}
+	image, tag := utils.ParseImageReference(fullImagePath)
 	return e.InternalRegistryImageTagExists(image, tag)
 }
 

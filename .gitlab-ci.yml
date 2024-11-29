@@ -83,6 +83,7 @@ integration-testing:
     - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
     - export DD_ENV=ci
     - export DD_API_KEY=$(vault kv get -field=api_key kv/k8s/gitlab-runner/test-infra-definitions/dd-token)
+    - export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
   script:
     - |
       if [ ! -f ./dist/main ]; then
@@ -90,7 +91,7 @@ integration-testing:
         exit 1
       fi
     # execute test from dist directory to use the generated binary
-    - orchestrion go test ./integration-tests -v -timeout 0s -workingDir=dist
+    - go test ./integration-tests -v -timeout 0s -workingDir=dist
   variables:
     E2E_PUBLIC_KEY_PATH: /tmp/agent-integration-test-ssh-key.pub
     E2E_PRIVATE_KEY_PATH: /tmp/agent-integration-test-ssh-key

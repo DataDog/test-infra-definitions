@@ -13,7 +13,7 @@ type Params struct {
 
 	Namespace        string
 	FakeIntake       *fakeintake.Fakeintake
-	DDAConfig        string
+	DDAConfig        DDAConfig
 	KubeletTLSVerify bool
 }
 
@@ -48,10 +48,10 @@ func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params)
 	}
 }
 
-// WithDDAConfig configures the DatadogAgent resource.
-func WithDDAConfig(config string) func(*Params) error {
+// WithDDAConfig configures the DatadogAgent custom resource.
+func WithDDAConfig(config DDAConfig) func(*Params) error {
 	return func(p *Params) error {
-		p.DDAConfig = p.DDAConfig + config
+		p.DDAConfig = config
 		return nil
 	}
 }
@@ -63,4 +63,16 @@ func WithFakeIntake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 		p.FakeIntake = fakeintake
 		return nil
 	}
+}
+
+// DDAConfig is the DatadogAgent custom resource configuration.
+type DDAConfig struct {
+	// Name of the DatadogAgent custom resource
+	Name string `json:"name"`
+	// YamlFilePath file path to the DatadogAgent custom resource YAML
+	YamlFilePath string `json:"yamlFilePath,omitempty"`
+	// YamlConfig is the YAML string of the DatadogAgent custom resource
+	YamlConfig string `json:"YamlConfig,omitempty"`
+	// MapConfig is the map representation of the DatadogAgent custom resource
+	MapConfig map[string]interface{} `json:"MapConfig,omitempty"`
 }

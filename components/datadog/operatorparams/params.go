@@ -57,3 +57,11 @@ func WithHelmValues(values string) func(*Params) error {
 		return nil
 	}
 }
+
+// WithPulumiResourceOptions sets the resources to depend on.
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
+	return func(p *Params) error {
+		p.PulumiResourceOptions = append(p.PulumiResourceOptions, resources...)
+		return nil
+	}
+}

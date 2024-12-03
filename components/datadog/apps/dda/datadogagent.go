@@ -1,57 +1,58 @@
 package dda
 
 import (
-	"encoding/json"
 	"fmt"
-	"strings"
 
 	"dario.cat/mergo"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apiextensions"
-	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
-	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	"gopkg.in/yaml.v3"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agentwithoperatorparams"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/yaml"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, customDda string, opts ...pulumi.ResourceOption) (*componentskube.Workload, *componentskube.KubernetesObjectRef, error) {
+const (
+	baseName = "agent-with-operator"
+)
+
+type datadogAgentWorkload struct {
+	ctx             *pulumi.Context
+	opts            *agentwithoperatorparams.Params
+	name            string
+	clusterName     string
+	imagePullSecret *corev1.Secret
+}
+
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, ddaOpts []agentwithoperatorparams.Option, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+	if ddaOpts == nil {
+		return nil, nil
+	}
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
-	baseName := "dda-with-operator"
+	clusterName := e.Ctx().Stack()
+
+	ddaOptions, err := agentwithoperatorparams.NewParams(ddaOpts...)
+	if err != nil {
+		return nil, err
+	}
+
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
 	if err := e.Ctx().RegisterComponentResource("dd:agent-with-operator", "dda", k8sComponent, opts...); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
-	ns, err := corev1.NewNamespace(
-		e.Ctx(),
-		namespace,
-		&corev1.NamespaceArgs{
-			Metadata: metav1.ObjectMetaArgs{
-				Name: pulumi.String(namespace),
-			},
-		},
-		opts...,
-	)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	opts = append(opts, utils.PulumiDependsOn(ns))
-
-	// Create secret if necessary
+	// Create datadog-credentials secret if necessary
 	secret, err := corev1.NewSecret(e.Ctx(), "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
-			Namespace: ns.Metadata.Name(),
+			Namespace: pulumi.String(ddaOptions.Namespace),
 			Name:      pulumi.Sprintf("%s-datadog-credentials", baseName),
 		},
 		StringData: pulumi.StringMap{
@@ -60,215 +61,271 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		},
 	}, opts...)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	opts = append(opts, utils.PulumiDependsOn(secret))
 
-	ddaConfig := buildDDAConfig(baseName, clusterName, kubeletTLSVerify)
-	if fakeIntake != nil {
-		configureFakeIntake(ddaConfig, fakeIntake)
-	}
-	ddaConfig, err = mergeYamlToConfig(ddaConfig, customDda)
-
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// Image pull secrets need to be configured after custom DDA config merge because pulumi.StringOutput cannot be marshalled to JSON
+	// Create imagePullSecret
 	var imagePullSecret *corev1.Secret
 	if e.ImagePullRegistry() != "" {
-		imagePullSecret, err = utils.NewImagePullSecret(e, namespace, opts...)
+		imagePullSecret, err = utils.NewImagePullSecret(e, ddaOptions.Namespace, opts...)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		opts = append(opts, utils.PulumiDependsOn(imagePullSecret))
-		configureImagePullSecret(ddaConfig, imagePullSecret)
 	}
 
-	ddaName := "datadog-agent"
-	if e.PipelineID() != "" {
-		ddaName = strings.Join([]string{ddaName, e.PipelineID()}, "-")
+	ddaWorkload := datadogAgentWorkload{
+		ctx:             e.Ctx(),
+		opts:            ddaOptions,
+		name:            ddaOptions.DDAConfig.Name,
+		clusterName:     clusterName,
+		imagePullSecret: imagePullSecret,
 	}
 
-	_, err = apiextensions.NewCustomResource(e.Ctx(), "datadog-agent", &apiextensions.CustomResourceArgs{
-		ApiVersion: pulumi.String("datadoghq.com/v2alpha1"),
-		Kind:       pulumi.String("DatadogAgent"),
-		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String(ddaName),
-			Namespace: pulumi.String(namespace),
-		},
-		OtherFields: ddaConfig,
-	}, opts...)
-	if err != nil {
-		return nil, nil, err
+	if err = ddaWorkload.buildDDAConfig(opts...); err != nil {
+		return nil, err
 	}
 
-	ddaRef, err := componentskube.NewKubernetesObjRef(e, baseName, namespace, "DatadogAgent", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq.com/v2alpha1").ToStringOutput(), map[string]string{"app": baseName})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return k8sComponent, ddaRef, nil
+	return k8sComponent, nil
 }
 
-func buildDDAConfig(baseName string, clusterName string, kubeletTLSVerify bool) kubernetes.UntypedArgs {
-	return kubernetes.UntypedArgs{
-		"spec": pulumi.Map{
-			"global": pulumi.Map{
-				"clusterName": pulumi.String(clusterName),
-				"kubelet": pulumi.Map{
-					"tlsVerify": pulumi.Bool(kubeletTLSVerify),
-				},
-				"credentials": pulumi.Map{
-					"apiSecret": pulumi.Map{
-						"secretName": pulumi.String(baseName + "-datadog-credentials"),
-						"keyName":    pulumi.String("api-key"),
-					},
-					"appSecret": pulumi.Map{
-						"secretName": pulumi.String(baseName + "-datadog-credentials"),
-						"keyName":    pulumi.String("app-key"),
-					},
-				},
-			},
-			"features": pulumi.Map{
-				"clusterChecks": pulumi.Map{
-					"enabled":                 pulumi.Bool(true),
-					"useClusterChecksRunners": pulumi.Bool(true),
-				},
-				"dogstatsd": pulumi.Map{
-					"tagCardinality": pulumi.String("high"),
-				},
-				"logCollection": pulumi.Map{
-					"enabled":                    pulumi.Bool(true),
-					"containerCollectAll":        pulumi.Bool(true),
-					"containerCollectUsingFiles": pulumi.Bool(true),
-				},
-				"prometheusScrape": pulumi.Map{
-					"enabled": pulumi.Bool(true),
-					"version": pulumi.Int(2),
-				},
-				"liveProcessCollection": pulumi.Map{
-					"enabled": pulumi.Bool(true),
-				},
-				"eventCollection": pulumi.Map{
-					"collectKubernetesEvents": pulumi.Bool(false),
-				},
-			},
-		},
-	}
-}
+func (d datadogAgentWorkload) buildDDAConfig(opts ...pulumi.ResourceOption) error {
+	ctx := d.ctx
+	defaultYamlTransformations := d.defaultDDAYamlTransformations()
 
-func configureFakeIntake(config kubernetes.UntypedArgs, fakeintake *fakeintake.Fakeintake) {
-	if fakeintake == nil {
-		return
-	}
-	endpointsEnvVar := pulumi.StringMapArray{
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_DD_URL"),
-			"value": pulumi.String(fmt.Sprintf("%v", fakeintake.URL)),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_PROCESS_CONFIG_PROCESS_DD_URL"),
-			"value": pulumi.String(fmt.Sprintf("%v", fakeintake.URL)),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_APM_DD_URL"),
-			"value": pulumi.String(fmt.Sprintf("%v", fakeintake.URL)),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION"),
-			"value": pulumi.String("true"),
-		},
-		pulumi.StringMap{
-			"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),
-			"value": pulumi.String("true"),
-		},
-	}
-	for _, section := range []string{"nodeAgent", "clusterAgent", "clusterChecksRunner"} {
-		if _, found := config["spec"].(pulumi.Map)["override"]; !found {
-			config["spec"].(pulumi.Map)["override"] = pulumi.Map{
-				section: pulumi.Map{
-					"env": endpointsEnvVar,
-				},
-			}
-		} else if _, found = config["spec"].(pulumi.Map)["override"].(pulumi.Map)[section]; !found {
-			config["spec"].(pulumi.Map)["override"].(pulumi.Map)[section] = pulumi.Map{
-				"env": endpointsEnvVar,
-			}
-		} else if _, found = config["spec"].(pulumi.Map)["override"].(pulumi.Map)[section].(pulumi.Map)["env"]; !found {
-			config["spec"].(pulumi.Map)["override"].(pulumi.Map)[section].(pulumi.Map)["env"] = endpointsEnvVar
-		} else {
-			config["spec"].(pulumi.Map)["override"].(pulumi.Map)[section].(pulumi.Map)["env"] = append(config["spec"].(pulumi.Map)["override"].(pulumi.Map)[section].(pulumi.Map)["env"].(pulumi.StringMapArray), endpointsEnvVar...)
+	if d.opts.DDAConfig.YamlFilePath != "" {
+		_, err := yaml.NewConfigGroup(ctx, d.name, &yaml.ConfigGroupArgs{
+			Files:           []string{d.opts.DDAConfig.YamlFilePath},
+			Transformations: defaultYamlTransformations,
+		}, opts...)
+
+		if err != nil {
+			return err
 		}
+	} else if d.opts.DDAConfig.YamlConfig != "" {
+		_, err := yaml.NewConfigGroup(ctx, d.name, &yaml.ConfigGroupArgs{
+			YAML:            []string{d.opts.DDAConfig.YamlConfig},
+			Transformations: defaultYamlTransformations,
+		}, opts...)
+
+		if err != nil {
+			return err
+		}
+	} else if d.opts.DDAConfig.MapConfig != nil {
+		_, err := yaml.NewConfigGroup(ctx, d.name, &yaml.ConfigGroupArgs{
+			Objs:            []map[string]interface{}{d.opts.DDAConfig.MapConfig},
+			Transformations: defaultYamlTransformations,
+		}, opts...)
+
+		if err != nil {
+			return err
+		}
+	} else {
+		_, err := yaml.NewConfigGroup(ctx, d.name, &yaml.ConfigGroupArgs{
+			Objs:            []map[string]interface{}{d.defaultDDAConfig()},
+			Transformations: d.defaultDDAYamlTransformations(),
+		}, opts...)
+
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
+}
+
+func (d datadogAgentWorkload) defaultDDAConfig() map[string]interface{} {
+	return map[string]interface{}{
+		"apiVersion": "datadoghq.com/v2alpha1",
+		"kind":       "DatadogAgent",
+		"metadata": map[string]interface{}{
+			"name":      d.opts.DDAConfig.Name,
+			"namespace": d.opts.Namespace,
+		},
+		"spec": map[string]interface{}{
+			"global": map[string]interface{}{
+				"clusterName": d.clusterName,
+				"kubelet": map[string]interface{}{
+					"tlsVerify": d.opts.KubeletTLSVerify,
+				},
+				"credentials": map[string]interface{}{
+					"apiSecret": map[string]interface{}{
+						"secretName": baseName + "-datadog-credentials",
+						"keyName":    "api-key",
+					},
+					"appSecret": map[string]interface{}{
+						"secretName": baseName + "-datadog-credentials",
+						"keyName":    "app-key",
+					},
+				},
+			},
+			"features": map[string]interface{}{
+				"clusterChecks": map[string]interface{}{
+					"enabled":                 true,
+					"useClusterChecksRunners": true,
+				},
+			},
+		},
 	}
 }
 
-func configureImagePullSecret(config kubernetes.UntypedArgs, secret *corev1.Secret) {
-	if secret == nil {
-		return
+func (d datadogAgentWorkload) fakeIntakeEnvVars() []map[string]interface{} {
+	return []map[string]interface{}{
+		{
+			"name":  "DD_DD_URL",
+			"value": d.opts.FakeIntake.URL,
+		},
+		{
+			"name":  "DD_PROCESS_CONFIG_PROCESS_DD_URL",
+			"value": d.opts.FakeIntake.URL,
+		},
+		{
+			"name":  "DD_APM_DD_URL",
+			"value": d.opts.FakeIntake.URL,
+		},
+		{
+			"name":  "DD_SKIP_SSL_VALIDATION",
+			"value": "true",
+		},
+		{
+			"name":  "DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION",
+			"value": "true",
+		},
+		{
+			"name":  "DD_LOGS_CONFIG_USE_HTTP",
+			"value": "true",
+		},
 	}
+}
 
-	for _, section := range []string{"nodeAgent", "clusterAgent", "clusterChecksRunner"} {
-		if _, found := config["spec"].(map[string]interface{})["override"].(map[string]interface{})[section]; !found {
-			config["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] = pulumi.Map{
-				"image": pulumi.Map{
-					"pullSecrets": pulumi.MapArray{
-						pulumi.Map{
-							"name": secret.Metadata.Name(),
+func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformation {
+	return []yaml.Transformation{
+		// Override custom DDAConfig with required defaults
+		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+			defaultDDAConfig := d.defaultDDAConfig()
+			err := mergo.Merge(&state, defaultDDAConfig)
+			if err != nil {
+				d.ctx.Log.Debug(fmt.Sprintf("There was a problem merging the default DDA config: %v", err), nil)
+			}
+		},
+		// Configure metadata
+		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+			if state["metadata"] == nil {
+				state["metadata"] = map[string]interface{}{
+					"name":      d.opts.DDAConfig.Name,
+					"namespace": d.opts.Namespace,
+				}
+			}
+			state["metadata"].(map[string]interface{})["namespace"] = d.opts.Namespace
+
+			state["metadata"].(map[string]interface{})["name"] = d.opts.DDAConfig.Name
+
+			if state["spec"].(map[string]interface{})["global"] == nil {
+				state["spec"].(map[string]interface{})["global"] = map[string]interface{}{
+					"clusterName": d.clusterName,
+				}
+			} else {
+				state["spec"].(map[string]interface{})["global"].(map[string]interface{})["clusterName"] = d.clusterName
+			}
+		},
+		// Configure global
+		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+			defaultGlobal := map[string]interface{}{
+				"clusterName": d.clusterName,
+				"kubelet": map[string]interface{}{
+					"tlsVerify": d.opts.KubeletTLSVerify,
+				},
+				"credentials": map[string]interface{}{
+					"apiSecret": map[string]interface{}{
+						"secretName": baseName + "-datadog-credentials",
+						"keyName":    "api-key",
+					},
+					"appSecret": map[string]interface{}{
+						"secretName": baseName + "-datadog-credentials",
+						"keyName":    "app-key",
+					},
+				},
+			}
+			if state["spec"].(map[string]interface{})["global"] == nil {
+				state["spec"].(map[string]interface{})["global"] = defaultGlobal
+			} else {
+				stateGlobal := state["spec"].(map[string]interface{})["global"].(map[string]interface{})
+				for k, v := range defaultGlobal {
+					if stateGlobal[k] == nil {
+						stateGlobal[k] = v
+					} else {
+						err := mergo.Map(stateGlobal[k], defaultGlobal[k])
+						if err != nil {
+							d.ctx.Log.Debug(fmt.Sprintf("Error merging YAML maps: %v", err), nil)
+						}
+					}
+				}
+			}
+		},
+		// Configure Fake Intake
+		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+			if d.opts.FakeIntake == nil {
+				return
+			}
+			for _, section := range []string{"nodeAgent", "clusterAgent", "clusterChecksRunner"} {
+				if state["spec"].(map[string]interface{})["override"] == nil {
+					state["spec"].(map[string]interface{})["override"] = map[string]interface{}{
+						section: map[string]interface{}{
+							"env": d.fakeIntakeEnvVars(),
 						},
-					},
-				},
+					}
+				}
+				if state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] == nil {
+					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] = map[string]interface{}{
+						"env": d.fakeIntakeEnvVars(),
+					}
+				}
+				if state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"] == nil {
+					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"] = d.fakeIntakeEnvVars()
+				}
+				if state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"].([]map[string]interface{}) != nil {
+					env := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"].([]map[string]interface{})
+					env = append(env, d.fakeIntakeEnvVars()...)
+				}
 			}
-		} else if _, found = config["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"]; !found {
-			config["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"] = pulumi.Map{
-				"pullSecrets": pulumi.MapArray{
-					pulumi.Map{
-						"name": secret.Metadata.Name(),
-					},
-				},
+		},
+		//	Configure Image pull secret
+		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+			if d.imagePullSecret == nil {
+				return
 			}
-		} else {
-			config["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"].(map[string]interface{})["pullSecrets"] = pulumi.MapArray{
-				pulumi.Map{
-					"name": secret.Metadata.Name(),
-				},
+			for _, section := range []string{"nodeAgent", "clusterAgent", "clusterChecksRunner"} {
+				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section]; !found {
+					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] = map[string]interface{}{
+						"image": map[string]interface{}{
+							"pullSecrets": map[string]interface{}{
+								"name": d.imagePullSecret.Metadata.Name(),
+							},
+						},
+					}
+				}
+				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"]; !found {
+					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"] = map[string]interface{}{
+						"pullSecrets": []map[string]interface{}{{
+							"name": d.imagePullSecret.Metadata.Name(),
+						}},
+					}
+				}
+				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"]; !found {
+					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"] = map[string]interface{}{
+						"pullSecrets": []map[string]interface{}{{
+							"name": d.imagePullSecret.Metadata.Name(),
+						}},
+					}
+				}
+				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"].(map[string]interface{})["pullSecrets"]; found {
+					pullSecrets := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"].(map[string]interface{})["pullSecrets"].([]map[string]interface{})
+					pullSecrets = append(pullSecrets, map[string]interface{}{
+						"name": d.imagePullSecret.Metadata.Name(),
+					})
+				}
 			}
-		}
+		},
 	}
-}
-
-func mergeYamlToConfig(config kubernetes.UntypedArgs, yamlConfig string) (kubernetes.UntypedArgs, error) {
-	var configMap, yamlMap map[string]interface{}
-	configJSON, err := json.Marshal(config)
-	if err != nil {
-		fmt.Println(fmt.Sprintf("Error marshalling original DDA config: %v)", err))
-		return config, err
-	}
-
-	if err := json.Unmarshal(configJSON, &configMap); err != nil {
-		return config, fmt.Errorf("error unmarshalling original DDA config: %v", err)
-	}
-	if err := yaml.Unmarshal([]byte(yamlConfig), &yamlMap); err != nil {
-		return config, fmt.Errorf("error unmarshalling new DDA yaml config: %v", err)
-	}
-
-	if err := mergo.Map(&configMap, yamlMap, mergo.WithOverride); err != nil {
-		return config, fmt.Errorf("error merging DDA configs: %v", err)
-	}
-
-	merged, err := json.Marshal(configMap)
-	if err != nil {
-		return config, fmt.Errorf("error marshalling merged DDA config: %v", err)
-	}
-
-	var mergedConfig kubernetes.UntypedArgs
-	if err = json.Unmarshal(merged, &mergedConfig); err != nil {
-		return config, fmt.Errorf("error ummarshalling merged DDA config: %v", err)
-	}
-
-	return mergedConfig, nil
 }

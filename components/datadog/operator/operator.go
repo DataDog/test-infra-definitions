@@ -10,23 +10,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 )
 
-// OperatorOutput is used to import the Operator component
-type OperatorOutput struct { // nolint:revive, We want to keep the name as <Component>Output
-	components.JSONImporter
-	Operator compkubernetes.KubernetesObjectRef `json:"operator"`
-}
-
-// Operator represents an Operator installation
-type Operator struct {
-	pulumi.ResourceState
-	components.Component
-	Operator *compkubernetes.KubernetesObjectRef `json:"operator"`
-}
-
-func (h *Operator) Export(ctx *pulumi.Context, out *OperatorOutput) error {
-	return components.Export(ctx, h, out)
-}
-
 func NewOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...operatorparams.Option) (*Operator, error) {
 	return components.NewComponent(e, resourceName, func(comp *Operator) error {
 		params, err := operatorparams.NewParams(e, options...)

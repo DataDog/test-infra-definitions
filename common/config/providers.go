@@ -2,13 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/pulumi/pulumi-gcp/sdk/v6/go/gcp"
 	"sync"
 
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx"
 	"github.com/pulumi/pulumi-command/sdk/go/command"
 	"github.com/pulumi/pulumi-docker/sdk/v4/go/docker"
-	"github.com/pulumi/pulumi-eks/sdk/v2/go/eks"
+	"github.com/pulumi/pulumi-eks/sdk/v3/go/eks"
+	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi-tls/sdk/v4/go/tls"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"

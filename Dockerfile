@@ -23,6 +23,7 @@ RUN apt-get update -y && \
   gnupg \
   software-properties-common \
   wget \
+  parallel \
   unzip && \
   # Get all of the signatures we need all at once.
   curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key    | apt-key add - && \
@@ -113,8 +114,11 @@ RUN --mount=type=secret,id=github_token \
   cd /tmp/test-infra && \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
-  pulumi --logflow --logtostderr -v 5 --non-interactive plugin install && \
+  pulumi --non-interactive plugin install && \
   pulumi --non-interactive plugin ls && \
+  pulumi --non-interactive plugin ls --json | jq -r '.[].name' | awk '{count[$1]++} END {for (plugin in count) if (count[plugin] > 1) print "Several versions of\t" plugin "\tplugin detected"}' | tee /tmp/plugin_list.txt && \
+  ! [ -s /tmp/plugin_list.txt ] && \
+  rm /tmp/plugin_list.txt && \
   cd /
 
 # Install Agent requirements, required to run invoke tests task

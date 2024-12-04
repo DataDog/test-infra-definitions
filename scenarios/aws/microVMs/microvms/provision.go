@@ -226,7 +226,12 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 				}
 
 				// create new ssh connection to build proxy
-				conn, err := remoteComp.NewConnection(collection.instance.instance.Address, "ubuntu", instanceEnv.DefaultPrivateKeyPath(), instanceEnv.DefaultPrivateKeyPassword(), "")
+				conn, err := remoteComp.NewConnection(
+					collection.instance.instance.Address,
+					"ubuntu",
+					remoteComp.WithPrivateKeyPath(instanceEnv.DefaultPrivateKeyPath()),
+					remoteComp.WithPrivateKeyPassword(instanceEnv.DefaultPrivateKeyPassword()),
+				)
 				if err != nil {
 					return nil, err
 				}
@@ -285,7 +290,11 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 				}
 
 				// create new ssh connection to build proxy
-				conn, err := remoteComp.NewConnection(domain.ip, "root", filepath.Join(GetWorkingDirectory(domain.vmset.Arch), "ddvm_rsa"), "", "")
+				conn, err := remoteComp.NewConnection(
+					domain.ip,
+					"root",
+					remoteComp.WithPrivateKeyPath(filepath.Join(GetWorkingDirectory(domain.vmset.Arch), "ddvm_rsa")),
+				)
 				if err != nil {
 					return nil, err
 				}

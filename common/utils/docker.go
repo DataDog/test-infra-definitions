@@ -10,15 +10,21 @@ func BuildDockerImagePath(dockerRepository string, imageVersion string) string {
 }
 
 func ParseImageReference(imageRef string) (imagePath string, tag string) {
-	tagSepIdx := strings.LastIndex(imageRef, ":")
-	if tagSepIdx == -1 {
-		// no tag, tag is latest
+	lastColonIdx := strings.LastIndex(imageRef, ":")
+	if lastColonIdx > 0 &&
+		lastColonIdx < len(imageRef)-1 &&
+		// Check not part of registry address (e.g., "registry:5000/image")
+		!strings.Contains(imageRef[lastColonIdx:], "/") {
+		imagePath = imageRef[:lastColonIdx]
+		tag = imageRef[lastColonIdx+1:]
+	} else {
 		imagePath = imageRef
 		tag = "latest"
-		return
 	}
 
-	imagePath = imageRef[0:tagSepIdx]
-	tag = imageRef[tagSepIdx+1:]
+	// Remove trailing ":" if image name has one.
+	if imagePath[len(imagePath)-1:] == ":" {
+		imagePath = imagePath[:len(imagePath)-1]
+	}
 	return
 }

@@ -32,7 +32,12 @@ func NewVM(e Environment, args VMArgs, opts ...pulumi.ResourceOption) (*remote.H
 
 	return components.NewComponent(&e, args.Name, func(comp *remote.Host) error {
 		// Let's say you get IP address from the command output (only output in the command).
-		conn, err := remote.NewConnection(cmd.Stdout, "<SSH_USER_NAME>", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(
+			cmd.Stdout,
+			"<SSH_USER_NAME>",
+			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
+			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+		)
 		if err != nil {
 			return err
 		}

@@ -234,37 +234,37 @@ func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params)
 	}
 }
 
-func withIntakeHostname(hostname pulumi.StringInput) func(*Params) error {
+func withIntakeHostname(hostname pulumi.StringInput, port uint32) func(*Params) error {
 	return func(p *Params) error {
-		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:80
-logs_config.logs_dd_url: %[1]s:80
+		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:%[2]d
+logs_config.logs_dd_url: %[1]s:%[2]d
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true
-process_config.process_dd_url: http://%[1]s:80
-apm_config.apm_dd_url: http://%[1]s:80
-database_monitoring.metrics.logs_dd_url: %[1]s:80
+process_config.process_dd_url: http://%[1]s:%[2]d
+apm_config.apm_dd_url: http://%[1]s:%[2]d
+database_monitoring.metrics.logs_dd_url: %[1]s:%[2]d
 database_monitoring.metrics.logs_no_ssl: true
-database_monitoring.activity.logs_dd_url: %[1]s:80
+database_monitoring.activity.logs_dd_url: %[1]s:%[2]d
 database_monitoring.activity.logs_no_ssl: true
-database_monitoring.samples.logs_dd_url: %[1]s:80
+database_monitoring.samples.logs_dd_url: %[1]s:%[2]d
 database_monitoring.samples.logs_no_ssl: true
-network_devices.metadata.logs_dd_url: %[1]s:80
+network_devices.metadata.logs_dd_url: %[1]s:%[2]d
 network_devices.metadata.logs_no_ssl: true
-network_devices.snmp_traps.forwarder.logs_dd_url: %[1]s:80
+network_devices.snmp_traps.forwarder.logs_dd_url: %[1]s:%[2]d
 network_devices.snmp_traps.forwarder.logs_no_ssl: true
-network_devices.netflow.forwarder.logs_dd_url: %[1]s:80
+network_devices.netflow.forwarder.logs_dd_url: %[1]s:%[2]d
 network_devices.netflow.forwarder.logs_no_ssl: true
-network_path.forwarder.logs_dd_url: %[1]s:80
+network_path.forwarder.logs_dd_url: %[1]s:%[2]d
 network_path.forwarder.logs_no_ssl: true
-container_lifecycle.logs_dd_url: %[1]s:80
+container_lifecycle.logs_dd_url: %[1]s:%[2]d
 container_lifecycle.logs_no_ssl: true
-container_image.logs_dd_url: %[1]s:80
+container_image.logs_dd_url: %[1]s:%[2]d
 container_image.logs_no_ssl: true
-sbom.logs_dd_url: %[1]s:80
+sbom.logs_dd_url: %[1]s:%[2]d
 sbom.logs_no_ssl: true
-service_discovery.forwarder.logs_dd_url: %[1]s:80
+service_discovery.forwarder.logs_dd_url: %[1]s:%[2]d
 service_discovery.forwarder.logs_no_ssl: true
-`, hostname)
+`, hostname, port)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}
@@ -276,7 +276,7 @@ service_discovery.forwarder.logs_no_ssl: true
 //
 // This option is overwritten by `WithFakeintake`.
 func WithIntakeHostname(hostname string) func(*Params) error {
-	return withIntakeHostname(pulumi.String(hostname))
+	return withIntakeHostname(pulumi.String(hostname), 80)
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
@@ -285,7 +285,7 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
-		return withIntakeHostname(fakeintake.Host)(p)
+		return withIntakeHostname(fakeintake.Host, fakeintake.Port)(p)
 	}
 }
 
@@ -317,6 +317,14 @@ func WithSkipAPIKeyInConfig() func(*Params) error {
 func WithTags(tags []string) func(*Params) error {
 	return func(p *Params) error {
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.Sprintf("tags: [%s]", strings.Join(tags, ", ")))
+		return nil
+	}
+}
+
+// WithHostname add hostname to the agent configuration
+func WithHostname(hostname string) func(*Params) error {
+	return func(p *Params) error {
+		p.ExtraAgentConfig = append(p.ExtraAgentConfig, pulumi.Sprintf("hostname: %s", hostname))
 		return nil
 	}
 }

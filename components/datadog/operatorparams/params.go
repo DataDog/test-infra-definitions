@@ -11,11 +11,11 @@ import (
 )
 
 type Params struct {
-	// OperatorFullImagePath is the full path of the docker agent image to use.
+	// OperatorFullImagePath is the full path of the operator image to use.
 	OperatorFullImagePath string
-	// Namespace is the namespace to deploy the agent to.
+	// Namespace is the namespace to deploy the operator to.
 	Namespace string
-	// HelmValues is the Helm values to use for the agent installation.
+	// HelmValues is the Helm values to use for the operator installation.
 	HelmValues pulumi.AssetOrArchiveArray
 	// PulumiResourceOptions is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
@@ -24,10 +24,7 @@ type Params struct {
 type Option = func(*Params) error
 
 func NewParams(e config.Env, options ...Option) (*Params, error) {
-	version := &Params{
-		Namespace:             "datadog",
-		OperatorFullImagePath: "gcr.io/datadoghq/operator:latest",
-	}
+	version := &Params{}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
 		options = append(options, WithOperatorFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/operator", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
@@ -57,6 +54,14 @@ func WithOperatorFullImagePath(path string) func(*Params) error {
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
 		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))
+		return nil
+	}
+}
+
+// WithPulumiResourceOptions sets the resources to depend on.
+func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params) error {
+	return func(p *Params) error {
+		p.PulumiResourceOptions = append(p.PulumiResourceOptions, resources...)
 		return nil
 	}
 }

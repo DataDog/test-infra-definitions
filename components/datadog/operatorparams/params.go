@@ -11,11 +11,11 @@ import (
 )
 
 type Params struct {
-	// OperatorFullImagePath is the full path of the docker agent image to use.
+	// OperatorFullImagePath is the full path of the operator image to use.
 	OperatorFullImagePath string
-	// Namespace is the namespace to deploy the agent to.
+	// Namespace is the namespace to deploy the operator to.
 	Namespace string
-	// HelmValues is the Helm values to use for the agent installation.
+	// HelmValues is the Helm values to use for the operator installation.
 	HelmValues pulumi.AssetOrArchiveArray
 	// PulumiResourceOptions is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption

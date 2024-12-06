@@ -19,7 +19,7 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 
 		pulumiResourceOptions := append(ddaParams.PulumiResourceOptions, pulumi.Parent(comp))
 
-		_, err = dda.K8sAppDefinition(e, kubeProvider, ddaOptions, pulumiResourceOptions...)
+		_, err = dda.K8sAppDefinition(e, kubeProvider, ddaParams, pulumiResourceOptions...)
 
 		if err != nil {
 			return err

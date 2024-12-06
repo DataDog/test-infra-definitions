@@ -11,10 +11,9 @@ import (
 type Params struct {
 	PulumiResourceOptions []pulumi.ResourceOption
 
-	Namespace        string
-	FakeIntake       *fakeintake.Fakeintake
-	DDAConfig        DDAConfig
-	KubeletTLSVerify bool
+	Namespace  string
+	FakeIntake *fakeintake.Fakeintake
+	DDAConfig  DDAConfig
 }
 
 type Option = func(*Params) error
@@ -28,14 +27,6 @@ func NewParams(options ...Option) (*Params, error) {
 func WithNamespace(namespace string) func(*Params) error {
 	return func(p *Params) error {
 		p.Namespace = namespace
-		return nil
-	}
-}
-
-// WithTLSKubeletVerify toggles kubelet TLS verification.
-func WithTLSKubeletVerify(verify bool) func(*Params) error {
-	return func(p *Params) error {
-		p.KubeletTLSVerify = verify
 		return nil
 	}
 }

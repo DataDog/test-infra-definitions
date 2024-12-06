@@ -27,18 +27,13 @@ type datadogAgentWorkload struct {
 	imagePullSecret *corev1.Secret
 }
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, ddaOpts []agentwithoperatorparams.Option, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
-	if ddaOpts == nil {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, params *agentwithoperatorparams.Params, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+	if params == nil {
 		return nil, nil
 	}
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
 	clusterName := e.Ctx().Stack()
-
-	ddaOptions, err := agentwithoperatorparams.NewParams(ddaOpts...)
-	if err != nil {
-		return nil, err
-	}
 
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
@@ -52,7 +47,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, ddaOpts [
 	// Create datadog-credentials secret if necessary
 	secret, err := corev1.NewSecret(e.Ctx(), "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
-			Namespace: pulumi.String(ddaOptions.Namespace),
+			Namespace: pulumi.String(params.Namespace),
 			Name:      pulumi.Sprintf("%s-datadog-credentials", baseName),
 		},
 		StringData: pulumi.StringMap{
@@ -68,7 +63,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, ddaOpts [
 	// Create imagePullSecret
 	var imagePullSecret *corev1.Secret
 	if e.ImagePullRegistry() != "" {
-		imagePullSecret, err = utils.NewImagePullSecret(e, ddaOptions.Namespace, opts...)
+		imagePullSecret, err = utils.NewImagePullSecret(e, params.Namespace, opts...)
 		if err != nil {
 			return nil, err
 		}
@@ -77,8 +72,8 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, ddaOpts [
 
 	ddaWorkload := datadogAgentWorkload{
 		ctx:             e.Ctx(),
-		opts:            ddaOptions,
-		name:            ddaOptions.DDAConfig.Name,
+		opts:            params,
+		name:            params.DDAConfig.Name,
 		clusterName:     clusterName,
 		imagePullSecret: imagePullSecret,
 	}
@@ -146,9 +141,6 @@ func (d datadogAgentWorkload) defaultDDAConfig() map[string]interface{} {
 		"spec": map[string]interface{}{
 			"global": map[string]interface{}{
 				"clusterName": d.clusterName,
-				"kubelet": map[string]interface{}{
-					"tlsVerify": d.opts.KubeletTLSVerify,
-				},
 				"credentials": map[string]interface{}{
 					"apiSecret": map[string]interface{}{
 						"secretName": baseName + "-datadog-credentials",
@@ -237,9 +229,6 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
 			defaultGlobal := map[string]interface{}{
 				"clusterName": d.clusterName,
-				"kubelet": map[string]interface{}{
-					"tlsVerify": d.opts.KubeletTLSVerify,
-				},
 				"credentials": map[string]interface{}{
 					"apiSecret": map[string]interface{}{
 						"secretName": baseName + "-datadog-credentials",

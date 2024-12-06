@@ -127,6 +127,9 @@ RUN pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buil
   pip3 install -r /tmp/test-infra/requirements.txt & \
   go install gotest.tools/gotestsum@latest
 
+# Install Orchestrion for native Go Test Visibility support
+RUN go install github.com/DataDog/orchestrion@v1.0.1
+
 RUN rm -rf /tmp/test-infra
 
 # Configure aws retries

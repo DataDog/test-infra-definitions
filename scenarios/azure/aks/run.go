@@ -38,7 +38,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	var dependsOnCrd pulumi.ResourceOption
+	var dependsOnDDAgent pulumi.ResourceOption
 
 	// Deploy the agent
 	if env.AgentDeploy() {
@@ -87,7 +87,7 @@ providers:
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy standalone dogstatsd
@@ -99,15 +99,15 @@ providers:
 
 	// Deploy testing workload
 	if env.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */); err != nil {
 			return err
 		}
 
-		if _, err := nginx.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-nginx-kata", kataRuntimeClass, true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-nginx-kata", kataRuntimeClass, true, dependsOnDDAgent /* for DDM */); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
+		if _, err := redis.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */); err != nil {
 			return err
 		}
 
@@ -116,13 +116,13 @@ providers:
 		}
 
 		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 
 		if env.DogstatsdDeploy() {
 			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
 				return err
 			}
 		}
@@ -131,7 +131,7 @@ providers:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

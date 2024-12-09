@@ -129,9 +129,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 
 		url, err := finder.findVersion(fullVersion)
 		if err != nil {
-			// Try to handle custom build
-			minor = strings.TrimSuffix(minor, "-1")
-			return fmt.Sprintf("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/ddagent-cli-%v.%v.msi", version.Major, minor), nil
+			return "", err
 		}
 
 		return url, nil

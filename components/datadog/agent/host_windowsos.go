@@ -172,12 +172,13 @@ func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, erro
 }
 
 func getFlavorProductName(flavor string) (string, error) {
+	if flavor == "" {
+		flavor = agentparams.DefaultFlavor
+	}
 	switch flavor {
-	case "":
+	case agentparams.BaseFlavor:
 		return "datadog-agent", nil
-	case "base":
-		return "datadog-agent", nil
-	case "fips":
+	case agentparams.FIPSFlavor:
 		return "datadog-fips-agent", nil
 	default:
 		return "", fmt.Errorf("unknown flavor %v", flavor)

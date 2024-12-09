@@ -71,6 +71,10 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeIntake))
 		}
 
+		if awsEnv.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
+		}
+
 		if awsEnv.EKSWindowsNodeGroup() {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())
 		}

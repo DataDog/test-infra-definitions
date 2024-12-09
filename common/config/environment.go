@@ -51,6 +51,7 @@ const (
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
+	DDAgentDualShipping                  = "dualshipping"
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
@@ -309,6 +310,10 @@ func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
 
 func (e *CommonEnvironment) AgentUseFakeintake() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
+}
+
+func (e *CommonEnvironment) AgentUseDualShipping() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDualShipping, false)
 }
 
 func (e *CommonEnvironment) Site() string {

@@ -8,10 +8,12 @@ const (
 	NightlyChannel channel = "nightly"
 )
 
+type flavor string
+
 const (
-	DefaultFlavor = BaseFlavor
-	BaseFlavor    = "base"
-	FIPSFlavor    = "fips"
+	DefaultFlavor flavor = BaseFlavor
+	BaseFlavor    flavor = "base"
+	FIPSFlavor    flavor = "fips"
 )
 
 type PackageVersion struct {
@@ -19,5 +21,5 @@ type PackageVersion struct {
 	Minor      string // Empty means latest
 	Channel    channel
 	PipelineID string
-	Flavor     string // Empty means default (base)
+	Flavor     flavor // Empty means default (base)
 }

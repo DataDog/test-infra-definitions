@@ -7,7 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components"
 )
 
-// OperatorOutput is used to import the Operator component
+// OperatorOutput is used to import the Operator component // nolint:revive, We want to keep the name as <Component>Output
 type OperatorOutput struct {
 	components.JSONImporter
 

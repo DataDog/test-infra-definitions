@@ -79,6 +79,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, params *a
 	}
 
 	if err = ddaWorkload.buildDDAConfig(opts...); err != nil {
+		e.Ctx().Log.Debug(fmt.Sprintf("Error building DDA config: %v", err), nil)
 		return nil, err
 	}
 
@@ -96,6 +97,7 @@ func (d datadogAgentWorkload) buildDDAConfig(opts ...pulumi.ResourceOption) erro
 		}, opts...)
 
 		if err != nil {
+			d.ctx.Log.Debug(fmt.Sprintf("Error transforming DDAConfig yaml file path: %v", err), nil)
 			return err
 		}
 	} else if d.opts.DDAConfig.YamlConfig != "" {
@@ -105,6 +107,7 @@ func (d datadogAgentWorkload) buildDDAConfig(opts ...pulumi.ResourceOption) erro
 		}, opts...)
 
 		if err != nil {
+			d.ctx.Log.Debug(fmt.Sprintf("Error transforming DDAConfig yaml: %v", err), nil)
 			return err
 		}
 	} else if d.opts.DDAConfig.MapConfig != nil {
@@ -114,15 +117,17 @@ func (d datadogAgentWorkload) buildDDAConfig(opts ...pulumi.ResourceOption) erro
 		}, opts...)
 
 		if err != nil {
+			d.ctx.Log.Debug(fmt.Sprintf("Error transforming DDAConfig map config: %v", err), nil)
 			return err
 		}
 	} else {
 		_, err := yaml.NewConfigGroup(ctx, d.name, &yaml.ConfigGroupArgs{
 			Objs:            []map[string]interface{}{d.defaultDDAConfig()},
-			Transformations: d.defaultDDAYamlTransformations(),
+			Transformations: defaultYamlTransformations,
 		}, opts...)
 
 		if err != nil {
+			d.ctx.Log.Debug(fmt.Sprintf("Error creating default DDA config: %v", err), nil)
 			return err
 		}
 
@@ -185,7 +190,7 @@ func (d datadogAgentWorkload) fakeIntakeEnvVars() []map[string]interface{} {
 func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformation {
 	return []yaml.Transformation{
 		// Configure metadata
-		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+		func(state map[string]interface{}, _ ...pulumi.ResourceOption) {
 			defaultMetadata := map[string]interface{}{
 				"name":      d.opts.DDAConfig.Name,
 				"namespace": d.opts.Namespace,
@@ -202,7 +207,7 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 			}
 		},
 		// Configure global
-		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+		func(state map[string]interface{}, _ ...pulumi.ResourceOption) {
 			defaultGlobal := map[string]interface{}{
 				"clusterName": d.clusterName,
 				"credentials": map[string]interface{}{
@@ -227,7 +232,7 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 			}
 		},
 		// Configure Fake Intake
-		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+		func(state map[string]interface{}, _ ...pulumi.ResourceOption) {
 			if d.opts.FakeIntake == nil {
 				return
 			}
@@ -253,7 +258,7 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 			}
 		},
 		//	Configure Image pull secret
-		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
+		func(state map[string]interface{}, _ ...pulumi.ResourceOption) {
 			if d.imagePullSecret == nil {
 				return
 			}

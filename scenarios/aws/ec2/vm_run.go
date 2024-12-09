@@ -48,6 +48,10 @@ func VMRun(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
 
+		if env.AgentUseDualShipping() {
+			agentOptions = append(agentOptions, agentparams.WithDualShipping())
+		}
+
 		agent, err := agent.NewHostAgent(&env, vm, agentOptions...)
 		if err != nil {
 			return err

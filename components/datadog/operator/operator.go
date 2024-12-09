@@ -28,7 +28,7 @@ func NewOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Pro
 			return err
 		}
 
-		comp.Operator, err = compkubernetes.NewKubernetesObjRef(e, "datadog-operator", params.Namespace, "Pod", release.LinuxHelmReleaseStatus.AppVersion().Elem(), release.LinuxHelmReleaseStatus.Version().Elem(), map[string]string{"app": "datadog-operator"})
+		comp.Operator, err = compkubernetes.NewKubernetesObjRef(e, "datadog-operator", params.Namespace, "Pod", release.LinuxHelmReleaseStatus.AppVersion().Elem(), release.LinuxHelmReleaseStatus.Version().Elem(), map[string]string{"app.kubernetes.io/name": "datadog-operator"})
 
 		if err != nil {
 			return err

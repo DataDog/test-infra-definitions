@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	baseName = "agent-with-operator"
+	baseName = "dda"
 )
 
 type datadogAgentWorkload struct {
@@ -139,19 +139,6 @@ func (d datadogAgentWorkload) defaultDDAConfig() map[string]interface{} {
 			"namespace": d.opts.Namespace,
 		},
 		"spec": map[string]interface{}{
-			"global": map[string]interface{}{
-				"clusterName": d.clusterName,
-				"credentials": map[string]interface{}{
-					"apiSecret": map[string]interface{}{
-						"secretName": baseName + "-datadog-credentials",
-						"keyName":    "api-key",
-					},
-					"appSecret": map[string]interface{}{
-						"secretName": baseName + "-datadog-credentials",
-						"keyName":    "app-key",
-					},
-				},
-			},
 			"features": map[string]interface{}{
 				"clusterChecks": map[string]interface{}{
 					"enabled":                 true,
@@ -197,32 +184,21 @@ func (d datadogAgentWorkload) fakeIntakeEnvVars() []map[string]interface{} {
 
 func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformation {
 	return []yaml.Transformation{
-		// Override custom DDAConfig with required defaults
-		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
-			defaultDDAConfig := d.defaultDDAConfig()
-			err := mergo.Merge(&state, defaultDDAConfig)
-			if err != nil {
-				d.ctx.Log.Debug(fmt.Sprintf("There was a problem merging the default DDA config: %v", err), nil)
-			}
-		},
 		// Configure metadata
 		func(state map[string]interface{}, opts ...pulumi.ResourceOption) {
-			if state["metadata"] == nil {
-				state["metadata"] = map[string]interface{}{
-					"name":      d.opts.DDAConfig.Name,
-					"namespace": d.opts.Namespace,
-				}
+			defaultMetadata := map[string]interface{}{
+				"name":      d.opts.DDAConfig.Name,
+				"namespace": d.opts.Namespace,
 			}
-			state["metadata"].(map[string]interface{})["namespace"] = d.opts.Namespace
-
-			state["metadata"].(map[string]interface{})["name"] = d.opts.DDAConfig.Name
-
-			if state["spec"].(map[string]interface{})["global"] == nil {
-				state["spec"].(map[string]interface{})["global"] = map[string]interface{}{
-					"clusterName": d.clusterName,
-				}
+			if state["metadata"] == nil {
+				state["metadata"] = defaultMetadata
 			} else {
-				state["spec"].(map[string]interface{})["global"].(map[string]interface{})["clusterName"] = d.clusterName
+				stateMetadata := state["metadata"].(map[string]interface{})
+				err := mergo.Merge(&stateMetadata, defaultMetadata)
+				if err != nil {
+					d.ctx.Log.Debug(fmt.Sprintf("Error merging DDA metadata YAML: %v", err), nil)
+				}
+
 			}
 		},
 		// Configure global
@@ -244,15 +220,9 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 				state["spec"].(map[string]interface{})["global"] = defaultGlobal
 			} else {
 				stateGlobal := state["spec"].(map[string]interface{})["global"].(map[string]interface{})
-				for k, v := range defaultGlobal {
-					if stateGlobal[k] == nil {
-						stateGlobal[k] = v
-					} else {
-						err := mergo.Map(stateGlobal[k], defaultGlobal[k])
-						if err != nil {
-							d.ctx.Log.Debug(fmt.Sprintf("Error merging YAML maps: %v", err), nil)
-						}
-					}
+				err := mergo.Map(&stateGlobal, defaultGlobal)
+				if err != nil {
+					d.ctx.Log.Debug(fmt.Sprintf("Error merging DDA global YAML: %v", err), nil)
 				}
 			}
 		},
@@ -261,25 +231,24 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 			if d.opts.FakeIntake == nil {
 				return
 			}
-			for _, section := range []string{"nodeAgent", "clusterAgent", "clusterChecksRunner"} {
-				if state["spec"].(map[string]interface{})["override"] == nil {
-					state["spec"].(map[string]interface{})["override"] = map[string]interface{}{
-						section: map[string]interface{}{
-							"env": d.fakeIntakeEnvVars(),
-						},
-					}
-				}
-				if state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] == nil {
-					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] = map[string]interface{}{
-						"env": d.fakeIntakeEnvVars(),
-					}
-				}
-				if state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"] == nil {
-					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"] = d.fakeIntakeEnvVars()
-				}
-				if state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"].([]map[string]interface{}) != nil {
-					env := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["env"].([]map[string]interface{})
-					env = append(env, d.fakeIntakeEnvVars()...)
+			fakeIntakeOverride := map[string]interface{}{
+				"nodeAgent": map[string]interface{}{
+					"env": d.fakeIntakeEnvVars(),
+				},
+				"clusterAgent": map[string]interface{}{
+					"env": d.fakeIntakeEnvVars(),
+				},
+				"clusterChecksRunner": map[string]interface{}{
+					"env": d.fakeIntakeEnvVars(),
+				},
+			}
+			if state["spec"].(map[string]interface{})["override"] == nil {
+				state["spec"].(map[string]interface{})["override"] = fakeIntakeOverride
+			} else {
+				stateOverride := state["spec"].(map[string]interface{})["override"].(map[string]interface{})
+				err := mergo.Map(&stateOverride, fakeIntakeOverride)
+				if err != nil {
+					d.ctx.Log.Debug(fmt.Sprintf("Error merging fakeintake override YAML: %v", err), nil)
 				}
 			}
 		},
@@ -288,35 +257,38 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 			if d.imagePullSecret == nil {
 				return
 			}
-			for _, section := range []string{"nodeAgent", "clusterAgent", "clusterChecksRunner"} {
-				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section]; !found {
-					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section] = map[string]interface{}{
-						"image": map[string]interface{}{
-							"pullSecrets": map[string]interface{}{
-								"name": d.imagePullSecret.Metadata.Name(),
-							},
+
+			imgPullSecretOverride := map[string]interface{}{
+				"nodeAgent": map[string]interface{}{
+					"image": map[string]interface{}{
+						"pullSecrets": map[string]interface{}{
+							"name": d.imagePullSecret.Metadata.Name(),
 						},
-					}
-				}
-				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"]; !found {
-					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"] = map[string]interface{}{
-						"pullSecrets": []map[string]interface{}{{
+					},
+				},
+				"clusterAgent": map[string]interface{}{
+					"image": map[string]interface{}{
+						"pullSecrets": map[string]interface{}{
 							"name": d.imagePullSecret.Metadata.Name(),
-						}},
-					}
-				}
-				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"]; !found {
-					state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"] = map[string]interface{}{
-						"pullSecrets": []map[string]interface{}{{
+						},
+					},
+				},
+				"clusterChecksRunner": map[string]interface{}{
+					"image": map[string]interface{}{
+						"pullSecrets": map[string]interface{}{
 							"name": d.imagePullSecret.Metadata.Name(),
-						}},
-					}
-				}
-				if _, found := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"].(map[string]interface{})["pullSecrets"]; found {
-					pullSecrets := state["spec"].(map[string]interface{})["override"].(map[string]interface{})[section].(map[string]interface{})["image"].(map[string]interface{})["pullSecrets"].([]map[string]interface{})
-					pullSecrets = append(pullSecrets, map[string]interface{}{
-						"name": d.imagePullSecret.Metadata.Name(),
-					})
+						},
+					},
+				},
+			}
+
+			if state["spec"].(map[string]interface{})["override"] == nil {
+				state["spec"].(map[string]interface{})["override"] = imgPullSecretOverride
+			} else {
+				stateOverride := state["spec"].(map[string]interface{})["override"].(map[string]interface{})
+				err := mergo.Map(&stateOverride, imgPullSecretOverride)
+				if err != nil {
+					d.ctx.Log.Debug(fmt.Sprintf("Error merging imagePullSecrets override YAML: %v", err), nil)
 				}
 			}
 		},

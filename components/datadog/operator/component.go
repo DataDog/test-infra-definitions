@@ -8,7 +8,7 @@ import (
 )
 
 // OperatorOutput is used to import the Operator component
-type OperatorOutput struct { // nolint:revive, We want to keep the name as <Component>Output
+type OperatorOutput struct {
 	components.JSONImporter
 
 	Operator compkubernetes.KubernetesObjRefOutput `pulumi:"operator"`

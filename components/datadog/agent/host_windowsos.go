@@ -243,14 +243,9 @@ func newAgentURLFinder(installerURL string, flavor string) (*agentURLFinder, err
 		return nil, err
 	}
 
-	var productName string
-	switch flavor {
-	case agentparams.BaseFlavor:
-		productName = "datadog-agent"
-	case agentparams.FIPSFlavor:
-		productName = "datadog-fips-agent"
-	default:
-		return nil, fmt.Errorf("unsupported flavor %v", flavor)
+	productName, err := getFlavorProductName(flavor)
+	if err != nil {
+		return nil, err
 	}
 
 	versions, err := getKey[map[string]interface{}](values, productName)

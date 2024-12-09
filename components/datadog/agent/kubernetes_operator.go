@@ -42,7 +42,7 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 		}
 
 		comp.LinuxClusterChecks, err = componentskube.NewKubernetesObjRef(e, baseName+"-clusterChecks", ddaParams.Namespace, "Pod", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq/v2alpha1").ToStringOutput(), map[string]string{
-			"app.kubernetes.io/instance": baseName + "-cluster-checks-runner",
+			"app.kubernetes.io/instance": ddaParams.DDAConfig.Name + "-cluster-checks-runner",
 		})
 
 		if err != nil {

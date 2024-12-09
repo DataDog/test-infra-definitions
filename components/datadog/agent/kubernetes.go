@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/components"
@@ -9,13 +10,13 @@ import (
 type KubernetesAgentOutput struct {
 	components.JSONImporter
 
-	LinuxNodeAgent     KubernetesObjRefOutput `json:"linuxNodeAgent"`
-	LinuxClusterAgent  KubernetesObjRefOutput `json:"linuxClusterAgent"`
-	LinuxClusterChecks KubernetesObjRefOutput `json:"linuxClusterChecks"`
+	LinuxNodeAgent     kubernetes.KubernetesObjRefOutput `json:"linuxNodeAgent"`
+	LinuxClusterAgent  kubernetes.KubernetesObjRefOutput `json:"linuxClusterAgent"`
+	LinuxClusterChecks kubernetes.KubernetesObjRefOutput `json:"linuxClusterChecks"`
 
-	WindowsNodeAgent     KubernetesObjRefOutput `json:"windowsNodeAgent"`
-	WindowsClusterAgent  KubernetesObjRefOutput `json:"windowsClusterAgent"`
-	WindowsClusterChecks KubernetesObjRefOutput `json:"windowsClusterChecks"`
+	WindowsNodeAgent     kubernetes.KubernetesObjRefOutput `json:"windowsNodeAgent"`
+	WindowsClusterAgent  kubernetes.KubernetesObjRefOutput `json:"windowsClusterAgent"`
+	WindowsClusterChecks kubernetes.KubernetesObjRefOutput `json:"windowsClusterChecks"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
@@ -23,13 +24,13 @@ type KubernetesAgent struct {
 	pulumi.ResourceState
 	components.Component
 
-	LinuxNodeAgent     *KubernetesObjectRef `pulumi:"linuxNodeAgent"`
-	LinuxClusterAgent  *KubernetesObjectRef `pulumi:"linuxClusterAgent"`
-	LinuxClusterChecks *KubernetesObjectRef `pulumi:"linuxClusterChecks"`
+	LinuxNodeAgent     *kubernetes.KubernetesObjectRef `pulumi:"linuxNodeAgent"`
+	LinuxClusterAgent  *kubernetes.KubernetesObjectRef `pulumi:"linuxClusterAgent"`
+	LinuxClusterChecks *kubernetes.KubernetesObjectRef `pulumi:"linuxClusterChecks"`
 
-	WindowsNodeAgent     *KubernetesObjectRef `pulumi:"windowsNodeAgent"`
-	WindowsClusterAgent  *KubernetesObjectRef `pulumi:"windowsClusterAgent"`
-	WindowsClusterChecks *KubernetesObjectRef `pulumi:"windowsClusterChecks"`
+	WindowsNodeAgent     *kubernetes.KubernetesObjectRef `pulumi:"windowsNodeAgent"`
+	WindowsClusterAgent  *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterAgent"`
+	WindowsClusterChecks *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterChecks"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {

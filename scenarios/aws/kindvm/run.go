@@ -15,6 +15,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/operator"
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -132,11 +133,19 @@ agents:
 			operatorparams.WithNamespace("datadog"),
 		)
 
+		operatorComp, err := operator.NewOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator"), kindKubeProvider, operatorOpts...)
+		if err != nil {
+			return err
+		}
+
+		if err := operatorComp.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
+
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(
 			ddaOptions,
 			agentwithoperatorparams.WithNamespace("datadog"),
-			agentwithoperatorparams.WithTLSKubeletVerify(false),
 		)
 
 		if fakeIntake != nil {
@@ -146,7 +155,7 @@ agents:
 			)
 		}
 
-		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
+		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, ddaOptions...)
 
 		if err != nil {
 			return err

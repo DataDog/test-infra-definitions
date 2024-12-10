@@ -167,6 +167,9 @@ func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, erro
 
 		return true
 	})
+	if err != nil {
+		return "", err
+	}
 
 	return url, nil
 }

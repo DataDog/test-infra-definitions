@@ -152,13 +152,8 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 }
 
 func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, error) {
-	productName, err := getFlavorProductName(version.Flavor)
-	if err != nil {
-		return "", err
-	}
-
 	url, err := getPipelineArtifact(version.PipelineID, "dd-agent-mstesting", version.Major, func(artifact string) bool {
-		if !strings.Contains(artifact, fmt.Sprintf("%s-%s", productName, version.Major)) {
+		if !strings.Contains(artifact, fmt.Sprintf("%s-%s", version.Flavor, version.Major)) {
 			return false
 		}
 		if !strings.HasSuffix(artifact, ".msi") {
@@ -172,20 +167,6 @@ func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, erro
 	}
 
 	return url, nil
-}
-
-func getFlavorProductName(flavor string) (string, error) {
-	if flavor == "" {
-		flavor = agentparams.DefaultFlavor
-	}
-	switch flavor {
-	case agentparams.BaseFlavor:
-		return "datadog-agent", nil
-	case agentparams.FIPSFlavor:
-		return "datadog-fips-agent", nil
-	default:
-		return "", fmt.Errorf("unknown flavor %v", flavor)
-	}
 }
 
 // getPipelineArtifact searches a public S3 bucket for a given artifact from a Gitlab pipeline
@@ -247,12 +228,7 @@ func newAgentURLFinder(installerURL string, flavor string) (*agentURLFinder, err
 		return nil, err
 	}
 
-	productName, err := getFlavorProductName(flavor)
-	if err != nil {
-		return nil, err
-	}
-
-	versions, err := getKey[map[string]interface{}](values, productName)
+	versions, err := getKey[map[string]interface{}](values, flavor)
 	if err != nil {
 		return nil, err
 	}

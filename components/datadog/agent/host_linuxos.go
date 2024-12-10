@@ -46,12 +46,8 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		}
 	}
 
-	if version.Flavor == "" {
-		version.Flavor = agentparams.DefaultFlavor
-	}
-	switch version.Flavor {
-	case agentparams.FIPSFlavor:
-		// TODO: Add FIPS support
+	if version.Flavor != "" {
+		testEnvVars = append(testEnvVars, "DD_AGENT_FLAVOR=%s", version.Flavor)
 	}
 
 	commandLine = strings.Join(testEnvVars, " ")

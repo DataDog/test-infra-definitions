@@ -67,6 +67,8 @@ def setup(
         setup_azure_config(config)
         # Gcp config
         setup_gcp_config(config)
+        # Local config
+        setup_local_config(config)
         # Agent config
         setupAgentConfig(config)
         # Pulumi config
@@ -277,7 +279,7 @@ def aws_sso(ctx: Context, config_path: Optional[str] = None):
 
 def setup_azure_config(config: Config):
     if config.configParams is None:
-        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None)
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None, local=None)
     if config.configParams.azure is None:
         config.configParams.azure = Config.Params.Azure(publicKeyPath=None)
 
@@ -304,7 +306,7 @@ def setup_azure_config(config: Config):
 
 def setup_gcp_config(config: Config):
     if config.configParams is None:
-        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None)
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None, local=None)
     if config.configParams.gcp is None:
         config.configParams.gcp = Config.Params.GCP(publicKeyPath=None)
 
@@ -327,6 +329,29 @@ def setup_gcp_config(config: Config):
     default_account = ask(f"🔑 Default account to use, default [{config.configParams.gcp.account}]: ")
     if default_account:
         config.configParams.gcp.account = default_account
+
+
+def setup_local_config(config: Config):
+    if config.configParams is None:
+        config.configParams = Config.Params(aws=None, agent=None, pulumi=None, azure=None, gcp=None, local=None)
+    if config.configParams.local is None:
+        config.configParams.local = Config.Params.Local(publicKeyPath=None)
+
+    # local public key path
+    if config.configParams.local.publicKeyPath is None:
+        config.configParams.local.publicKeyPath = str(Path.home().joinpath(".ssh", "id_ed25519.pub").absolute())
+    default_public_key_path = config.configParams.local.publicKeyPath
+    while True:
+        config.configParams.local.publicKeyPath = default_public_key_path
+        public_key_path = ask(
+            f"🔑 Path to your public ssh key for local provisioners: (default: [{config.configParams.local.publicKeyPath}])"
+        )
+        if public_key_path:
+            config.configParams.local.publicKeyPath = public_key_path
+
+        if os.path.isfile(config.configParams.local.publicKeyPath):
+            break
+        warn(f"{config.configParams.local.publicKeyPath} is not a valid ssh key")
 
 
 def setupAgentConfig(config):

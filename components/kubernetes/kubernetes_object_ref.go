@@ -7,7 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components"
 )
 
-type KubernetesObjRefOutput struct { // nolint:revive, We want to keep the name as <Component>Output
+type KubernetesObjRefOutput struct { // nolint:revive, We want to keep the name as <Component>ObjRefOutput
 	components.JSONImporter
 
 	Namespace      string            `json:"namespace"`
@@ -18,7 +18,7 @@ type KubernetesObjRefOutput struct { // nolint:revive, We want to keep the name 
 	LabelSelectors map[string]string `json:"labelSelectors"`
 }
 
-type KubernetesObjectRef struct { // nolint:revive, We want to keep the name as <Component>Output
+type KubernetesObjectRef struct { // nolint:revive, We want to keep the name as <Component>ObjectRef
 	pulumi.ResourceState
 	components.Component
 

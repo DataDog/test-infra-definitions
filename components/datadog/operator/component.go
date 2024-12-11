@@ -11,7 +11,7 @@ import (
 type OperatorOutput struct { // nolint:revive, We want to keep the name as <Component>Output
 	components.JSONImporter
 
-	Operator compkubernetes.KubernetesObjRefOutput `pulumi:"operator"`
+	Operator compkubernetes.KubernetesObjRefOutput `json:"operator"`
 }
 
 // Operator represents an Operator installation

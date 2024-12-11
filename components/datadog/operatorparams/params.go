@@ -51,8 +51,10 @@ func WithOperatorFullImagePath(path string) func(*Params) error {
 	}
 }
 
-// WithHelmValues adds helm values to the agent installation. If used several times, the helm values are merged together
+// WithHelmValues adds helm values to the operator installation. If used several times, the helm values are merged together
 // If the same values is defined several times the latter call will override the previous one.
+// Accepts a string for single-line values (e.g. installCRDs: true) or a string literal in yaml format
+// for multi-line values
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
 		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))

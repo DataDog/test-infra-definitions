@@ -78,6 +78,10 @@ func Run(ctx *pulumi.Context) error {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 		}
 
+		if awsEnv.AgentUseDualShipping() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+		}
+
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}
@@ -109,6 +113,10 @@ agents:
 				k8sAgentOptions,
 				kubernetesagentparams.WithFakeintake(fakeIntake),
 			)
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)

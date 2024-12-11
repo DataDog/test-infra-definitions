@@ -46,6 +46,10 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		}
 	}
 
+	if version.Flavor != "" {
+		testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_FLAVOR=%s", version.Flavor))
+	}
+
 	commandLine = strings.Join(testEnvVars, " ")
 
 	return fmt.Sprintf(

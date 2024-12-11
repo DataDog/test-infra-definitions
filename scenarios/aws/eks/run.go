@@ -51,6 +51,10 @@ func Run(ctx *pulumi.Context) error {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 		}
 
+		if awsEnv.AgentUseDualShipping() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+		}
+
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
 			return err
 		}
@@ -69,6 +73,10 @@ func Run(ctx *pulumi.Context) error {
 
 		if awsEnv.AgentUseFakeintake() {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeIntake))
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
 		if awsEnv.EKSWindowsNodeGroup() {

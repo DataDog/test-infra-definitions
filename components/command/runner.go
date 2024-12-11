@@ -232,8 +232,7 @@ func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOp
 }
 
 func (r *LocalRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	// TODO
-	return nil, nil
+	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 
 func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {

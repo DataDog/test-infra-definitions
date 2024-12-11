@@ -34,7 +34,7 @@ type Instance struct {
 	instance      *remoteComp.Host
 	Arch          string
 	instanceNamer namer.Namer
-	runner        *Runner
+	runner        command.Runner
 	libvirtURI    pulumi.StringOutput
 }
 
@@ -192,9 +192,9 @@ func configureInstance(instance *Instance, m *config.DDMicroVMConfig) ([]pulumi.
 		OSCommand: osCommand,
 	})
 	if instance.Arch != LocalVMSet {
-		instance.runner = NewRunner(WithRemoteRunner(instance.instance.OS.Runner()))
+		instance.runner = instance.instance.OS.Runner()
 	} else {
-		instance.runner = NewRunner(WithLocalRunner(localRunner))
+		instance.runner = localRunner
 	}
 
 	shouldProvision := m.GetBoolWithDefault(m.MicroVMConfig, config.DDMicroVMProvisionEC2Instance, true)

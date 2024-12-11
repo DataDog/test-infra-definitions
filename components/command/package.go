@@ -26,7 +26,7 @@ func NewGenericPackageManager(
 	env pulumi.StringMap,
 ) *GenericPackageManager {
 	packageManager := &GenericPackageManager{
-		namer:      namer.NewNamer(runner.e.Ctx(), name),
+		namer:      namer.NewNamer(runner.Environment().Ctx(), name),
 		runner:     runner,
 		installCmd: installCmd,
 		updateCmd:  updateCmd,

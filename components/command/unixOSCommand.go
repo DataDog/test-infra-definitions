@@ -72,17 +72,17 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 	return strings.HasPrefix(path, "/")
 }
 
-func (fs unixOSCommand) NewCopyFile(runner *RemoteRunner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (fs unixOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	tempRemotePath := localPath.ToStringOutput().ApplyT(func(path string) string {
-		return filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(path))
+		return filepath.Join(runner.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
 
-	tempCopyFile, err := remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
-		Connection: runner.config.connection,
+	tempCopyFile, err := remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
+		Connection: runner.Config().connection,
 		LocalPath:  localPath,
 		RemotePath: tempRemotePath,
 		Triggers:   pulumi.Array{localPath, tempRemotePath},
-	}, utils.MergeOptions(runner.options, opts...)...)
+	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
 
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool,
 	return formattedCommand
 }
 
-func (fs unixOSCommand) moveRemoteFile(runner *RemoteRunner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fs unixOSCommand) moveRemoteFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
 	copyCommand := pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
 	createCommand := pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)

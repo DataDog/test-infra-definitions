@@ -32,7 +32,7 @@ func DeployCRD(e config.Env, kubeProvider *kubernetes.Provider, opts ...pulumi.R
 			},
 			Versions: &apiextensions.CustomResourceDefinitionVersionArray{
 				&apiextensions.CustomResourceDefinitionVersionArgs{
-					Name:    pulumi.String("v1"),
+					Name:    pulumi.String("v1beta2"),
 					Served:  pulumi.Bool(true),
 					Storage: pulumi.Bool(true),
 					Schema: &apiextensions.CustomResourceValidationArgs{

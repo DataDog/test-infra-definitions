@@ -251,7 +251,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		}
 
 		if _, err := apiextensions.NewCustomResource(e.Ctx(), "redis", &apiextensions.CustomResourceArgs{
-			ApiVersion: pulumi.String("autoscaling.k8s.io/v1"),
+			ApiVersion: pulumi.String("autoscaling.k8s.io/v1beta2"),
 			Kind:       pulumi.String("VerticalPodAutoscaler"),
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),

@@ -7,7 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-func newLinuxOS(e config.Env, desc Descriptor, runner *command.RemoteRunner) OS {
+func newLinuxOS(e config.Env, desc Descriptor, runner command.Runner) OS {
 	os := &os{
 		descriptor:  desc,
 		runner:      runner,

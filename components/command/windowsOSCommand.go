@@ -78,11 +78,11 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	return false
 }
 
-func (fs windowsOSCommand) NewCopyFile(runner *RemoteRunner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
-		Connection: runner.config.connection,
+func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
+		Connection: runner.Config().connection,
 		LocalPath:  localPath,
 		RemotePath: remotePath,
 		Triggers:   pulumi.Array{localPath, remotePath},
-	}, utils.MergeOptions(runner.options, opts...)...)
+	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
 }

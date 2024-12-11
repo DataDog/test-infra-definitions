@@ -55,10 +55,37 @@ type runnerConfiguration struct {
 
 type Command interface {
 	pulumi.Resource
+
+	Stdout() pulumi.StringOutput
+	Stderr() pulumi.StringOutput
 }
 
-var _ Command = &remote.Command{}
-var _ Command = &local.Command{}
+type LocalCommand struct {
+	local.Command
+}
+
+type RemoteCommand struct {
+	remote.Command
+}
+
+var _ Command = &RemoteCommand{}
+var _ Command = &LocalCommand{}
+
+func (c *LocalCommand) Stdout() pulumi.StringOutput {
+	return c.Stdout()
+}
+
+func (c *LocalCommand) Stderr() pulumi.StringOutput {
+	return c.Stderr()
+}
+
+func (c *RemoteCommand) Stdout() pulumi.StringOutput {
+	return c.Stdout()
+}
+
+func (c *RemoteCommand) Stderr() pulumi.StringOutput {
+	return c.Stderr()
+}
 
 type Runner interface {
 	Environment() config.Env
@@ -68,6 +95,7 @@ type Runner interface {
 
 	Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error)
 	NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	PulumiOptions() []pulumi.ResourceOption
 }
 
 var _ Runner = &RemoteRunner{}
@@ -76,7 +104,7 @@ var _ Runner = &LocalRunner{}
 type RemoteRunner struct {
 	e           config.Env
 	namer       namer.Namer
-	waitCommand *remote.Command
+	waitCommand Command
 	config      runnerConfiguration
 	osCommand   OSCommand
 	options     []pulumi.ResourceOption
@@ -149,6 +177,10 @@ func (r *RemoteRunner) NewCopyFile(name string, localPath, remotePath pulumi.Str
 	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 
+func (r *RemoteRunner) PulumiOptions() []pulumi.ResourceOption {
+	return r.options
+}
+
 type LocalRunner struct {
 	e         config.Env
 	namer     namer.Namer
@@ -198,4 +230,8 @@ func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOp
 func (r *LocalRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	// TODO
 	return nil, nil
+}
+
+func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {
+	return []pulumi.ResourceOption{}
 }

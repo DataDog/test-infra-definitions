@@ -54,8 +54,17 @@ func Run(ctx *pulumi.Context) error {
 			)
 		}
 
+		if env.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
+		}
+
 		if env.AgentUseFakeintake() {
-			fakeintake, err := fakeintake.NewVMInstance(env)
+			fakeIntakeOptions := []fakeintake.Option{}
+			if env.AgentUseDualShipping() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+			}
+
+			fakeintake, err := fakeintake.NewVMInstance(env, fakeIntakeOptions...)
 			if err != nil {
 				return err
 			}

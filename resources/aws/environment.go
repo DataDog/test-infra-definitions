@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"regexp"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -77,6 +79,8 @@ type Environment struct {
 	randomLBIdx   pulumi.IntOutput
 	randomECSArn  pulumi.StringOutput
 }
+
+var registryIDCheck, _ = regexp.Compile("^[0-9]{12}")
 
 var _ config.Env = (*Environment)(nil)
 
@@ -165,6 +169,11 @@ func (e *Environment) InternalDockerhubMirror() string {
 // Check if the image exists in the internal registry
 func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, error) {
 
+	if !registryIDCheck.MatchString(image) {
+		// Return true as most likely not an ECR Docker image
+		return true, nil
+	}
+
 	cfg, err := awsConfig.LoadDefaultConfig(e.Ctx().Context(),
 		awsConfig.WithRegion(e.Region()),
 		awsConfig.WithSharedConfigProfile(e.Profile()),
@@ -185,6 +194,11 @@ func (e *Environment) InternalRegistryImageTagExists(image, tag string) (bool, e
 	}
 
 	return true, nil
+}
+
+func (e *Environment) InternalRegistryFullImagePathExists(fullImagePath string) (bool, error) {
+	image, tag := utils.ParseImageReference(fullImagePath)
+	return e.InternalRegistryImageTagExists(image, tag)
 }
 
 // Common

@@ -53,6 +53,11 @@ func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) 
 	return true, nil
 }
 
+// InternalRegistryFullImagePathExists returns true if the image and tag exists in the internal registry.
+func (e *Environment) InternalRegistryFullImagePathExists(_ string) (bool, error) {
+	return true, nil
+}
+
 // Common
 func (e *Environment) DefaultPublicKeyPath() string {
 	return e.InfraConfig.Get(DDInfraDefaultPublicKeyPath)

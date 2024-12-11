@@ -10,7 +10,7 @@ import (
 )
 
 type Runner struct {
-	remoteRunner *command.Runner
+	remoteRunner *command.RemoteRunner
 	localRunner  *command.LocalRunner
 }
 
@@ -24,7 +24,7 @@ func NewRunner(options ...func(*Runner)) *Runner {
 	return &runner
 }
 
-func WithRemoteRunner(runner *command.Runner) func(*Runner) {
+func WithRemoteRunner(runner *command.RemoteRunner) func(*Runner) {
 	return func(a *Runner) {
 		a.remoteRunner = runner
 	}
@@ -61,7 +61,7 @@ func (a *Runner) LocalCommand(name string, args *command.Args, opts ...pulumi.Re
 	return a.localRunner.Command(name, args, opts...)
 }
 
-func (a *Runner) GetRemoteRunner() (*command.Runner, error) {
+func (a *Runner) GetRemoteRunner() (*command.RemoteRunner, error) {
 	if a.remoteRunner == nil {
 		return nil, errors.New("remote runner not initialized")
 	}

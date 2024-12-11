@@ -5,7 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 )
 
-func newWindowsOS(e config.Env, desc Descriptor, runner *command.Runner) OS {
+func newWindowsOS(e config.Env, desc Descriptor, runner *command.RemoteRunner) OS {
 	os := &os{
 		descriptor:     desc,
 		runner:         runner,

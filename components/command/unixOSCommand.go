@@ -27,12 +27,12 @@ func NewUnixOSCommand() OSCommand {
 
 // CreateDirectory if it does not exist
 func (unixOSCommand) CreateDirectory(
-	runner *Runner,
+	runner Runner,
 	name string,
 	remotePath pulumi.StringInput,
 	useSudo bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (Command, error) {
 	createCmd := fmt.Sprintf("mkdir -p %v", remotePath)
 	deleteCmd := fmt.Sprintf(`bash -c 'if [ -z "$(ls -A %v)" ]; then rm -d %v; fi'`, remotePath, remotePath)
 	// check if directory already exist
@@ -72,7 +72,7 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 	return strings.HasPrefix(path, "/")
 }
 
-func (fs unixOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (fs unixOSCommand) NewCopyFile(runner *RemoteRunner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	tempRemotePath := localPath.ToStringOutput().ApplyT(func(path string) string {
 		return filepath.Join(runner.osCommand.GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
@@ -117,7 +117,7 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool,
 	return formattedCommand
 }
 
-func (fs unixOSCommand) moveRemoteFile(runner *Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fs unixOSCommand) moveRemoteFile(runner *RemoteRunner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
 	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
 	copyCommand := pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
 	createCommand := pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)

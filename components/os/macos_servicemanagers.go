@@ -11,10 +11,10 @@ import (
 
 type macOSServiceManager struct {
 	e      config.Env
-	runner *command.Runner
+	runner *command.RemoteRunner
 }
 
-func newMacOSServiceManager(e config.Env, runner *command.Runner) ServiceManager {
+func newMacOSServiceManager(e config.Env, runner *command.RemoteRunner) ServiceManager {
 	return &macOSServiceManager{e: e, runner: runner}
 }
 

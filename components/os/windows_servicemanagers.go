@@ -9,10 +9,10 @@ import (
 
 type windowsServiceManager struct {
 	e      config.Env
-	runner *command.Runner
+	runner *command.RemoteRunner
 }
 
-func newWindowsServiceManager(e config.Env, runner *command.Runner) ServiceManager {
+func newWindowsServiceManager(e config.Env, runner *command.RemoteRunner) ServiceManager {
 	return &windowsServiceManager{e: e, runner: runner}
 }
 

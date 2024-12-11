@@ -29,7 +29,7 @@ type ServiceManager interface {
 type OS interface {
 	Descriptor() Descriptor
 
-	Runner() *command.Runner
+	Runner() *command.RemoteRunner
 	FileManager() *command.FileManager
 	PackageManager() PackageManager
 	ServiceManger() ServiceManager
@@ -40,7 +40,7 @@ var _ OS = &os{}
 // os is a generic implementation of OS interface
 type os struct {
 	descriptor     Descriptor
-	runner         *command.Runner
+	runner         *command.RemoteRunner
 	fileManager    *command.FileManager
 	packageManager PackageManager
 	serviceManager ServiceManager
@@ -50,7 +50,7 @@ func (o os) Descriptor() Descriptor {
 	return o.descriptor
 }
 
-func (o os) Runner() *command.Runner {
+func (o os) Runner() *command.RemoteRunner {
 	return o.runner
 }
 
@@ -69,7 +69,7 @@ func (o os) ServiceManger() ServiceManager {
 func NewOS(
 	e config.Env,
 	descriptor Descriptor,
-	runner *command.Runner,
+	runner *command.RemoteRunner,
 ) OS {
 	switch descriptor.Family() {
 	case LinuxFamily:

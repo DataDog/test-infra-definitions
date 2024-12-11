@@ -53,7 +53,27 @@ type runnerConfiguration struct {
 	connection remote.ConnectionInput
 }
 
-type Runner struct {
+type Command interface {
+	pulumi.Resource
+}
+
+var _ Command = &remote.Command{}
+var _ Command = &local.Command{}
+
+type Runner interface {
+	Environment() config.Env
+	Namer() namer.Namer
+	Config() runnerConfiguration
+	OsCommand() OSCommand
+
+	Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error)
+	NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+}
+
+var _ Runner = &RemoteRunner{}
+var _ Runner = &LocalRunner{}
+
+type RemoteRunner struct {
 	e           config.Env
 	namer       namer.Namer
 	waitCommand *remote.Command
@@ -62,7 +82,7 @@ type Runner struct {
 	options     []pulumi.ResourceOption
 }
 
-type RunnerArgs struct {
+type RemoteRunnerArgs struct {
 	ParentResource pulumi.Resource
 	ConnectionName string
 	Connection     remote.ConnectionInput
@@ -71,8 +91,8 @@ type RunnerArgs struct {
 	OSCommand      OSCommand
 }
 
-func NewRunner(e config.Env, args RunnerArgs) (*Runner, error) {
-	runner := &Runner{
+func NewRemoteRunner(e config.Env, args RemoteRunnerArgs) (*RemoteRunner, error) {
+	runner := &RemoteRunner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx(), "remote").WithPrefix(args.ConnectionName),
 		config: runnerConfiguration{
@@ -101,7 +121,23 @@ func NewRunner(e config.Env, args RunnerArgs) (*Runner, error) {
 	return runner, nil
 }
 
-func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (r *RemoteRunner) Environment() config.Env {
+	return r.e
+}
+
+func (r *RemoteRunner) Namer() namer.Namer {
+	return r.namer
+}
+
+func (r *RemoteRunner) Config() runnerConfiguration {
+	return r.config
+}
+
+func (r *RemoteRunner) OsCommand() OSCommand {
+	return r.osCommand
+}
+
+func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error) {
 	if args.Sudo && r.config.user != "" {
 		r.e.Ctx().Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
@@ -109,7 +145,7 @@ func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption)
 	return remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
 }
 
-func (r *Runner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *RemoteRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 
@@ -138,7 +174,28 @@ func NewLocalRunner(e config.Env, args LocalRunnerArgs) *LocalRunner {
 	return localRunner
 }
 
-func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
+func (r *LocalRunner) Environment() config.Env {
+	return r.e
+}
+
+func (r *LocalRunner) Namer() namer.Namer {
+	return r.namer
+}
+
+func (r *LocalRunner) Config() runnerConfiguration {
+	return r.config
+}
+
+func (r *LocalRunner) OsCommand() OSCommand {
+	return r.osCommand
+}
+
+func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error) {
 	opts = utils.MergeOptions[pulumi.ResourceOption](opts, r.e.WithProviders(config.ProviderCommand))
 	return local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
+}
+
+func (r *LocalRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	// TODO
+	return nil, nil
 }

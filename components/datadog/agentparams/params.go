@@ -108,6 +108,16 @@ func WithVersion(version string) func(*Params) error {
 	}
 }
 
+// WithFlavor use a specific flavor of the Agent. For example: `datadog-fips-agent`
+//
+// See PackageFlavor https://github.com/DataDog/agent-release-management/blob/main/generator/const.py
+func WithFlavor(flavor string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Flavor = flavor
+		return nil
+	}
+}
+
 // WithPipeline use a specific version of the Agent by pipeline id
 func WithPipeline(pipelineID string) func(*Params) error {
 	return func(p *Params) error {

@@ -56,8 +56,8 @@ type runnerConfiguration struct {
 type Command interface {
 	pulumi.Resource
 
-	Stdout() pulumi.StringOutput
-	Stderr() pulumi.StringOutput
+	StdoutOutput() pulumi.StringOutput
+	StderrOutput() pulumi.StringOutput
 }
 
 type LocalCommand struct {
@@ -71,20 +71,20 @@ type RemoteCommand struct {
 var _ Command = &RemoteCommand{}
 var _ Command = &LocalCommand{}
 
-func (c *LocalCommand) Stdout() pulumi.StringOutput {
-	return c.Stdout()
+func (c *LocalCommand) StdoutOutput() pulumi.StringOutput {
+	return c.Command.Stdout
 }
 
-func (c *LocalCommand) Stderr() pulumi.StringOutput {
-	return c.Stderr()
+func (c *LocalCommand) StderrOutput() pulumi.StringOutput {
+	return c.Command.Stderr
 }
 
-func (c *RemoteCommand) Stdout() pulumi.StringOutput {
-	return c.Stdout()
+func (c *RemoteCommand) StdoutOutput() pulumi.StringOutput {
+	return c.Command.Stdout
 }
 
-func (c *RemoteCommand) Stderr() pulumi.StringOutput {
-	return c.Stderr()
+func (c *RemoteCommand) StderrOutput() pulumi.StringOutput {
+	return c.Command.Stderr
 }
 
 type Runner interface {
@@ -170,7 +170,9 @@ func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceO
 		r.e.Ctx().Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
 
-	return remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
+	cmd, err := remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
+
+	return &RemoteCommand{*cmd}, err
 }
 
 func (r *RemoteRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
@@ -224,7 +226,9 @@ func (r *LocalRunner) OsCommand() OSCommand {
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error) {
 	opts = utils.MergeOptions[pulumi.ResourceOption](opts, r.e.WithProviders(config.ProviderCommand))
-	return local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
+	cmd, err := local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
+
+	return &LocalCommand{*cmd}, err
 }
 
 func (r *LocalRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {

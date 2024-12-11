@@ -100,7 +100,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 
 		// Patch Kubeconfig based on private IP output
 		// Also add skip tls
-		clusterComp.KubeConfig = pulumi.All(kubeConfigCmd.Stdout, vm.Address).ApplyT(func(args []interface{}) string {
+		clusterComp.KubeConfig = pulumi.All(kubeConfigCmd.StdoutOutput(), vm.Address).ApplyT(func(args []interface{}) string {
 			allowInsecure := regexp.MustCompile("certificate-authority-data:.+").ReplaceAllString(args[0].(string), "insecure-skip-tls-verify: true")
 			return strings.ReplaceAll(allowInsecure, "0.0.0.0", args[1].(string))
 		}).(pulumi.StringOutput)
@@ -161,7 +161,7 @@ func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts .
 			return err
 		}
 
-		clusterComp.KubeConfig = kubeConfigCmd.Stdout
+		clusterComp.KubeConfig = kubeConfigCmd.StdoutOutput()
 		clusterComp.ClusterName = kindClusterName.ToStringOutput()
 
 		return nil

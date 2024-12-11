@@ -3,7 +3,6 @@ package command
 import (
 	"strings"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -13,11 +12,11 @@ type OSCommand interface {
 	GetHomeDirectory() string
 
 	CreateDirectory(
-		runner *Runner,
+		runner Runner,
 		resourceName string,
 		remotePath pulumi.StringInput,
 		useSudo bool,
-		opts ...pulumi.ResourceOption) (*remote.Command, error)
+		opts ...pulumi.ResourceOption) (Command, error)
 
 	BuildCommandString(
 		command pulumi.StringInput,
@@ -28,7 +27,7 @@ type OSCommand interface {
 
 	IsPathAbsolute(path string) bool
 
-	NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	NewCopyFile(runner *RemoteRunner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 // ------------------------------
@@ -38,13 +37,13 @@ type OSCommand interface {
 const backupExtension = "pulumi.backup"
 
 func createDirectory(
-	runner *Runner,
+	runner Runner,
 	name string,
 	createCmd string,
 	deleteCmd string,
 	useSudo bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (Command, error) {
 	// If the folder was previously created, make sure to delete it before creating it.
 	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 	return runner.Command(name,
@@ -73,13 +72,13 @@ func buildCommandString(
 }
 
 func copyRemoteFile(
-	runner *Runner,
+	runner Runner,
 	name string,
 	createCommand pulumi.StringInput,
 	deleteCommand pulumi.StringInput,
 	useSudo bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (Command, error) {
 	return runner.Command(name,
 		&Args{
 			Create:   createCommand,

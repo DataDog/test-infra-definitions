@@ -11,10 +11,10 @@ import (
 
 type systemdServiceManager struct {
 	e      config.Env
-	runner *command.Runner
+	runner *command.RemoteRunner
 }
 
-func newSystemdServiceManager(e config.Env, runner *command.Runner) ServiceManager {
+func newSystemdServiceManager(e config.Env, runner *command.RemoteRunner) ServiceManager {
 	return &systemdServiceManager{e: e, runner: runner}
 }
 
@@ -35,10 +35,10 @@ func (s *systemdServiceManager) EnsureRestarted(serviceName string, transform co
 
 type sysvinitServiceManager struct {
 	e      config.Env
-	runner *command.Runner
+	runner *command.RemoteRunner
 }
 
-func newSysvinitServiceManager(e config.Env, runner *command.Runner) ServiceManager {
+func newSysvinitServiceManager(e config.Env, runner *command.RemoteRunner) ServiceManager {
 	return &sysvinitServiceManager{e: e, runner: runner}
 }
 

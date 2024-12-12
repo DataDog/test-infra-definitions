@@ -4,7 +4,7 @@ go 1.22.5
 
 require (
 	dario.cat/mergo v1.0.1
-	github.com/DataDog/datadog-agent/pkg/util/optional v0.59.0
+	github.com/DataDog/datadog-agent/pkg/util/optional v0.59.1
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2 v1.32.2
@@ -27,7 +27,7 @@ require (
 	github.com/pulumi/pulumi-eks/sdk/v3 v3.3.0
 	github.com/pulumi/pulumi-gcp/sdk/v7 v7.38.0
 	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.18.3
-	github.com/pulumi/pulumi-libvirt/sdk v0.4.7
+	github.com/pulumi/pulumi-libvirt/sdk v0.5.3
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.7
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
 	github.com/pulumi/pulumi/sdk/v3 v3.140.0

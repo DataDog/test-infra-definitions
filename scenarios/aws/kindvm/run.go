@@ -18,6 +18,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
@@ -64,6 +65,10 @@ func Run(ctx *pulumi.Context) error {
 		DeleteUnreachable:     pulumi.BoolPtr(true),
 	})
 	if err != nil {
+		return err
+	}
+
+	if _, err := vpa.DeployCRD(&awsEnv, kindKubeProvider); err != nil {
 		return err
 	}
 

@@ -1,14 +1,13 @@
 package redis
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/Masterminds/semver"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apiextensions"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	autoscalingv2 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/autoscaling/v2"
 	autoscalingv2beta2 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/autoscaling/v2beta2"
@@ -16,7 +15,6 @@ import (
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	policyv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/policy/v1"
 	policyv1beta1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/policy/v1beta1"
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/yaml"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -157,21 +155,19 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	}
 
 	if withDatadogAutoscaling {
-		ddm, err := yaml.NewConfigGroup(e.Ctx(), "redis", &yaml.ConfigGroupArgs{
-			Objs: []map[string]any{
-				{
-					"apiVersion": "datadoghq.com/v1alpha1",
-					"kind":       "DatadogMetric",
-					"metadata": map[string]any{
-						"name":      "redis",
-						"namespace": namespace,
-						"labels": map[string]string{
-							"app": "redis",
-						},
-					},
-					"spec": map[string]any{
-						"query": fmt.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace),
-					},
+		ddm, err := apiextensions.NewCustomResource(e.Ctx(), "redis", &apiextensions.CustomResourceArgs{
+			ApiVersion: pulumi.String("datadoghq.com/v1alpha1"),
+			Kind:       pulumi.String("DatadogMetric"),
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("redis"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("redis"),
+				},
+			},
+			OtherFields: map[string]interface{}{
+				"spec": pulumi.Map{
+					"query": pulumi.Sprintf("avg:redis.net.instantaneous_ops_per_sec{kube_cluster_name:%%%%tag_kube_cluster_name%%%%,kube_namespace:%s,kube_deployment:redis}.rollup(60)", namespace),
 				},
 			},
 		}, opts...)
@@ -254,6 +250,31 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 			}
 		}
 
+		if _, err := apiextensions.NewCustomResource(e.Ctx(), "redis", &apiextensions.CustomResourceArgs{
+			ApiVersion: pulumi.String("autoscaling.k8s.io/v1beta2"),
+			Kind:       pulumi.String("VerticalPodAutoscaler"),
+			Metadata: &metav1.ObjectMetaArgs{
+				Name:      pulumi.String("redis"),
+				Namespace: pulumi.String(namespace),
+				Labels: pulumi.StringMap{
+					"app": pulumi.String("redis"),
+				},
+			},
+			OtherFields: map[string]interface{}{
+				"spec": pulumi.Map{
+					"targetRef": pulumi.Map{
+						"apiVersion": pulumi.String("apps/v1"),
+						"kind":       pulumi.String("Deployment"),
+						"name":       pulumi.String("redis"),
+					},
+					"updatePolicy": pulumi.Map{
+						"updateMode": pulumi.String("Auto"),
+					},
+				},
+			},
+		}, opts...); err != nil {
+			return nil, err
+		}
 	}
 
 	if _, err := corev1.NewService(e.Ctx(), "redis", &corev1.ServiceArgs{

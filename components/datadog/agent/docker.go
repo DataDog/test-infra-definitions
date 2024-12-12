@@ -127,6 +127,11 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 }
 
 func defaultAgentParams(params *dockeragentparams.Params) {
+	defer func(p *dockeragentparams.Params) {
+		if p.FIPS {
+			p.FullImagePath += "-fips"
+		}
+	}(params)
 	// After setting params.FullImagePath check if you need to use JMX Docker image
 	defer func(p *dockeragentparams.Params) {
 		if p.JMX {

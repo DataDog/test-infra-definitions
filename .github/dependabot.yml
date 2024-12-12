@@ -93,8 +93,8 @@ updates:
     groups:
       aws-sdk-go-v2:
         patterns:
-          - '^github\.com\/aws\/aws-sdk-go-v2'
+          - 'github.com/aws/aws-sdk-go-v2*'
       pulumi-azure-native-sdk:
         patterns:
-          - '^github\.com\/pulumi\/pulumi-azure-native-sdk'
+          - 'github.com/pulumi/pulumi-azure-native-sdk*'
       

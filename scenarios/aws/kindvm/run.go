@@ -150,10 +150,22 @@ agents:
 			return err
 		}
 
+		ddaConfig := agentwithoperatorparams.DDAConfig{
+			Name: "dda-with-operator",
+			YamlConfig: `
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+spec:
+  global:
+    kubelet:
+      tlsVerify: false
+`}
+
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(
 			ddaOptions,
 			agentwithoperatorparams.WithNamespace("datadog"),
+			agentwithoperatorparams.WithDDAConfig(ddaConfig),
 		)
 
 		if fakeIntake != nil {

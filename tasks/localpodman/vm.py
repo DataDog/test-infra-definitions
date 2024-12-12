@@ -50,7 +50,7 @@ def create_vm(
         raise Exit("The field `local.publicKeyPath` is required in the config file")
 
     extra_flags = {
-        "ddinfra:local/defaultPublicKeyPath": cfg.get_gcp().publicKeyPath,
+        "ddinfra:local/defaultPublicKeyPath": cfg.get_local().publicKeyPath,
     }
 
     full_stack_name = deploy(

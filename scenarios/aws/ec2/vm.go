@@ -12,7 +12,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/resources/aws/ec2"
 
-	goremote "github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -110,7 +109,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	})
 }
 
-func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (*goremote.Command, error) {
+func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (command.Command, error) {
 	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", nil, "")
 	if err != nil {
 		return nil, err

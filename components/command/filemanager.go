@@ -10,19 +10,18 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type FileManager struct {
-	runner  *Runner
+	runner  Runner
 	command OSCommand
 }
 
-func NewFileManager(runner *Runner) *FileManager {
+func NewFileManager(runner Runner) *FileManager {
 	return &FileManager{
 		runner:  runner,
-		command: runner.osCommand,
+		command: runner.OsCommand(),
 	}
 }
 
@@ -31,13 +30,13 @@ func (fm *FileManager) IsPathAbsolute(path string) bool {
 }
 
 // CreateDirectoryFromPulumiString if it does not exist from directory name as a Pulumi String
-func (fm *FileManager) CreateDirectoryFromPulumiString(name string, remotePath pulumi.String, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fm *FileManager) CreateDirectoryFromPulumiString(name string, remotePath pulumi.String, useSudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	return fm.command.CreateDirectory(fm.runner, name, remotePath, useSudo, opts...)
 }
 
 // CreateDirectoryForFile if the directory does not exist
 // To avoid pulumi.URN collisions if multiple files use the same directory, use the full filePath as URN and path.Split out the folderPath for creation
-func (fm *FileManager) CreateDirectoryForFile(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fm *FileManager) CreateDirectoryForFile(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	// if given just a directory path, path.Split returns "" as file
 	//  eg. path.Split("/a/b/c/") -> "/a/b/c/", ""
 	folderPath, _ := path.Split(remotePath)
@@ -45,12 +44,12 @@ func (fm *FileManager) CreateDirectoryForFile(remotePath string, useSudo bool, o
 }
 
 // CreateDirectory if it does not exist
-func (fm *FileManager) CreateDirectory(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (fm *FileManager) CreateDirectory(remotePath string, useSudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	return fm.command.CreateDirectory(fm.runner, "create-directory-"+remotePath, pulumi.String(remotePath), useSudo, opts...)
 }
 
 // TempDirectory creates a temporary directory
-func (fm *FileManager) TempDirectory(folderName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+func (fm *FileManager) TempDirectory(folderName string, opts ...pulumi.ResourceOption) (Command, string, error) {
 	tempDir := path.Join(fm.command.GetTemporaryDirectory(), folderName)
 	folderCmd, err := fm.CreateDirectory(tempDir, false, opts...)
 	return folderCmd, tempDir, err
@@ -59,7 +58,7 @@ func (fm *FileManager) TempDirectory(folderName string, opts ...pulumi.ResourceO
 // HomeDirectory creates a directory in home directory, if it does not exist
 // A home directory is a file system directory on a multi-user operating system containing files for a given user of the system.
 // It does not require sudo, using sudo in home directory allows to change default ownership and it is discouraged.
-func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceOption) (*remote.Command, string, error) {
+func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceOption) (Command, string, error) {
 	homeDir := path.Join(fm.command.GetHomeDirectory(), folderName)
 	folderCmd, err := fm.CreateDirectory(homeDir, false, opts...)
 	return folderCmd, homeDir, err

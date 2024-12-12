@@ -20,12 +20,12 @@ func NewWindowsOSCommand() OSCommand {
 
 // CreateDirectory if it does not exist
 func (fs windowsOSCommand) CreateDirectory(
-	runner *Runner,
+	runner Runner,
 	name string,
 	remotePath pulumi.StringInput,
 	_ bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (Command, error) {
 	useSudo := false
 	return createDirectory(
 		runner,
@@ -78,11 +78,11 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	return false
 }
 
-func (fs windowsOSCommand) NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return remote.NewCopyFile(runner.e.Ctx(), runner.namer.ResourceName("copy", name), &remote.CopyFileArgs{
-		Connection: runner.config.connection,
+func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
+		Connection: runner.Config().connection,
 		LocalPath:  localPath,
 		RemotePath: remotePath,
 		Triggers:   pulumi.Array{localPath, remotePath},
-	}, utils.MergeOptions(runner.options, opts...)...)
+	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
 }

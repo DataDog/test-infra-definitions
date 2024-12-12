@@ -54,8 +54,17 @@ func Run(ctx *pulumi.Context) error {
 			)
 		}
 
+		if env.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
+		}
+
 		if env.AgentUseFakeintake() {
-			fakeintake, err := fakeintake.NewVMInstance(env)
+			fakeIntakeOptions := []fakeintake.Option{}
+			if env.AgentUseDualShipping() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+			}
+
+			fakeintake, err := fakeintake.NewVMInstance(env, fakeIntakeOptions...)
 			if err != nil {
 				return err
 			}
@@ -104,15 +113,15 @@ func Run(ctx *pulumi.Context) error {
 				if _, err := dogstatsdstandalone.K8sAppDefinition(&env, cluster.KubeProvider, "dogstatsd-standalone", nil, true, ""); err != nil {
 					return err
 				}
+
+				// dogstatsd clients that report to the dogstatsd standalone deployment
+				if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnCrd); err != nil {
+					return err
+				}
 			}
 
 			// dogstatsd clients that report to the Agent
 			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnCrd); err != nil {
-				return err
-			}
-
-			// dogstatsd clients that report to the dogstatsd standalone deployment
-			if _, err := dogstatsd.K8sAppDefinition(&env, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnCrd); err != nil {
 				return err
 			}
 

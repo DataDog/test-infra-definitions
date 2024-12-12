@@ -4,7 +4,7 @@ go 1.22.5
 
 require (
 	dario.cat/mergo v1.0.1
-	github.com/DataDog/datadog-agent/pkg/util/optional v0.55.2
+	github.com/DataDog/datadog-agent/pkg/util/optional v0.59.0
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2 v1.32.2
@@ -16,21 +16,21 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.56.1
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.16.1
-	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.67.0
-	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.56.0
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.67.0
-	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.67.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.67.0
+	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.73.1
+	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.73.1
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.73.1
+	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.73.1
+	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.73.1
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.73.1
 	github.com/pulumi/pulumi-command/sdk v1.0.1
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.5
-	github.com/pulumi/pulumi-eks/sdk/v2 v2.7.8
-	github.com/pulumi/pulumi-gcp/sdk/v6 v6.67.1
+	github.com/pulumi/pulumi-eks/sdk/v3 v3.3.0
 	github.com/pulumi/pulumi-gcp/sdk/v7 v7.38.0
-	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.17.1
-	github.com/pulumi/pulumi-libvirt/sdk v0.4.7
-	github.com/pulumi/pulumi-random/sdk/v4 v4.16.6
+	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.18.3
+	github.com/pulumi/pulumi-libvirt/sdk v0.5.3
+	github.com/pulumi/pulumi-random/sdk/v4 v4.16.7
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.137.0
+	github.com/pulumi/pulumi/sdk/v3 v3.140.0
 	github.com/pulumiverse/pulumi-time/sdk v0.1.0
 	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.9.0

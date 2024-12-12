@@ -18,6 +18,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
@@ -67,6 +68,10 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	if _, err := vpa.DeployCRD(&awsEnv, kindKubeProvider); err != nil {
+		return err
+	}
+
 	var dependsOnCrd pulumi.ResourceOption
 
 	var fakeIntake *fakeintakeComp.Fakeintake
@@ -76,6 +81,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 		if awsEnv.InfraShouldDeployFakeintakeWithLB() {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 		}
 
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
@@ -109,6 +118,10 @@ agents:
 				k8sAgentOptions,
 				kubernetesagentparams.WithFakeintake(fakeIntake),
 			)
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
@@ -187,8 +200,10 @@ agents:
 		}
 
 		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
-			return err
+		if awsEnv.DogstatsdDeploy() {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+				return err
+			}
 		}
 
 		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel

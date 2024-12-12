@@ -53,12 +53,12 @@ var consoles = map[string]libvirt.DomainConsoleArgs{
 	},
 }
 
-var kernelCmdlines = []map[string]interface{}{
-	{"acpi": pulumi.String("off")},
-	{"panic": pulumi.String("-1")},
-	{"root": pulumi.String("/dev/vda")},
-	{"net.ifnames": pulumi.String("0")},
-	{"_": pulumi.String("rw")},
+var kernelCmdlines = []map[string]string{
+	{"acpi": "off"},
+	{"panic": "-1"},
+	{"root": "/dev/vda"},
+	{"net.ifnames": "0"},
+	{"_": "rw"},
 }
 
 type ResourceCollection interface {

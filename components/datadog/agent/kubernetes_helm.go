@@ -41,8 +41,8 @@ type HelmInstallationArgs struct {
 	ClusterAgentFullImagePath string
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
-	// DisableDualShipping is used to disable dual-shipping
-	DisableDualShipping bool
+	// DualShipping is used to disable dual-shipping
+	DualShipping bool
 	// OTelAgent is used to deploy the OTel agent instead of the classic agent
 	OTelAgent bool
 	// OTelConfig is used to provide a custom OTel configuration
@@ -144,7 +144,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	}
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
+	values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
 
 	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
@@ -177,7 +177,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
+		values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
 		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
 		var windowsValuesYAML pulumi.AssetOrArchiveArray
@@ -411,6 +411,43 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
+			},
+			"confd": pulumi.StringMap{
+				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{
+					"init_config": nil,
+					"instances": []map[string]interface{}{
+						{
+							"collectors": []string{
+								"secrets",
+								"configmaps",
+								"nodes",
+								"pods",
+								"services",
+								"resourcequotas",
+								"replicationcontrollers",
+								"limitranges",
+								"persistentvolumeclaims",
+								"persistentvolumes",
+								"namespaces",
+								"endpoints",
+								"daemonsets",
+								"deployments",
+								"replicasets",
+								"statefulsets",
+								"cronjobs",
+								"jobs",
+								"horizontalpodautoscalers",
+								"poddisruptionbudgets",
+								"storageclasses",
+								"volumeattachments",
+								"ingresses",
+								"verticalpodautoscalers",
+							},
+							"labels_as_tags":      map[string]interface{}{},
+							"annotations_as_tags": map[string]interface{}{},
+						},
+					},
+				})),
 			},
 		},
 		"clusterChecksRunner": pulumi.Map{

@@ -5,6 +5,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+func YAMLMustMarshal(v any) string {
+	b, err := yaml.Marshal(v)
+	if err != nil {
+		panic(err)
+	}
+	return string(b)
+}
+
 func MergeYAML(oldValuesYamlContent string, newValuesYamlContent string) (string, error) {
 	return mergeYAML(oldValuesYamlContent, newValuesYamlContent, false)
 }

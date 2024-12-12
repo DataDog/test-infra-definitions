@@ -67,14 +67,24 @@ providers:
 		)
 
 		if env.AgentUseFakeintake() {
-			fakeintake, err := fakeintake.NewVMInstance(env)
+			fakeIntakeOptions := []fakeintake.Option{}
+			if env.AgentUseDualShipping() {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+			}
+
+			fakeintake, err := fakeintake.NewVMInstance(env, fakeIntakeOptions...)
 			if err != nil {
 				return err
 			}
 			if err := fakeintake.Export(env.Ctx(), nil); err != nil {
 				return err
 			}
+
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeintake))
+		}
+
+		if env.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&env, env.Namer.ResourceName("datadog-agent"), aksCluster.KubeProvider, k8sAgentOptions...)
@@ -120,9 +130,11 @@ providers:
 			return err
 		}
 
-		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
-			return err
+		if env.DogstatsdDeploy() {
+			// dogstatsd clients that report to the dogstatsd standalone deployment
+			if _, err := dogstatsd.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+				return err
+			}
 		}
 
 		if _, err := prometheus.K8sAppDefinition(&env, aksCluster.KubeProvider, "workload-prometheus"); err != nil {

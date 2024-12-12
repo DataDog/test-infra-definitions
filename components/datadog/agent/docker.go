@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -44,7 +45,17 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 		if err != nil {
 			return err
 		}
+
 		defaultAgentParams(params)
+
+		// Check FullImagePath exists in internal registry
+		exists, err := e.InternalRegistryFullImagePathExists(params.FullImagePath)
+		if err != nil {
+			return err
+		}
+		if !exists {
+			return fmt.Errorf("image %q not found in the internal registry", params.FullImagePath)
+		}
 
 		// We can have multiple compose files in compose.
 		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(params.FullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
@@ -116,6 +127,13 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 }
 
 func defaultAgentParams(params *dockeragentparams.Params) {
+	// After setting params.FullImagePath check if you need to use JMX Docker image
+	defer func(p *dockeragentparams.Params) {
+		if p.JMX {
+			p.FullImagePath = fmt.Sprintf("%s-jmx", p.FullImagePath)
+		}
+	}(params)
+
 	if params.FullImagePath != "" {
 		return
 	}

@@ -43,6 +43,8 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 
 	// Create the EC2 instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
+		c.CloudProvider = pulumi.String(components.CloudProviderAWS).ToStringOutput()
+
 		instanceArgs := ec2.InstanceArgs{
 			AMI:                amiInfo.id,
 			InstanceType:       vmArgs.instanceType,
@@ -58,7 +60,12 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		}
 
 		// Create connection
-		conn, err := remote.NewConnection(instance.PrivateIp, sshUser, e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(
+			instance.PrivateIp,
+			sshUser,
+			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
+			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+		)
 		if err != nil {
 			return err
 		}

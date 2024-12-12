@@ -29,13 +29,18 @@ func NewVM(e gcp.Environment, name string, option ...VMOption) (*remote.Host, er
 	}
 
 	return components.NewComponent(&e, name, func(h *remote.Host) error {
-
+		h.CloudProvider = pulumi.String(components.CloudProviderGCP).ToStringOutput()
 		vm, err := compute.NewLinuxInstance(e, e.Namer.ResourceName(name), imageInfo.name, params.instanceType, pulumi.Parent(h))
 		if err != nil {
 			return err
 		}
 
-		conn, err := remote.NewConnection(vm.NetworkInterfaces.Index(pulumi.Int(0)).NetworkIp().Elem(), "gce", e.DefaultPrivateKeyPath(), e.DefaultPrivateKeyPassword(), "")
+		conn, err := remote.NewConnection(
+			vm.NetworkInterfaces.Index(pulumi.Int(0)).NetworkIp().Elem(),
+			"gce",
+			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
+			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+		)
 		if err != nil {
 			return err
 		}

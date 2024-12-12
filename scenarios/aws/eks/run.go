@@ -13,6 +13,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 
@@ -37,6 +38,10 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
+	if _, err := vpa.DeployCRD(&awsEnv, cluster.KubeProvider); err != nil {
+		return err
+	}
+
 	if awsEnv.InitOnly() {
 		return nil
 	}
@@ -49,6 +54,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 		if awsEnv.InfraShouldDeployFakeintakeWithLB() {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 		}
 
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
@@ -69,6 +78,10 @@ func Run(ctx *pulumi.Context) error {
 
 		if awsEnv.AgentUseFakeintake() {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeIntake))
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
 		if awsEnv.EKSWindowsNodeGroup() {
@@ -114,9 +127,11 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, utils.PulumiDependsOn(cluster)); err != nil {
-			return err
+		if awsEnv.DogstatsdDeploy() {
+			// dogstatsd clients that report to the dogstatsd standalone deployment
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, utils.PulumiDependsOn(cluster)); err != nil {
+				return err
+			}
 		}
 
 		if _, err := tracegen.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-tracegen", utils.PulumiDependsOn(cluster)); err != nil {

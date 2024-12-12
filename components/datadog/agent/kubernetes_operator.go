@@ -1,39 +1,25 @@
 package agent
 
 import (
-	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentwithoperatorparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dda"
-	"github.com/DataDog/test-infra-definitions/components/datadog/operator"
-	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
+	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, operatorOpts []operatorparams.Option, ddaOptions ...agentwithoperatorparams.Option) (*KubernetesAgent, error) {
+func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, ddaOptions ...agentwithoperatorparams.Option) (*KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *KubernetesAgent) error {
-
-		operatorParams, err := operatorparams.NewParams(e, operatorOpts...)
-		if err != nil {
-			return err
-		}
-
 		ddaParams, err := agentwithoperatorparams.NewParams(ddaOptions...)
-
 		if err != nil {
 			return err
 		}
 
-		operatorComp, err := operator.NewOperator(e, resourceName, kubeProvider, operatorOpts...)
+		pulumiResourceOptions := append(ddaParams.PulumiResourceOptions, pulumi.Parent(comp))
 
-		if err != nil {
-			return err
-		}
-
-		_, err = dda.K8sAppDefinition(e, kubeProvider, "datadog", ddaParams.FakeIntake, ddaParams.KubeletTLSVerify, e.Ctx().Stack(), ddaParams.DDAConfig, utils.PulumiDependsOn(operatorComp))
+		_, err = dda.K8sAppDefinition(e, kubeProvider, ddaParams, pulumiResourceOptions...)
 
 		if err != nil {
 			return err
@@ -41,22 +27,22 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 
 		baseName := "dda-linux"
 
-		comp.LinuxNodeAgent, err = NewKubernetesObjRef(e, baseName+"-nodeAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{"app": baseName + "-datadog"})
+		comp.LinuxNodeAgent, err = componentskube.NewKubernetesObjRef(e, baseName+"-nodeAgent", ddaParams.Namespace, "Pod", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq/v2alpha1").ToStringOutput(), map[string]string{"app.kubernetes.io/instance": ddaParams.DDAConfig.Name + "-agent"})
 
 		if err != nil {
 			return err
 		}
 
-		comp.LinuxClusterAgent, err = NewKubernetesObjRef(e, baseName+"-clusterAgent", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("Version").ToStringOutput(), map[string]string{
-			"app": baseName + "-datadog-cluster-agent",
+		comp.LinuxClusterAgent, err = componentskube.NewKubernetesObjRef(e, baseName+"-clusterAgent", ddaParams.Namespace, "Pod", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq/v2alpha1").ToStringOutput(), map[string]string{
+			"app.kubernetes.io/instance": ddaParams.DDAConfig.Name + "-cluster-agent",
 		})
 
 		if err != nil {
 			return err
 		}
 
-		comp.LinuxClusterChecks, err = NewKubernetesObjRef(e, baseName+"-clusterChecks", operatorParams.Namespace, "Pod", pulumi.String("appVersion").ToStringOutput(), pulumi.String("version").ToStringOutput(), map[string]string{
-			"app": baseName + "-datadog-clusterchecks",
+		comp.LinuxClusterChecks, err = componentskube.NewKubernetesObjRef(e, baseName+"-clusterChecks", ddaParams.Namespace, "Pod", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq/v2alpha1").ToStringOutput(), map[string]string{
+			"app.kubernetes.io/instance": ddaParams.DDAConfig.Name + "-cluster-checks-runner",
 		})
 
 		if err != nil {

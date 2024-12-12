@@ -23,6 +23,21 @@ var dockerfileContent string
 var customDockerConfig = "{}"
 
 func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.ResourceOption) (address pulumi.StringOutput, user string, port int, err error) {
+	// TODO A: Unix command / windows
+	// runner := command.NewLocalRunner(&e, command.LocalRunnerArgs{OSCommand: command.NewUnixOSCommand()})
+	// fileManager := command.NewFileManager(runner)
+
+	// // runner.CopyUnixFile("copy-hey-ho", pulumi.String("/tmp/hey"), pulumi.String("/tmp/ho"))
+
+	// runner.Command("hey-ho", &command.Args{
+	// 	Create: pulumi.String("cp /tmp/hey /tmp/ho"),
+	// 	Delete: pulumi.String("rm /tmp/ho"),
+	// })
+
+	// println("END")
+
+	// return pulumi.StringOutput{}, "", -1, fmt.Errorf("not implemented")
+
 	interpreter := []string{"/bin/bash", "-c"}
 	if runtime.GOOS == "windows" {
 		interpreter = []string{"powershell", "-Command"}
@@ -41,14 +56,18 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 	// TODO clean up the folder on stack destroy
 	// Requires a Runner refactor to reuse crossplatform commands
 	err = os.MkdirAll(dataPath, 0700)
+	// _, err = fileManager.CreateDirectory(dataPath, false)
 	if err != nil {
 		return pulumi.StringOutput{}, "", -1, err
 	}
+	println("DIR")
 	dockerfilePath := path.Join(dataPath, "Dockerfile")
+	// _, err = fileManager.CopyInlineFile(pulumi.String(dockerfileContent), dockerfilePath)
 	err = os.WriteFile(dockerfilePath, []byte(dockerfileContent), 0600)
 	if err != nil {
 		return pulumi.StringOutput{}, "", -1, err
 	}
+	println("COPY")
 
 	// Use a config to avoid docker hooks that can call vault or other services (credHelpers)
 	err = os.WriteFile(path.Join(dataPath, "config.json"), []byte(customDockerConfig), 0600)

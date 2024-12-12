@@ -13,6 +13,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
 
@@ -34,6 +35,10 @@ func Run(ctx *pulumi.Context) error {
 
 	err = cluster.Export(ctx, nil)
 	if err != nil {
+		return err
+	}
+
+	if _, err := vpa.DeployCRD(&awsEnv, cluster.KubeProvider); err != nil {
 		return err
 	}
 

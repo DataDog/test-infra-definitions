@@ -20,7 +20,7 @@ type VMArgs struct {
 
 //go:embed data/Dockerfile
 var dockerfileContent string
-var customDockerConfig string = "{}"
+var customDockerConfig = "{}"
 
 func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.ResourceOption) (address pulumi.StringOutput, user string, port int, err error) {
 	interpreter := []string{"/bin/bash", "-c"}

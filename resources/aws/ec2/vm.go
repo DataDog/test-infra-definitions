@@ -52,6 +52,9 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 			HttpTokens: pulumi.String("required"),
 		}
 	}
+	instanceArgs.MetadataOptions = &ec2.InstanceMetadataOptionsArgs{
+		HttpTokens: pulumi.String("required"),
+	}
 
 	instance, err := ec2.NewInstance(e.Ctx(), e.Namer.ResourceName(name), instanceArgs, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS))...)
 

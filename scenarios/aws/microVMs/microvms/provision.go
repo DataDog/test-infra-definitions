@@ -189,7 +189,7 @@ func prepareLibvirtSSHKeys(runner command.Runner, localRunner *command.LocalRunn
 	// We override the runner-level user here with root, and construct the path to the default users .ssh directory,
 	// in order to write the public ssh key in the correct file.
 	sshWriteArgs := command.Args{
-		Create: pulumi.Sprintf("echo '%s' >> $(getent passwd 1000 | cut -d: -f6)/.ssh/authorized_keys", sshgenDone.StderrOutput()),
+		Create: pulumi.Sprintf("echo '%s' >> $(getent passwd 1000 | cut -d: -f6)/.ssh/authorized_keys", sshgenDone.StdoutOutput()),
 		Sudo:   true,
 	}
 

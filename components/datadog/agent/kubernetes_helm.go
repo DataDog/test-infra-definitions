@@ -223,11 +223,22 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),
 			},
-			"originDetectionUnified": pulumi.Map{
-				"enabled": pulumi.Bool(true),
-			},
 			"namespaceAnnotationsAsTags": pulumi.Map{
 				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
+			},
+			"kubernetesResourcesAnnotationsAsTags": pulumi.Map{
+				"deployments.apps": pulumi.Map{"x-sub-team": pulumi.String("sub-team")},
+				"pods":             pulumi.Map{"x-parent-name": pulumi.String("parent-name")},
+				"namespaces":       pulumi.Map{"related_email": pulumi.String("mail")},
+			},
+			"kubernetesResourcesLabelsAsTags": pulumi.Map{
+				"deployments.apps": pulumi.Map{"x-team": pulumi.String("team")},
+				"pods":             pulumi.Map{"x-parent-type": pulumi.String("domain")},
+				"namespaces":       pulumi.Map{"related_org": pulumi.String("org")},
+				"nodes":            pulumi.Map{"kubernetes.io/os": pulumi.String("os"), "kubernetes.io/arch": pulumi.String("arch")},
+			},
+			"originDetectionUnified": pulumi.Map{
+				"enabled": pulumi.Bool(true),
 			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
@@ -303,14 +314,6 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
 					"value": pulumi.String("*"),
-				},
-				pulumi.StringMap{
-					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
-					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
-				},
-				pulumi.StringMap{
-					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_ANNOTATIONS_AS_TAGS"),
-					"value": pulumi.JSONMarshal(getResourcesAnnotationsAsTags().toJSONString()),
 				},
 			},
 		},
@@ -456,6 +459,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"repository":    pulumi.String(agentImagePath),
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
+					"value": pulumi.String("true"),
+				},
 			},
 			"resources": pulumi.StringMapMap{
 				"requests": pulumi.StringMap{

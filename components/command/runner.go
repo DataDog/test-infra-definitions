@@ -176,10 +176,10 @@ func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceO
 	cmd, err := remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
 
 	if err != nil {
-		return &RemoteCommand{cmd}, nil
+		return nil, err
 	}
 
-	return nil, err
+	return &RemoteCommand{cmd}, nil
 }
 
 func (r *RemoteRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
@@ -236,10 +236,10 @@ func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOp
 	cmd, err := local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
 
 	if err != nil {
-		return &LocalCommand{cmd}, nil
+		return nil, err
 	}
 
-	return nil, err
+	return &LocalCommand{cmd}, nil
 }
 
 func (r *LocalRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {

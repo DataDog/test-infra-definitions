@@ -24,7 +24,7 @@ type Args struct {
 	Sudo                     bool
 }
 
-func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
+func (args *Args) toLocalCommandArgs(config RunnerConfiguration, osCommand OSCommand) *local.CommandArgs {
 	return &local.CommandArgs{
 		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
 		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
@@ -34,7 +34,7 @@ func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCom
 	}
 }
 
-func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
+func (args *Args) toRemoteCommandArgs(config RunnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
 	return &remote.CommandArgs{
 		Connection: config.connection,
 		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
@@ -49,7 +49,7 @@ func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCo
 // Examples: swapping `args.Delete` with `args.Create`, or adding `args.Triggers`, or editing the name
 type Transformer func(name string, args Args) (string, Args)
 
-type runnerConfiguration struct {
+type RunnerConfiguration struct {
 	user       string
 	connection remote.ConnectionInput
 }
@@ -91,7 +91,7 @@ func (c *RemoteCommand) StderrOutput() pulumi.StringOutput {
 type Runner interface {
 	Environment() config.Env
 	Namer() namer.Namer
-	Config() runnerConfiguration
+	Config() RunnerConfiguration
 	OsCommand() OSCommand
 
 	Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error)
@@ -108,7 +108,7 @@ type RemoteRunner struct {
 	e           config.Env
 	namer       namer.Namer
 	waitCommand Command
-	config      runnerConfiguration
+	config      RunnerConfiguration
 	osCommand   OSCommand
 	options     []pulumi.ResourceOption
 }
@@ -126,7 +126,7 @@ func NewRemoteRunner(e config.Env, args RemoteRunnerArgs) (*RemoteRunner, error)
 	runner := &RemoteRunner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx(), "remote").WithPrefix(args.ConnectionName),
-		config: runnerConfiguration{
+		config: RunnerConfiguration{
 			connection: args.Connection,
 			user:       args.User,
 		},
@@ -160,7 +160,7 @@ func (r *RemoteRunner) Namer() namer.Namer {
 	return r.namer
 }
 
-func (r *RemoteRunner) Config() runnerConfiguration {
+func (r *RemoteRunner) Config() RunnerConfiguration {
 	return r.config
 }
 
@@ -193,7 +193,7 @@ func (r *RemoteRunner) PulumiOptions() []pulumi.ResourceOption {
 type LocalRunner struct {
 	e         config.Env
 	namer     namer.Namer
-	config    runnerConfiguration
+	config    RunnerConfiguration
 	osCommand OSCommand
 }
 
@@ -207,7 +207,7 @@ func NewLocalRunner(e config.Env, args LocalRunnerArgs) *LocalRunner {
 		e:         e,
 		namer:     namer.NewNamer(e.Ctx(), "local"),
 		osCommand: args.OSCommand,
-		config: runnerConfiguration{
+		config: RunnerConfiguration{
 			user: args.User,
 		},
 	}
@@ -223,7 +223,7 @@ func (r *LocalRunner) Namer() namer.Namer {
 	return r.namer
 }
 
-func (r *LocalRunner) Config() runnerConfiguration {
+func (r *LocalRunner) Config() RunnerConfiguration {
 	return r.config
 }
 
@@ -251,30 +251,30 @@ func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {
 }
 
 func (r *LocalRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	create := pulumi.Sprintf("Copy-Item -Path '%v' -Destination '%v'", src, dst)
-	delete := pulumi.Sprintf("Remove-Item -Path '%v'", dst)
+	createCmd := pulumi.Sprintf("Copy-Item -Path '%v' -Destination '%v'", src, dst)
+	deleteCmd := pulumi.Sprintf("Remove-Item -Path '%v'", dst)
 	useSudo := false // TODO A
 
 	return r.Command(name,
 		&Args{
-			Create:   create,
-			Delete:   delete,
+			Create:   createCmd,
+			Delete:   deleteCmd,
 			Sudo:     useSudo,
-			Triggers: pulumi.Array{create, delete, pulumi.BoolPtr(useSudo)},
+			Triggers: pulumi.Array{createCmd, deleteCmd, pulumi.BoolPtr(useSudo)},
 		}, opts...)
 }
 
 func (r *LocalRunner) CopyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	create := pulumi.Sprintf("cp '%v' '%v'", src, dst)
-	delete := pulumi.Sprintf("rm '%v'", dst)
+	createCmd := pulumi.Sprintf("cp '%v' '%v'", src, dst)
+	deleteCmd := pulumi.Sprintf("rm '%v'", dst)
 	useSudo := false // TODO A
 
 	return r.Command(name,
 		&Args{
-			Create:   create,
-			Delete:   delete,
+			Create:   createCmd,
+			Delete:   deleteCmd,
 			Sudo:     useSudo,
-			Triggers: pulumi.Array{create, delete, pulumi.BoolPtr(useSudo)},
+			Triggers: pulumi.Array{createCmd, deleteCmd, pulumi.BoolPtr(useSudo)},
 		}, opts...)
 }
 

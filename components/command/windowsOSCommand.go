@@ -6,7 +6,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -79,12 +78,7 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 }
 
 func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
-		Connection: runner.Config().connection,
-		LocalPath:  localPath,
-		RemotePath: remotePath,
-		Triggers:   pulumi.Array{localPath, remotePath},
-	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
+	return runner.CopyWindowsFile(name, localPath, remotePath, opts...)
 }
 
 func (fs windowsOSCommand) MoveRemoteFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {

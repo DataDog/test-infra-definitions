@@ -72,27 +72,6 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 
 func (fs unixOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return runner.CopyUnixFile(name, localPath, remotePath, opts...)
-	// tempRemotePath := localPath.ToStringOutput().ApplyT(func(path string) string {
-	// 	return filepath.Join(runner.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
-	// }).(pulumi.StringOutput)
-
-	// tempCopyFile, err := remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
-	// 	Connection: runner.Config().connection,
-	// 	LocalPath:  localPath,
-	// 	RemotePath: tempRemotePath,
-	// 	Triggers:   pulumi.Array{localPath, tempRemotePath},
-	// }, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
-
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// moveCommand, err := fs.MoveRemoteFile(runner, name, tempRemotePath, remotePath, true, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCopyFile))...)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return moveCommand, err
 }
 
 func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {

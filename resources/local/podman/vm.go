@@ -27,16 +27,13 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 	// runner := command.NewLocalRunner(&e, command.LocalRunnerArgs{OSCommand: command.NewUnixOSCommand()})
 	// fileManager := command.NewFileManager(runner)
 
-	// // runner.CopyUnixFile("copy-hey-ho", pulumi.String("/tmp/hey"), pulumi.String("/tmp/ho"))
+	// runner.CopyUnixFile("copy-hey-ho", pulumi.String("/tmp/hey"), pulumi.String("/tmp/ho"))
 
 	// runner.Command("hey-ho", &command.Args{
 	// 	Create: pulumi.String("cp /tmp/hey /tmp/ho"),
 	// 	Delete: pulumi.String("rm /tmp/ho"),
 	// })
-
-	// println("END")
-
-	// return pulumi.StringOutput{}, "", -1, fmt.Errorf("not implemented")
+	// TODO END
 
 	interpreter := []string{"/bin/bash", "-c"}
 	if runtime.GOOS == "windows" {

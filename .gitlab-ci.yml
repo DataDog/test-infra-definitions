@@ -100,7 +100,21 @@ release-runner-image:
     - if: $CI_COMMIT_BRANCH == "main"
       when: on_success
 
-.bump-version-on-datadog-agent:
+bump-version-on-datadog-agent:
+  stage: post-release
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/deb_x64:v48815877-9bfad02c
+  tags: ["arch:amd64"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      needs: ["release-runner-image"]
+      when: on_success
+    - if: $CI_COMMIT_BRANCH =~ /^mq-working-branch-/
+      when: never
+    - when: manual
+      needs: ["build-runner-image"]
+      allow_failure: true
+      variables:
+        EXTRA_UPDATE_ARGS: "--is-dev-image"
   variables:
     EXTRA_UPDATE_ARGS: ""
   before_script:
@@ -129,28 +143,3 @@ release-runner-image:
     - popd
     - pip install -r requirements.txt
     - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
-
-bump-version-on-datadog-agent-dev:
-  extends: .bump-version-on-datadog-agent
-  stage: post-release
-  image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
-  tags: ["arch:amd64"]
-  needs: ["build-runner-image"]
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: never
-    - when: manual
-      allow_failure: true
-  variables:
-    EXTRA_UPDATE_ARGS: "--is-dev-image"
-
-bump-version-on-datadog-agent:
-  extends: .bump-version-on-datadog-agent
-  stage: post-release
-  image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
-  tags: ["arch:amd64"]
-  needs: ["release-runner-image"]
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-      when: on_success
-  

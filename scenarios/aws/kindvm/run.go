@@ -180,15 +180,15 @@ spec:
 			)
 		}
 
-		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, ddaOptions...)
+		k8sAgentWithOperatorComp, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("datadog-agent-with-operator"), kindKubeProvider, ddaOptions...)
 
 		if err != nil {
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(operatorAgentComponent)
+		dependsOnCrd = utils.PulumiDependsOn(k8sAgentWithOperatorComp)
 
-		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+		if err := k8sAgentWithOperatorComp.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 

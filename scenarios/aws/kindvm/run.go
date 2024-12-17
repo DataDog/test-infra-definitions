@@ -69,9 +69,11 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	if _, err := vpa.DeployCRD(&awsEnv, kindKubeProvider); err != nil {
+	vpaCrd, err := vpa.DeployCRD(&awsEnv, kindKubeProvider)
+	if err != nil {
 		return err
 	}
+	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
 	var dependsOnCrd pulumi.ResourceOption
 
@@ -203,11 +205,11 @@ spec:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnCrd, dependsOnVPA); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnCrd, dependsOnVPA); err != nil {
 			return err
 		}
 

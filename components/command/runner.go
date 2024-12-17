@@ -22,27 +22,42 @@ type Args struct {
 	Environment              pulumi.StringMap
 	RequirePasswordFromStdin bool
 	Sudo                     bool
+	// Only used for local commands
+	LocalAssetPaths pulumi.StringArrayInput
+	LocalDir        pulumi.StringInput
 }
 
-func (args *Args) toLocalCommandArgs(config RunnerConfiguration, osCommand OSCommand) *local.CommandArgs {
+func (args *Args) toLocalCommandArgs(config RunnerConfiguration, osCommand OSCommand) (*local.CommandArgs, error) {
 	return &local.CommandArgs{
-		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Triggers: args.Triggers,
-		Stdin:    args.Stdin,
-	}
+		Create:      osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:      osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:      osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Environment: args.Environment,
+		Triggers:    args.Triggers,
+		Stdin:       args.Stdin,
+		AssetPaths:  args.LocalAssetPaths,
+		Dir:         args.LocalDir,
+	}, nil
 }
 
-func (args *Args) toRemoteCommandArgs(config RunnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
-	return &remote.CommandArgs{
-		Connection: config.connection,
-		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Triggers:   args.Triggers,
-		Stdin:      args.Stdin,
+func (args *Args) toRemoteCommandArgs(config RunnerConfiguration, osCommand OSCommand) (*remote.CommandArgs, error) {
+	// Ensure no local arguments are passed to remote commands
+	if args.LocalAssetPaths != nil {
+		return nil, fmt.Errorf("local asset paths are not supported in remote commands")
 	}
+	if args.LocalDir != nil {
+		return nil, fmt.Errorf("local dir is not supported in remote commands")
+	}
+
+	return &remote.CommandArgs{
+		Connection:  config.connection,
+		Create:      osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:      osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:      osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Environment: args.Environment,
+		Triggers:    args.Triggers,
+		Stdin:       args.Stdin,
+	}, nil
 }
 
 // Transformer is a function that can be used to modify the command name and args.
@@ -173,7 +188,12 @@ func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceO
 		r.e.Ctx().Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
 
-	cmd, err := remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
+	remoteArgs, err := args.toRemoteCommandArgs(r.config, r.osCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), remoteArgs, utils.MergeOptions(r.options, opts...)...)
 
 	if err != nil {
 		return nil, err
@@ -233,7 +253,12 @@ func (r *LocalRunner) OsCommand() OSCommand {
 
 func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error) {
 	opts = utils.MergeOptions[pulumi.ResourceOption](opts, r.e.WithProviders(config.ProviderCommand))
-	cmd, err := local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
+	localArgs, err := args.toLocalCommandArgs(r.config, r.osCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), localArgs, opts...)
 
 	if err != nil {
 		return nil, err

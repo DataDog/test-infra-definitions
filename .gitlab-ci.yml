@@ -122,7 +122,8 @@ release-runner-image:
     - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
     - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
-    - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab/common/test_infra_version.yml
+    - inv -e tidy
+    - git add -u
     - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - popd

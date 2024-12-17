@@ -15,6 +15,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/operator"
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -68,9 +69,11 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	if _, err := vpa.DeployCRD(&awsEnv, kindKubeProvider); err != nil {
+	vpaCrd, err := vpa.DeployCRD(&awsEnv, kindKubeProvider)
+	if err != nil {
 		return err
 	}
+	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.AgentUseFakeintake() {
@@ -145,11 +148,31 @@ agents:
 			operatorparams.WithNamespace("datadog"),
 		)
 
+		operatorComp, err := operator.NewOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator"), kindKubeProvider, operatorOpts...)
+		if err != nil {
+			return err
+		}
+
+		if err := operatorComp.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
+
+		ddaConfig := agentwithoperatorparams.DDAConfig{
+			Name: "dda-with-operator",
+			YamlConfig: `
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+spec:
+  global:
+    kubelet:
+      tlsVerify: false
+`}
+
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(
 			ddaOptions,
 			agentwithoperatorparams.WithNamespace("datadog"),
-			agentwithoperatorparams.WithTLSKubeletVerify(false),
+			agentwithoperatorparams.WithDDAConfig(ddaConfig),
 		)
 
 		if fakeIntake != nil {
@@ -159,15 +182,15 @@ agents:
 			)
 		}
 
-		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
+		k8sAgentWithOperatorComp, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("datadog-agent-with-operator"), kindKubeProvider, ddaOptions...)
 
 		if err != nil {
 			return err
 		}
 
-		dependsOnDDAgent = utils.PulumiDependsOn(operatorAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentWithOperatorComp)
 
-		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+		if err := k8sAgentWithOperatorComp.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 
@@ -182,11 +205,11 @@ agents:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 

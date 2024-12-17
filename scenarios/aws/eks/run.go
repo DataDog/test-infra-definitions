@@ -38,9 +38,11 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	if _, err := vpa.DeployCRD(&awsEnv, cluster.KubeProvider); err != nil {
+	vpaCrd, err := vpa.DeployCRD(&awsEnv, cluster.KubeProvider)
+	if err != nil {
 		return err
 	}
+	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
 	if awsEnv.InitOnly() {
 		return nil
@@ -111,11 +113,11 @@ func Run(ctx *pulumi.Context) error {
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 

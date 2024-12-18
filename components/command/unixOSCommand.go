@@ -58,7 +58,7 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 
 	var envVars pulumi.StringArray
 	for varName, varValue := range env {
-		envVars = append(envVars, pulumi.Sprintf(`%v="%v"`, varName, varValue))
+		envVars = append(envVars, pulumi.Sprintf(`export %v="%v";`, varName, varValue))
 	}
 
 	return buildCommandString(formattedCommand, envVars, func(envVarsStr pulumi.StringOutput) pulumi.StringInput {

@@ -29,14 +29,13 @@ type Args struct {
 
 func (args *Args) toLocalCommandArgs(config RunnerConfiguration, osCommand OSCommand) (*local.CommandArgs, error) {
 	return &local.CommandArgs{
-		Create:      osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Update:      osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Delete:      osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Environment: args.Environment,
-		Triggers:    args.Triggers,
-		Stdin:       args.Stdin,
-		AssetPaths:  args.LocalAssetPaths,
-		Dir:         args.LocalDir,
+		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Triggers:   args.Triggers,
+		Stdin:      args.Stdin,
+		AssetPaths: args.LocalAssetPaths,
+		Dir:        args.LocalDir,
 	}, nil
 }
 
@@ -50,13 +49,12 @@ func (args *Args) toRemoteCommandArgs(config RunnerConfiguration, osCommand OSCo
 	}
 
 	return &remote.CommandArgs{
-		Connection:  config.connection,
-		Create:      osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Update:      osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Delete:      osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Environment: args.Environment,
-		Triggers:    args.Triggers,
-		Stdin:       args.Stdin,
+		Connection: config.connection,
+		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Triggers:   args.Triggers,
+		Stdin:      args.Stdin,
 	}, nil
 }
 

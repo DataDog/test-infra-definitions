@@ -278,7 +278,7 @@ func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {
 func (r *LocalRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	createCmd := pulumi.Sprintf("Copy-Item -Path '%v' -Destination '%v'", src, dst)
 	deleteCmd := pulumi.Sprintf("Remove-Item -Path '%v'", dst)
-	useSudo := false // TODO A
+	useSudo := false
 
 	return r.Command(name,
 		&Args{
@@ -292,7 +292,7 @@ func (r *LocalRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput, 
 func (r *LocalRunner) CopyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	createCmd := pulumi.Sprintf("cp '%v' '%v'", src, dst)
 	deleteCmd := pulumi.Sprintf("rm '%v'", dst)
-	useSudo := false // TODO A
+	useSudo := false
 
 	return r.Command(name,
 		&Args{

@@ -4,7 +4,6 @@ import (
 	_ "embed"
 	"os"
 	"path"
-	"runtime"
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -22,13 +21,7 @@ var dockerfileContent string
 var customDockerConfig = "{}"
 
 func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.ResourceOption) (address pulumi.StringOutput, user string, port int, err error) {
-	var osCommand command.OSCommand
-	if runtime.GOOS == "windows" {
-		osCommand = command.NewWindowsOSCommand()
-	} else {
-		osCommand = command.NewUnixOSCommand()
-	}
-	runner := command.NewLocalRunner(&e, command.LocalRunnerArgs{OSCommand: osCommand})
+	runner := command.NewLocalRunner(&e, command.LocalRunnerArgs{OSCommand: command.NewLocalOSCommand()})
 	fileManager := command.NewFileManager(runner)
 
 	publicKey, err := os.ReadFile(e.DefaultPublicKeyPath())

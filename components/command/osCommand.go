@@ -1,6 +1,7 @@
 package command
 
 import (
+	"runtime"
 	"strings"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -87,4 +88,12 @@ func copyRemoteFile(
 			Sudo:     useSudo,
 			Triggers: pulumi.Array{createCommand, deleteCommand, pulumi.BoolPtr(useSudo)},
 		}, opts...)
+}
+
+func NewLocalOSCommand() OSCommand {
+	if runtime.GOOS == "windows" {
+		return NewWindowsOSCommand()
+	} else {
+		return NewUnixOSCommand()
+	}
 }

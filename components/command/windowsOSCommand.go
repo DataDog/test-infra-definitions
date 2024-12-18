@@ -83,8 +83,8 @@ func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, re
 
 func (fs windowsOSCommand) MoveRemoteFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
-	copyCommand := pulumi.Sprintf(`Copy-Item -Path %v -Destination %v`, source, destination)
-	createCommand := pulumi.Sprintf(`if (Test-Path %v) { Move-Item -Force -Path %v -Destination %v }; %v`, destination, destination, backupPath, copyCommand)
-	deleteCommand := pulumi.Sprintf(`if (Test-Path %v) { Move-Item -Force -Path %v -Destination %v } else { Remove-Item -Force -Path %v }`, backupPath, backupPath, destination, destination)
+	copyCommand := pulumi.Sprintf(`Copy-Item -Path '%v' -Destination '%v'`, source, destination)
+	createCommand := pulumi.Sprintf(`if (Test-Path '%v') { Move-Item -Force -Path '%v' -Destination '%v' }; %v`, destination, destination, backupPath, copyCommand)
+	deleteCommand := pulumi.Sprintf(`if (Test-Path '%v') { Move-Item -Force -Path '%v' -Destination '%v' } else { Remove-Item -Force -Path %v }`, backupPath, backupPath, destination, destination)
 	return copyRemoteFile(runner, fmt.Sprintf("move-file-%s", name), createCommand, deleteCommand, sudo, utils.MergeOptions(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))...)
 }

@@ -39,7 +39,7 @@ type HelmComponent struct {
 func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
-	baseName := "dda"
+
 	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
@@ -64,7 +64,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	secret, err := corev1.NewSecret(e.Ctx(), "datadog-credentials", &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
-			Name:      pulumi.Sprintf("%s-datadog-credentials", baseName),
+			Name:      pulumi.String("dda-datadog-credentials"),
 		},
 		StringData: pulumi.StringMap{
 			"api-key": apiKey,
@@ -93,9 +93,9 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		operatorImagePath = args.OperatorFullImagePath
 	}
 	operatorImagePath, operatorImageTag := utils.ParseImageReference(operatorImagePath)
-	linuxInstallName := baseName + "-operator-linux"
+	linuxInstallName := "datadog-operator-linux"
 
-	values := buildLinuxHelmValues(baseName, operatorImagePath, operatorImageTag)
+	values := buildLinuxHelmValues(operatorImagePath, operatorImageTag)
 	values.configureImagePullSecret(imgPullSecret)
 
 	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
@@ -132,10 +132,10 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(baseName string, operatorImagePath string, operatorImageTag string) HelmValues {
+func buildLinuxHelmValues(operatorImagePath string, operatorImageTag string) HelmValues {
 	return HelmValues{
-		"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-		"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
+		"apiKeyExistingSecret": pulumi.String("dda-datadog-credentials"),
+		"appKeyExistingSecret": pulumi.String("dda-datadog-credentials"),
 		"image": pulumi.Map{
 			"repository":    pulumi.String(operatorImagePath),
 			"tag":           pulumi.String(operatorImageTag),

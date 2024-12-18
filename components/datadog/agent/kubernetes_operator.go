@@ -17,15 +17,15 @@ func NewDDAWithOperator(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
-		pulumiResourceOptions := append(ddaParams.PulumiResourceOptions, pulumi.Parent(comp))
+		ddaParams.PulumiResourceOptions = append(ddaParams.PulumiResourceOptions, pulumi.Parent(comp))
 
-		_, err = dda.K8sAppDefinition(e, kubeProvider, ddaParams, pulumiResourceOptions...)
+		_, err = dda.K8sAppDefinition(e, kubeProvider, ddaParams, ddaParams.PulumiResourceOptions...)
 
 		if err != nil {
 			return err
 		}
 
-		baseName := "dda-linux"
+		baseName := "dda-with-operator-linux"
 
 		comp.LinuxNodeAgent, err = componentskube.NewKubernetesObjRef(e, baseName+"-nodeAgent", ddaParams.Namespace, "Pod", pulumi.String("").ToStringOutput(), pulumi.String("datadoghq/v2alpha1").ToStringOutput(), map[string]string{"app.kubernetes.io/instance": ddaParams.DDAConfig.Name + "-agent"})
 

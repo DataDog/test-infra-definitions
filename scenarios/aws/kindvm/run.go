@@ -69,11 +69,11 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	if _, err := vpa.DeployCRD(&awsEnv, kindKubeProvider); err != nil {
+	vpaCrd, err := vpa.DeployCRD(&awsEnv, kindKubeProvider)
+	if err != nil {
 		return err
 	}
-
-	var dependsOnCrd pulumi.ResourceOption
+	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.AgentUseFakeintake() {
@@ -96,6 +96,8 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 	}
+
+	var dependsOnDDAgent pulumi.ResourceOption
 
 	// Deploy the agent
 	if awsEnv.AgentDeploy() && !awsEnv.AgentDeployWithOperator() {
@@ -135,7 +137,7 @@ agents:
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy the operator
@@ -180,15 +182,15 @@ spec:
 			)
 		}
 
-		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, ddaOptions...)
+		k8sAgentWithOperatorComp, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("datadog-agent-with-operator"), kindKubeProvider, ddaOptions...)
 
 		if err != nil {
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(operatorAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentWithOperatorComp)
 
-		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+		if err := k8sAgentWithOperatorComp.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 
@@ -203,11 +205,11 @@ spec:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
@@ -216,13 +218,13 @@ spec:
 		}
 
 		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 
 		// dogstatsd clients that report to the dogstatsd standalone deployment
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
 				return err
 			}
 		}
@@ -236,7 +238,7 @@ spec:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

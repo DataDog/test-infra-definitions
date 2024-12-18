@@ -211,7 +211,7 @@ func NewLibvirtFSCustomRecipe(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools 
 	}
 }
 
-func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath string, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func refreshFromBackingStore(volume LibvirtVolume, runner command.Runner, urlPath string, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var downloadCmd string
 	var refreshCmd string
 
@@ -246,7 +246,7 @@ func refreshFromBackingStore(volume LibvirtVolume, runner *Runner, urlPath strin
 	return []pulumi.Resource{res}, err
 }
 
-func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	var downloadSpecs []filesystemImageDownload
 	var retrieveImage []pulumi.Resource
@@ -334,7 +334,7 @@ func downloadAndExtractRootfs(fs *LibvirtFilesystem, runner *Runner, depends []p
 	return waitFor, nil
 }
 
-func extractImage(fsImage *filesystemImage, runner *Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func extractImage(fsImage *filesystemImage, runner command.Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	// Extract archive from the download path assuming it is xz compressed
 	extractTopLevelArchive := command.Args{
 		Create: pulumi.Sprintf("rm %s || true; xz -d %s", fsImage.imagePath, fsImage.downloadPath()),
@@ -347,7 +347,7 @@ func extractImage(fsImage *filesystemImage, runner *Runner, namer namer.Namer, d
 	return []pulumi.Resource{res}, nil
 }
 
-func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn, runner command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	// Downloading the base images for the volumes is the slowest part of the entire setup.
 	// We want this step to start as soon as our remote VMs are ready. Therefore, we do not
 	// make it depend on any other step.
@@ -363,7 +363,7 @@ func (fs *LibvirtFilesystem) SetupLibvirtFilesystem(providerFn LibvirtProviderFn
 	return setupLibvirtFilesystem(fs, runner, providerFn, depends)
 }
 
-func setupLibvirtFilesystem(fs *LibvirtFilesystem, runner *Runner, providerFn LibvirtProviderFn, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupLibvirtFilesystem(fs *LibvirtFilesystem, runner command.Runner, providerFn LibvirtProviderFn, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 	for _, vol := range fs.volumes {
 		setupLibvirtVMVolumeDone, err := vol.SetupLibvirtVMVolume(fs.ctx, runner, providerFn, fs.isLocal, depends)

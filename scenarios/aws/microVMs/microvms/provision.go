@@ -64,15 +64,15 @@ func readMicroVMSSHKey(instance *Instance, depends []pulumi.Resource) (pulumi.St
 	args := command.Args{
 		Create: pulumi.Sprintf("cat %s", filepath.Join(GetWorkingDirectory(instance.Arch), "ddvm_rsa")),
 	}
-	done, err := instance.runner.RemoteCommand(instance.instanceNamer.ResourceName("read-microvm-ssh-key"), &args, pulumi.DependsOn(depends))
+	done, err := instance.runner.Command(instance.instanceNamer.ResourceName("read-microvm-ssh-key"), &args, pulumi.DependsOn(depends))
 	if err != nil {
 		return pulumi.StringOutput{}, nil, err
 	}
-	s := pulumi.ToSecret(done.Stdout).(pulumi.StringOutput)
+	s := pulumi.ToSecret(done.StdoutOutput()).(pulumi.StringOutput)
 	return s, []pulumi.Resource{done}, err
 }
 
-func setupSSHAllowEnv(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setupSSHAllowEnv(runner command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	args := command.Args{
 		Create: pulumi.Sprintf("echo -e 'AcceptEnv DD_API_KEY\n' | sudo tee -a /etc/ssh/sshd_config"),
 	}
@@ -83,7 +83,7 @@ func setupSSHAllowEnv(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resou
 	return []pulumi.Resource{done}, nil
 }
 
-func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func reloadSSHD(runner command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	args := command.Args{
 		Create: pulumi.Sprintf("sudo systemctl reload sshd.service"),
 	}
@@ -94,7 +94,7 @@ func reloadSSHD(runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, e
 	return []pulumi.Resource{done}, nil
 }
 
-func mountMicroVMDisks(runner *Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func mountMicroVMDisks(runner command.Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
 	for _, d := range disks {
@@ -117,7 +117,7 @@ func mountMicroVMDisks(runner *Runner, disks []resources.DomainDisk, namer namer
 	return waitFor, nil
 }
 
-func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func setDockerDataRoot(runner command.Runner, disks []resources.DomainDisk, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	var waitFor []pulumi.Resource
 
 	for _, d := range disks {
@@ -142,7 +142,7 @@ func setDockerDataRoot(runner *Runner, disks []resources.DomainDisk, namer namer
 	return waitFor, nil
 }
 
-func enableNFSConnKiller(runner *Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func enableNFSConnKiller(runner command.Runner, namer namer.Namer, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	args := command.Args{
 		Create: pulumi.Sprintf("systemctl enable --now kill-dead-nfs-connections.timer"),
 		Sudo:   true,
@@ -173,7 +173,7 @@ func provisionMetalInstance(instance *Instance) ([]pulumi.Resource, error) {
 	return reloadSSHDDone, nil
 }
 
-func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func prepareLibvirtSSHKeys(runner command.Runner, localRunner *command.LocalRunner, resourceNamer namer.Namer, pair sshKeyPair, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	sshGenArgs := command.Args{
 		Create: pulumi.Sprintf("rm -f %s && rm -f %s && ssh-keygen -t rsa -b 4096 -f %s -q -N \"\" && cat %s", pair.privateKey, pair.publicKey, pair.privateKey, pair.publicKey),
 		Delete: pulumi.Sprintf("rm %s && rm %s", pair.privateKey, pair.publicKey),
@@ -189,7 +189,7 @@ func prepareLibvirtSSHKeys(runner *Runner, localRunner *command.LocalRunner, res
 	// We override the runner-level user here with root, and construct the path to the default users .ssh directory,
 	// in order to write the public ssh key in the correct file.
 	sshWriteArgs := command.Args{
-		Create: pulumi.Sprintf("echo '%s' >> $(getent passwd 1000 | cut -d: -f6)/.ssh/authorized_keys", sshgenDone.Stdout),
+		Create: pulumi.Sprintf("echo '%s' >> $(getent passwd 1000 | cut -d: -f6)/.ssh/authorized_keys", sshgenDone.StdoutOutput()),
 		Sudo:   true,
 	}
 
@@ -237,9 +237,9 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 				}
 
 				pc := createProxyConnection(domain.ip, "root", microVMSSHKey, conn.ToConnectionOutput())
-				remoteRunner, err := command.NewRunner(
+				remoteRunner, err := command.NewRemoteRunner(
 					collection.instance.e,
-					command.RunnerArgs{
+					command.RemoteRunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     pc,
 						ConnectionName: collection.instance.instanceNamer.ResourceName("conn", domain.domainID),
@@ -249,21 +249,20 @@ func provisionRemoteMicroVMs(vmCollections []*VMCollection, instanceEnv *Instanc
 				if err != nil {
 					return nil, err
 				}
-				microRunner := NewRunner(WithRemoteRunner(remoteRunner))
 
-				mountDisksDone, err := mountMicroVMDisks(microRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+				mountDisksDone, err := mountMicroVMDisks(remoteRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 				if err != nil {
 					return nil, err
 				}
 
-				setDockerDataRootDone, err := setDockerDataRoot(microRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+				setDockerDataRootDone, err := setDockerDataRoot(remoteRunner, domain.Disks, domain.domainNamer, mountDisksDone)
 				if err != nil {
 					return nil, err
 				}
 
 				deps := append(readKeyDone, setDockerDataRootDone...)
 				deps = append(deps, domain.lvDomain)
-				reloadSSHDDone, err := reloadSSHD(microRunner, deps)
+				reloadSSHDDone, err := reloadSSHD(remoteRunner, deps)
 				if err != nil {
 					return nil, err
 				}
@@ -299,9 +298,9 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 					return nil, err
 				}
 
-				remoteRunner, err := command.NewRunner(
+				remoteRunner, err := command.NewRemoteRunner(
 					*collection.instance.e,
-					command.RunnerArgs{
+					command.RemoteRunnerArgs{
 						ParentResource: domain.lvDomain,
 						Connection:     conn,
 						ConnectionName: domain.domainNamer.ResourceName("provision-conn"),
@@ -311,22 +310,21 @@ func provisionLocalMicroVMs(vmCollections []*VMCollection) ([]pulumi.Resource, e
 				if err != nil {
 					return nil, err
 				}
-				microVMRunner := NewRunner(WithRemoteRunner(remoteRunner))
 
 				if collection.instance.IsMacOSHost() {
-					nfsConnKillerDone, err := enableNFSConnKiller(microVMRunner, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+					nfsConnKillerDone, err := enableNFSConnKiller(remoteRunner, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 					if err != nil {
 						return nil, err
 					}
 					waitFor = append(waitFor, nfsConnKillerDone...)
 				}
 
-				mountDisksDone, err := mountMicroVMDisks(microVMRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
+				mountDisksDone, err := mountMicroVMDisks(remoteRunner, domain.Disks, domain.domainNamer, []pulumi.Resource{domain.lvDomain})
 				if err != nil {
 					return nil, err
 				}
 
-				setDockerDataRootDone, err := setDockerDataRoot(microVMRunner, domain.Disks, domain.domainNamer, mountDisksDone)
+				setDockerDataRootDone, err := setDockerDataRoot(remoteRunner, domain.Disks, domain.domainNamer, mountDisksDone)
 				if err != nil {
 					return nil, err
 				}

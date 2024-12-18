@@ -20,7 +20,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -68,7 +67,7 @@ for ($i=0; $i -lt 3; $i++) {
 };
 $exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s %s').ExitCode
 Get-Content %s
-Exit $exitCode 
+Exit $exitCode
 `, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "), logFilePath)
 	return cmd, nil
 }
@@ -77,7 +76,7 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 	return `C:\ProgramData\Datadog`
 }
 
-func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
 	// Retry restart several time, workaround to https://datadoghq.atlassian.net/browse/WINA-747
@@ -92,7 +91,7 @@ while ($tries -lt 5) {
  }
  Start-Sleep -Seconds $sleepTime
  $sleepTime = $sleepTime * 2
- $tries++ 
+ $tries++
  }
  Get-Content stderr.txt
  Exit $exitCode

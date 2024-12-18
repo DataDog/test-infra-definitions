@@ -64,7 +64,6 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 		LocalAssetPaths: pulumi.StringArray{},
 		LocalDir:        pulumi.String(dataPath),
 	}, opts...)
-
 	if err != nil {
 		return pulumi.StringOutput{}, "", -1, err
 	}
@@ -77,7 +76,6 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 		LocalAssetPaths: pulumi.StringArray{},
 		LocalDir:        pulumi.String(dataPath),
 	}, opts...)
-
 	if err != nil {
 		return pulumi.StringOutput{}, "", -1, err
 	}

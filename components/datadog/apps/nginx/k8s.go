@@ -50,6 +50,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 			Name: pulumi.String(namespace),
 			Labels: pulumi.StringMap{
 				"related_team": pulumi.String("contp"),
+				"related_org":  pulumi.String("agent-org"),
 			},
 			Annotations: pulumi.StringMap{
 				"related_email": pulumi.String("team-container-platform@datadoghq.com"),

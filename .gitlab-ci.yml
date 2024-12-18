@@ -104,10 +104,19 @@ bump-version-on-datadog-agent:
   stage: post-release
   image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
   tags: ["arch:amd64"]
-  needs: ["release-runner-image"]
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+      needs: ["release-runner-image"]
       when: on_success
+    - if: $CI_COMMIT_BRANCH =~ /^mq-working-branch-/
+      when: never
+    - when: manual
+      needs: ["build-runner-image"]
+      allow_failure: true
+      variables:
+        EXTRA_UPDATE_ARGS: "--is-dev-image"
+  variables:
+    EXTRA_UPDATE_ARGS: ""
   before_script:
     - set +x
     - export GITHUB_APP_USER_ID=153269286 # Can be found on https://api.github.com/users/agent-platform-auto-pr[bot]
@@ -126,8 +135,9 @@ bump-version-on-datadog-agent:
     - pushd datadog-agent
     - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
-    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA
-    - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab/common/test_infra_version.yml
+    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
+    - inv -e tidy
+    - git add -u
     - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - popd

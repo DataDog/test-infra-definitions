@@ -93,7 +93,7 @@ func copyRemoteFile(
 func NewLocalOSCommand() OSCommand {
 	if runtime.GOOS == "windows" {
 		return NewWindowsOSCommand()
-	} else {
-		return NewUnixOSCommand()
 	}
+
+	return NewUnixOSCommand()
 }

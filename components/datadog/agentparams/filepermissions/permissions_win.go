@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DataDog/datadog-agent/pkg/util/optional"
+	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 )
 
@@ -22,13 +22,13 @@ type WindowsPermissions struct {
 var _ FilePermissions = (*WindowsPermissions)(nil)
 
 // NewWindowsPermissions creates a new WindowsPermissions object and applies the given options.
-func NewWindowsPermissions(options ...WindowsPermissionsOption) optional.Option[FilePermissions] {
+func NewWindowsPermissions(options ...WindowsPermissionsOption) option.Option[FilePermissions] {
 	p, err := common.ApplyOption(&WindowsPermissions{}, options)
 
 	if err != nil {
 		panic("Could not create WindowsPermissions: " + err.Error())
 	}
-	return optional.NewOption[FilePermissions](p)
+	return option.New[FilePermissions](p)
 }
 
 // SetupPermissionsCommand returns a command that sets the permissions of a file. It relies on the icacls command.

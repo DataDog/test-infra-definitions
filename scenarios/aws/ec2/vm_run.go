@@ -105,11 +105,11 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, dockeragentparams.WithImageTag(env.AgentVersion()))
 		}
 
-		if env.GetJMX() {
+		if env.AgentJMX() {
 			agentOptions = append(agentOptions, dockeragentparams.WithJMX())
 		}
 
-		if env.GetFIPS() {
+		if env.AgentFIPS() {
 			agentOptions = append(agentOptions, dockeragentparams.WithFIPS())
 		}
 

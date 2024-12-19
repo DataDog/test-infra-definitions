@@ -433,10 +433,10 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	return defaultValue
 }
 
-func (e *CommonEnvironment) GetFIPS() bool {
-	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
+func (e *CommonEnvironment) AgentFIPS() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFIPS, false)
 }
 
-func (e *CommonEnvironment) GetJMX() bool {
-	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFIPS, false)
+func (e *CommonEnvironment) AgentJMX() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
 }

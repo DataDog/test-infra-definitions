@@ -133,6 +133,11 @@ func defaultAgentParams(params *dockeragentparams.Params) {
 			p.FullImagePath = fmt.Sprintf("%s-jmx", p.FullImagePath)
 		}
 	}(params)
+	defer func(p *dockeragentparams.Params) {
+		if p.FIPS {
+			p.FullImagePath += "-fips"
+		}
+	}(params)
 
 	if params.FullImagePath != "" {
 		return

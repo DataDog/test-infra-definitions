@@ -55,6 +55,8 @@ const (
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
+	DDAgentJMX                           = "jmx"
+	DDAgentFIPS                          = "fips"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -429,4 +431,12 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
+}
+
+func (e *CommonEnvironment) AgentFIPS() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFIPS, false)
+}
+
+func (e *CommonEnvironment) AgentJMX() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
 }

@@ -49,6 +49,8 @@ type Params struct {
 	EnvironmentVariables pulumi.StringMap
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiDependsOn []pulumi.ResourceOption
+	// FIPS is true if FIPS image is needed.
+	FIPS bool
 }
 
 type Option = func(*Params) error
@@ -87,6 +89,14 @@ func WithRepository(repository string) func(*Params) error {
 func WithJMX() func(*Params) error {
 	return func(p *Params) error {
 		p.JMX = true
+		return nil
+	}
+}
+
+// WithFIPS makes the image FIPS enabled
+func WithFIPS() func(*Params) error {
+	return func(p *Params) error {
+		p.FIPS = true
 		return nil
 	}
 }

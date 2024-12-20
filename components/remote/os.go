@@ -20,7 +20,7 @@ func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, 
 	}
 
 	// Now we can create the runner
-	runner, err := command.NewRunner(e, command.RunnerArgs{
+	runner, err := command.NewRemoteRunner(e, command.RemoteRunnerArgs{
 		ParentResource: host,
 		ConnectionName: host.Name(),
 		Connection:     conn,

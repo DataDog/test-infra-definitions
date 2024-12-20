@@ -3,7 +3,6 @@ package activedirectory
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
-	pulumiRemote "github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumiverse/pulumi-time/sdk/go/time"
 )
@@ -49,7 +48,7 @@ func WithDomain(domainFqdn, domainAdmin, domainAdminPassword string) Option {
 }
 
 func (adCtx *activeDirectoryContext) joinActiveDirectoryDomain(params *JoinDomainConfiguration) error {
-	var joinCmd *pulumiRemote.Command
+	var joinCmd command.Command
 	joinCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
 		Create: pulumi.Sprintf(`
 Add-Computer -DomainName %s -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList %s, %s)
@@ -90,7 +89,7 @@ func WithDomainController(domainFqdn, adminPassword string) func(*Configuration)
 }
 
 func (adCtx *activeDirectoryContext) installDomainController(params *DomainControllerConfiguration) error {
-	var installCmd *pulumiRemote.Command
+	var installCmd command.Command
 	installCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-forest"), &command.Args{
 		Create: pulumi.Sprintf(`
 Add-WindowsFeature -name ad-domain-services -IncludeManagementTools;

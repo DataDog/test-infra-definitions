@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/DataDog/datadog-agent/pkg/util/optional"
+	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 )
 
@@ -21,13 +21,13 @@ type UnixPermissions struct {
 var _ FilePermissions = (*UnixPermissions)(nil)
 
 // NewUnixPermissions creates a new UnixPermissions object and applies the given options.
-func NewUnixPermissions(options ...UnixPermissionsOption) optional.Option[FilePermissions] {
+func NewUnixPermissions(options ...UnixPermissionsOption) option.Option[FilePermissions] {
 	p, err := common.ApplyOption(&UnixPermissions{}, options)
 
 	if err != nil {
 		panic("Could not create UnixPermissions: " + err.Error())
 	}
-	return optional.NewOption[FilePermissions](p)
+	return option.New[FilePermissions](p)
 }
 
 // SetupPermissionsCommand returns a command that sets the owner, group, and permissions of a file.

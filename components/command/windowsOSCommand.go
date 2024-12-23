@@ -78,7 +78,7 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 }
 
 func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return runner.CopyWindowsFile(name, localPath, remotePath, opts...)
+	return runner.copyWindowsFile(name, localPath, remotePath, opts...)
 }
 
 func (fs windowsOSCommand) MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {

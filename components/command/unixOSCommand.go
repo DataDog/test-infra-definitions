@@ -71,7 +71,7 @@ func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 }
 
 func (fs unixOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return runner.CopyUnixFile(name, localPath, remotePath, opts...)
+	return runner.copyUnixFile(name, localPath, remotePath, opts...)
 }
 
 func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {

@@ -106,12 +106,13 @@ type Runner interface {
 	Namer() namer.Namer
 	Config() RunnerConfiguration
 	OsCommand() OSCommand
+	PulumiOptions() []pulumi.ResourceOption
 
 	Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error)
-	NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
-	CopyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
-	CopyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
-	PulumiOptions() []pulumi.ResourceOption
+
+	newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	copyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	copyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 var _ Runner = &RemoteRunner{}
@@ -200,7 +201,7 @@ func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceO
 	return &RemoteCommand{cmd}, nil
 }
 
-func (r *RemoteRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *RemoteRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 
@@ -265,7 +266,7 @@ func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOp
 	return &LocalCommand{cmd}, nil
 }
 
-func (r *LocalRunner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *LocalRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
 }
 
@@ -273,7 +274,7 @@ func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {
 	return []pulumi.ResourceOption{}
 }
 
-func (r *LocalRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *LocalRunner) copyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	createCmd := pulumi.Sprintf("Copy-Item -Path '%v' -Destination '%v'", src, dst)
 	deleteCmd := pulumi.Sprintf("Remove-Item -Path '%v'", dst)
 	useSudo := false
@@ -287,7 +288,7 @@ func (r *LocalRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput, 
 		}, opts...)
 }
 
-func (r *LocalRunner) CopyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *LocalRunner) copyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	createCmd := pulumi.Sprintf("cp '%v' '%v'", src, dst)
 	deleteCmd := pulumi.Sprintf("rm '%v'", dst)
 	useSudo := false
@@ -301,7 +302,7 @@ func (r *LocalRunner) CopyUnixFile(name string, src, dst pulumi.StringInput, opt
 		}, opts...)
 }
 
-func (r *RemoteRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *RemoteRunner) copyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return remote.NewCopyFile(r.Environment().Ctx(), r.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: r.Config().connection,
 		LocalPath:  src,
@@ -310,7 +311,7 @@ func (r *RemoteRunner) CopyWindowsFile(name string, src, dst pulumi.StringInput,
 	}, utils.MergeOptions(r.PulumiOptions(), opts...)...)
 }
 
-func (r *RemoteRunner) CopyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func (r *RemoteRunner) copyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	tempRemotePath := src.ToStringOutput().ApplyT(func(path string) string {
 		return filepath.Join(r.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)

@@ -65,7 +65,7 @@ func (fm *FileManager) HomeDirectory(folderName string, opts ...pulumi.ResourceO
 }
 
 func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return fm.runner.NewCopyFile(name, localPath, remotePath, opts...)
+	return fm.runner.newCopyFile(name, localPath, remotePath, opts...)
 }
 
 func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {

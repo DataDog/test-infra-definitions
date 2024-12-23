@@ -81,7 +81,7 @@ func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, re
 	return runner.CopyWindowsFile(name, localPath, remotePath, opts...)
 }
 
-func (fs windowsOSCommand) MoveRemoteFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
+func (fs windowsOSCommand) MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
 	copyCommand := pulumi.Sprintf(`Copy-Item -Path '%v' -Destination '%v'`, source, destination)
 	createCommand := pulumi.Sprintf(`if (Test-Path '%v') { Move-Item -Force -Path '%v' -Destination '%v' }; %v`, destination, destination, backupPath, copyCommand)

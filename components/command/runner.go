@@ -326,7 +326,7 @@ func (r *RemoteRunner) CopyUnixFile(name string, src, dst pulumi.StringInput, op
 		return nil, err
 	}
 
-	moveCommand, err := r.OsCommand().MoveRemoteFile(r, name, tempRemotePath, dst, true, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCopyFile))...)
+	moveCommand, err := r.OsCommand().MoveFile(r, name, tempRemotePath, dst, true, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCopyFile))...)
 	if err != nil {
 		return nil, err
 	}

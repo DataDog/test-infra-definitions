@@ -18,7 +18,7 @@ type OSCommand interface {
 		remotePath pulumi.StringInput,
 		useSudo bool,
 		opts ...pulumi.ResourceOption) (Command, error)
-	MoveRemoteFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error)
+	MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error)
 
 	BuildCommandString(
 		command pulumi.StringInput,

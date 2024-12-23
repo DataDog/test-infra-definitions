@@ -2,7 +2,6 @@ package command
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/pulumi/pulumi-command/sdk/go/command/local"
 	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
@@ -111,8 +110,6 @@ type Runner interface {
 	Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error)
 
 	newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
-	copyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
-	copyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 var _ Runner = &RemoteRunner{}
@@ -202,7 +199,7 @@ func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceO
 }
 
 func (r *RemoteRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
+	return r.osCommand.copyRemoteFile(r, name, localPath, remotePath, opts...)
 }
 
 func (r *RemoteRunner) PulumiOptions() []pulumi.ResourceOption {
@@ -267,70 +264,9 @@ func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOp
 }
 
 func (r *LocalRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
+	return r.osCommand.copyLocalFile(r, name, localPath, remotePath, opts...)
 }
 
 func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {
 	return []pulumi.ResourceOption{}
-}
-
-func (r *LocalRunner) copyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	createCmd := pulumi.Sprintf("Copy-Item -Path '%v' -Destination '%v'", src, dst)
-	deleteCmd := pulumi.Sprintf("Remove-Item -Path '%v'", dst)
-	useSudo := false
-
-	return r.Command(name,
-		&Args{
-			Create:   createCmd,
-			Delete:   deleteCmd,
-			Sudo:     useSudo,
-			Triggers: pulumi.Array{createCmd, deleteCmd, pulumi.BoolPtr(useSudo)},
-		}, opts...)
-}
-
-func (r *LocalRunner) copyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	createCmd := pulumi.Sprintf("cp '%v' '%v'", src, dst)
-	deleteCmd := pulumi.Sprintf("rm '%v'", dst)
-	useSudo := false
-
-	return r.Command(name,
-		&Args{
-			Create:   createCmd,
-			Delete:   deleteCmd,
-			Sudo:     useSudo,
-			Triggers: pulumi.Array{createCmd, deleteCmd, pulumi.BoolPtr(useSudo)},
-		}, opts...)
-}
-
-func (r *RemoteRunner) copyWindowsFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return remote.NewCopyFile(r.Environment().Ctx(), r.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
-		Connection: r.Config().connection,
-		LocalPath:  src,
-		RemotePath: dst,
-		Triggers:   pulumi.Array{src, dst},
-	}, utils.MergeOptions(r.PulumiOptions(), opts...)...)
-}
-
-func (r *RemoteRunner) copyUnixFile(name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	tempRemotePath := src.ToStringOutput().ApplyT(func(path string) string {
-		return filepath.Join(r.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
-	}).(pulumi.StringOutput)
-
-	tempCopyFile, err := remote.NewCopyFile(r.Environment().Ctx(), r.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
-		Connection: r.Config().connection,
-		LocalPath:  src,
-		RemotePath: tempRemotePath,
-		Triggers:   pulumi.Array{src, tempRemotePath},
-	}, utils.MergeOptions(r.PulumiOptions(), opts...)...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	moveCommand, err := r.OsCommand().MoveFile(r, name, tempRemotePath, dst, true, utils.MergeOptions(opts, utils.PulumiDependsOn(tempCopyFile))...)
-	if err != nil {
-		return nil, err
-	}
-
-	return moveCommand, err
 }

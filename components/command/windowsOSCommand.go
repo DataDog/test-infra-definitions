@@ -6,6 +6,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/utils"
 
+	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -78,7 +79,7 @@ func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 }
 
 func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return runner.copyWindowsFile(name, localPath, remotePath, opts...)
+	return runner.newCopyFile(name, localPath, remotePath, opts...)
 }
 
 func (fs windowsOSCommand) MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
@@ -87,4 +88,27 @@ func (fs windowsOSCommand) MoveFile(runner Runner, name string, source, destinat
 	createCommand := pulumi.Sprintf(`if (Test-Path '%v') { Move-Item -Force -Path '%v' -Destination '%v' }; %v`, destination, destination, backupPath, copyCommand)
 	deleteCommand := pulumi.Sprintf(`if (Test-Path '%v') { Move-Item -Force -Path '%v' -Destination '%v' } else { Remove-Item -Force -Path %v }`, backupPath, backupPath, destination, destination)
 	return copyRemoteFile(runner, fmt.Sprintf("move-file-%s", name), createCommand, deleteCommand, sudo, utils.MergeOptions(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))...)
+}
+
+func (fs windowsOSCommand) copyLocalFile(runner *LocalRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	createCmd := pulumi.Sprintf("Copy-Item -Path '%v' -Destination '%v'", src, dst)
+	deleteCmd := pulumi.Sprintf("Remove-Item -Path '%v'", dst)
+	useSudo := false
+
+	return runner.Command(name,
+		&Args{
+			Create:   createCmd,
+			Delete:   deleteCmd,
+			Sudo:     useSudo,
+			Triggers: pulumi.Array{createCmd, deleteCmd, pulumi.BoolPtr(useSudo)},
+		}, opts...)
+}
+
+func (fs windowsOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
+		Connection: runner.Config().connection,
+		LocalPath:  src,
+		RemotePath: dst,
+		Triggers:   pulumi.Array{src, dst},
+	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
 }

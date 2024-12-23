@@ -99,9 +99,9 @@ func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool,
 
 func (fs unixOSCommand) MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
-	copyCommand := pulumi.Sprintf(`cp "%v" "%v"`, source, destination)
-	createCommand := pulumi.Sprintf(`bash -c 'if [ -f "%v" ]; then mv -f "%v" "%v"; fi; %v'`, destination, destination, backupPath, copyCommand)
-	deleteCommand := pulumi.Sprintf(`bash -c 'if [ -f "%v" ]; then mv -f "%v" "%v"; else rm -f "%v"; fi'`, backupPath, backupPath, destination, destination)
+	copyCommand := pulumi.Sprintf(`cp '%v' '%v'`, source, destination)
+	createCommand := pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; fi; %v'`, destination, destination, backupPath, copyCommand)
+	deleteCommand := pulumi.Sprintf(`bash -c 'if [ -f '%v' ]; then mv -f '%v' '%v'; else rm -f '%v'; fi'`, backupPath, backupPath, destination, destination)
 	return copyRemoteFile(runner, fmt.Sprintf("move-file-%s", name), createCommand, deleteCommand, sudo, utils.MergeOptions(opts, pulumi.ReplaceOnChanges([]string{"*"}), pulumi.DeleteBeforeReplace(true))...)
 }
 

@@ -97,7 +97,7 @@ while ($tries -lt 5) {
  Exit $exitCode
  `
 
-	cmdArgs := command.Args{
+	var cmdArgs command.CommandArgs = &command.Args{
 		Create: pulumi.String(cmd),
 	}
 
@@ -106,7 +106,7 @@ while ($tries -lt 5) {
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	return am.host.OS.Runner().Command(cmdName, &cmdArgs, opts...)
+	return am.host.OS.Runner().Command(cmdName, cmdArgs, opts...)
 }
 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {

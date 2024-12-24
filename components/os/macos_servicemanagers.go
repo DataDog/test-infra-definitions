@@ -19,7 +19,7 @@ func newMacOSServiceManager(e config.Env, runner command.Runner) ServiceManager 
 
 func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
-	cmdArgs := command.Args{
+	var cmdArgs command.CommandArgs = &command.Args{
 		Sudo:   true,
 		Create: pulumi.String(fmt.Sprintf("launchctl stop %s && launchctl start %s", serviceName, serviceName)),
 	}
@@ -29,5 +29,5 @@ func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform comm
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	return s.runner.Command(cmdName, &cmdArgs, opts...)
+	return s.runner.Command(cmdName, cmdArgs, opts...)
 }

@@ -56,11 +56,13 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 	podmanCommand := "podman --config " + dataPath
 
 	opts = utils.MergeOptions(opts, pulumi.DependsOn([]pulumi.Resource{dockerFile, dockerConfig}))
-	buildPodman, err := runner.Command("podman-build"+args.Name, &command.Args{
-		Environment:     pulumi.StringMap{"DOCKER_HOST_SSH_PUBLIC_KEY": pulumi.String(string(publicKey))},
-		Create:          pulumi.Sprintf("%s build --format=docker --build-arg DOCKER_HOST_SSH_PUBLIC_KEY=\"$DOCKER_HOST_SSH_PUBLIC_KEY\" -t %s .", podmanCommand, args.Name),
-		Delete:          pulumi.Sprintf("%s rmi %s", podmanCommand, args.Name),
-		Triggers:        pulumi.Array{},
+	buildPodman, err := runner.Command("podman-build"+args.Name, &command.LocalArgs{
+		Args: command.Args{
+			Environment: pulumi.StringMap{"DOCKER_HOST_SSH_PUBLIC_KEY": pulumi.String(string(publicKey))},
+			Create:      pulumi.Sprintf("%s build --format=docker --build-arg DOCKER_HOST_SSH_PUBLIC_KEY=\"$DOCKER_HOST_SSH_PUBLIC_KEY\" -t %s .", podmanCommand, args.Name),
+			Delete:      pulumi.Sprintf("%s rmi %s", podmanCommand, args.Name),
+			Triggers:    pulumi.Array{},
+		},
 		LocalAssetPaths: pulumi.StringArray{},
 		LocalDir:        pulumi.String(dataPath),
 	}, opts...)
@@ -68,11 +70,13 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 		return pulumi.StringOutput{}, "", -1, err
 	}
 	opts = utils.MergeOptions(opts, pulumi.DependsOn([]pulumi.Resource{buildPodman}))
-	runPodman, err := runner.Command("podman-run"+args.Name, &command.Args{
-		Environment:     pulumi.StringMap{"DOCKER_HOST_SSH_PUBLIC_KEY": pulumi.String(string(publicKey))},
-		Create:          pulumi.Sprintf("%s run -d --name=%[2]s_run -p 50022:22 %[2]s", podmanCommand, args.Name),
-		Delete:          pulumi.Sprintf("%s stop %[2]s_run && podman rm %[2]s_run", podmanCommand, args.Name),
-		Triggers:        pulumi.Array{},
+	runPodman, err := runner.Command("podman-run"+args.Name, &command.LocalArgs{
+		Args: command.Args{
+			Environment: pulumi.StringMap{"DOCKER_HOST_SSH_PUBLIC_KEY": pulumi.String(string(publicKey))},
+			Create:      pulumi.Sprintf("%s run -d --name=%[2]s_run -p 50022:22 %[2]s", podmanCommand, args.Name),
+			Delete:      pulumi.Sprintf("%s stop %[2]s_run && podman rm %[2]s_run", podmanCommand, args.Name),
+			Triggers:    pulumi.Array{},
+		},
 		LocalAssetPaths: pulumi.StringArray{},
 		LocalDir:        pulumi.String(dataPath),
 	}, opts...)

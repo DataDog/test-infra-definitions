@@ -21,19 +21,32 @@ type Args struct {
 	Environment              pulumi.StringMap
 	RequirePasswordFromStdin bool
 	Sudo                     bool
+	// Only used for local commands
+	LocalAssetPaths pulumi.StringArrayInput
+	LocalDir        pulumi.StringInput
 }
 
-func (args *Args) toLocalCommandArgs(config runnerConfiguration, osCommand OSCommand) *local.CommandArgs {
+func (args *Args) toLocalCommandArgs(config RunnerConfiguration, osCommand OSCommand) (*local.CommandArgs, error) {
 	return &local.CommandArgs{
-		Create:   osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Update:   osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Delete:   osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
-		Triggers: args.Triggers,
-		Stdin:    args.Stdin,
-	}
+		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Update:     osCommand.BuildCommandString(args.Update, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
+		Triggers:   args.Triggers,
+		Stdin:      args.Stdin,
+		AssetPaths: args.LocalAssetPaths,
+		Dir:        args.LocalDir,
+	}, nil
 }
 
-func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCommand) *remote.CommandArgs {
+func (args *Args) toRemoteCommandArgs(config RunnerConfiguration, osCommand OSCommand) (*remote.CommandArgs, error) {
+	// Ensure no local arguments are passed to remote commands
+	if args.LocalAssetPaths != nil {
+		return nil, fmt.Errorf("local asset paths are not supported in remote commands")
+	}
+	if args.LocalDir != nil {
+		return nil, fmt.Errorf("local dir is not supported in remote commands")
+	}
+
 	return &remote.CommandArgs{
 		Connection: config.connection,
 		Create:     osCommand.BuildCommandString(args.Create, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
@@ -41,28 +54,77 @@ func (args *Args) toRemoteCommandArgs(config runnerConfiguration, osCommand OSCo
 		Delete:     osCommand.BuildCommandString(args.Delete, args.Environment, args.Sudo, args.RequirePasswordFromStdin, config.user),
 		Triggers:   args.Triggers,
 		Stdin:      args.Stdin,
-	}
+	}, nil
 }
 
 // Transformer is a function that can be used to modify the command name and args.
 // Examples: swapping `args.Delete` with `args.Create`, or adding `args.Triggers`, or editing the name
 type Transformer func(name string, args Args) (string, Args)
 
-type runnerConfiguration struct {
+type RunnerConfiguration struct {
 	user       string
 	connection remote.ConnectionInput
 }
 
-type Runner struct {
+type Command interface {
+	pulumi.Resource
+
+	StdoutOutput() pulumi.StringOutput
+	StderrOutput() pulumi.StringOutput
+}
+
+type LocalCommand struct {
+	*local.Command
+}
+
+type RemoteCommand struct {
+	*remote.Command
+}
+
+var _ Command = &RemoteCommand{}
+var _ Command = &LocalCommand{}
+
+func (c *LocalCommand) StdoutOutput() pulumi.StringOutput {
+	return c.Command.Stdout
+}
+
+func (c *LocalCommand) StderrOutput() pulumi.StringOutput {
+	return c.Command.Stderr
+}
+
+func (c *RemoteCommand) StdoutOutput() pulumi.StringOutput {
+	return c.Command.Stdout
+}
+
+func (c *RemoteCommand) StderrOutput() pulumi.StringOutput {
+	return c.Command.Stderr
+}
+
+type Runner interface {
+	Environment() config.Env
+	Namer() namer.Namer
+	Config() RunnerConfiguration
+	OsCommand() OSCommand
+	PulumiOptions() []pulumi.ResourceOption
+
+	Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error)
+
+	newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+}
+
+var _ Runner = &RemoteRunner{}
+var _ Runner = &LocalRunner{}
+
+type RemoteRunner struct {
 	e           config.Env
 	namer       namer.Namer
-	waitCommand *remote.Command
-	config      runnerConfiguration
+	waitCommand Command
+	config      RunnerConfiguration
 	osCommand   OSCommand
 	options     []pulumi.ResourceOption
 }
 
-type RunnerArgs struct {
+type RemoteRunnerArgs struct {
 	ParentResource pulumi.Resource
 	ConnectionName string
 	Connection     remote.ConnectionInput
@@ -71,11 +133,11 @@ type RunnerArgs struct {
 	OSCommand      OSCommand
 }
 
-func NewRunner(e config.Env, args RunnerArgs) (*Runner, error) {
-	runner := &Runner{
+func NewRemoteRunner(e config.Env, args RemoteRunnerArgs) (*RemoteRunner, error) {
+	runner := &RemoteRunner{
 		e:     e,
 		namer: namer.NewNamer(e.Ctx(), "remote").WithPrefix(args.ConnectionName),
-		config: runnerConfiguration{
+		config: RunnerConfiguration{
 			connection: args.Connection,
 			user:       args.User,
 		},
@@ -101,22 +163,53 @@ func NewRunner(e config.Env, args RunnerArgs) (*Runner, error) {
 	return runner, nil
 }
 
-func (r *Runner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (r *RemoteRunner) Environment() config.Env {
+	return r.e
+}
+
+func (r *RemoteRunner) Namer() namer.Namer {
+	return r.namer
+}
+
+func (r *RemoteRunner) Config() RunnerConfiguration {
+	return r.config
+}
+
+func (r *RemoteRunner) OsCommand() OSCommand {
+	return r.osCommand
+}
+
+func (r *RemoteRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error) {
 	if args.Sudo && r.config.user != "" {
 		r.e.Ctx().Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
 
-	return remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toRemoteCommandArgs(r.config, r.osCommand), utils.MergeOptions(r.options, opts...)...)
+	remoteArgs, err := args.toRemoteCommandArgs(r.config, r.osCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := remote.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), remoteArgs, utils.MergeOptions(r.options, opts...)...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &RemoteCommand{cmd}, nil
 }
 
-func (r *Runner) NewCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	return r.osCommand.NewCopyFile(r, name, localPath, remotePath, opts...)
+func (r *RemoteRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return r.osCommand.copyRemoteFile(r, name, localPath, remotePath, opts...)
+}
+
+func (r *RemoteRunner) PulumiOptions() []pulumi.ResourceOption {
+	return r.options
 }
 
 type LocalRunner struct {
 	e         config.Env
 	namer     namer.Namer
-	config    runnerConfiguration
+	config    RunnerConfiguration
 	osCommand OSCommand
 }
 
@@ -130,7 +223,7 @@ func NewLocalRunner(e config.Env, args LocalRunnerArgs) *LocalRunner {
 		e:         e,
 		namer:     namer.NewNamer(e.Ctx(), "local"),
 		osCommand: args.OSCommand,
-		config: runnerConfiguration{
+		config: RunnerConfiguration{
 			user: args.User,
 		},
 	}
@@ -138,7 +231,42 @@ func NewLocalRunner(e config.Env, args LocalRunnerArgs) *LocalRunner {
 	return localRunner
 }
 
-func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (*local.Command, error) {
+func (r *LocalRunner) Environment() config.Env {
+	return r.e
+}
+
+func (r *LocalRunner) Namer() namer.Namer {
+	return r.namer
+}
+
+func (r *LocalRunner) Config() RunnerConfiguration {
+	return r.config
+}
+
+func (r *LocalRunner) OsCommand() OSCommand {
+	return r.osCommand
+}
+
+func (r *LocalRunner) Command(name string, args *Args, opts ...pulumi.ResourceOption) (Command, error) {
 	opts = utils.MergeOptions[pulumi.ResourceOption](opts, r.e.WithProviders(config.ProviderCommand))
-	return local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), args.toLocalCommandArgs(r.config, r.osCommand), opts...)
+	localArgs, err := args.toLocalCommandArgs(r.config, r.osCommand)
+	if err != nil {
+		return nil, err
+	}
+
+	cmd, err := local.NewCommand(r.e.Ctx(), r.namer.ResourceName("cmd", name), localArgs, opts...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &LocalCommand{cmd}, nil
+}
+
+func (r *LocalRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return r.osCommand.copyLocalFile(r, name, localPath, remotePath, opts...)
+}
+
+func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {
+	return []pulumi.ResourceOption{}
 }

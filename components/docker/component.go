@@ -13,7 +13,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -64,7 +63,7 @@ func (d *Manager) Export(ctx *pulumi.Context, out *ManagerOutput) error {
 	return components.Export(ctx, d, out)
 }
 
-func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceOption) (command.Command, error) {
 	opts = utils.MergeOptions(d.opts, opts...)
 
 	composeHash, err := utils.FileHash(composeFilePath)
@@ -93,7 +92,7 @@ func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceO
 	)
 }
 
-func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (command.Command, error) {
 	opts = utils.MergeOptions(d.opts, opts...)
 
 	homeCmd, composePath, err := d.Host.OS.FileManager().HomeDirectory(name+"-compose-tmp", opts...)
@@ -140,7 +139,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 	)
 }
 
-func (d *Manager) install() (*remote.Command, error) {
+func (d *Manager) install() (command.Command, error) {
 	opts := []pulumi.ResourceOption{pulumi.Parent(d)}
 	opts = utils.MergeOptions(d.opts, opts...)
 	dockerInstall, err := d.Host.OS.PackageManager().Ensure("docker.io", nil, "docker", opts...)
@@ -178,7 +177,7 @@ func (d *Manager) install() (*remote.Command, error) {
 	groupCmd, err := d.Host.OS.Runner().Command(
 		d.namer.ResourceName("group"),
 		&command.Args{
-			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami.Stdout),
+			Create: pulumi.Sprintf("usermod -a -G docker %s", whoami.StdoutOutput()),
 			Sudo:   true,
 		},
 		utils.MergeOptions(opts, utils.PulumiDependsOn(whoami))...,
@@ -190,7 +189,7 @@ func (d *Manager) install() (*remote.Command, error) {
 	return groupCmd, err
 }
 
-func (d *Manager) installCompose() (*remote.Command, error) {
+func (d *Manager) installCompose() (command.Command, error) {
 	opts := append(d.opts, pulumi.Parent(d))
 	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl --retry 10 -fsSLo /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
 	return d.Host.OS.Runner().Command(

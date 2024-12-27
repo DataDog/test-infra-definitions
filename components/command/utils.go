@@ -1,13 +1,12 @@
 package command
 
 import (
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-type ReadyFunc func(*Runner) (*remote.Command, error)
+type ReadyFunc func(Runner) (Command, error)
 
-func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
+func WaitForCloudInit(runner Runner) (Command, error) {
 	return runner.Command(
 		"wait-cloud-init",
 		&Args{
@@ -17,7 +16,7 @@ func WaitForCloudInit(runner *Runner) (*remote.Command, error) {
 		})
 }
 
-func WaitForSuccessfulConnection(runner *Runner) (*remote.Command, error) {
+func WaitForSuccessfulConnection(runner Runner) (Command, error) {
 	return runner.Command(
 		"wait-successful-connection",
 		&Args{

@@ -135,7 +135,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 			Delete:      pulumi.Sprintf("docker-compose %s down -t %d", composeFileArgs, defaultTimeout),
 			Environment: envVars,
 		},
-		utils.MergeOptions(d.opts, pulumi.DependsOn(runCommandDeps), pulumi.DeleteBeforeReplace(true))...,
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(runCommandDeps...), pulumi.DeleteBeforeReplace(true))...,
 	)
 }
 

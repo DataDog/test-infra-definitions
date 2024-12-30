@@ -55,7 +55,7 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 
 	podmanCommand := "podman --config " + dataPath
 
-	opts = utils.MergeOptions(opts, pulumi.DependsOn([]pulumi.Resource{dockerFile, dockerConfig}))
+	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerFile, dockerConfig))
 	buildPodman, err := runner.Command("podman-build"+args.Name, &command.Args{
 		Environment:     pulumi.StringMap{"DOCKER_HOST_SSH_PUBLIC_KEY": pulumi.String(string(publicKey))},
 		Create:          pulumi.Sprintf("%s build --format=docker --build-arg DOCKER_HOST_SSH_PUBLIC_KEY=\"$DOCKER_HOST_SSH_PUBLIC_KEY\" -t %s .", podmanCommand, args.Name),
@@ -67,7 +67,7 @@ func NewInstance(e resourceslocal.Environment, args VMArgs, opts ...pulumi.Resou
 	if err != nil {
 		return pulumi.StringOutput{}, "", -1, err
 	}
-	opts = utils.MergeOptions(opts, pulumi.DependsOn([]pulumi.Resource{buildPodman}))
+	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(buildPodman))
 	runPodman, err := runner.Command("podman-run"+args.Name, &command.Args{
 		Environment:     pulumi.StringMap{"DOCKER_HOST_SSH_PUBLIC_KEY": pulumi.String(string(publicKey))},
 		Create:          pulumi.Sprintf("%s run -d --name=%[2]s_run -p 50022:22 %[2]s", podmanCommand, args.Name),

@@ -266,22 +266,28 @@ func (d datadogAgentWorkload) defaultDDAYamlTransformations() []yaml.Transformat
 			imgPullSecretOverride := map[string]interface{}{
 				"nodeAgent": map[string]interface{}{
 					"image": map[string]interface{}{
-						"pullSecrets": map[string]interface{}{
-							"name": d.imagePullSecret.Metadata.Name(),
+						"pullSecrets": []map[string]interface{}{
+							{
+								"name": d.imagePullSecret.Metadata.Name(),
+							},
 						},
 					},
 				},
 				"clusterAgent": map[string]interface{}{
 					"image": map[string]interface{}{
-						"pullSecrets": map[string]interface{}{
-							"name": d.imagePullSecret.Metadata.Name(),
+						"pullSecrets": []map[string]interface{}{
+							{
+								"name": d.imagePullSecret.Metadata.Name(),
+							},
 						},
 					},
 				},
 				"clusterChecksRunner": map[string]interface{}{
 					"image": map[string]interface{}{
-						"pullSecrets": map[string]interface{}{
-							"name": d.imagePullSecret.Metadata.Name(),
+						"pullSecrets": []map[string]interface{}{
+							{
+								"name": d.imagePullSecret.Metadata.Name(),
+							},
 						},
 					},
 				},

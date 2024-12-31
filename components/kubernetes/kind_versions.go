@@ -14,6 +14,18 @@ type kindConfig struct {
 
 // Source: https://github.com/kubernetes-sigs/kind/releases
 var kubeToKindVersion = map[string]kindConfig{
+	"1.32": {
+		kindVersion:      "v0.26.0",
+		nodeImageVersion: "v1.32.0@sha256:c48c62eac5da28cdadcf560d1d8616cfa6783b58f0d94cf63ad1bf49600cb027",
+	},
+	"1.31": {
+		kindVersion:      "v0.26.0",
+		nodeImageVersion: "v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30",
+	},
+	"1.30": {
+		kindVersion:      "v0.26.0",
+		nodeImageVersion: "v1.30.8@sha256:17cd608b3971338d9180b00776cb766c50d0a0b6b904ab4ff52fd3fc5c6369bf",
+	},
 	"1.29": {
 		kindVersion:      "v0.22.0",
 		nodeImageVersion: "v1.29.2@sha256:51a1434a5397193442f0be2a297b488b6c919ce8a3931be0ce822606ea5ca245",
@@ -57,6 +69,19 @@ var kubeToKindVersion = map[string]kindConfig{
 	"1.19": {
 		kindVersion:      "v0.17.0",
 		nodeImageVersion: "v1.19.16@sha256:476cb3269232888437b61deca013832fee41f9f074f9bed79f57e4280f7c48b7",
+	},
+	// Use ubuntu 20.04 for the below k8s versions
+	"1.18": {
+		kindVersion:      "v0.17.0",
+		nodeImageVersion: "v1.18.20@sha256:61c9e1698c1cb19c3b1d8151a9135b379657aee23c59bde4a8d87923fcb43a91",
+	},
+	"1.17": {
+		kindVersion:      "v0.17.0",
+		nodeImageVersion: "v1.17.17@sha256:e477ee64df5731aa4ef4deabbafc34e8d9a686b49178f726563598344a3898d5",
+	},
+	"1.16": {
+		kindVersion:      "v0.15.0",
+		nodeImageVersion: "v1.16.15@sha256:64bac16b83b6adfd04ea3fbcf6c9b5b893277120f2b2cbf9f5fa3e5d4c2260cc",
 	},
 }
 

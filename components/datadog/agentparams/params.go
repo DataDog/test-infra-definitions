@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/DataDog/datadog-agent/pkg/util/optional"
+	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -40,7 +40,7 @@ import (
 type FileDefinition struct {
 	Content     string
 	UseSudo     bool
-	Permissions optional.Option[perms.FilePermissions]
+	Permissions option.Option[perms.FilePermissions]
 }
 
 type Params struct {
@@ -196,11 +196,11 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 
 // WithFile adds a file with contents to the install at the given path. This should only be used when the agent needs to be restarted after writing the file.
 func WithFile(absolutePath string, content string, useSudo bool) func(*Params) error {
-	return WithFileWithPermissions(absolutePath, content, useSudo, optional.NewNoneOption[perms.FilePermissions]())
+	return WithFileWithPermissions(absolutePath, content, useSudo, option.None[perms.FilePermissions]())
 }
 
 // WithFileWithPermissions adds a file like WithFile but we can predefine the permissions of the file.
-func WithFileWithPermissions(absolutePath string, content string, useSudo bool, perms optional.Option[perms.FilePermissions]) func(*Params) error {
+func WithFileWithPermissions(absolutePath string, content string, useSudo bool, perms option.Option[perms.FilePermissions]) func(*Params) error {
 	return func(p *Params) error {
 		p.Files[absolutePath] = &FileDefinition{
 			Content:     content,

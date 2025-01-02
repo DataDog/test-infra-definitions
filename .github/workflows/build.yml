@@ -18,6 +18,16 @@ jobs:
 
       - name: Build
         run: go build ./...
-      
+
+      - name: Install orchestrion
+        run: |
+          go install github.com/DataDog/orchestrion@v0.9.4
+          orchestrion pin
+
       - name: Test
-        run: go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job
+        run: orchestrion go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job
+        env:
+          DD_CIVISIBILITY_ENABLED: true
+          DD_CIVISIBILITY_AGENTLESS_ENABLED: true
+          DD_ENV: ci
+          DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}

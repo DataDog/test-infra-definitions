@@ -12,7 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 )
 
-type CommandArgs interface {
+type RunnerCommandArgs interface {
 	Arguments() *Args
 }
 
@@ -37,8 +37,8 @@ type LocalArgs struct {
 	LocalDir        pulumi.StringInput
 }
 
-var _ CommandArgs = &Args{}
-var _ CommandArgs = &LocalArgs{}
+var _ RunnerCommandArgs = &Args{}
+var _ RunnerCommandArgs = &LocalArgs{}
 
 func (args *Args) Arguments() *Args {
 	return args
@@ -48,7 +48,7 @@ func (args *LocalArgs) Arguments() *Args {
 	return &args.Args
 }
 
-func toLocalCommandArgs(cmdArgs CommandArgs, config RunnerConfiguration, osCommand OSCommand) (*local.CommandArgs, error) {
+func toLocalCommandArgs(cmdArgs RunnerCommandArgs, config RunnerConfiguration, osCommand OSCommand) (*local.CommandArgs, error) {
 	// Retrieve local specific arguments if provided
 	var assetsPath pulumi.StringArrayInput
 	var dir pulumi.StringInput
@@ -70,7 +70,7 @@ func toLocalCommandArgs(cmdArgs CommandArgs, config RunnerConfiguration, osComma
 	}, nil
 }
 
-func toRemoteCommandArgs(cmdArgs CommandArgs, config RunnerConfiguration, osCommand OSCommand) (*remote.CommandArgs, error) {
+func toRemoteCommandArgs(cmdArgs RunnerCommandArgs, config RunnerConfiguration, osCommand OSCommand) (*remote.CommandArgs, error) {
 	// Ensure no local arguments are passed to remote commands
 	if _, ok := cmdArgs.(*LocalArgs); ok {
 		return nil, fmt.Errorf("local arguments are not allowed for remote commands")
@@ -90,7 +90,7 @@ func toRemoteCommandArgs(cmdArgs CommandArgs, config RunnerConfiguration, osComm
 
 // Transformer is a function that can be used to modify the command name and args.
 // Examples: swapping `args.Delete` with `args.Create`, or adding `args.Triggers`, or editing the name
-type Transformer func(name string, args CommandArgs) (string, CommandArgs)
+type Transformer func(name string, args RunnerCommandArgs) (string, RunnerCommandArgs)
 
 type RunnerConfiguration struct {
 	user       string
@@ -138,7 +138,7 @@ type Runner interface {
 	OsCommand() OSCommand
 	PulumiOptions() []pulumi.ResourceOption
 
-	Command(name string, args CommandArgs, opts ...pulumi.ResourceOption) (Command, error)
+	Command(name string, args RunnerCommandArgs, opts ...pulumi.ResourceOption) (Command, error)
 
 	newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
@@ -210,7 +210,7 @@ func (r *RemoteRunner) OsCommand() OSCommand {
 	return r.osCommand
 }
 
-func (r *RemoteRunner) Command(name string, args CommandArgs, opts ...pulumi.ResourceOption) (Command, error) {
+func (r *RemoteRunner) Command(name string, args RunnerCommandArgs, opts ...pulumi.ResourceOption) (Command, error) {
 	if args.Arguments().Sudo && r.config.user != "" {
 		r.e.Ctx().Log.Info(fmt.Sprintf("warning: running sudo command on a runner with user %s, discarding user", r.config.user), nil)
 	}
@@ -278,7 +278,7 @@ func (r *LocalRunner) OsCommand() OSCommand {
 	return r.osCommand
 }
 
-func (r *LocalRunner) Command(name string, args CommandArgs, opts ...pulumi.ResourceOption) (Command, error) {
+func (r *LocalRunner) Command(name string, args RunnerCommandArgs, opts ...pulumi.ResourceOption) (Command, error) {
 	opts = utils.MergeOptions[pulumi.ResourceOption](opts, r.e.WithProviders(config.ProviderCommand))
 	localArgs, err := toLocalCommandArgs(args, r.config, r.osCommand)
 	if err != nil {

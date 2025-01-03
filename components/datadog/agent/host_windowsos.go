@@ -97,7 +97,7 @@ while ($tries -lt 5) {
  Exit $exitCode
  `
 
-	var cmdArgs command.CommandArgs = &command.Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Create: pulumi.String(cmd),
 	}
 

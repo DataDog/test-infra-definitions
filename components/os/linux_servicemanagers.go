@@ -19,7 +19,7 @@ func newSystemdServiceManager(e config.Env, runner command.Runner) ServiceManage
 
 func (s *systemdServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
-	var cmdArgs command.CommandArgs = &command.Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Sudo:   true,
 		Create: pulumi.String("systemctl restart " + serviceName),
 	}
@@ -45,7 +45,7 @@ func (s *sysvinitServiceManager) EnsureRestarted(serviceName string, transform c
 	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
 	// To the difference of systemctl the restart doesn't work if the service isn't already running
 	// so instead we run a stop command that we allow to fail and then a start command
-	var cmdArgs command.CommandArgs = &command.Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Sudo:   false,
 		Create: pulumi.String(fmt.Sprintf("sudo stop %[1]s; sudo start %[1]s", serviceName)),
 	}

@@ -54,7 +54,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 	}
 
 	cmdName := m.namer.ResourceName("install-"+packageRef, utils.StrHash(cmdStr))
-	var cmdArgs CommandArgs = &Args{
+	var cmdArgs RunnerCommandArgs = &Args{
 		Create:      pulumi.String(cmdStr),
 		Environment: m.env,
 		Sudo:        true,

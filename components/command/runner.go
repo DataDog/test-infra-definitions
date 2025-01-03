@@ -25,6 +25,9 @@ type Args struct {
 	Environment              pulumi.StringMap
 	RequirePasswordFromStdin bool
 	Sudo                     bool
+	// Only used for local commands
+	LocalAssetPaths pulumi.StringArrayInput
+	LocalDir        pulumi.StringInput
 }
 
 type LocalArgs struct {

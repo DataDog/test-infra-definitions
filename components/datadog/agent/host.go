@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"path"
 
-	"github.com/DataDog/datadog-agent/pkg/util/optional"
+	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -259,7 +259,7 @@ func (h *HostAgent) writeFileDefinition(
 	fullPath string,
 	content string,
 	useSudo bool,
-	perms optional.Option[perms.FilePermissions],
+	perms option.Option[perms.FilePermissions],
 	opts ...pulumi.ResourceOption,
 ) (pulumi.Resource, error) {
 	// create directory, if it does not exist

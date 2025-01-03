@@ -37,10 +37,9 @@ func buildArgs(options ...VMOption) (*vmArgs, error) {
 }
 
 // WithOS sets the OS
-// Architecture defaults to os.AMD64Arch
 // Version defaults to latest
 func WithOS(osDesc os.Descriptor) VMOption {
-	return WithOSArch(osDesc, os.AMD64Arch)
+	return WithOSArch(osDesc, osDesc.Architecture)
 }
 
 // WithArch set the architecture and the operating system.

@@ -84,7 +84,7 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 	stackName = sanitizeStackName(stackName)
 
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--no-add-known-host")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
@@ -103,7 +103,7 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 	stackName = sanitizeStackName(stackName)
 
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
+	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--no-add-known-host")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))

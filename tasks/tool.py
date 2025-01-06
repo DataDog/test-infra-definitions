@@ -262,6 +262,16 @@ def show_connection_message(
         pyperclip.copy(command)
 
 
+def add_known_host(ctx: Context, host: str) -> None:
+    """
+    Add the host to the known_hosts file.
+    """
+    # remove the host if it already exists
+    clean_known_hosts(host)
+    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
+    ctx.run(f"ssh-keyscan -H {host} >> {home}/.ssh/known_hosts")
+
+
 def clean_known_hosts(host: str) -> None:
     """
     Remove the host from the known_hosts file.

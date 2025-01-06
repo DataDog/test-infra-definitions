@@ -254,7 +254,7 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_PROCESS_CONFIG_PROCESS_DD_URL"),
-			Value: pulumi.Sprintf("https://%s", fakeintake.Host),
+			Value: fakeintake.URL.ToStringOutput(),
 		},
 		ecs.TaskDefinitionKeyValuePairArgs{
 			Name:  pulumi.StringPtr("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_DD_URL"),

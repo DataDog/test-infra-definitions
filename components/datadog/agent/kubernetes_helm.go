@@ -344,6 +344,17 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			},
 			"containers": pulumi.Map{
 				"agent": pulumi.Map{
+					"env": pulumi.StringMapArray{
+						pulumi.StringMap{
+							// TODO: remove this environment variable override once a retry mechanism is added to the language detection client
+							//
+							// the refresh period is reduced to 1 minute because the language detection client doesn't implement a retry mechanism
+							// if the cluster agent is not available when the client tries to send the first detected language, the language will only
+							// be sent again after 20 minutes (default refresh period). This causes E2E to fail since it only waits 5 minutes.
+							"name":  pulumi.String("DD_LANGUAGE_DETECTION_REPORTING_REFRESH_PERIOD"),
+							"value": pulumi.String("1m"),
+						},
+					},
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{
 							"cpu":    pulumi.String("400m"),

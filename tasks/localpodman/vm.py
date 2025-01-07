@@ -104,4 +104,4 @@ def destroy_vm(
     )
     if clean_known_hosts:
         host = get_host(ctx, remote_hostname, scenario_name, stack_name)
-        clean_known_hosts_func(host)
+        clean_known_hosts_func(ctx, host)

@@ -267,20 +267,22 @@ def add_known_host(ctx: Context, host: str) -> None:
     Add the host to the known_hosts file.
     """
     # remove the host if it already exists
-    clean_known_hosts(host)
+    clean_known_hosts(ctx, host)
     home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
     ctx.run(f"ssh-keyscan -H {host} >> {home}/.ssh/known_hosts")
 
 
-def clean_known_hosts(host: str) -> None:
+def clean_known_hosts(ctx: Context, host: str) -> None:
     """
     Remove the host from the known_hosts file.
     """
+    ctx.run(f"ssh-keygen -R {host}")
     home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
     with open(f"{home}/.ssh/known_hosts") as f:
         lines = f.readlines()
 
-    filtered_lines = [line for line in lines if not line.startswith(host)]
+    host_comment = f"# {host}"
+    filtered_lines = [line for line in lines if not line.startswith(host_comment)]
     with open(f"{home}/.ssh/known_hosts", "w") as f:
         f.writelines(filtered_lines)
 

@@ -145,7 +145,7 @@ def destroy_vm(
         stack=stack_name,
     )
     if clean_known_hosts:
-        clean_known_hosts_func(host)
+        clean_known_hosts_func(ctx, host)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

@@ -40,3 +40,6 @@ Pulumi.*.yaml
 # Build files
 dist/main
 mem.pprof
+
+# Python cache files
+**/__pycache__/

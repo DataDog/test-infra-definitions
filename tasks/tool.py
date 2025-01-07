@@ -268,23 +268,19 @@ def add_known_host(ctx: Context, host: str) -> None:
     """
     # remove the host if it already exists
     clean_known_hosts(ctx, host)
-    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    ctx.run(f"ssh-keyscan -H {host} >> {home}/.ssh/known_hosts")
+    result = ctx.run(f"ssh-keyscan {host}", hide=True)
+    if result and result.ok:
+        home = pathlib.Path.home()
+        filtered_hosts = '\n'.join([line for line in result.stdout.splitlines() if not line.startswith("#")])
+        with open(os.path.join(home, ".ssh", "known_hosts"), "a") as f:
+            f.write(filtered_hosts)
 
 
 def clean_known_hosts(ctx: Context, host: str) -> None:
     """
     Remove the host from the known_hosts file.
     """
-    ctx.run(f"ssh-keygen -R {host}")
-    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    with open(f"{home}/.ssh/known_hosts") as f:
-        lines = f.readlines()
-
-    host_comment = f"# {host}"
-    filtered_lines = [line for line in lines if not line.startswith(host_comment)]
-    with open(f"{home}/.ssh/known_hosts", "w") as f:
-        f.writelines(filtered_lines)
+    ctx.run(f"ssh-keygen -R {host}", hide=True)
 
 
 def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> str:

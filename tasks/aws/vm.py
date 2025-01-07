@@ -16,6 +16,7 @@ from tasks.aws.common import (
 )
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
+from tasks.tool import add_known_host as add_known_host_func
 from tasks.tool import clean_known_hosts as clean_known_hosts_func
 from tasks.tool import get_host, notify, show_connection_message
 
@@ -43,6 +44,7 @@ remote_hostname = "aws-vm"
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
+        "add_known_host": doc.add_known_host,
     }
 )
 def create_vm(
@@ -64,6 +66,7 @@ def create_vm(
     instance_type: Optional[str] = None,
     no_verify: Optional[bool] = False,
     ssh_user: Optional[str] = None,
+    add_known_host: Optional[bool] = True,
 ) -> None:
     """
     Create a new virtual machine on aws.
@@ -111,6 +114,10 @@ def create_vm(
     if interactive:
         notify(ctx, "Your VM is now created")
 
+    if add_known_host:
+        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+        add_known_host_func(ctx, host)
+
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
 
@@ -138,7 +145,7 @@ def destroy_vm(
         stack=stack_name,
     )
     if clean_known_hosts:
-        clean_known_hosts_func(host)
+        clean_known_hosts_func(ctx, host)
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

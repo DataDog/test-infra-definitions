@@ -4,7 +4,7 @@ set -f
 [ -n "$JAVA_OPTS" ] || JAVA_OPTS="-Xmx128M -Xms128M"
 [ -n "$RMI_PORT" ] || RMI_PORT="9010"
 [ -n "$HOST_NAME" ] || HOST_NAME=`awk 'END{print $1}' /etc/hosts`
-[ -n "$SSL_MODE"] || SSL_MODE="false"
+[ -n "$SSL_MODE" ] || SSL_MODE="false"
 
 echo "Using `java --version`"
 echo "With JAVA_OPTS '${JAVA_OPTS}'"

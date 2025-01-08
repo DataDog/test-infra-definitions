@@ -31,3 +31,4 @@ ssh_user: str = "The user to use for ssh connection (default will be selected de
 os_version: str = "The version of the OS to use (default will be selected depending on the OS family). See https://github.com/DataDog/test-infra-definitions/blob/main/components/os/linux_descriptors.go for a list of version available for a given OS (https://github.com/DataDog/test-infra-definitions/blob/main/components/os/windows_descriptors.go for Windows)"
 full_image_path: str = "The full image path (registry:tag) of the Agent image to deploy"
 cluster_agent_full_image_path: str = "The full image path (registry:tag) of the Cluster Agent image to deploy"
+add_known_host: str = "Add the host to the known_hosts file (default True)"

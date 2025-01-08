@@ -262,17 +262,25 @@ def show_connection_message(
         pyperclip.copy(command)
 
 
-def clean_known_hosts(host: str) -> None:
+def add_known_host(ctx: Context, host: str) -> None:
+    """
+    Add the host to the known_hosts file.
+    """
+    # remove the host if it already exists
+    clean_known_hosts(ctx, host)
+    result = ctx.run(f"ssh-keyscan {host}", hide=True)
+    if result and result.ok:
+        home = pathlib.Path.home()
+        filtered_hosts = '\n'.join([line for line in result.stdout.splitlines() if not line.startswith("#")])
+        with open(os.path.join(home, ".ssh", "known_hosts"), "a") as f:
+            f.write(filtered_hosts)
+
+
+def clean_known_hosts(ctx: Context, host: str) -> None:
     """
     Remove the host from the known_hosts file.
     """
-    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    with open(f"{home}/.ssh/known_hosts") as f:
-        lines = f.readlines()
-
-    filtered_lines = [line for line in lines if not line.startswith(host)]
-    with open(f"{home}/.ssh/known_hosts", "w") as f:
-        f.writelines(filtered_lines)
+    ctx.run(f"ssh-keygen -R {host}", hide=True)
 
 
 def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> str:

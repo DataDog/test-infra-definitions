@@ -22,8 +22,8 @@ type Fakeintake struct {
 	// It's cleaner to export the full URL, but the Agent requires only host in some cases.
 	// Keeping those internal to Pulumi program.
 	Host   pulumi.StringOutput `pulumi:"host"`
-	Scheme string              `pulumi:"scheme"` // Scheme is a string as it's known in code and is useful to check HTTP/HTTPS
-	Port   uint32              `pulumi:"port"`   // Same for Port
+	Scheme pulumi.StringOutput `pulumi:"scheme"` // Scheme is a string as it's known in code and is useful to check HTTP/HTTPS
+	Port   pulumi.IntOutput    `pulumi:"port"`   // Same for Port
 
 	URL pulumi.StringOutput `pulumi:"url"`
 }

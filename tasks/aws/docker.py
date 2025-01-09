@@ -70,7 +70,7 @@ def create_docker(
 def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     remoteHost = tool.RemoteHost("aws-vm", outputs)
-    host = remoteHost.host
+    host = remoteHost.address
     user = remoteHost.user
 
     command = (

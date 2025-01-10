@@ -459,6 +459,38 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 							},
 							"labels_as_tags":      map[string]interface{}{},
 							"annotations_as_tags": map[string]interface{}{},
+							"custom_resource": map[string]interface{}{
+								"spec": map[string]interface{}{
+									"resources": []map[string]interface{}{
+										{
+											"groupVersionKind": map[string]interface{}{
+												"group":   "datadoghq.com",
+												"kind":    "DatadogMetric",
+												"version": "v1alpha1",
+											},
+											"commonLabels": map[string]interface{}{
+												"cr_type": "ddm",
+											},
+											"labelsFromPath": map[string]interface{}{
+												"ddm_namespace": []string{"metadata", "namespace"},
+												"ddm_name":      []string{"metadata", "name"},
+											},
+											"metrics": []map[string]interface{}{
+												{
+													"name": "ddm_value",
+													"help": "DatadogMetric value",
+													"each": map[string]interface{}{
+														"type": "gauge",
+														"gauge": map[string]interface{}{
+															"path": []string{"status", "currentValue"},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
 						},
 					},
 				})),

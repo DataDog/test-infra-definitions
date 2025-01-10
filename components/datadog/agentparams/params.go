@@ -244,7 +244,7 @@ func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params)
 	}
 }
 
-func withIntakeHostname(scheme pulumi.StringInput, hostname pulumi.StringInput, port uint32) func(*Params) error {
+func withIntakeHostname(scheme pulumi.StringInput, hostname pulumi.StringInput, port pulumi.IntInput) func(*Params) error {
 	return func(p *Params) error {
 		extraConfig := pulumi.Sprintf(`dd_url: %[3]s://%[1]s:%[2]d
 logs_config.logs_dd_url: %[1]s:%[2]d
@@ -293,7 +293,7 @@ func WithIntakeHostname(scheme string, hostname string) func(*Params) error {
 		port = 443
 	}
 
-	return withIntakeHostname(pulumi.String(scheme), pulumi.String(hostname), port)
+	return withIntakeHostname(pulumi.String(scheme), pulumi.String(hostname), pulumi.Int(port))
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
@@ -302,7 +302,7 @@ func WithIntakeHostname(scheme string, hostname string) func(*Params) error {
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
-		return withIntakeHostname(pulumi.String(fakeintake.Scheme), fakeintake.Host, fakeintake.Port)(p)
+		return withIntakeHostname(fakeintake.Scheme, fakeintake.Host, fakeintake.Port)(p)
 	}
 }
 

@@ -600,9 +600,14 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 
 	var endpointsEnvVar pulumi.StringMapArray
 	if dualShipping {
-		if fakeintake.Scheme != "https" {
-			e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
-		}
+		useSSL := fakeintake.Scheme.ApplyT(func(scheme string) bool {
+			if scheme != "https" {
+				e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
+			}
+
+			return scheme == "https"
+		}).(pulumi.BoolOutput)
+
 		endpointsEnvVar = pulumi.StringMapArray{
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
@@ -626,7 +631,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
+				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, useSSL),
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),

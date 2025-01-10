@@ -32,9 +32,9 @@ func NewLocalDockerFakeintake(e config.Env, resourceName string) (*Fakeintake, e
 			return err
 		}
 
-		comp.Host = pulumi.Sprintf(localIP.String())
-		comp.Port = hostPort
-		comp.Scheme = "http"
+		comp.Host = pulumi.Sprintf("%s", localIP.String())
+		comp.Port = pulumi.Int(hostPort).ToIntOutput()
+		comp.Scheme = pulumi.Sprintf("%s", "http")
 		comp.URL = pulumi.Sprintf("%s://%s:%d", comp.Scheme, comp.Host, comp.Port)
 
 		return nil

@@ -47,7 +47,7 @@ func newLibvirtFS(ctx *pulumi.Context, vmset *vmconfig.VMSet, pools map[vmconfig
 	}
 }
 
-func createDomainConsoleLog(runner *Runner, domainName string, resourceName string, depends []pulumi.Resource) (pulumi.Resource, error) {
+func createDomainConsoleLog(runner command.Runner, domainName string, resourceName string, depends []pulumi.Resource) (pulumi.Resource, error) {
 	args := command.Args{
 		Create: pulumi.Sprintf("truncate --size=0 %s", resources.GetConsolePath(domainName)),
 	}

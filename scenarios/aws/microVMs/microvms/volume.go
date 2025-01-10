@@ -12,7 +12,7 @@ import (
 )
 
 type LibvirtVolume interface {
-	SetupLibvirtVMVolume(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) (pulumi.Resource, error)
+	SetupLibvirtVMVolume(ctx *pulumi.Context, runner command.Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) (pulumi.Resource, error)
 	UnderlyingImage() *filesystemImage
 	FullResourceName(...string) string
 	Key() string
@@ -99,7 +99,7 @@ func NewLibvirtVolume(
 	}
 }
 
-func remoteLibvirtVolume(v *volume, runner *Runner, depends []pulumi.Resource) (pulumi.Resource, error) {
+func remoteLibvirtVolume(v *volume, runner command.Runner, depends []pulumi.Resource) (pulumi.Resource, error) {
 	var baseVolumeReady pulumi.Resource
 
 	volumeXMLPath := fmt.Sprintf("/tmp/volume-%s.xml", v.filesystemImage.imageName)
@@ -156,7 +156,7 @@ func localLibvirtVolume(v *volume, ctx *pulumi.Context, providerFn LibvirtProvid
 	return stgvolReady, nil
 }
 
-func (v *volume) SetupLibvirtVMVolume(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) (pulumi.Resource, error) {
+func (v *volume) SetupLibvirtVMVolume(ctx *pulumi.Context, runner command.Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) (pulumi.Resource, error) {
 	if isLocal {
 		return localLibvirtVolume(v, ctx, providerFn, depends)
 	}

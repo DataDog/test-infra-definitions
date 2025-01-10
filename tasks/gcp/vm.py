@@ -17,8 +17,16 @@ from tasks.gcp.common import (
     get_deploy_job,
     get_os_families,
 )
-from tasks.tool import clean_known_hosts as clean_known_hosts_func
-from tasks.tool import get_host, show_connection_message
+from tasks.tool import (
+    add_known_host as add_known_hosts_func,
+)
+from tasks.tool import (
+    clean_known_hosts as clean_known_hosts_func,
+)
+from tasks.tool import (
+    get_host,
+    show_connection_message,
+)
 
 scenario_name = "gcp/vm"
 remote_hostname = "gcp-vm"
@@ -38,6 +46,7 @@ remote_hostname = "gcp-vm"
         "architecture": gcp_doc.architecture,
         "instance_type": gcp_doc.instance_type,
         "os_version": doc.os_version,
+        "add_known_host": doc.add_known_host,
     }
 )
 def create_vm(
@@ -58,6 +67,7 @@ def create_vm(
     deploy_job: Optional[str] = None,
     no_verify: Optional[bool] = False,
     use_fakeintake: Optional[bool] = False,
+    add_known_host: Optional[bool] = True,
 ) -> None:
     """
     Create a new virtual machine on gcp.
@@ -105,6 +115,10 @@ def create_vm(
     if interactive:
         tool.notify(ctx, "Your VM is now created")
 
+    if add_known_host:
+        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+        add_known_hosts_func(ctx, host)
+
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
 
@@ -124,7 +138,6 @@ def destroy_vm(
     """
     Destroy a new virtual machine on gcp.
     """
-    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
     destroy(
         ctx,
         scenario_name=scenario_name,
@@ -132,7 +145,8 @@ def destroy_vm(
         stack=stack_name,
     )
     if clean_known_hosts:
-        clean_known_hosts_func(host)
+        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+        clean_known_hosts_func(ctx, host)
 
 
 def _get_os_information(os_family: Optional[str], arch: Optional[str]) -> Tuple[str, Optional[str]]:

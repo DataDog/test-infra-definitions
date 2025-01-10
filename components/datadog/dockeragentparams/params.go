@@ -49,6 +49,8 @@ type Params struct {
 	EnvironmentVariables pulumi.StringMap
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiDependsOn []pulumi.ResourceOption
+	// FIPS is true if FIPS image is needed.
+	FIPS bool
 }
 
 type Option = func(*Params) error
@@ -87,6 +89,14 @@ func WithRepository(repository string) func(*Params) error {
 func WithJMX() func(*Params) error {
 	return func(p *Params) error {
 		p.JMX = true
+		return nil
+	}
+}
+
+// WithFIPS makes the image FIPS enabled
+func WithFIPS() func(*Params) error {
+	return func(p *Params) error {
+		p.FIPS = true
 		return nil
 	}
 }
@@ -131,31 +141,31 @@ func WithAgentServiceEnvVariable(key string, value pulumi.Input) func(*Params) e
 //
 // This option is overwritten by `WithFakeintake`.
 func WithIntake(url string) func(*Params) error {
-	return withIntakeHostname(pulumi.String(url), false)
+	return withIntakeHostname(pulumi.String(url), pulumi.Bool(false))
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
 //
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
-	shouldSkipSSLValidation := fakeintake.Scheme == "http"
+	shouldSkipSSLValidation := fakeintake.Scheme.ApplyT(func(scheme string) bool { return scheme == "http" }).(pulumi.BoolInput)
 	return func(p *Params) error {
 		p.PulumiDependsOn = append(p.PulumiDependsOn, utils.PulumiDependsOn(fakeintake))
 		return withIntakeHostname(fakeintake.URL, shouldSkipSSLValidation)(p)
 	}
 }
 
-func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation bool) func(*Params) error {
+func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation pulumi.BoolInput) func(*Params) error {
 	return func(p *Params) error {
 		envVars := pulumi.Map{
 			"DD_DD_URL":                                  pulumi.Sprintf("%s", url),
 			"DD_PROCESS_CONFIG_PROCESS_DD_URL":           pulumi.Sprintf("%s", url),
 			"DD_APM_DD_URL":                              pulumi.Sprintf("%s", url),
-			"DD_SKIP_SSL_VALIDATION":                     pulumi.Bool(shouldSkipSSLValidation),
-			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION":  pulumi.Bool(shouldSkipSSLValidation),
+			"DD_SKIP_SSL_VALIDATION":                     shouldSkipSSLValidation,
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION":  shouldSkipSSLValidation,
 			"DD_LOGS_CONFIG_FORCE_USE_HTTP":              pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
 			"DD_LOGS_CONFIG_LOGS_DD_URL":                 pulumi.Sprintf("%s", url),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":                 pulumi.Bool(shouldSkipSSLValidation),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                 shouldSkipSSLValidation,
 			"DD_SERVICE_DISCOVERY_FORWARDER_LOGS_DD_URL": pulumi.Sprintf("%s", url),
 		}
 		for key, value := range envVars {
@@ -194,15 +204,15 @@ func WithAdditionalFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) e
 	}).(pulumi.StringOutput)
 
 	// fakeintake without LB does not have a valid SSL certificate and accepts http only
-	shouldEnforceHTTPInputAndSkipSSL := fakeintake.Scheme == "http"
+	shouldEnforceHTTPInputAndSkipSSL := fakeintake.Scheme.ApplyT(func(scheme string) bool { return scheme == "http" }).(pulumi.BoolInput)
 
 	return func(p *Params) error {
 		logsEnvVars := pulumi.Map{
 			"DD_ADDITIONAL_ENDPOINTS":                   additionalEndpointsContentInput,
 			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS":       additionalLogsEndpointsContentInput,
-			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
-			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
+			"DD_SKIP_SSL_VALIDATION":                    shouldEnforceHTTPInputAndSkipSSL,
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": shouldEnforceHTTPInputAndSkipSSL,
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                shouldEnforceHTTPInputAndSkipSSL,
 			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
 		}
 		for key, value := range logsEnvVars {

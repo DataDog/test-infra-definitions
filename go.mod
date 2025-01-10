@@ -4,33 +4,33 @@ go 1.22.5
 
 require (
 	dario.cat/mergo v1.0.1
-	github.com/DataDog/datadog-agent/pkg/util/optional v0.59.1
+	github.com/DataDog/datadog-agent/pkg/util/option v0.0.0-20250102215417-1af8863cd8cd
 	github.com/Masterminds/semver v1.5.0
 	github.com/alessio/shellescape v1.4.2
-	github.com/aws/aws-sdk-go-v2 v1.32.6
-	github.com/aws/aws-sdk-go-v2/config v1.28.6
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.36.7
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.52.2
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.71.0
+	github.com/aws/aws-sdk-go-v2 v1.32.7
+	github.com/aws/aws-sdk-go-v2/config v1.28.7
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.38.1
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.53.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.72.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/gofuzz v1.2.0
-	github.com/pulumi/pulumi-aws/sdk/v6 v6.65.0
+	github.com/pulumi/pulumi-aws/sdk/v6 v6.66.2
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.19.0
-	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.73.1
-	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.73.1
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.73.1
-	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.73.1
-	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.73.1
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.73.1
+	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.81.0
 	github.com/pulumi/pulumi-command/sdk v1.0.1
-	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.7
-	github.com/pulumi/pulumi-eks/sdk/v3 v3.4.0
+	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.8
+	github.com/pulumi/pulumi-eks/sdk/v3 v3.7.0
 	github.com/pulumi/pulumi-gcp/sdk/v7 v7.38.0
 	github.com/pulumi/pulumi-kubernetes/sdk/v4 v4.19.0
-	github.com/pulumi/pulumi-libvirt/sdk v0.5.3
-	github.com/pulumi/pulumi-random/sdk/v4 v4.16.7
+	github.com/pulumi/pulumi-libvirt/sdk v0.5.4
+	github.com/pulumi/pulumi-random/sdk/v4 v4.16.8
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.142.0
+	github.com/pulumi/pulumi/sdk/v3 v3.145.0
 	github.com/pulumiverse/pulumi-time/sdk v0.1.0
 	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.10.0
@@ -47,19 +47,19 @@ require (
 	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.7 // indirect
-	github.com/aws/aws-sdk-go-v2/credentials v1.17.47 // indirect
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.21 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.25 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.25 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.48 // indirect
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.22 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.26 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.1 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.25 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/v4a v1.3.26 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.12.1 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sso v1.24.7 // indirect
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.6 // indirect
-	github.com/aws/aws-sdk-go-v2/service/sts v1.33.2 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.4.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.12.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.18.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sso v1.24.8 // indirect
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.28.7 // indirect
+	github.com/aws/aws-sdk-go-v2/service/sts v1.33.3 // indirect
 	github.com/aws/smithy-go v1.22.1 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/blang/semver v3.5.1+incompatible // indirect
@@ -70,7 +70,7 @@ require (
 	github.com/cloudflare/circl v1.3.7 // indirect
 	github.com/containerd/console v1.0.4 // indirect
 	github.com/cyphar/filepath-securejoin v0.2.4 // indirect
-	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/djherbis/times v1.6.0 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
@@ -105,11 +105,11 @@ require (
 	github.com/pjbgf/sha1cd v0.3.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pkg/term v1.1.0 // indirect
-	github.com/pmezard/go-difflib v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
 	github.com/pulumi/esc v0.10.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/rogpeppe/go-internal v1.12.0 // indirect
+	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
@@ -125,7 +125,7 @@ require (
 	go.uber.org/atomic v1.11.0 // indirect
 	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/term v0.27.0 // indirect

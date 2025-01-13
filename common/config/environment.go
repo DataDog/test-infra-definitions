@@ -38,6 +38,7 @@ const (
 	DDAgentDeployParamName               = "deploy"
 	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
 	DDAgentVersionParamName              = "version"
+	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
@@ -260,6 +261,14 @@ func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
+}
+
+func (e *CommonEnvironment) AgentFlavor() string {
+	flavor := e.AgentConfig.Get(DDAgentFlavorParamName)
+
+	panic("flavor: " + flavor)
+
+	return flavor
 }
 
 func (e *CommonEnvironment) PipelineID() string {

@@ -40,6 +40,7 @@ def create_vm(
     use_fakeintake: Optional[bool] = False,
     interactive: Optional[bool] = True,
     add_known_host: Optional[bool] = True,
+    agent_flavor: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on local podman.
@@ -68,6 +69,7 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
+        agent_flavor=agent_flavor,
     )
 
     if interactive:

@@ -22,6 +22,7 @@ def create_installer_lab(
     debug: Optional[bool] = False,
     pipeline_id: Optional[str] = None,
     site: Optional[str] = "datad0g.com",
+    agent_flavor: Optional[str] = None,
 ):
     full_stack_name = deploy(
         ctx,
@@ -31,6 +32,7 @@ def create_installer_lab(
         install_installer=True,
         debug=debug,
         extra_flags={"ddagent:site": site},
+        agent_flavor=agent_flavor,
     )
 
     print(f"Installer lab created: {full_stack_name}")

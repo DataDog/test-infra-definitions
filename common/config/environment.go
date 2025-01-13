@@ -264,11 +264,7 @@ func (e *CommonEnvironment) AgentVersion() string {
 }
 
 func (e *CommonEnvironment) AgentFlavor() string {
-	flavor := e.AgentConfig.Get(DDAgentFlavorParamName)
-
-	panic("flavor: " + flavor)
-
-	return flavor
+	return e.AgentConfig.Get(DDAgentFlavorParamName)
 }
 
 func (e *CommonEnvironment) PipelineID() string {

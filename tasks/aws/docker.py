@@ -38,6 +38,7 @@ def create_docker(
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
     full_image_path: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
 ):
     """
     Create a docker environment.
@@ -59,6 +60,7 @@ def create_docker(
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
         full_image_path=full_image_path,
+        agent_flavor=agent_flavor,
     )
 
     if interactive:

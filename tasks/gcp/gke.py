@@ -37,6 +37,7 @@ def create_gke(
     cluster_agent_full_image_path: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     use_autopilot: Optional[bool] = False,
+    agent_flavor: Optional[str] = None,
 ) -> None:
     """
     Create a new GKE environment.
@@ -67,6 +68,7 @@ def create_gke(
         full_image_path=full_image_path,
         cluster_agent_full_image_path=cluster_agent_full_image_path,
         use_fakeintake=use_fakeintake,
+        agent_flavor=agent_flavor,
     )
 
     if interactive:

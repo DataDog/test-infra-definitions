@@ -61,6 +61,7 @@ def create_vm(
     no_verify: Optional[bool] = False,
     use_fakeintake: Optional[bool] = False,
     add_known_host: Optional[bool] = True,
+    agent_flavor: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on azure.
@@ -103,6 +104,7 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
+        agent_flavor=agent_flavor,
     )
 
     if interactive:

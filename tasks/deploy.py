@@ -27,6 +27,7 @@ def deploy(
     use_fakeintake: Optional[bool] = False,
     full_image_path: Optional[str] = None,
     cluster_agent_full_image_path: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -47,6 +48,7 @@ def deploy(
     flags["scenario"] = scenario_name
     flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
+    flags["ddagent:flavor"] = agent_flavor
     flags["ddagent:fakeintake"] = use_fakeintake
     flags["ddagent:fullImagePath"] = full_image_path
     flags["ddagent:clusterAgentFullImagePath"] = cluster_agent_full_image_path

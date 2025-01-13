@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Tuple
 
 from invoke.context import Context
@@ -116,7 +117,7 @@ def create_vm(
 
     if add_known_host:
         host = get_host(ctx, remote_hostname, scenario_name, stack_name)
-        add_known_host_func(ctx, host)
+        add_known_host_func(ctx, host.address)
 
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
@@ -145,7 +146,23 @@ def destroy_vm(
         stack=stack_name,
     )
     if clean_known_hosts:
-        clean_known_hosts_func(ctx, host)
+        clean_known_hosts_func(ctx, host.address)
+
+
+@task(
+    help={
+        "stack_name": doc.stack_name,
+    }
+)
+def show_vm(
+    ctx: Context,
+    stack_name: Optional[str] = None,
+):
+    """
+    Show connection details of an aws host.
+    """
+    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+    print(json.dumps(host.__dict__, indent=4))
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

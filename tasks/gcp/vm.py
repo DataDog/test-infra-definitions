@@ -117,7 +117,7 @@ def create_vm(
 
     if add_known_host:
         host = get_host(ctx, remote_hostname, scenario_name, stack_name)
-        add_known_hosts_func(ctx, host)
+        add_known_hosts_func(ctx, host.address)
 
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
@@ -146,7 +146,7 @@ def destroy_vm(
     )
     if clean_known_hosts:
         host = get_host(ctx, remote_hostname, scenario_name, stack_name)
-        clean_known_hosts_func(ctx, host)
+        clean_known_hosts_func(ctx, host.address)
 
 
 def _get_os_information(os_family: Optional[str], arch: Optional[str]) -> Tuple[str, Optional[str]]:

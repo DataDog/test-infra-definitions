@@ -238,8 +238,9 @@ def _get_root_path() -> str:
 class RemoteHost:
     def __init__(self, name, stack_outputs: Any):
         remoteHost: Any = stack_outputs[f"dd-Host-{name}"]
-        self.host: str = remoteHost["address"]
+        self.address: str = remoteHost["address"]
         self.user: str = remoteHost["username"]
+        self.password: str | None = "password" in remoteHost and remoteHost["password"] or None
         self.port: int | None = "port" in remoteHost and remoteHost["port"] or None
 
 
@@ -248,10 +249,10 @@ def show_connection_message(
 ):
     outputs = get_stack_json_outputs(ctx, full_stack_name)
     remoteHost = RemoteHost(remote_host_name, outputs)
-    host = remoteHost.host
+    address = remoteHost.address
     user = remoteHost.user
 
-    command = f"ssh {user}@{host}"
+    command = f"ssh {user}@{address}"
 
     if remoteHost.port:
         command += f" -p {remoteHost.port}"
@@ -262,13 +263,13 @@ def show_connection_message(
         pyperclip.copy(command)
 
 
-def add_known_host(ctx: Context, host: str) -> None:
+def add_known_host(ctx: Context, address: str) -> None:
     """
     Add the host to the known_hosts file.
     """
     # remove the host if it already exists
-    clean_known_hosts(ctx, host)
-    result = ctx.run(f"ssh-keyscan {host}", hide=True)
+    clean_known_hosts(ctx, address)
+    result = ctx.run(f"ssh-keyscan {address}", hide=True)
     if result and result.ok:
         home = pathlib.Path.home()
         filtered_hosts = '\n'.join([line for line in result.stdout.splitlines() if not line.startswith("#")])
@@ -283,11 +284,10 @@ def clean_known_hosts(ctx: Context, host: str) -> None:
     ctx.run(f"ssh-keygen -R {host}", hide=True)
 
 
-def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> str:
+def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> RemoteHost:
     """
     Get the host of the VM.
     """
     full_stack_name = get_stack_name(stack_name, scenario_name)
     outputs = get_stack_json_outputs(ctx, full_stack_name)
-    remoteHost = RemoteHost(remote_host_name, outputs)
-    return remoteHost.host
+    return RemoteHost(remote_host_name, outputs)

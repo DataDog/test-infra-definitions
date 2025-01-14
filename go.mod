@@ -15,7 +15,7 @@ require (
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.66.2
-	github.com/pulumi/pulumi-awsx/sdk/v2 v2.19.0
+	github.com/pulumi/pulumi-awsx/sdk/v2 v2.20.0
 	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.81.0
 	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.81.0
 	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.81.0
@@ -98,7 +98,6 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
-	github.com/onsi/gomega v1.31.0 // indirect
 	github.com/opentracing/basictracer-go v1.1.0 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
 	github.com/pgavlin/fx v0.1.6 // indirect
@@ -108,6 +107,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/pulumi/appdash v0.0.0-20231130102222-75f619a67231 // indirect
 	github.com/pulumi/esc v0.10.0 // indirect
+	github.com/pulumi/pulumi-docker-build/sdk/go/dockerbuild v0.0.3 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect

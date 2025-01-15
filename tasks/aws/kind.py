@@ -28,6 +28,7 @@ scenario_name = "aws/kind"
         "interactive": doc.interactive,
         "full_image_path": doc.full_image_path,
         "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_kind(

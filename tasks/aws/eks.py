@@ -32,6 +32,7 @@ scenario_name = "aws/eks"
         "instance_type": aws_doc.instance_type,
         "full_image_path": doc.full_image_path,
         "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_eks(

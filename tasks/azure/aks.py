@@ -22,6 +22,7 @@ scenario_name = "az/aks"
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_aks(

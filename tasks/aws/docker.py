@@ -25,6 +25,7 @@ scenario_name = "aws/dockervm"
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
         "full_image_path": doc.full_image_path,
+        "agent_flavor": doc.agent_flavor,
     },
 )
 def create_docker(

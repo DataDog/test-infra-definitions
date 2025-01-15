@@ -15,6 +15,7 @@ scenario_name = "aws/installer"
         "debug": doc.debug,
         "pipeline_id": doc.pipeline_id,
         "site": doc.site,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_installer_lab(

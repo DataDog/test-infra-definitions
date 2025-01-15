@@ -46,6 +46,7 @@ remote_hostname = "aws-vm"
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
         "add_known_host": doc.add_known_host,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_vm(

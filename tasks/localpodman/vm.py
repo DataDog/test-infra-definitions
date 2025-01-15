@@ -27,6 +27,7 @@ remote_hostname = "local-podman-vm"
         "use_fakeintake": doc.fakeintake,
         "interactive": doc.interactive,
         "add_known_host": doc.add_known_host,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_vm(

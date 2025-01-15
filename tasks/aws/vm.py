@@ -46,6 +46,7 @@ remote_hostname = "aws-vm"
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
         "add_known_host": doc.add_known_host,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_vm(
@@ -68,6 +69,7 @@ def create_vm(
     no_verify: Optional[bool] = False,
     ssh_user: Optional[str] = None,
     add_known_host: Optional[bool] = True,
+    agent_flavor: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on aws.
@@ -110,6 +112,7 @@ def create_vm(
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
         deploy_job=deploy_job,
+        agent_flavor=agent_flavor,
     )
 
     if interactive:

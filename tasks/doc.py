@@ -32,3 +32,4 @@ os_version: str = "The version of the OS to use (default will be selected depend
 full_image_path: str = "The full image path (registry:tag) of the Agent image to deploy"
 cluster_agent_full_image_path: str = "The full image path (registry:tag) of the Cluster Agent image to deploy"
 add_known_host: str = "Add the host to the known_hosts file (default True)"
+agent_flavor: str = "Use a specific Agent flavor (such as datadog-fips-agent, see PackageFlavor https://github.com/DataDog/agent-release-management/blob/main/generator/const.py)"

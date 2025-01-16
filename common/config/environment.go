@@ -58,6 +58,7 @@ const (
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 	DDAgentJMX                           = "jmx"
 	DDAgentFIPS                          = "fips"
+	DDAgentConfigPathParamName           = "configPath"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -444,4 +445,19 @@ func (e *CommonEnvironment) AgentFIPS() bool {
 
 func (e *CommonEnvironment) AgentJMX() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
+}
+
+func (e *CommonEnvironment) AgentConfigPath() string {
+	return e.AgentConfig.Get(DDAgentConfigPathParamName)
+}
+
+func (e *CommonEnvironment) CustomAgentConfig() (string, error) {
+	configPath := e.AgentConfigPath()
+	if configPath == "" {
+		return "", fmt.Errorf("agent config path is empty")
+	}
+
+	config, err := os.ReadFile(configPath)
+
+	return string(config), err
 }

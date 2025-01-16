@@ -63,6 +63,10 @@ func (fs windowsOSCommand) BuildCommandString(
 	})
 }
 
+func (fs windowsOSCommand) PathJoin(parts ...string) string {
+	return strings.Join(parts, "\\")
+}
+
 func (fs windowsOSCommand) IsPathAbsolute(path string) bool {
 	// valid absolute path prefixes: "x:\", "x:/", "\\", "//" ]
 	if len(path) < 2 {

@@ -93,6 +93,8 @@ providers:
 			return err
 		}
 
+		// TODO A
+
 		if err := k8sAgentComponent.Export(env.Ctx(), nil); err != nil {
 			return err
 		}

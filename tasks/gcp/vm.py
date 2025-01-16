@@ -48,6 +48,7 @@ remote_hostname = "gcp-vm"
         "os_version": doc.os_version,
         "add_known_host": doc.add_known_host,
         "agent_flavor": doc.agent_flavor,
+        "agent_config_path": doc.agent_config_path,
     }
 )
 def create_vm(
@@ -70,6 +71,7 @@ def create_vm(
     use_fakeintake: Optional[bool] = False,
     add_known_host: Optional[bool] = True,
     agent_flavor: Optional[str] = None,
+    agent_config_path: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on gcp.
@@ -113,6 +115,7 @@ def create_vm(
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
         agent_flavor=agent_flavor,
+        agent_config_path=agent_config_path,
     )
 
     if interactive:

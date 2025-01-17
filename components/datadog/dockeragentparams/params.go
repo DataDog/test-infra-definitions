@@ -61,6 +61,10 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 		EnvironmentVariables:    pulumi.StringMap{},
 	}
 
+	for k, v := range e.AgentExtraEnvVars() {
+		version.AgentServiceEnvironment[k] = pulumi.String(v)
+	}
+
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
 		options = append(options,
 			WithFullImagePath(utils.BuildDockerImagePath(

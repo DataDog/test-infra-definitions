@@ -150,15 +150,6 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 			agentOptions = append(agentOptions, agentparams.WithFlavor(awsEnv.AgentFlavor()))
 		}
 
-		if awsEnv.AgentConfigPath() != "" {
-			configContent, err := awsEnv.CustomAgentConfig()
-			if err != nil {
-				return nil, err
-			}
-
-			agentOptions = append(agentOptions, agentparams.WithAgentConfig(configContent))
-		}
-
 		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentOptions...)
 		if err != nil {
 			awsEnv.Ctx().Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)

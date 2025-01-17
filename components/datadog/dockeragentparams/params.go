@@ -51,8 +51,6 @@ type Params struct {
 	PulumiDependsOn []pulumi.ResourceOption
 	// FIPS is true if FIPS image is needed.
 	FIPS bool
-	// Will be merged with the default agent configuration
-	AgentConfig string
 }
 
 type Option = func(*Params) error
@@ -243,13 +241,6 @@ func WithExtraComposeManifest(name string, content pulumi.StringInput) func(*Par
 func WithExtraComposeInlineManifest(cpms ...docker.ComposeInlineManifest) func(*Params) error {
 	return func(p *Params) error {
 		p.ExtraComposeManifests = append(p.ExtraComposeManifests, cpms...)
-		return nil
-	}
-}
-
-func WithAgentConfig(config string) func(*Params) error {
-	return func(p *Params) error {
-		p.AgentConfig = config
 		return nil
 	}
 }

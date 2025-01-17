@@ -92,7 +92,7 @@ func (d *Manager) ComposeFileUp(composeFilePath string, opts ...pulumi.ResourceO
 	)
 }
 
-func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (command.Command, error) {
+func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineManifest, envVars pulumi.StringMap, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	opts = utils.MergeOptions(d.opts, opts...)
 
 	homeCmd, composePath, err := d.Host.OS.FileManager().HomeDirectory(name+"-compose-tmp", opts...)
@@ -128,7 +128,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 	envVars["CONTENT_HASH"] = contentHash
 
 	composeFileArgs := "-f " + strings.Join(remoteComposePaths, " -f ")
-	return d.Host.OS.Runner().Command(
+	cmd, err := d.Host.OS.Runner().Command(
 		d.namer.ResourceName("compose-run", name),
 		&command.Args{
 			Create:      pulumi.Sprintf("docker-compose %s up --detach --wait --timeout %d", composeFileArgs, defaultTimeout),
@@ -137,6 +137,66 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 		},
 		utils.MergeOptions(d.opts, utils.PulumiDependsOn(runCommandDeps...), pulumi.DeleteBeforeReplace(true))...,
 	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Merge configurations if needed
+	// TODO: If ... return cmd, nil
+
+	// TODO: Check errors
+	// 1. Read default agent configuration
+	// TODO: Restore config on delete ?
+	cmd2, err := d.Host.OS.Runner().Command(
+		d.namer.ResourceName("read-container-agent-config", name),
+		&command.Args{
+			Create: pulumi.Sprintf("docker-compose %s exec -T %s /bin/cat /etc/datadog-agent/datadog.yaml", composeFileArgs, name),
+		},
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(cmd))...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Merge default and custom configurations
+	// TODO: True merge not concat + with custom configuration
+	mergedConfig := cmd2.StdoutOutput().ApplyT(func(output string) string {
+		return output + "\n" + "hello: world"
+	}).(pulumi.StringOutput)
+
+	// 3. Write merged configuration
+	// 3.a. Copy to host config
+	// TODO: True tmp
+	cmd3, err := d.Host.OS.FileManager().CopyInlineFile(mergedConfig, "/tmp/datadog.yaml", opts...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// 3.b. Copy to container config
+	// docker-compose -f agent-compose-tmp/docker-compose-agent.yml cp /tmp/datadog.yaml agent:/tmp/datadog.yaml
+	cmd4, err := d.Host.OS.Runner().Command(
+		d.namer.ResourceName("write-container-agent-config", name),
+		&command.Args{
+			Create: pulumi.Sprintf("docker-compose %s cp /tmp/datadog.yaml %s:/etc/datadog-agent/datadog.yaml", composeFileArgs, name),
+		},
+		utils.MergeOptions(d.opts, utils.PulumiDependsOn(cmd3))...,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return cmd4, err
+
+	// return d.Host.OS.Runner().Command(
+	// 	d.namer.ResourceName("cc-test", name),
+	// 	&command.Args{
+	// 		Create: pulumi.Sprintf("docker-compose %s exec -T %s /bin/bash -c 'echo \"hello: world\" >> /etc/datadog-agent/datadog.yaml'", composeFileArgs, name),
+	// 	},
+	// 	utils.MergeOptions(d.opts, utils.PulumiDependsOn(a))...,
+	// )
 }
 
 func (d *Manager) install() (command.Command, error) {

@@ -97,15 +97,6 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		// TODO A
-		// if awsEnv.AgentConfigPath() != "" {
-		// 	configContent, err := awsEnv.CustomAgentConfig()
-		// 	if err != nil {
-		// 		return
-		// 	}
-		// 	// ?
-		// }
-
 		if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}

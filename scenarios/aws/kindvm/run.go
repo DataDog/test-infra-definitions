@@ -133,8 +133,6 @@ agents:
 			return err
 		}
 
-		// TODO A
-
 		if err := k8sAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
@@ -189,8 +187,6 @@ spec:
 		if err != nil {
 			return err
 		}
-
-		// TODO A: here?
 
 		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentWithOperatorComp)
 

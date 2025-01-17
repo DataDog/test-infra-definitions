@@ -22,7 +22,6 @@ scenario_name = "gcp/gke"
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "agent_flavor": doc.agent_flavor,
-        "agent_config_path": doc.agent_config_path,
     }
 )
 def create_gke(
@@ -40,7 +39,6 @@ def create_gke(
     use_fakeintake: Optional[bool] = False,
     use_autopilot: Optional[bool] = False,
     agent_flavor: Optional[str] = None,
-    agent_config_path: Optional[str] = None,
 ) -> None:
     """
     Create a new GKE environment.
@@ -72,7 +70,6 @@ def create_gke(
         cluster_agent_full_image_path=cluster_agent_full_image_path,
         use_fakeintake=use_fakeintake,
         agent_flavor=agent_flavor,
-        agent_config_path=agent_config_path,
     )
 
     if interactive:

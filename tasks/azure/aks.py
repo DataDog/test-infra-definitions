@@ -23,7 +23,6 @@ scenario_name = "az/aks"
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "agent_flavor": doc.agent_flavor,
-        "agent_config_path": doc.agent_config_path,
     }
 )
 def create_aks(
@@ -40,7 +39,6 @@ def create_aks(
     cluster_agent_full_image_path: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
     agent_flavor: Optional[str] = None,
-    agent_config_path: Optional[str] = None,
 ):
     """
     Create a new AKS environment. It lasts around 5 minutes.
@@ -71,7 +69,6 @@ def create_aks(
         cluster_agent_full_image_path=cluster_agent_full_image_path,
         use_fakeintake=use_fakeintake,
         agent_flavor=agent_flavor,
-        agent_config_path=agent_config_path,
     )
 
     if interactive:

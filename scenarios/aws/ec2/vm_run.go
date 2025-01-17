@@ -52,6 +52,14 @@ func VMRun(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, agentparams.WithFlavor(env.AgentFlavor()))
 		}
 
+		if env.AgentConfigPath() != "" {
+			configContent, err := env.CustomAgentConfig()
+			if err != nil {
+				return err
+			}
+			agentOptions = append(agentOptions, agentparams.WithAgentConfig(configContent))
+		}
+
 		agent, err := agent.NewHostAgent(&env, vm, agentOptions...)
 		if err != nil {
 			return err

@@ -33,6 +33,7 @@ const (
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
 	DDInfraInitOnly                         = "initOnly"
+	DDInfraHelmConfig                       = "helmConfig"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -98,6 +99,7 @@ type Env interface {
 	InfraEnvironmentNames() []string
 	InfraOSDescriptor() string
 	InfraOSImageID() string
+	InfraHelmConfig() string
 	KubernetesVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
@@ -212,6 +214,10 @@ func (e *CommonEnvironment) DefaultResourceTags() map[string]string {
 
 func (e *CommonEnvironment) InitOnly() bool {
 	return e.GetBoolWithDefault(e.InfraConfig, DDInfraInitOnly, false)
+}
+
+func (e *CommonEnvironment) InfraHelmConfig() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraHelmConfig, "")
 }
 
 func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {

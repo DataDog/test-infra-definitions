@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
@@ -155,6 +156,16 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
 	}
 
+	// Read and merge custom helm config if provided
+	if helmConfig := e.InfraHelmConfig(); helmConfig != "" {
+		customHelm, err := os.ReadFile(helmConfig)
+		if err != nil {
+			return nil, err
+		}
+		config := pulumi.NewStringAsset(string(customHelm))
+		valuesYAML = append(valuesYAML, config)
+	}
+
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
 		RepoURL:     DatadogHelmRepo,
 		ChartName:   "datadog",
@@ -215,7 +226,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 type HelmValues pulumi.Map
 
 func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
-	return HelmValues{
+	values := HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -521,6 +532,8 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			},
 		},
 	}
+
+	return values
 }
 
 func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {

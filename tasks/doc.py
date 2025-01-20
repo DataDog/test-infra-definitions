@@ -34,3 +34,4 @@ cluster_agent_full_image_path: str = "The full image path (registry:tag) of the 
 add_known_host: str = "Add the host to the known_hosts file (default True)"
 agent_flavor: str = "Use a specific Agent flavor (such as datadog-fips-agent, see PackageFlavor https://github.com/DataDog/agent-release-management/blob/main/generator/const.py)"
 agent_env: str = "Extra envionment variables to run the agent with, the format is `VAR1=val1,VAR2=val2`"
+helm_config: str = "Path to a custom helm config file that will be merged with the default one"

@@ -141,13 +141,16 @@ def destroy_vm(
     """
     Destroy a new virtual machine on aws.
     """
+
     host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+
     destroy(
         ctx,
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
     )
+
     if clean_known_hosts:
         clean_known_hosts_func(ctx, host.address)
 

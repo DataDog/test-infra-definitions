@@ -134,14 +134,17 @@ def destroy_vm(
     """
     Destroy a new virtual machine on azure.
     """
+
+    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+
     destroy(
         ctx,
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
     )
+
     if clean_known_hosts:
-        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
         clean_known_hosts_func(ctx, host.address)
 
 

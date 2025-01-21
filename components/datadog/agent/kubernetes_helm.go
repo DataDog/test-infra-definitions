@@ -226,7 +226,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 type HelmValues pulumi.Map
 
 func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
-	values := HelmValues{
+	return HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -532,8 +532,6 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			},
 		},
 	}
-
-	return values
 }
 
 func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {

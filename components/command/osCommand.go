@@ -28,6 +28,7 @@ type OSCommand interface {
 		user string) pulumi.StringInput
 
 	IsPathAbsolute(path string) bool
+	PathJoin(parts ...string) string
 
 	NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 	copyLocalFile(runner *LocalRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
@@ -67,7 +68,6 @@ func buildCommandString(
 	if command == nil {
 		return nil
 	}
-
 	envVarsStr := envVars.ToStringArrayOutput().ApplyT(func(inputs []string) string {
 		return strings.Join(inputs, " ")
 	}).(pulumi.StringOutput)

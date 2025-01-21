@@ -68,6 +68,10 @@ func (fs unixOSCommand) BuildCommandString(command pulumi.StringInput, env pulum
 	})
 }
 
+func (fs unixOSCommand) PathJoin(parts ...string) string {
+	return strings.Join(parts, "/")
+}
+
 func (fs unixOSCommand) IsPathAbsolute(path string) bool {
 	return strings.HasPrefix(path, "/")
 }
@@ -121,7 +125,7 @@ func (fs unixOSCommand) copyLocalFile(runner *LocalRunner, name string, src, dst
 
 func (fs unixOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	tempRemotePath := src.ToStringOutput().ApplyT(func(path string) string {
-		return filepath.Join(runner.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
+		return fs.PathJoin(runner.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
 
 	tempCopyFile, err := remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{

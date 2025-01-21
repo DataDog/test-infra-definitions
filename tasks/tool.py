@@ -269,7 +269,7 @@ def add_known_host(ctx: Context, address: str) -> None:
     """
     # remove the host if it already exists
     clean_known_hosts(ctx, address)
-    result = ctx.run(f"ssh-keyscan {address}", hide=True)
+    result = ctx.run(f"ssh-keyscan {address}", hide=True, warn=True)
     if result and result.ok:
         home = pathlib.Path.home()
         filtered_hosts = '\n'.join([line for line in result.stdout.splitlines() if not line.startswith("#")])

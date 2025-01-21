@@ -56,7 +56,7 @@ const (
 	DDAgentDualShipping                  = "dualshipping"
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
-	DDAgentExtraEnvVars                  = "extraEnvVars" // expected in the format: <key1>=<value1>,<key2>=<value2>,...
+	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 	DDAgentJMX                           = "jmx"
 	DDAgentFIPS                          = "fips"
 

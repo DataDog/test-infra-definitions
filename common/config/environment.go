@@ -58,6 +58,7 @@ const (
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 	DDAgentJMX                           = "jmx"
 	DDAgentFIPS                          = "fips"
+	DDAgentHelmConfig                    = "helmConfig"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -125,6 +126,7 @@ type Env interface {
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
 	MajorVersion() string
+	AgentHelmConfig() string
 
 	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
 	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
@@ -444,4 +446,8 @@ func (e *CommonEnvironment) AgentFIPS() bool {
 
 func (e *CommonEnvironment) AgentJMX() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
+}
+
+func (e *CommonEnvironment) AgentHelmConfig() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentHelmConfig, "")
 }

@@ -29,7 +29,7 @@ scenario_name = "aws/ecs"
         "windows_node_group": doc.windows_node_group,
         "full_image_path": doc.full_image_path,
         "agent_flavor": doc.agent_flavor,
-        "agent_config_path": doc.agent_config_path,
+        "agent_env": doc.agent_env,
     }
 )
 def create_ecs(
@@ -46,7 +46,7 @@ def create_ecs(
     windows_node_group: bool = False,
     full_image_path: Optional[str] = None,
     agent_flavor: Optional[str] = None,
-    agent_config_path: Optional[str] = None,
+    agent_env: Optional[str] = None,
 ):
     """
     Create a new ECS environment.
@@ -70,7 +70,7 @@ def create_ecs(
         extra_flags=extra_flags,
         full_image_path=full_image_path,
         agent_flavor=agent_flavor,
-        agent_config_path=agent_config_path,
+        agent_env=agent_env,
     )
 
     tool.notify(ctx, "Your ECS cluster is now created")

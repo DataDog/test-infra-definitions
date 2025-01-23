@@ -55,7 +55,7 @@ def deploy(
     flags["ddagent:fullImagePath"] = full_image_path
     flags["ddagent:clusterAgentFullImagePath"] = cluster_agent_full_image_path
     flags["ddagent:extraEnvVars"] = agent_env
-    flags["ddinfra:helmConfig"] = helm_config
+    flags["ddagent:helmConfig"] = helm_config
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)

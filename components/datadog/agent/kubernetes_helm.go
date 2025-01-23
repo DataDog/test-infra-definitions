@@ -157,7 +157,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Read and merge custom helm config if provided
-	if helmConfig := e.InfraHelmConfig(); helmConfig != "" {
+	if helmConfig := e.AgentHelmConfig(); helmConfig != "" {
 		customHelm, err := os.ReadFile(helmConfig)
 		if err != nil {
 			return nil, err

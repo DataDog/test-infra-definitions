@@ -28,6 +28,7 @@ def deploy(
     full_image_path: Optional[str] = None,
     cluster_agent_full_image_path: Optional[str] = None,
     agent_flavor: Optional[str] = None,
+    agent_config_path: Optional[str] = None,
     agent_env: Optional[str] = None,
     helm_config: Optional[str] = None,
 ) -> str:
@@ -54,6 +55,7 @@ def deploy(
     flags["ddagent:fakeintake"] = use_fakeintake
     flags["ddagent:fullImagePath"] = full_image_path
     flags["ddagent:clusterAgentFullImagePath"] = cluster_agent_full_image_path
+    flags["ddagent:configPath"] = agent_config_path
     flags["ddagent:extraEnvVars"] = agent_env
     flags["ddagent:helmConfig"] = helm_config
 

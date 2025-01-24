@@ -59,6 +59,7 @@ const (
 	DDAgentJMX                           = "jmx"
 	DDAgentFIPS                          = "fips"
 	DDAgentConfigPathParamName           = "configPath"
+	DDAgentHelmConfig                    = "helmConfig"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -126,6 +127,7 @@ type Env interface {
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
 	MajorVersion() string
+	AgentHelmConfig() string
 
 	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
 	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
@@ -460,4 +462,8 @@ func (e *CommonEnvironment) CustomAgentConfig() (string, error) {
 	config, err := os.ReadFile(configPath)
 
 	return string(config), err
+}
+
+func (e *CommonEnvironment) AgentHelmConfig() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentHelmConfig, "")
 }

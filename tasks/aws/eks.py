@@ -33,6 +33,7 @@ scenario_name = "aws/eks"
         "full_image_path": doc.full_image_path,
         "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
         "agent_flavor": doc.agent_flavor,
+        "helm_config": doc.helm_config,
     }
 )
 def create_eks(
@@ -51,6 +52,7 @@ def create_eks(
     full_image_path: Optional[str] = None,
     cluster_agent_full_image_path: Optional[str] = None,
     agent_flavor: Optional[str] = None,
+    helm_config: Optional[str] = None,
 ):
     """
     Create a new EKS environment. It lasts around 20 minutes.
@@ -84,6 +86,7 @@ def create_eks(
         full_image_path=full_image_path,
         cluster_agent_full_image_path=cluster_agent_full_image_path,
         agent_flavor=agent_flavor,
+        helm_config=helm_config,
     )
 
     tool.notify(ctx, "Your EKS cluster is now created")

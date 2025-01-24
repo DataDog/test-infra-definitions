@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
@@ -153,6 +154,16 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
 	if args.OTelAgent {
 		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
+	}
+
+	// Read and merge custom helm config if provided
+	if helmConfig := e.AgentHelmConfig(); helmConfig != "" {
+		customHelm, err := os.ReadFile(helmConfig)
+		if err != nil {
+			return nil, err
+		}
+		config := pulumi.NewStringAsset(string(customHelm))
+		valuesYAML = append(valuesYAML, config)
 	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{

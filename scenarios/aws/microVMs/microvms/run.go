@@ -104,7 +104,7 @@ func buildUserData(instanceEnv *InstanceEnvironment, m *config.DDMicroVMConfig) 
 
 	if instanceEnv.DefaultShutdownBehavior() == "terminate" {
 		shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
-		sb.WriteString(fmt.Sprintf("sudo shutdown -P +%.0f\n", shutdownPeriod.Minutes()))
+		sb.WriteString(fmt.Sprintf("#!/bin/bash\nsudo shutdown -P +%d\n", int(shutdownPeriod.Minutes())))
 	}
 
 	return sb.String()

@@ -46,19 +46,22 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 			return err
 		}
 
-		defaultAgentParams(params)
+		fullImagePath := params.FullImagePath
+		if fullImagePath == "" {
+			fullImagePath = dockerAgentFullImagePath(e, params.Repository, params.ImageTag, false, params.FIPS, params.JMX)
+		}
 
 		// Check FullImagePath exists in internal registry
-		exists, err := e.InternalRegistryFullImagePathExists(params.FullImagePath)
+		exists, err := e.InternalRegistryFullImagePathExists(fullImagePath)
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return fmt.Errorf("image %q not found in the internal registry", params.FullImagePath)
+			return fmt.Errorf("image %q not found in the internal registry", fullImagePath)
 		}
 
 		// We can have multiple compose files in compose.
-		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(params.FullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
+		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(fullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
 		composeContents = append(composeContents, params.ExtraComposeManifests...)
 
 		opts := make([]pulumi.ResourceOption, 0, len(params.PulumiDependsOn)+1)
@@ -127,15 +130,15 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 }
 
 func defaultAgentParams(params *dockeragentparams.Params) {
-	// After setting params.FullImagePath check if you need to use JMX Docker image
-	defer func(p *dockeragentparams.Params) {
-		if p.FIPS {
-			p.FullImagePath += "-fips"
-		}
-		if p.JMX {
-			p.FullImagePath = fmt.Sprintf("%s-jmx", p.FullImagePath)
-		}
-	}(params)
+	// // After setting params.FullImagePath check if you need to use JMX Docker image
+	// defer func(p *dockeragentparams.Params) {
+	// 	if p.FIPS {
+	// 		p.FullImagePath += "-fips"
+	// 	}
+	// 	if p.JMX {
+	// 		p.FullImagePath = fmt.Sprintf("%s-jmx", p.FullImagePath)
+	// 	}
+	// }(params)
 
 	if params.FullImagePath != "" {
 		return

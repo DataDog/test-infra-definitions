@@ -105,6 +105,7 @@ type Env interface {
 
 	AgentDeploy() bool
 	AgentVersion() string
+	AgentFIPS() bool
 	PipelineID() string
 	CommitSHA() string
 	ClusterAgentVersion() string
@@ -260,6 +261,10 @@ func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
+}
+
+func (e *CommonEnvironment) AgentFIPS() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFIPS, false)
 }
 
 func (e *CommonEnvironment) PipelineID() string {

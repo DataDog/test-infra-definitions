@@ -33,6 +33,8 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			OTelAgent:                      params.OTelAgent,
 			OTelConfig:                     params.OTelConfig,
 			GKEAutopilot:                   params.GKEAutopilot,
+			FIPS:                           params.FIPS,
+			JMX:                            params.JMX,
 		}, pulumiResourceOptions...)
 		if err != nil {
 			return err

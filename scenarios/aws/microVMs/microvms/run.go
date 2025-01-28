@@ -104,7 +104,7 @@ func buildUserData(instanceEnv *InstanceEnvironment, m *config.DDMicroVMConfig) 
 
 	if instanceEnv.DefaultShutdownBehavior() == "terminate" {
 		shutdownPeriod := time.Duration(m.GetIntWithDefault(m.MicroVMConfig, config.DDMicroVMShutdownPeriod, defaultShutdownPeriod)) * time.Minute
-		sb.WriteString(fmt.Sprintf("sudo shutdown -P +%.0f\n", shutdownPeriod.Minutes()))
+		sb.WriteString(fmt.Sprintf("#!/bin/bash\nsudo shutdown -P +%d\n", int(shutdownPeriod.Minutes())))
 	}
 
 	return sb.String()
@@ -144,7 +144,13 @@ func newMetalInstance(instanceEnv *InstanceEnvironment, name, arch string, m con
 	// In the context of KMT, this agent runs on the host environment. As such,
 	// it has no knowledge of the individual test VMs, other than as processes in the host machine.
 	if awsEnv.AgentDeploy() {
-		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig), agentparams.WithIntegration("oom_kill", oomKillConfig))
+		agentOptions := []agentparams.Option{agentparams.WithAgentConfig(datadogAgentConfig), agentparams.WithSystemProbeConfig(systemProbeConfig), agentparams.WithIntegration("oom_kill", oomKillConfig)}
+
+		if awsEnv.AgentFlavor() != "" {
+			agentOptions = append(agentOptions, agentparams.WithFlavor(awsEnv.AgentFlavor()))
+		}
+
+		_, err := agent.NewHostAgent(awsEnv, awsInstance, agentOptions...)
 		if err != nil {
 			awsEnv.Ctx().Log.Warn(fmt.Sprintf("failed to deploy datadog agent on host instance: %v", err), nil)
 		}

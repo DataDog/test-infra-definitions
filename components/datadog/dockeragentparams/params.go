@@ -10,6 +10,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/docker"
+	"github.com/samber/lo"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -59,6 +60,10 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
 		AgentServiceEnvironment: pulumi.Map{},
 		EnvironmentVariables:    pulumi.StringMap{},
+	}
+
+	for k, v := range e.AgentExtraEnvVars() {
+		version.AgentServiceEnvironment[k] = pulumi.String(v)
 	}
 
 	return common.ApplyOption(version, options)
@@ -233,7 +238,7 @@ func WithExtraComposeManifest(name string, content pulumi.StringInput) func(*Par
 // WithExtraComposeInlineManifest adds extra docker.ComposeInlineManifest
 func WithExtraComposeInlineManifest(cpms ...docker.ComposeInlineManifest) func(*Params) error {
 	return func(p *Params) error {
-		p.ExtraComposeManifests = append(p.ExtraComposeManifests, cpms...)
+		p.ExtraComposeManifests = lo.Uniq(append(p.ExtraComposeManifests, cpms...))
 		return nil
 	}
 }

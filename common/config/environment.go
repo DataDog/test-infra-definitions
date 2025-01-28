@@ -38,6 +38,7 @@ const (
 	DDAgentDeployParamName               = "deploy"
 	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
 	DDAgentVersionParamName              = "version"
+	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
@@ -57,6 +58,8 @@ const (
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
 	DDAgentJMX                           = "jmx"
 	DDAgentFIPS                          = "fips"
+	DDAgentConfigPathParamName           = "configPath"
+	DDAgentHelmConfig                    = "helmConfig"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -125,6 +128,7 @@ type Env interface {
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
 	MajorVersion() string
+	AgentHelmConfig() string
 
 	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
 	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
@@ -261,6 +265,10 @@ func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
+}
+
+func (e *CommonEnvironment) AgentFlavor() string {
+	return e.AgentConfig.Get(DDAgentFlavorParamName)
 }
 
 func (e *CommonEnvironment) PipelineID() string {
@@ -440,4 +448,23 @@ func (e *CommonEnvironment) AgentFIPS() bool {
 
 func (e *CommonEnvironment) AgentJMX() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
+}
+
+func (e *CommonEnvironment) AgentConfigPath() string {
+	return e.AgentConfig.Get(DDAgentConfigPathParamName)
+}
+
+func (e *CommonEnvironment) CustomAgentConfig() (string, error) {
+	configPath := e.AgentConfigPath()
+	if configPath == "" {
+		return "", fmt.Errorf("agent config path is empty")
+	}
+
+	config, err := os.ReadFile(configPath)
+
+	return string(config), err
+}
+
+func (e *CommonEnvironment) AgentHelmConfig() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentHelmConfig, "")
 }

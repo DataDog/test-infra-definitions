@@ -37,7 +37,17 @@ func VMRun(ctx *pulumi.Context) error {
 			}
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
+		if env.AgentFlavor() != "" {
+			agentOptions = append(agentOptions, agentparams.WithFlavor(env.AgentFlavor()))
+		}
 		agentOptions = append(agentOptions, agentparams.WithHostname("localpodman-vm"))
+		if env.AgentConfigPath() != "" {
+			configContent, err := env.CustomAgentConfig()
+			if err != nil {
+				return err
+			}
+			agentOptions = append(agentOptions, agentparams.WithAgentConfig(configContent))
+		}
 		_, err = agent.NewHostAgent(&env, vm, agentOptions...)
 		return err
 	}

@@ -47,6 +47,8 @@ remote_hostname = "gcp-vm"
         "instance_type": gcp_doc.instance_type,
         "os_version": doc.os_version,
         "add_known_host": doc.add_known_host,
+        "agent_flavor": doc.agent_flavor,
+        "agent_config_path": doc.agent_config_path,
     }
 )
 def create_vm(
@@ -68,6 +70,8 @@ def create_vm(
     no_verify: Optional[bool] = False,
     use_fakeintake: Optional[bool] = False,
     add_known_host: Optional[bool] = True,
+    agent_flavor: Optional[str] = None,
+    agent_config_path: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on gcp.
@@ -110,6 +114,8 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
+        agent_flavor=agent_flavor,
+        agent_config_path=agent_config_path,
     )
 
     if interactive:
@@ -138,14 +144,17 @@ def destroy_vm(
     """
     Destroy a new virtual machine on gcp.
     """
+
+    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+
     destroy(
         ctx,
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
     )
+
     if clean_known_hosts:
-        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
         clean_known_hosts_func(ctx, host.address)
 
 

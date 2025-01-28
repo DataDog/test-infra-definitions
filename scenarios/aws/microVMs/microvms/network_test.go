@@ -18,7 +18,7 @@ func TestParseArpLine(t *testing.T) {
 			line: "? (10.211.55.4) at 0:1c:42:a:70:b on bridge100 ifscope [bridge]",
 			want: dhcpLease{
 				ip:  "10.211.55.4",
-				mac: "0:1c:42:a:70:b",
+				mac: "00:1c:42:0a:70:0b",
 			},
 		},
 		{
@@ -26,7 +26,7 @@ func TestParseArpLine(t *testing.T) {
 			line: "agent-dev-ubuntu-22.shared (10.211.55.4) at 0:1c:42:a:70:b on bridge100 ifscope [bridge]",
 			want: dhcpLease{
 				ip:  "10.211.55.4",
-				mac: "0:1c:42:a:70:b",
+				mac: "00:1c:42:0a:70:0b",
 			},
 		},
 		{

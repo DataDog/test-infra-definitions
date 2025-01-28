@@ -218,6 +218,11 @@ func parseBootpDHCPLeases() ([]dhcpLease, error) {
 				return nil, fmt.Errorf("parseBootpDHCPLeases: invalid hw_address format: %s", hwaddr)
 			}
 
+			if parts[0] != "1" {
+				// Only parse Ethernet MAC addresses, which are identified by the first part being 1.
+				continue
+			}
+
 			mac, err := normalizeMAC(parts[1])
 			if err != nil {
 				return nil, fmt.Errorf("parseBootpDHCPLeases: error normalizing MAC address: %w", err)
@@ -249,8 +254,10 @@ func parseArpDhcpLeases() ([]dhcpLease, error) {
 		}
 
 		lease, err := parseArpLine(line)
-		if err == nil {
-			return nil, fmt.Errorf("error parsing line %s: %w", line, err)
+		if err != nil {
+			// Ignore invalid lines
+			fmt.Printf("warning: error parsing arp line: %v\n", err)
+			continue
 		}
 
 		leases = append(leases, lease)

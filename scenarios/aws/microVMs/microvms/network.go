@@ -298,9 +298,9 @@ func normalizeMAC(mac string) (string, error) {
 	return strings.Join(normalizedParts, ":"), nil
 }
 
-// waitForBootpDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
+// waitForDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
 // returns that IP address.
-func waitForBootpDHCPLeases(mac string) (string, error) {
+func waitForDHCPLeases(mac string) (string, error) {
 	mac, err := normalizeMAC(mac)
 	if err != nil {
 		return "", fmt.Errorf("waitForBootpDHCPLeases: invalid MAC address: %w", err)

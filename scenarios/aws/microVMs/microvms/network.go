@@ -334,11 +334,20 @@ func waitForDHCPLeases(mac string) (string, error) {
 
 		leases = append(leases, arpLeases...)
 
+		foundIP := ""
 		for _, lease := range leases {
 			if lease.mac == normalizedMac {
-				return lease.ip, nil
+				if foundIP != "" && foundIP != lease.ip {
+					return "", fmt.Errorf("waitForBootpDHCPLeases: found multiple conflicting leases for MAC %s: %s and %s", mac, foundIP, lease.ip)
+				}
+				foundIP = lease.ip
 			}
 		}
+
+		if foundIP != "" {
+			return foundIP, nil
+		}
+
 		time.Sleep(interval)
 	}
 	return "", fmt.Errorf("waitForBootpDHCPLeases: timed out waiting for lease")

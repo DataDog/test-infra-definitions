@@ -286,7 +286,9 @@ func parseArpLine(line string) (dhcpLease, error) {
 	}, nil
 }
 
-// normalizeMAC normalizes a MAC address to the format XX:XX:XX:XX:XX:XX, in lowercase and with leading zeros
+// normalizeMAC normalizes a MAC address to the format XX:XX:XX:XX:XX:XX, in lowercase and with leading zeros.
+// We need to use this custom function instead of net.ParseMAC because the latter does not support MAC addresses
+// without leading zeros, which is the format that we can find in both the BootP and the ARP tables.
 func normalizeMAC(mac string) (string, error) {
 	parts := strings.Split(mac, ":")
 	if len(parts) != 6 {

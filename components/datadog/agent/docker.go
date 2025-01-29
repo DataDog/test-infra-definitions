@@ -8,7 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
 	"github.com/DataDog/test-infra-definitions/components/docker"
@@ -127,28 +126,4 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 		Name:    "agent",
 		Content: agentManifestContent,
 	}
-}
-
-func defaultAgentParams(params *dockeragentparams.Params) {
-	// // After setting params.FullImagePath check if you need to use JMX Docker image
-	// defer func(p *dockeragentparams.Params) {
-	// 	if p.FIPS {
-	// 		p.FullImagePath += "-fips"
-	// 	}
-	// 	if p.JMX {
-	// 		p.FullImagePath = fmt.Sprintf("%s-jmx", p.FullImagePath)
-	// 	}
-	// }(params)
-
-	if params.FullImagePath != "" {
-		return
-	}
-
-	if params.Repository == "" {
-		params.Repository = defaultAgentImageRepo
-	}
-	if params.ImageTag == "" {
-		params.ImageTag = defaultAgentImageTag
-	}
-	params.FullImagePath = utils.BuildDockerImagePath(params.Repository, params.ImageTag)
 }

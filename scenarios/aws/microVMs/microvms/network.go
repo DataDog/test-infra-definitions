@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"os/exec"
+	"strconv"
 	"strings"
 	"time"
 
@@ -216,7 +218,16 @@ func parseBootpDHCPLeases() ([]dhcpLease, error) {
 				return nil, fmt.Errorf("parseBootpDHCPLeases: invalid hw_address format: %s", hwaddr)
 			}
 
-			parsingLease.mac = parts[1]
+			if parts[0] != "1" {
+				// Only parse Ethernet MAC addresses, which are identified by the first part being 1.
+				continue
+			}
+
+			mac, err := normalizeMAC(parts[1])
+			if err != nil {
+				return nil, fmt.Errorf("parseBootpDHCPLeases: error normalizing MAC address: %w", err)
+			}
+			parsingLease.mac = mac
 		}
 		if line == "}" {
 			leases = append(leases, parsingLease)
@@ -227,25 +238,118 @@ func parseBootpDHCPLeases() ([]dhcpLease, error) {
 	return leases, nil
 }
 
-// waitForBootpDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
+func parseArpDhcpLeases() ([]dhcpLease, error) {
+	var leases []dhcpLease
+
+	cmd := exec.Command("arp", "-a", "-n")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("cannot run arp command (arp -an): %w", err)
+	}
+
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if len(line) == 0 {
+			continue
+		}
+
+		lease, err := parseArpLine(line)
+		if err != nil {
+			// Ignore invalid lines
+			fmt.Printf("warning: error parsing arp line: %v\n", err)
+			continue
+		}
+
+		leases = append(leases, lease)
+	}
+
+	return leases, nil
+}
+
+func parseArpLine(line string) (dhcpLease, error) {
+	// Single lease format, for reference:
+	// ? (10.211.55.4) at 0:1c:42:a:70:b on bridge100 ifscope [bridge]
+	parts := strings.Fields(line)
+	if len(parts) < 4 {
+		return dhcpLease{}, fmt.Errorf("line %s has not enough fields", line)
+	}
+
+	ip := strings.Trim(parts[1], "()")
+	mac, err := normalizeMAC(parts[3])
+	if err != nil {
+		return dhcpLease{}, fmt.Errorf("error normalizing MAC address: %w", err)
+	}
+
+	return dhcpLease{
+		ip:  ip,
+		mac: mac,
+	}, nil
+}
+
+// normalizeMAC normalizes a MAC address to the format XX:XX:XX:XX:XX:XX, in lowercase and with leading zeros.
+// We need to use this custom function instead of net.ParseMAC because the latter does not support MAC addresses
+// without leading zeros, which is the format that we can find in both the BootP and the ARP tables.
+func normalizeMAC(mac string) (string, error) {
+	parts := strings.Split(mac, ":")
+	if len(parts) != 6 {
+		return "", fmt.Errorf("normalizeMAC: invalid MAC address %s, not enough fields", mac)
+	}
+
+	var addr net.HardwareAddr = make([]byte, 6)
+	for i, part := range parts {
+		num, err := strconv.ParseInt(part, 16, 8)
+		if err != nil {
+			return "", fmt.Errorf("normalizeMAC: invalid MAC address %s, cannot parse %s: %w", mac, part, err)
+		}
+		addr[i] = byte(num)
+	}
+
+	return addr.String(), nil
+}
+
+// waitForDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and
 // returns that IP address.
-func waitForBootpDHCPLeases(mac string) (string, error) {
+func waitForDHCPLeases(mac string) (string, error) {
+	normalizedMac, err := normalizeMAC(mac)
+	if err != nil {
+		return "", fmt.Errorf("waitForBootpDHCPLeases: invalid MAC address: %w", err)
+	}
+
 	// The DHCP server will assign an IP address to the VM based on its MAC address, wait until it is assigned
 	// and then return the IP address.
 	maxWait := 5 * time.Minute
 	interval := 500 * time.Millisecond
 	for totalWait := 0 * time.Second; totalWait < maxWait; totalWait += interval {
+		// Try to get the address asignment from the DHCP lease and also via ARP. The reason is that
+		// it seems that sometimes the DHCP lease will not include the correct mac address but will
+		// use another type of identifier. Combining the DHCP lease and ARP address table should
+		// give us more coverage to find the correct IP address.
 		leases, err := parseBootpDHCPLeases()
-
 		if err != nil {
 			return "", fmt.Errorf("waitForBootpDHCPLeases: error parsing leases: %s", err)
 		}
 
+		arpLeases, err := parseArpDhcpLeases()
+		if err != nil {
+			return "", fmt.Errorf("waitForBootpDHCPLeases: error parsing arp leases: %s", err)
+		}
+
+		leases = append(leases, arpLeases...)
+
+		foundIP := ""
 		for _, lease := range leases {
-			if lease.mac == mac {
-				return lease.ip, nil
+			if lease.mac == normalizedMac {
+				if foundIP != "" && foundIP != lease.ip {
+					return "", fmt.Errorf("waitForBootpDHCPLeases: found multiple conflicting leases for MAC %s: %s and %s", mac, foundIP, lease.ip)
+				}
+				foundIP = lease.ip
 			}
 		}
+
+		if foundIP != "" {
+			return foundIP, nil
+		}
+
 		time.Sleep(interval)
 	}
 	return "", fmt.Errorf("waitForBootpDHCPLeases: timed out waiting for lease")

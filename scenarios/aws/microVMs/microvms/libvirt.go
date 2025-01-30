@@ -397,7 +397,7 @@ func BuildVMCollections(instances map[string]*Instance, vmsets []vmconfig.VMSet,
 					// We have no network setup on macOS. We use the native vmnet framework
 					// for networking, which is not managed by libvirt but by QEMU. In order to resolve
 					// the IPs, we need to wait and watch the DHCP leases in another goroutine.
-					d.ip = d.mac.ApplyT(waitForBootpDHCPLeases).(pulumi.StringOutput)
+					d.ip = d.mac.ApplyT(waitForDHCPLeases).(pulumi.StringOutput)
 				} else {
 					ip = getNextVMIP(&ip)
 					d.ip = pulumi.Sprintf("%s", ip.String()) // Calling .String() is important, if we don't do that pulumi keeps the reference to IP (a byte array) and not the value itself

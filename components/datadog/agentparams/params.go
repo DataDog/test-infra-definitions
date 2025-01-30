@@ -66,13 +66,18 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 		Files:        make(map[string]*FileDefinition),
 	}
 	defaultVersion := WithLatestNightly()
+	defaultFlavor := WithFlavor(DefaultFlavor)
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
+	if env.AgentFIPS() {
+		defaultFlavor = WithFlavor(FIPSFlavor)
+	}
 
+	options = append([]Option{defaultFlavor}, options...)
 	options = append([]Option{WithMajorVersion(env.MajorVersion())}, options...)
 	options = append([]Option{defaultVersion}, options...)
 	return common.ApplyOption(p, options)

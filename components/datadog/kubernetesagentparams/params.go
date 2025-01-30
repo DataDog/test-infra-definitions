@@ -56,6 +56,10 @@ type Params struct {
 	OTelConfig string
 	// GKEAutopilot is a flag to deploy the agent with only GKE Autopilot compatible values.
 	GKEAutopilot bool
+	// FIPS is a flag to deploy the agent with FIPS agent image.
+	FIPS bool
+	// JMX is a flag to deploy the agent with JMX agent image.
+	JMX bool
 }
 
 type Option = func(*Params) error
@@ -177,6 +181,20 @@ func WithOTelConfig(config string) func(*Params) error {
 		var err error
 		p.OTelConfig, err = utils.MergeYAML(p.OTelConfig, config)
 		return err
+	}
+}
+
+func WithFIPS() func(*Params) error {
+	return func(p *Params) error {
+		p.FIPS = true
+		return nil
+	}
+}
+
+func WithJMX() func(*Params) error {
+	return func(p *Params) error {
+		p.JMX = true
+		return nil
 	}
 }
 

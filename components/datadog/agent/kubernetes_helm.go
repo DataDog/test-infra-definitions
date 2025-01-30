@@ -50,6 +50,10 @@ type HelmInstallationArgs struct {
 	OTelConfig string
 	// GKEAutopilot is used to enable the GKE Autopilot mode and keep only compatible values
 	GKEAutopilot bool
+	// FIPS is used to deploy the agent with the FIPS agent image
+	FIPS bool
+	// JMX is used to deploy the agent with the JMX agent image
+	JMX bool
 }
 
 type HelmComponent struct {
@@ -124,7 +128,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent, args.FIPS, args.JMX)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}

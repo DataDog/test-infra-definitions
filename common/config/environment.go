@@ -108,6 +108,7 @@ type Env interface {
 
 	AgentDeploy() bool
 	AgentVersion() string
+	AgentFIPS() bool
 	PipelineID() string
 	CommitSHA() string
 	ClusterAgentVersion() string

@@ -66,13 +66,6 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 		version.AgentServiceEnvironment[k] = pulumi.String(v)
 	}
 
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		options = append(options,
-			WithFullImagePath(utils.BuildDockerImagePath(
-				"669783387624.dkr.ecr.us-east-1.amazonaws.com/agent",
-				fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
-	}
-
 	return common.ApplyOption(version, options)
 }
 

@@ -295,16 +295,16 @@ func normalizeMAC(mac string) (string, error) {
 		return "", fmt.Errorf("normalizeMAC: invalid MAC address %s, not enough fields", mac)
 	}
 
-	normalizedParts := make([]string, 6)
+	var addr net.HardwareAddr = make([]byte, 6)
 	for i, part := range parts {
-		num, err := strconv.ParseInt(part, 16, 64)
+		num, err := strconv.ParseInt(part, 16, 8)
 		if err != nil {
 			return "", fmt.Errorf("normalizeMAC: invalid MAC address %s, cannot parse %s: %w", mac, part, err)
 		}
-		normalizedParts[i] = fmt.Sprintf("%02x", num)
+		addr[i] = byte(num)
 	}
 
-	return strings.Join(normalizedParts, ":"), nil
+	return addr.String(), nil
 }
 
 // waitForDHCPLeases waits for the macOS DHCP server (BootP) to assign an IP address to the VM based on its MAC address, and

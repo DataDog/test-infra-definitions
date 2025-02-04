@@ -125,7 +125,7 @@ RUN --mount=type=secret,id=github_token \
 # Remove AWS-related deps as we already install AWS CLI v2
 RUN DEVA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/deva.env | awk -F= '/^DEVA_VERSION=/ {print $2}')" && \
   pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DEVA_VERSION}" && \
-  deva -v self dep sync -f legacy-e2e && \
+  deva -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support

@@ -123,8 +123,9 @@ RUN --mount=type=secret,id=github_token \
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
-RUN pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
-  pip3 install -r /tmp/test-infra/requirements.txt & \
+RUN DEVA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/deva.env | awk -F= '/^DEVA_VERSION=/ {print $2}')" && \
+  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DEVA_VERSION}" && \
+  deva -v self dep sync -f legacy-e2e && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support

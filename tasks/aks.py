@@ -12,6 +12,7 @@ from . import doc
         "install_workload": doc.install_workload,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_aks(
@@ -21,6 +22,7 @@ def create_aks(
     install_agent: Optional[bool] = True,
     install_workload: Optional[bool] = True,
     agent_version: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
 ):
     print('This command is deprecated, please use `az.create-aks` instead')
     print("Running `az.create-aks`...")
@@ -33,6 +35,7 @@ def create_aks(
         install_agent=install_agent,
         install_workload=install_workload,
         agent_version=agent_version,
+        agent_flavor=agent_flavor,
     )
 
 

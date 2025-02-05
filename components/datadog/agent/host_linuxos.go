@@ -2,13 +2,13 @@ package agent
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
-	"strings"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -46,6 +46,10 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		}
 	}
 
+	if version.Flavor != "" {
+		testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_FLAVOR=%s", version.Flavor))
+	}
+
 	commandLine = strings.Join(testEnvVars, " ")
 
 	return fmt.Sprintf(
@@ -58,6 +62,6 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 	return "/etc/datadog-agent"
 }
 
-func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", transform, opts...)
 }

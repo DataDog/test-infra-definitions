@@ -14,7 +14,7 @@ import (
 )
 
 type LibvirtPool interface {
-	SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error)
+	SetupLibvirtPool(ctx *pulumi.Context, runner command.Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error)
 	Name() string
 	Type() vmconfig.PoolType
 	Path() string
@@ -67,7 +67,7 @@ Setup for remote pool and local pool is different for a number of reasons:
     the target environment and the pulumi host are the same machine. It is simpler to use this API locally than
     have a complicated permissions setup.
 */
-func remoteGlobalPool(p *globalLibvirtPool, runner *Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func remoteGlobalPool(p *globalLibvirtPool, runner command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	poolXMLWrittenArgs := command.Args{
 		Create: pulumi.Sprintf("echo \"%s\" > %s", p.poolXML, p.poolXMLPath),
 		Delete: pulumi.Sprintf("rm -f %s", p.poolXMLPath),
@@ -139,7 +139,7 @@ func localGlobalPool(ctx *pulumi.Context, p *globalLibvirtPool, providerFn Libvi
 	return []pulumi.Resource{poolReady}, nil
 }
 
-func (p *globalLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func (p *globalLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner command.Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	if isLocal {
 		return localGlobalPool(ctx, p, providerFn, depends)
 	}
@@ -200,7 +200,7 @@ func NewRAMBackedLibvirtPool(ctx *pulumi.Context, disk *vmconfig.Disk) (LibvirtP
 	}, nil
 }
 
-func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner *Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+func (p *rambackedLibvirtPool) SetupLibvirtPool(ctx *pulumi.Context, runner command.Runner, providerFn LibvirtProviderFn, isLocal bool, depends []pulumi.Resource) ([]pulumi.Resource, error) {
 	buildSharedDiskInRamfsArgs := command.Args{
 		Create: pulumi.Sprintf(sharedDiskCmd, p.poolPath, p.poolSize, p.baseImagePath),
 		Delete: pulumi.Sprintf("umount %[1]s && rm -r %[1]s", p.poolPath),

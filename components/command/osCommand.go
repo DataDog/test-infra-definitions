@@ -1,9 +1,9 @@
 package command
 
 import (
+	"runtime"
 	"strings"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -13,11 +13,12 @@ type OSCommand interface {
 	GetHomeDirectory() string
 
 	CreateDirectory(
-		runner *Runner,
+		runner Runner,
 		resourceName string,
 		remotePath pulumi.StringInput,
 		useSudo bool,
-		opts ...pulumi.ResourceOption) (*remote.Command, error)
+		opts ...pulumi.ResourceOption) (Command, error)
+	MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error)
 
 	BuildCommandString(
 		command pulumi.StringInput,
@@ -27,8 +28,11 @@ type OSCommand interface {
 		user string) pulumi.StringInput
 
 	IsPathAbsolute(path string) bool
+	PathJoin(parts ...string) string
 
-	NewCopyFile(runner *Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	NewCopyFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	copyLocalFile(runner *LocalRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	copyRemoteFile(runner *RemoteRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 // ------------------------------
@@ -38,13 +42,13 @@ type OSCommand interface {
 const backupExtension = "pulumi.backup"
 
 func createDirectory(
-	runner *Runner,
+	runner Runner,
 	name string,
 	createCmd string,
 	deleteCmd string,
 	useSudo bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (Command, error) {
 	// If the folder was previously created, make sure to delete it before creating it.
 	opts = append(opts, pulumi.DeleteBeforeReplace(true))
 	return runner.Command(name,
@@ -64,7 +68,6 @@ func buildCommandString(
 	if command == nil {
 		return nil
 	}
-
 	envVarsStr := envVars.ToStringArrayOutput().ApplyT(func(inputs []string) string {
 		return strings.Join(inputs, " ")
 	}).(pulumi.StringOutput)
@@ -73,13 +76,13 @@ func buildCommandString(
 }
 
 func copyRemoteFile(
-	runner *Runner,
+	runner Runner,
 	name string,
 	createCommand pulumi.StringInput,
 	deleteCommand pulumi.StringInput,
 	useSudo bool,
 	opts ...pulumi.ResourceOption,
-) (*remote.Command, error) {
+) (Command, error) {
 	return runner.Command(name,
 		&Args{
 			Create:   createCommand,
@@ -87,4 +90,12 @@ func copyRemoteFile(
 			Sudo:     useSudo,
 			Triggers: pulumi.Array{createCommand, deleteCommand, pulumi.BoolPtr(useSudo)},
 		}, opts...)
+}
+
+func NewLocalOSCommand() OSCommand {
+	if runtime.GOOS == "windows" {
+		return NewWindowsOSCommand()
+	}
+
+	return NewUnixOSCommand()
 }

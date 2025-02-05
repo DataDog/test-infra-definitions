@@ -49,13 +49,17 @@ type Params struct {
 	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
 	DisableLogsContainerCollectAll bool
 	// DualShipping is a flag to enable dual shipping.
-	DisableDualShipping bool
+	DualShipping bool
 	// OTelAgent is a flag to deploy the OTel agent.
 	OTelAgent bool
 	// OTelConfig is the OTel configuration to use for the agent installation.
 	OTelConfig string
 	// GKEAutopilot is a flag to deploy the agent with only GKE Autopilot compatible values.
 	GKEAutopilot bool
+	// FIPS is a flag to deploy the agent with FIPS agent image.
+	FIPS bool
+	// JMX is a flag to deploy the agent with JMX agent image.
+	JMX bool
 }
 
 type Option = func(*Params) error
@@ -150,11 +154,11 @@ func WithoutLogsContainerCollectAll() func(*Params) error {
 	}
 }
 
-// WithoutDualShipping disables dual shipping. By default the agent is configured to send data to ddev and to the fakeintake.
-// With that flag data will be sent only to the fakeintake.
-func WithoutDualShipping() func(*Params) error {
+// DualShipping enables dual shipping. By default the agent is configured to send data only to the fakeintake and not dddev (the fakeintake will forward payloads to dddev).
+// With that flag data will be sent to the fakeintake and also to dddev.
+func WithDualShipping() func(*Params) error {
 	return func(p *Params) error {
-		p.DisableDualShipping = true
+		p.DualShipping = true
 		return nil
 	}
 }
@@ -177,6 +181,20 @@ func WithOTelConfig(config string) func(*Params) error {
 		var err error
 		p.OTelConfig, err = utils.MergeYAML(p.OTelConfig, config)
 		return err
+	}
+}
+
+func WithFIPS() func(*Params) error {
+	return func(p *Params) error {
+		p.FIPS = true
+		return nil
+	}
+}
+
+func WithJMX() func(*Params) error {
+	return func(p *Params) error {
+		p.JMX = true
+		return nil
 	}
 }
 

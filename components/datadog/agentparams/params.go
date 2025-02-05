@@ -5,7 +5,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/DataDog/datadog-agent/pkg/util/optional"
+	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -40,7 +40,7 @@ import (
 type FileDefinition struct {
 	Content     string
 	UseSudo     bool
-	Permissions optional.Option[perms.FilePermissions]
+	Permissions option.Option[perms.FilePermissions]
 }
 
 type Params struct {
@@ -66,13 +66,18 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 		Files:        make(map[string]*FileDefinition),
 	}
 	defaultVersion := WithLatestNightly()
+	defaultFlavor := WithFlavor(DefaultFlavor)
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
+	if env.AgentFIPS() {
+		defaultFlavor = WithFlavor(FIPSFlavor)
+	}
 
+	options = append([]Option{defaultFlavor}, options...)
 	options = append([]Option{WithMajorVersion(env.MajorVersion())}, options...)
 	options = append([]Option{defaultVersion}, options...)
 	return common.ApplyOption(p, options)
@@ -104,6 +109,16 @@ func WithVersion(version string) func(*Params) error {
 		}
 		p.Version = v
 
+		return nil
+	}
+}
+
+// WithFlavor use a specific flavor of the Agent. For example: `datadog-fips-agent`
+//
+// See PackageFlavor https://github.com/DataDog/agent-release-management/blob/main/generator/const.py
+func WithFlavor(flavor string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Flavor = flavor
 		return nil
 	}
 }
@@ -186,11 +201,11 @@ func WithIntegration(folderName string, content string) func(*Params) error {
 
 // WithFile adds a file with contents to the install at the given path. This should only be used when the agent needs to be restarted after writing the file.
 func WithFile(absolutePath string, content string, useSudo bool) func(*Params) error {
-	return WithFileWithPermissions(absolutePath, content, useSudo, optional.NewNoneOption[perms.FilePermissions]())
+	return WithFileWithPermissions(absolutePath, content, useSudo, option.None[perms.FilePermissions]())
 }
 
 // WithFileWithPermissions adds a file like WithFile but we can predefine the permissions of the file.
-func WithFileWithPermissions(absolutePath string, content string, useSudo bool, perms optional.Option[perms.FilePermissions]) func(*Params) error {
+func WithFileWithPermissions(absolutePath string, content string, useSudo bool, perms option.Option[perms.FilePermissions]) func(*Params) error {
 	return func(p *Params) error {
 		p.Files[absolutePath] = &FileDefinition{
 			Content:     content,
@@ -234,14 +249,14 @@ func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params)
 	}
 }
 
-func withIntakeHostname(hostname pulumi.StringInput, port uint32) func(*Params) error {
+func withIntakeHostname(scheme pulumi.StringInput, hostname pulumi.StringInput, port pulumi.IntInput) func(*Params) error {
 	return func(p *Params) error {
-		extraConfig := pulumi.Sprintf(`dd_url: http://%[1]s:%[2]d
+		extraConfig := pulumi.Sprintf(`dd_url: %[3]s://%[1]s:%[2]d
 logs_config.logs_dd_url: %[1]s:%[2]d
 logs_config.logs_no_ssl: true
 logs_config.force_use_http: true
-process_config.process_dd_url: http://%[1]s:%[2]d
-apm_config.apm_dd_url: http://%[1]s:%[2]d
+process_config.process_dd_url: %[3]s://%[1]s:%[2]d
+apm_config.apm_dd_url: %[3]s://%[1]s:%[2]d
 database_monitoring.metrics.logs_dd_url: %[1]s:%[2]d
 database_monitoring.metrics.logs_no_ssl: true
 database_monitoring.activity.logs_dd_url: %[1]s:%[2]d
@@ -264,7 +279,7 @@ sbom.logs_dd_url: %[1]s:%[2]d
 sbom.logs_no_ssl: true
 service_discovery.forwarder.logs_dd_url: %[1]s:%[2]d
 service_discovery.forwarder.logs_no_ssl: true
-`, hostname, port)
+`, hostname, port, scheme)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
 	}
@@ -275,8 +290,15 @@ service_discovery.forwarder.logs_no_ssl: true
 // To use a fakeintake, see WithFakeintake.
 //
 // This option is overwritten by `WithFakeintake`.
-func WithIntakeHostname(hostname string) func(*Params) error {
-	return withIntakeHostname(pulumi.String(hostname), 80)
+func WithIntakeHostname(scheme string, hostname string) func(*Params) error {
+	var port uint32
+	if scheme == "http" {
+		port = 80
+	} else {
+		port = 443
+	}
+
+	return withIntakeHostname(pulumi.String(scheme), pulumi.String(hostname), pulumi.Int(port))
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
@@ -285,7 +307,7 @@ func WithIntakeHostname(hostname string) func(*Params) error {
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
 		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
-		return withIntakeHostname(fakeintake.Host, fakeintake.Port)(p)
+		return withIntakeHostname(fakeintake.Scheme, fakeintake.Host, fakeintake.Port)(p)
 	}
 }
 

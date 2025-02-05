@@ -48,6 +48,18 @@ func VMRun(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
 		}
 
+		if env.AgentFlavor() != "" {
+			agentOptions = append(agentOptions, agentparams.WithFlavor(env.AgentFlavor()))
+		}
+
+		if env.AgentConfigPath() != "" {
+			configContent, err := env.CustomAgentConfig()
+			if err != nil {
+				return err
+			}
+			agentOptions = append(agentOptions, agentparams.WithAgentConfig(configContent))
+		}
+
 		agent, err := agent.NewHostAgent(&env, vm, agentOptions...)
 		if err != nil {
 			return err
@@ -103,6 +115,14 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 			agentOptions = append(agentOptions, dockeragentparams.WithFullImagePath(env.AgentFullImagePath()))
 		} else if env.AgentVersion() != "" {
 			agentOptions = append(agentOptions, dockeragentparams.WithImageTag(env.AgentVersion()))
+		}
+
+		if env.AgentJMX() {
+			agentOptions = append(agentOptions, dockeragentparams.WithJMX())
+		}
+
+		if env.AgentFIPS() {
+			agentOptions = append(agentOptions, dockeragentparams.WithFIPS())
 		}
 
 		if env.AgentUseFakeintake() {

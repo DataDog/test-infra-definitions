@@ -1,3 +1,4 @@
+import json
 from typing import Optional, Tuple
 
 from invoke.context import Context
@@ -16,6 +17,7 @@ from tasks.aws.common import (
 )
 from tasks.aws.deploy import deploy
 from tasks.destroy import destroy
+from tasks.tool import add_known_host as add_known_host_func
 from tasks.tool import clean_known_hosts as clean_known_hosts_func
 from tasks.tool import get_host, notify, show_connection_message
 
@@ -43,6 +45,9 @@ remote_hostname = "aws-vm"
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
+        "add_known_host": doc.add_known_host,
+        "agent_flavor": doc.agent_flavor,
+        "agent_config_path": doc.agent_config_path,
     }
 )
 def create_vm(
@@ -64,6 +69,9 @@ def create_vm(
     instance_type: Optional[str] = None,
     no_verify: Optional[bool] = False,
     ssh_user: Optional[str] = None,
+    add_known_host: Optional[bool] = True,
+    agent_flavor: Optional[str] = None,
+    agent_config_path: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on aws.
@@ -106,10 +114,16 @@ def create_vm(
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
         deploy_job=deploy_job,
+        agent_flavor=agent_flavor,
+        agent_config_path=agent_config_path,
     )
 
     if interactive:
         notify(ctx, "Your VM is now created")
+
+    if add_known_host:
+        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+        add_known_host_func(ctx, host.address)
 
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
@@ -130,15 +144,34 @@ def destroy_vm(
     """
     Destroy a new virtual machine on aws.
     """
+
     host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+
     destroy(
         ctx,
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
     )
+
     if clean_known_hosts:
-        clean_known_hosts_func(host)
+        clean_known_hosts_func(ctx, host.address)
+
+
+@task(
+    help={
+        "stack_name": doc.stack_name,
+    }
+)
+def show_vm(
+    ctx: Context,
+    stack_name: Optional[str] = None,
+):
+    """
+    Show connection details of an aws host.
+    """
+    host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+    print(json.dumps(host.__dict__, indent=4))
 
 
 def _get_os_family(os_family: Optional[str]) -> str:

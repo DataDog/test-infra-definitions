@@ -37,9 +37,9 @@ func (a *ARM64ResourceCollection) GetPoolXML(args map[string]pulumi.StringInput)
 }
 
 func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomainArgs) (*libvirt.DomainArgs, error) {
-	var cmdlines []map[string]interface{}
+	var cmdlines []map[string]string
 	for cmd, val := range args.ExtraKernelParams {
-		cmdlines = append(cmdlines, map[string]interface{}{cmd: pulumi.String(val)})
+		cmdlines = append(cmdlines, map[string]string{cmd: val})
 	}
 	cmdlines = append(cmdlines, kernelCmdlines...)
 
@@ -66,7 +66,7 @@ func (a *ARM64ResourceCollection) GetLibvirtDomainArgs(args *RecipeLibvirtDomain
 		Disks:    disks,
 		Machine:  pulumi.String("virt"),
 		Kernel:   pulumi.String(args.KernelPath),
-		Cmdlines: pulumi.ToMapArray(cmdlines),
+		Cmdlines: pulumi.ToStringMapArray(cmdlines),
 		Memory:   pulumi.Int(args.Memory),
 		Vcpu:     pulumi.Int(args.Vcpu),
 		Xml: libvirt.DomainXmlArgs{

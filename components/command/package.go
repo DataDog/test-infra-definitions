@@ -5,14 +5,13 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type GenericPackageManager struct {
 	namer           namer.Namer
-	updateDBCommand *remote.Command
-	runner          *Runner
+	updateDBCommand Command
+	runner          Runner
 	opts            []pulumi.ResourceOption
 	installCmd      string
 	updateCmd       string
@@ -20,14 +19,14 @@ type GenericPackageManager struct {
 }
 
 func NewGenericPackageManager(
-	runner *Runner,
+	runner Runner,
 	name string,
 	installCmd string,
 	updateCmd string,
 	env pulumi.StringMap,
 ) *GenericPackageManager {
 	packageManager := &GenericPackageManager{
-		namer:      namer.NewNamer(runner.e.Ctx(), name),
+		namer:      namer.NewNamer(runner.Environment().Ctx(), name),
 		runner:     runner,
 		installCmd: installCmd,
 		updateCmd:  updateCmd,
@@ -37,7 +36,7 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, checkBinary string, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, checkBinary string, opts ...pulumi.ResourceOption) (Command, error) {
 	opts = append(opts, m.opts...)
 	if m.updateCmd != "" {
 		updateDB, err := m.updateDB(opts)
@@ -55,7 +54,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 	}
 
 	cmdName := m.namer.ResourceName("install-"+packageRef, utils.StrHash(cmdStr))
-	cmdArgs := Args{
+	var cmdArgs RunnerCommandArgs = &Args{
 		Create:      pulumi.String(cmdStr),
 		Environment: m.env,
 		Sudo:        true,
@@ -66,7 +65,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	cmd, err := m.runner.Command(cmdName, &cmdArgs, opts...)
+	cmd, err := m.runner.Command(cmdName, cmdArgs, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -76,7 +75,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 	return cmd, nil
 }
 
-func (m *GenericPackageManager) updateDB(opts []pulumi.ResourceOption) (*remote.Command, error) {
+func (m *GenericPackageManager) updateDB(opts []pulumi.ResourceOption) (Command, error) {
 	if m.updateDBCommand != nil {
 		return m.updateDBCommand, nil
 	}

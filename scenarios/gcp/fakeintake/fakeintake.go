@@ -42,8 +42,8 @@ func NewVMInstance(e gcp.Environment, option ...Option) (*fakeintake.Fakeintake,
 		}
 
 		fi.Host = vm.Address
-		fi.Scheme = "http"
-		fi.Port = 80
+		fi.Scheme = pulumi.Sprintf("%s", "http")
+		fi.Port = pulumi.Int(80).ToIntOutput()
 		fi.URL = pulumi.Sprintf("%s://%s:%v", fi.Scheme, vm.Address, fi.Port)
 
 		return nil

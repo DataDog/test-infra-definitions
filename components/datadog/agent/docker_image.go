@@ -13,21 +13,41 @@ const (
 	defaultAgentImageRepo        = "gcr.io/datadoghq/agent"
 	defaultClusterAgentImageRepo = "gcr.io/datadoghq/cluster-agent"
 	defaultAgentImageTag         = "latest"
-	defaultOTAgentImageRepo      = "datadog/agent-dev"
+	defaultDevAgentImageRepo     = "datadog/agent-dev" // Used as default repository for images that are not stable and released yet
 	defaultOTAgentImageTag       = "nightly-ot-beta-main"
+	jmxSuffix                    = "-jmx"
+	otelSuffix                   = "-7-ot-beta"
+	fipsSuffix                   = "-fips"
 )
 
-func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool) string {
+func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, otel bool, fips bool, jmx bool) string {
 	// return agent image path if defined
 	if e.AgentFullImagePath() != "" {
 		return e.AgentFullImagePath()
 	}
 
+	useOtel := otel
+	useFIPS := fips || e.AgentFIPS()
+	useJMX := jmx
+
 	// if agent pipeline id and commit sha are defined, use the image from the pipeline pushed on agent QA registry
 	if e.PipelineID() != "" && e.CommitSHA() != "" && imageTag == "" {
 		tag := fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA())
-		if otel {
-			tag = fmt.Sprintf("%s-7-ot-beta", tag)
+		switch {
+		case useOtel && useFIPS && useJMX:
+			panic("Unsupported: no image with FIPS, JMX and OTel exists yet")
+		case useOtel && useFIPS:
+			panic("Unsupported: no image with FIPS and OTel exists yet")
+		case useOtel && useJMX:
+			panic("Unsupported: no image with JMX and OTel exists yet")
+		case useFIPS && useJMX:
+			tag += fipsSuffix + jmxSuffix
+		case useFIPS:
+			tag += fipsSuffix
+		case useJMX:
+			tag += jmxSuffix
+		case useOtel:
+			tag += otelSuffix
 		}
 
 		exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
@@ -37,22 +57,45 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, ote
 		return utils.BuildDockerImagePath(fmt.Sprintf("%s/agent", e.InternalRegistry()), tag)
 	}
 
-	if repositoryPath == "" && otel {
-		repositoryPath = defaultOTAgentImageRepo
+	if useOtel {
+		if repositoryPath == "" {
+			repositoryPath = defaultDevAgentImageRepo
+		}
+		if imageTag == "" {
+			imageTag = defaultOTAgentImageTag
+		}
+
+		e.Ctx().Log.Info("The following image will be used in your test: "+fmt.Sprintf("%s:%s", repositoryPath, imageTag), nil)
+		return utils.BuildDockerImagePath(repositoryPath, imageTag)
+	}
+
+	if useFIPS {
+		if repositoryPath == "" {
+			repositoryPath = defaultDevAgentImageRepo
+		}
+		if imageTag == "" {
+			if useJMX {
+				imageTag = "main" + fipsSuffix + jmxSuffix
+			} else {
+				imageTag = "main" + fipsSuffix
+			}
+		}
+		e.Ctx().Log.Info("The following image will be used in your test: "+fmt.Sprintf("%s:%s", repositoryPath, imageTag), nil)
+		return utils.BuildDockerImagePath(repositoryPath, imageTag)
 	}
 
 	if repositoryPath == "" {
 		repositoryPath = defaultAgentImageRepo
 	}
 
-	if imageTag == "" && otel {
-		imageTag = defaultOTAgentImageTag
-	}
-
 	if imageTag == "" {
 		imageTag = dockerAgentImageTag(e, config.AgentSemverVersion)
+		if useJMX {
+			imageTag += jmxSuffix
+		}
 	}
 
+	e.Ctx().Log.Info("The following image will be used in your test: "+fmt.Sprintf("%s:%s", repositoryPath, imageTag), nil)
 	return utils.BuildDockerImagePath(repositoryPath, imageTag)
 }
 

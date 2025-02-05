@@ -5,22 +5,21 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type macOSServiceManager struct {
 	e      config.Env
-	runner *command.Runner
+	runner command.Runner
 }
 
-func newMacOSServiceManager(e config.Env, runner *command.Runner) ServiceManager {
+func newMacOSServiceManager(e config.Env, runner command.Runner) ServiceManager {
 	return &macOSServiceManager{e: e, runner: runner}
 }
 
-func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
-	cmdArgs := command.Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Sudo:   true,
 		Create: pulumi.String(fmt.Sprintf("launchctl stop %s && launchctl start %s", serviceName, serviceName)),
 	}
@@ -30,5 +29,5 @@ func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform comm
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	return s.runner.Command(cmdName, &cmdArgs, opts...)
+	return s.runner.Command(cmdName, cmdArgs, opts...)
 }

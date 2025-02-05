@@ -6,7 +6,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -15,12 +14,12 @@ type PackageManager interface {
 	// Ensure ensures that a package is installed
 	// checkBinary is a binary that should be checked before running the install command, if it is not empty it will first run the `command -v checkBinary` command and if it fails it will run the installCmd,
 	// if it succeeds we consider the package is already installed
-	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...pulumi.ResourceOption) (command.Command, error)
 }
 
 type ServiceManager interface {
 	// EnsureStarted starts or restarts (may be stop+start depending on implementation) the service if already running
-	EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error)
+	EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error)
 }
 
 // FileManager needs to be added here as well instead of the command package
@@ -29,7 +28,7 @@ type ServiceManager interface {
 type OS interface {
 	Descriptor() Descriptor
 
-	Runner() *command.Runner
+	Runner() command.Runner
 	FileManager() *command.FileManager
 	PackageManager() PackageManager
 	ServiceManger() ServiceManager
@@ -40,7 +39,7 @@ var _ OS = &os{}
 // os is a generic implementation of OS interface
 type os struct {
 	descriptor     Descriptor
-	runner         *command.Runner
+	runner         command.Runner
 	fileManager    *command.FileManager
 	packageManager PackageManager
 	serviceManager ServiceManager
@@ -50,7 +49,7 @@ func (o os) Descriptor() Descriptor {
 	return o.descriptor
 }
 
-func (o os) Runner() *command.Runner {
+func (o os) Runner() command.Runner {
 	return o.runner
 }
 
@@ -69,7 +68,7 @@ func (o os) ServiceManger() ServiceManager {
 func NewOS(
 	e config.Env,
 	descriptor Descriptor,
-	runner *command.Runner,
+	runner command.Runner,
 ) OS {
 	switch descriptor.Family() {
 	case LinuxFamily:

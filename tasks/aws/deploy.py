@@ -11,6 +11,7 @@ from tasks.config import Config, get_full_profile_path
 from tasks.deploy import deploy as common_deploy
 
 default_public_path_key_name = "ddinfra:aws/defaultPublicKeyPath"
+default_private_path_key_name = "ddinfra:aws/defaultPrivateKeyPath"
 
 
 def deploy(
@@ -32,6 +33,10 @@ def deploy(
     deploy_job: Optional[str] = None,
     full_image_path: Optional[str] = None,
     cluster_agent_full_image_path: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
+    agent_config_path: Optional[str] = None,
+    agent_env: Optional[str] = None,
+    helm_config: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -41,6 +46,10 @@ def deploy(
         raise Exit(f"Error in config {get_full_profile_path(config_path)}") from e
 
     flags[default_public_path_key_name] = _get_public_path_key_name(cfg, public_key_required)
+
+    privateKeyPath = cfg.get_aws().privateKeyPath
+    if privateKeyPath is not None:
+        flags[default_private_path_key_name] = privateKeyPath
 
     awsKeyPairName = cfg.get_aws().keyPairName
 
@@ -82,6 +91,10 @@ def deploy(
         use_fakeintake,
         full_image_path,
         cluster_agent_full_image_path,
+        agent_flavor,
+        agent_config_path,
+        agent_env,
+        helm_config,
     )
 
 

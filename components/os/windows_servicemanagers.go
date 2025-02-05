@@ -3,22 +3,21 @@ package os
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type windowsServiceManager struct {
 	e      config.Env
-	runner *command.Runner
+	runner command.Runner
 }
 
-func newWindowsServiceManager(e config.Env, runner *command.Runner) ServiceManager {
+func newWindowsServiceManager(e config.Env, runner command.Runner) ServiceManager {
 	return &windowsServiceManager{e: e, runner: runner}
 }
 
-func (s *windowsServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (s *windowsServiceManager) EnsureRestarted(serviceName string, transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
-	cmdArgs := command.Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Create: pulumi.String("Restart-Service -Name " + serviceName),
 	}
 
@@ -27,5 +26,5 @@ func (s *windowsServiceManager) EnsureRestarted(serviceName string, transform co
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	return s.runner.Command(cmdName, &cmdArgs, opts...)
+	return s.runner.Command(cmdName, cmdArgs, opts...)
 }

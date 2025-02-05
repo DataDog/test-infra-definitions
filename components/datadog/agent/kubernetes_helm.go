@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
@@ -41,14 +42,18 @@ type HelmInstallationArgs struct {
 	ClusterAgentFullImagePath string
 	// DisableLogsContainerCollectAll is used to disable the collection of logs from all containers by default
 	DisableLogsContainerCollectAll bool
-	// DisableDualShipping is used to disable dual-shipping
-	DisableDualShipping bool
+	// DualShipping is used to disable dual-shipping
+	DualShipping bool
 	// OTelAgent is used to deploy the OTel agent instead of the classic agent
 	OTelAgent bool
 	// OTelConfig is used to provide a custom OTel configuration
 	OTelConfig string
 	// GKEAutopilot is used to enable the GKE Autopilot mode and keep only compatible values
 	GKEAutopilot bool
+	// FIPS is used to deploy the agent with the FIPS agent image
+	FIPS bool
+	// JMX is used to deploy the agent with the JMX agent image
+	JMX bool
 }
 
 type HelmComponent struct {
@@ -123,7 +128,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent, args.FIPS, args.JMX)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
@@ -144,7 +149,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
 	}
 	values.configureImagePullSecret(imgPullSecret)
-	values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
+	values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
 
 	defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
@@ -153,6 +158,16 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
 	if args.OTelAgent {
 		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
+	}
+
+	// Read and merge custom helm config if provided
+	if helmConfig := e.AgentHelmConfig(); helmConfig != "" {
+		customHelm, err := os.ReadFile(helmConfig)
+		if err != nil {
+			return nil, err
+		}
+		config := pulumi.NewStringAsset(string(customHelm))
+		valuesYAML = append(valuesYAML, config)
 	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -177,7 +192,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.DeployWindows {
 		values := buildWindowsHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag)
 		values.configureImagePullSecret(imgPullSecret)
-		values.configureFakeintake(e, args.Fakeintake, !args.DisableDualShipping)
+		values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
 		defaultYAMLValues := values.toYAMLPulumiAssetOutput()
 
 		var windowsValuesYAML pulumi.AssetOrArchiveArray
@@ -223,11 +238,22 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),
 			},
-			"originDetectionUnified": pulumi.Map{
-				"enabled": pulumi.Bool(true),
-			},
 			"namespaceAnnotationsAsTags": pulumi.Map{
 				"related_email": pulumi.String("email"), // should be overridden by kubernetesResourcesAnnotationsAsTags
+			},
+			"kubernetesResourcesAnnotationsAsTags": pulumi.Map{
+				"deployments.apps": pulumi.Map{"x-sub-team": pulumi.String("sub-team")},
+				"pods":             pulumi.Map{"x-parent-name": pulumi.String("parent-name")},
+				"namespaces":       pulumi.Map{"related_email": pulumi.String("mail")},
+			},
+			"kubernetesResourcesLabelsAsTags": pulumi.Map{
+				"deployments.apps": pulumi.Map{"x-team": pulumi.String("team")},
+				"pods":             pulumi.Map{"x-parent-type": pulumi.String("domain")},
+				"namespaces":       pulumi.Map{"related_org": pulumi.String("org")},
+				"nodes":            pulumi.Map{"kubernetes.io/os": pulumi.String("os"), "kubernetes.io/arch": pulumi.String("arch")},
+			},
+			"originDetectionUnified": pulumi.Map{
+				"enabled": pulumi.Bool(true),
 			},
 			"logs": pulumi.Map{
 				"enabled":             pulumi.Bool(true),
@@ -304,14 +330,6 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_TELEMETRY_CHECKS"),
 					"value": pulumi.String("*"),
 				},
-				pulumi.StringMap{
-					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_LABELS_AS_TAGS"),
-					"value": pulumi.JSONMarshal(getResourcesLabelsAsTags().toJSONString()),
-				},
-				pulumi.StringMap{
-					"name":  pulumi.String("DD_KUBERNETES_RESOURCES_ANNOTATIONS_AS_TAGS"),
-					"value": pulumi.JSONMarshal(getResourcesAnnotationsAsTags().toJSONString()),
-				},
 			},
 		},
 		"agents": pulumi.Map{
@@ -341,6 +359,17 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			},
 			"containers": pulumi.Map{
 				"agent": pulumi.Map{
+					"env": pulumi.StringMapArray{
+						pulumi.StringMap{
+							// TODO: remove this environment variable override once a retry mechanism is added to the language detection client
+							//
+							// the refresh period is reduced to 1 minute because the language detection client doesn't implement a retry mechanism
+							// if the cluster agent is not available when the client tries to send the first detected language, the language will only
+							// be sent again after 20 minutes (default refresh period). This causes E2E to fail since it only waits 5 minutes.
+							"name":  pulumi.String("DD_LANGUAGE_DETECTION_REPORTING_REFRESH_PERIOD"),
+							"value": pulumi.String("1m"),
+						},
+					},
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{
 							"cpu":    pulumi.String("400m"),
@@ -412,6 +441,75 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"value": pulumi.String("true"),
 				},
 			},
+			"confd": pulumi.StringMap{
+				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{
+					"init_config": nil,
+					"instances": []map[string]interface{}{
+						{
+							"collectors": []string{
+								"secrets",
+								"configmaps",
+								"nodes",
+								"pods",
+								"services",
+								"resourcequotas",
+								"replicationcontrollers",
+								"limitranges",
+								"persistentvolumeclaims",
+								"persistentvolumes",
+								"namespaces",
+								"endpoints",
+								"daemonsets",
+								"deployments",
+								"replicasets",
+								"statefulsets",
+								"cronjobs",
+								"jobs",
+								"horizontalpodautoscalers",
+								"poddisruptionbudgets",
+								"storageclasses",
+								"volumeattachments",
+								"ingresses",
+								"verticalpodautoscalers",
+							},
+							"labels_as_tags":      map[string]interface{}{},
+							"annotations_as_tags": map[string]interface{}{},
+							"custom_resource": map[string]interface{}{
+								"spec": map[string]interface{}{
+									"resources": []map[string]interface{}{
+										{
+											"groupVersionKind": map[string]interface{}{
+												"group":   "datadoghq.com",
+												"kind":    "DatadogMetric",
+												"version": "v1alpha1",
+											},
+											"commonLabels": map[string]interface{}{
+												"cr_type": "ddm",
+											},
+											"labelsFromPath": map[string]interface{}{
+												"ddm_namespace": []string{"metadata", "namespace"},
+												"ddm_name":      []string{"metadata", "name"},
+											},
+											"metrics": []map[string]interface{}{
+												{
+													"name": "ddm_value",
+													"help": "DatadogMetric value",
+													"each": map[string]interface{}{
+														"type": "gauge",
+														"gauge": map[string]interface{}{
+															"path": []string{"status", "currentValue"},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				})),
+			},
 		},
 		"clusterChecksRunner": pulumi.Map{
 			"enabled": pulumi.Bool(true),
@@ -419,6 +517,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"repository":    pulumi.String(agentImagePath),
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
+					"value": pulumi.String("true"),
+				},
 			},
 			"resources": pulumi.StringMapMap{
 				"requests": pulumi.StringMap{
@@ -543,9 +647,14 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 
 	var endpointsEnvVar pulumi.StringMapArray
 	if dualShipping {
-		if fakeintake.Scheme != "https" {
-			e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
-		}
+		useSSL := fakeintake.Scheme.ApplyT(func(scheme string) bool {
+			if scheme != "https" {
+				e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
+			}
+
+			return scheme == "https"
+		}).(pulumi.BoolOutput)
+
 		endpointsEnvVar = pulumi.StringMapArray{
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
@@ -569,7 +678,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
+				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, useSSL),
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),

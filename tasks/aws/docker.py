@@ -25,6 +25,8 @@ scenario_name = "aws/dockervm"
         "use_loadBalancer": doc.use_loadBalancer,
         "interactive": doc.interactive,
         "full_image_path": doc.full_image_path,
+        "agent_flavor": doc.agent_flavor,
+        "agent_env": doc.agent_env,
     },
 )
 def create_docker(
@@ -38,6 +40,8 @@ def create_docker(
     use_loadBalancer: Optional[bool] = False,
     interactive: Optional[bool] = True,
     full_image_path: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
+    agent_env: Optional[str] = None,
 ):
     """
     Create a docker environment.
@@ -59,6 +63,8 @@ def create_docker(
         use_fakeintake=use_fakeintake,
         extra_flags=extra_flags,
         full_image_path=full_image_path,
+        agent_flavor=agent_flavor,
+        agent_env=agent_env,
     )
 
     if interactive:
@@ -70,7 +76,7 @@ def create_docker(
 def _show_connection_message(ctx: Context, full_stack_name: str, copy_to_clipboard: Optional[bool]):
     outputs = tool.get_stack_json_outputs(ctx, full_stack_name)
     remoteHost = tool.RemoteHost("aws-vm", outputs)
-    host = remoteHost.host
+    host = remoteHost.address
     user = remoteHost.user
 
     command = (

@@ -17,6 +17,7 @@ from tasks.azure.common import (
 from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy
+from tasks.tool import add_known_host as add_known_host_func
 from tasks.tool import clean_known_hosts as clean_known_hosts_func
 from tasks.tool import get_host, show_connection_message
 
@@ -38,6 +39,9 @@ remote_hostname = "az-vm"
         "architecture": azure_doc.architecture,
         "instance_type": azure_doc.instance_type,
         "os_version": doc.os_version,
+        "add_known_host": doc.add_known_host,
+        "agent_flavor": doc.agent_flavor,
+        "agent_config_path": doc.agent_config_path,
     }
 )
 def create_vm(
@@ -58,6 +62,9 @@ def create_vm(
     deploy_job: Optional[str] = None,
     no_verify: Optional[bool] = False,
     use_fakeintake: Optional[bool] = False,
+    add_known_host: Optional[bool] = True,
+    agent_flavor: Optional[str] = None,
+    agent_config_path: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on azure.
@@ -100,10 +107,16 @@ def create_vm(
         debug=debug,
         extra_flags=extra_flags,
         use_fakeintake=use_fakeintake,
+        agent_flavor=agent_flavor,
+        agent_config_path=agent_config_path,
     )
 
     if interactive:
         tool.notify(ctx, "Your VM is now created")
+
+    if add_known_host:
+        host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+        add_known_host_func(ctx, host.address)
 
     show_connection_message(ctx, remote_hostname, full_stack_name, interactive)
 
@@ -124,15 +137,18 @@ def destroy_vm(
     """
     Destroy a new virtual machine on azure.
     """
+
     host = get_host(ctx, remote_hostname, scenario_name, stack_name)
+
     destroy(
         ctx,
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
     )
+
     if clean_known_hosts:
-        clean_known_hosts_func(host)
+        clean_known_hosts_func(ctx, host.address)
 
 
 def _get_os_information(os_family: Optional[str], arch: Optional[str]) -> Tuple[str, Optional[str]]:

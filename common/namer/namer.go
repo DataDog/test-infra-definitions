@@ -14,7 +14,7 @@ import (
 const nameSep = "-"
 
 // In case of truncation, size of the hash suffix in percentage of the full size
-const hashSizePercent = 10
+const hashSizePercent = 20
 
 // Used only for tests to skip hash suffix to ease test results validation
 var noHash = false

@@ -84,6 +84,10 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 			Value: pulumi.StringPtr("true"),
 		},
 		&corev1.EnvVarArgs{
+			Name:  pulumi.String("DD_ORIGIN_DETECTION_UNIFIED"),
+			Value: pulumi.StringPtr("true"),
+		},
+		&corev1.EnvVarArgs{
 			Name:  pulumi.String("DD_DOGSTATSD_ORIGIN_DETECTION"),
 			Value: pulumi.StringPtr("true"),
 		},

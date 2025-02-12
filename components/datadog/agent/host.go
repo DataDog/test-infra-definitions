@@ -20,7 +20,8 @@ import (
 type HostAgentOutput struct {
 	components.JSONImporter
 
-	Host remoteComp.HostOutput `json:"host"`
+	Host        remoteComp.HostOutput `json:"host"`
+	FIPSEnabled bool                  `json:"fipsEnabled"`
 }
 
 // HostAgent is an installer for the Agent on a remote host
@@ -31,7 +32,8 @@ type HostAgent struct {
 	namer   namer.Namer
 	manager agentOSManager
 
-	Host *remoteComp.Host `pulumi:"host"`
+	Host        *remoteComp.Host  `pulumi:"host"`
+	FIPSEnabled pulumi.BoolOutput `pulumi:"fipsEnabled"`
 }
 
 func (h *HostAgent) Export(ctx *pulumi.Context, out *HostAgentOutput) error {
@@ -49,6 +51,8 @@ func NewHostAgent(e config.Env, host *remoteComp.Host, options ...agentparams.Op
 		if err != nil {
 			return err
 		}
+
+		comp.FIPSEnabled = pulumi.Bool(e.AgentFIPS()).ToBoolOutput()
 
 		deps := append(params.ResourceOptions, pulumi.Parent(comp))
 		err = comp.installAgent(e, params, deps...)

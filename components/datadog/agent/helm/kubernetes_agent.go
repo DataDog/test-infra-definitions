@@ -18,6 +18,8 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 		if err != nil {
 			return err
 		}
+		comp.FIPSEnabled = pulumi.Bool(e.AgentFIPS() || params.FIPS).ToBoolOutput()
+
 		pulumiResourceOptions := append(params.PulumiResourceOptions, pulumi.Parent(comp))
 
 		helmComponent, err := agent.NewHelmInstallation(e, agent.HelmInstallationArgs{

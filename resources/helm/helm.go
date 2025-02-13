@@ -14,6 +14,7 @@ type InstallArgs struct {
 	Namespace   string
 	ValuesYAML  pulumi.AssetOrArchiveArrayInput
 	Values      pulumi.MapInput
+	Version     pulumi.StringPtrInput
 }
 
 // Important: set relevant Kubernetes provider in `opts`
@@ -29,5 +30,6 @@ func NewInstallation(e config.Env, args InstallArgs, opts ...pulumi.ResourceOpti
 		DependencyUpdate: pulumi.BoolPtr(true),
 		ValueYamlFiles:   args.ValuesYAML,
 		Values:           args.Values,
+		Version:          args.Version,
 	}, opts...)
 }

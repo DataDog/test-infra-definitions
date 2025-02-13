@@ -119,7 +119,7 @@ func NewHelmInstallation(e config.Env, opts ...pulumi.ResourceOption) (*HelmComp
 	return helmComponent, nil
 }
 
-func NewHttpbinServiceInstallation(e config.CommonEnvironment, opts ...pulumi.ResourceOption) (*corev1.Service, error) {
+func NewHttpbinServiceInstallation(e config.Env, opts ...pulumi.ResourceOption) (*corev1.Service, error) {
 	// deploy httpbin on default namespace
 	httpbinServiceAccount, err := corev1.NewServiceAccount(e.Ctx(), "httpbin", &corev1.ServiceAccountArgs{
 		Metadata: metav1.ObjectMetaArgs{Name: pulumi.String("httpbin")},

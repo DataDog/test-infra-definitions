@@ -1,17 +1,23 @@
 package kubernetes
 
 import (
+	"embed"
 	_ "embed"
 	"fmt"
+	"net/url"
+	"text/template"
 
 	"regexp"
 	"strings"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/docker"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/cilium"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 
@@ -26,8 +32,25 @@ const (
 //go:embed kind-cluster.yaml
 var kindClusterConfig string
 
+//go:embed kind-cilium-cluster.yaml
+var kindCilumClusterFS embed.FS
+
+var kindCiliumClusterTemplate *template.Template
+
+func init() {
+	var err error
+	kindCiliumClusterTemplate, err = template.ParseFS(kindCilumClusterFS, "kind-cilium-cluster.yaml")
+	if err != nil {
+		panic(err)
+	}
+}
+
 // Install Kind on a Linux virtual machine.
 func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+	return newKindCluster(env, vm, name, kubeVersion, kindClusterConfig, opts...)
+}
+
+func newKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion, kindConfig string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
 		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
@@ -67,7 +90,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 
 		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", name)
 		clusterConfig, err := vm.OS.FileManager().CopyInlineFile(
-			pulumi.String(kindClusterConfig),
+			pulumi.String(kindConfig),
 			clusterConfigFilePath, opts...)
 		if err != nil {
 			return err
@@ -79,7 +102,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
-				Triggers: pulumi.Array{pulumi.String(kindClusterConfig)},
+				Triggers: pulumi.Array{pulumi.String(kindConfig)},
 			},
 			utils.MergeOptions(opts, utils.PulumiDependsOn(clusterConfig, kindInstall), pulumi.DeleteBeforeReplace(true))...,
 		)
@@ -108,6 +131,77 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 
 		return nil
 	}, opts...)
+}
+
+func kindKubeClusterConfigFromCiliumParams(params *cilium.Params) (string, error) {
+	o := struct {
+		KubeProxyReplacement bool
+	}{
+		KubeProxyReplacement: params.HasKubeProxyReplacement(),
+	}
+
+	var kindCilumClusterConfig strings.Builder
+	if err := kindCiliumClusterTemplate.Execute(&kindCilumClusterConfig, o); err != nil {
+		return "", err
+	}
+
+	return kindCilumClusterConfig.String(), nil
+}
+
+func NewKindCiliumCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, ciliumOpts []cilium.Option, opts ...pulumi.ResourceOption) (*Cluster, error) {
+	params, err := cilium.NewParams(ciliumOpts...)
+	if err != nil {
+		return nil, fmt.Errorf("could not create cilium params from opts: %w", err)
+	}
+
+	clusterConfig, err := kindKubeClusterConfigFromCiliumParams(params)
+	if err != nil {
+		return nil, err
+	}
+
+	cluster, err := newKindCluster(env, vm, name, kubeVersion, clusterConfig, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	if params.HasKubeProxyReplacement() {
+		runner := vm.OS.Runner()
+		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
+		kubeConfigInternalCmd, err := runner.Command(
+			env.CommonNamer().ResourceName("kube-kubeconfig-internal"),
+			&command.Args{
+				Create: pulumi.Sprintf("kind get kubeconfig --name %s --internal", kindClusterName),
+			},
+			utils.MergeOptions(opts, utils.PulumiDependsOn(cluster))...,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		hostPort := kubeConfigInternalCmd.StdoutOutput().ApplyT(
+			func(v string) ([]string, error) {
+				out := map[string]interface{}{}
+				if err := yaml.Unmarshal([]byte(v), out); err != nil {
+					return nil, fmt.Errorf("error unmarshaling output of kubeconfig: %w", err)
+				}
+
+				clusters := out["clusters"].([]interface{})
+				cluster := clusters[0].(map[string]interface{})["cluster"]
+				server := cluster.(map[string]interface{})["server"].(string)
+				u, err := url.Parse(server)
+				if err != nil {
+					return nil, fmt.Errorf("could not parse server address %s: %w", server, err)
+				}
+
+				return []string{u.Hostname(), u.Port()}, nil
+			},
+		).(pulumi.StringArrayOutput)
+
+		cluster.KubeInternalServerAddress = hostPort.Index(pulumi.Int(0))
+		cluster.KubeInternalServerPort = hostPort.Index(pulumi.Int(1))
+	}
+
+	return cluster, nil
 }
 
 func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {

@@ -2,6 +2,7 @@ package k8sapply
 
 import (
 	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	kubeComp "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"

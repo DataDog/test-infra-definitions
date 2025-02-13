@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -128,14 +127,7 @@ func dockerClusterAgentFullImagePath(e config.Env, repositoryPath string) string
 func dockerAgentImageTag(e config.Env, semverVersion func(config.Env) (*semver.Version, error)) string {
 	// default tag
 	var agentImageTag string
-
-	fmt.Printf("Major version: %s\n", e.MajorVersion())
-	fmt.Printf("IS_AGENT_6: %s\n", os.Getenv("IS_AGENT_6"))
-	fmt.Printf("DD_AGENT_MAJOR_VERSION: %s\n", os.Getenv("DD_AGENT_MAJOR_VERSION"))
-
-	// agentImageTag = defaultAgent6ImageTag
-	// TODO A: don't use os.Getenv but e.MajorVersion()
-	if e.MajorVersion() == "6" || os.Getenv("DD_AGENT_MAJOR_VERSION") == "6" || os.Getenv("IS_AGENT_6") == "true" {
+	if e.MajorVersion() == "6" {
 		agentImageTag = defaultAgent6ImageTag
 	} else {
 		agentImageTag = defaultAgentImageTag
@@ -148,8 +140,6 @@ func dockerAgentImageTag(e config.Env, semverVersion func(config.Env) (*semver.V
 	} else {
 		e.Ctx().Log.Debug("Unable to parse agent version, using latest", nil)
 	}
-
-	fmt.Printf("Agent image tag: %s\n", agentImageTag)
 
 	return agentImageTag
 }

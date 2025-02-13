@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	golang.org/x/time v0.6.0
-	gopkg.in/DataDog/dd-trace-go.v1 v1.71.0
+	gopkg.in/DataDog/dd-trace-go.v1 v1.72.0-rc.2
 )
 
 require (

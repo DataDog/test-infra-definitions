@@ -1,13 +1,13 @@
 package aws
 
 import (
-	"github.com/DataDog/test-infra-definitions/common/utils"
+	"os"
 	"regexp"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	awsECR "github.com/aws/aws-sdk-go-v2/service/ecr"
 	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
@@ -15,8 +15,6 @@ import (
 	"github.com/pulumi/pulumi-random/sdk/v4/go/random"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
-
-	"os"
 )
 
 const (
@@ -133,6 +131,15 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.randomSubnets = shuffle.Results
 
+	shuffleFakeintakeECS, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-ecs"), &random.RandomShuffleArgs{
+		Inputs:      pulumi.ToStringArray(env.DefaultFakeintakeECSArns()),
+		ResultCount: pulumi.IntPtr(1),
+	}, env.WithProviders(config.ProviderRandom))
+	if err != nil {
+		return Environment{}, err
+	}
+	env.randomECSArn = shuffleFakeintakeECS.Results.Index(pulumi.Int(0))
+
 	if len(env.DefaultFakeintakeLBs()) == 0 {
 		return env, nil
 	}
@@ -146,14 +153,6 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.randomLBIdx = shuffleLB.Result
 
-	shuffleFakeintakeECS, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-ecs"), &random.RandomShuffleArgs{
-		Inputs:      pulumi.ToStringArray(env.DefaultFakeintakeECSArns()),
-		ResultCount: pulumi.IntPtr(1),
-	}, env.WithProviders(config.ProviderRandom))
-	if err != nil {
-		return Environment{}, err
-	}
-	env.randomECSArn = shuffleFakeintakeECS.Results.Index(pulumi.Int(0))
 	return env, nil
 }
 

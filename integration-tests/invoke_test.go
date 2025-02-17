@@ -80,7 +80,7 @@ func TestInvokes(t *testing.T) {
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 
-	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_JOB_ID"))
 	stackName = sanitizeStackName(stackName)
 
 	t.Log("creating vm")

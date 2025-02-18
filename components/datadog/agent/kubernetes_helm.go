@@ -440,6 +440,13 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
+				// The loglevel is set to trace in order to debug a flaky e2e in the
+				// language detection handler/patcher.
+				// TODO: remove when done.
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_LOG_LEVEL"),
+					"value": pulumi.String("TRACE"),
+				},
 			},
 			"confd": pulumi.StringMap{
 				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{

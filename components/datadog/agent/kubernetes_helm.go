@@ -447,8 +447,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"instances": []map[string]interface{}{
 						{
 							"collectors": []string{
+								"apiservices",
 								"secrets",
 								"configmaps",
+								"customresourcedefinitions",
 								"nodes",
 								"pods",
 								"services",

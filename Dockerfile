@@ -11,6 +11,8 @@ ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beeb
 ARG CI_UPLOADER_VERSION=2.30.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
+# Always prevent installing dependencies dynamically
+ENV DEVA_NO_DYNAMIC_DEPS=1
 
 # Install deps all in one step
 RUN apt-get update -y && \

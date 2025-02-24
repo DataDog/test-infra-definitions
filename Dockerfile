@@ -3,14 +3,16 @@
 
 FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.23.5
-ENV GO_SHA=cbcad4a6482107c7c7926df1608106c189417163428200ce357695cc7e01d091
+ENV GO_VERSION=1.23.6
+ENV GO_SHA=9379441ea310de000f33a4dc767bd966e72ab2826270e038e78b2c53c2e7802d
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
 ARG CI_UPLOADER_VERSION=2.30.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
+# Always prevent installing dependencies dynamically
+ENV DEVA_NO_DYNAMIC_DEPS=1
 
 # Install deps all in one step
 RUN apt-get update -y && \

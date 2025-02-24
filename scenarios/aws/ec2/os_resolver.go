@@ -130,14 +130,18 @@ func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 	if osInfo.Version == "" {
 		osInfo.Version = os.UbuntuDefault.Version
 	}
+	volumeType := "ebs-gp2"
 
 	paramArch := osInfo.Architecture
 	if paramArch == os.AMD64Arch {
 		// Override required as the architecture is x86_64 but the SSM parameter is amd64
 		paramArch = "amd64"
 	}
+	if osInfo.Version == "24.04" {
+		volumeType = "ebs-gp3"
+	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/ebs-gp2/ami-id", osInfo.Version, paramArch))
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/%s/ami-id", osInfo.Version, paramArch, volumeType))
 }
 
 func resolveDebianAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

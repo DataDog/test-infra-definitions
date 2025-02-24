@@ -23,6 +23,7 @@ type DockerAgentOutput struct {
 
 	DockerManager docker.ManagerOutput `json:"dockerManager"`
 	ContainerName string               `json:"containerName"`
+	FIPSEnabled   bool                 `json:"fipsEnabled"`
 }
 
 // DockerAgent is a Docker installer on a remote Host
@@ -32,6 +33,7 @@ type DockerAgent struct {
 
 	DockerManager *docker.Manager     `pulumi:"dockerManager"`
 	ContainerName pulumi.StringOutput `pulumi:"containerName"`
+	FIPSEnabled   pulumi.BoolOutput   `pulumi:"fipsEnabled"`
 }
 
 func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error {
@@ -45,6 +47,7 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 			return err
 		}
 
+		comp.FIPSEnabled = pulumi.Bool(e.AgentFIPS() || params.FIPS).ToBoolOutput()
 		fullImagePath := params.FullImagePath
 		if fullImagePath == "" {
 			fullImagePath = dockerAgentFullImagePath(e, params.Repository, params.ImageTag, false, params.FIPS, params.JMX)
@@ -72,6 +75,7 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 		}
 
 		// Fill component
+		comp.FIPSEnabled = pulumi.Bool(params.FIPS).ToBoolOutput()
 		comp.DockerManager = manager
 		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
 

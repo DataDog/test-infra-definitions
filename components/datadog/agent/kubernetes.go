@@ -17,6 +17,8 @@ type KubernetesAgentOutput struct {
 	WindowsNodeAgent     kubernetes.KubernetesObjRefOutput `json:"windowsNodeAgent"`
 	WindowsClusterAgent  kubernetes.KubernetesObjRefOutput `json:"windowsClusterAgent"`
 	WindowsClusterChecks kubernetes.KubernetesObjRefOutput `json:"windowsClusterChecks"`
+
+	FIPSEnabled bool `json:"fipsEnabled"`
 }
 
 // KubernetesAgent is an installer to install the Datadog Agent on a Kubernetes cluster.
@@ -31,6 +33,8 @@ type KubernetesAgent struct {
 	WindowsNodeAgent     *kubernetes.KubernetesObjectRef `pulumi:"windowsNodeAgent"`
 	WindowsClusterAgent  *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterAgent"`
 	WindowsClusterChecks *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterChecks"`
+
+	FIPSEnabled pulumi.BoolOutput `pulumi:"fipsEnabled"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {

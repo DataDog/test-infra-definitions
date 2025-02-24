@@ -425,6 +425,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_TAGS"),
+					"value": pulumi.String("example-env-tag:static"),
+				},
 			},
 			"confd": pulumi.StringMap{
 				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{
@@ -459,6 +463,9 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 							},
 							"labels_as_tags":      map[string]interface{}{},
 							"annotations_as_tags": map[string]interface{}{},
+							"tags": map[string]string{
+								"example-instance-tag": "static",
+							},
 						},
 					},
 				})),

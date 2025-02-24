@@ -5,11 +5,11 @@ import (
 	_ "embed"
 	"fmt"
 	"net/url"
-	"text/template"
-
 	"regexp"
 	"strings"
+	"text/template"
 
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -20,8 +20,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/kubernetes/cilium"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
-
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const (

@@ -52,8 +52,14 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 		logFilePath = paramParts[1]
 	}
 
+	cmd := ""
+	if version.Flavor == agentparams.FIPSFlavor {
+		cmd = fmt.Sprintf(`
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy' -Name 'Enabled' -Value 1 -Type DWORD`)
+	}
+
 	localFilename := `C:\datadog-agent.msi`
-	cmd := fmt.Sprintf(`
+	cmd += fmt.Sprintf(`
 $ProgressPreference = 'SilentlyContinue';
 $ErrorActionPreference = 'Stop';
 for ($i=0; $i -lt 3; $i++) {

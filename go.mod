@@ -9,19 +9,19 @@ require (
 	github.com/alessio/shellescape v1.4.2
 	github.com/aws/aws-sdk-go-v2 v1.32.7
 	github.com/aws/aws-sdk-go-v2/config v1.28.7
-	github.com/aws/aws-sdk-go-v2/service/ecr v1.38.0
-	github.com/aws/aws-sdk-go-v2/service/ecs v1.53.1
-	github.com/aws/aws-sdk-go-v2/service/s3 v1.71.1
+	github.com/aws/aws-sdk-go-v2/service/ecr v1.38.1
+	github.com/aws/aws-sdk-go-v2/service/ecs v1.53.2
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.72.0
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.66.2
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.19.0
-	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.80.0
-	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.80.0
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.80.0
-	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.80.0
-	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.80.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.80.0
+	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.81.0
 	github.com/pulumi/pulumi-command/sdk v1.0.1
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.5.8
 	github.com/pulumi/pulumi-eks/sdk/v3 v3.7.0
@@ -30,7 +30,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.5.4
 	github.com/pulumi/pulumi-random/sdk/v4 v4.16.8
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.144.1
+	github.com/pulumi/pulumi/sdk/v3 v3.145.0
 	github.com/pulumiverse/pulumi-time/sdk v0.1.0
 	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.10.0

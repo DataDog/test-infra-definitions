@@ -31,6 +31,7 @@ from . import config, doc, tool
         "no_verify": doc.no_verify,
         "ssh_user": doc.ssh_user,
         "os_version": doc.os_version,
+        "agent_flavor": doc.agent_flavor,
     }
 )
 def create_vm(
@@ -52,6 +53,7 @@ def create_vm(
     instance_type: Optional[str] = None,
     no_verify: Optional[bool] = False,
     ssh_user: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
 ) -> None:
     from tasks.aws.vm import create_vm as create_vm_aws
 
@@ -76,6 +78,7 @@ def create_vm(
         instance_type,
         no_verify,
         ssh_user,
+        agent_flavor=agent_flavor,
     )
 
 

@@ -2,6 +2,7 @@ package agent
 
 import (
 	"fmt"
+	"os"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
@@ -49,6 +50,10 @@ type HelmInstallationArgs struct {
 	OTelConfig string
 	// GKEAutopilot is used to enable the GKE Autopilot mode and keep only compatible values
 	GKEAutopilot bool
+	// FIPS is used to deploy the agent with the FIPS agent image
+	FIPS bool
+	// JMX is used to deploy the agent with the JMX agent image
+	JMX bool
 }
 
 type HelmComponent struct {
@@ -123,7 +128,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	// Compute some values
-	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent)
+	agentImagePath := dockerAgentFullImagePath(e, "", "", args.OTelAgent, args.FIPS, args.JMX)
 	if args.AgentFullImagePath != "" {
 		agentImagePath = args.AgentFullImagePath
 	}
@@ -153,6 +158,16 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
 	if args.OTelAgent {
 		valuesYAML = append(valuesYAML, buildOTelConfigWithFakeintake(args.OTelConfig, args.Fakeintake))
+	}
+
+	// Read and merge custom helm config if provided
+	if helmConfig := e.AgentHelmConfig(); helmConfig != "" {
+		customHelm, err := os.ReadFile(helmConfig)
+		if err != nil {
+			return nil, err
+		}
+		config := pulumi.NewStringAsset(string(customHelm))
+		valuesYAML = append(valuesYAML, config)
 	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
@@ -436,8 +451,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"instances": []map[string]interface{}{
 						{
 							"collectors": []string{
+								"apiservices",
 								"secrets",
 								"configmaps",
+								"customresourcedefinitions",
 								"nodes",
 								"pods",
 								"services",
@@ -463,6 +480,38 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 							},
 							"labels_as_tags":      map[string]interface{}{},
 							"annotations_as_tags": map[string]interface{}{},
+							"custom_resource": map[string]interface{}{
+								"spec": map[string]interface{}{
+									"resources": []map[string]interface{}{
+										{
+											"groupVersionKind": map[string]interface{}{
+												"group":   "datadoghq.com",
+												"kind":    "DatadogMetric",
+												"version": "v1alpha1",
+											},
+											"commonLabels": map[string]interface{}{
+												"cr_type": "ddm",
+											},
+											"labelsFromPath": map[string]interface{}{
+												"ddm_namespace": []string{"metadata", "namespace"},
+												"ddm_name":      []string{"metadata", "name"},
+											},
+											"metrics": []map[string]interface{}{
+												{
+													"name": "ddm_value",
+													"help": "DatadogMetric value",
+													"each": map[string]interface{}{
+														"type": "gauge",
+														"gauge": map[string]interface{}{
+															"path": []string{"status", "currentValue"},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
 							"tags": map[string]string{
 								"example-instance-tag": "static",
 							},
@@ -607,9 +656,14 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 
 	var endpointsEnvVar pulumi.StringMapArray
 	if dualShipping {
-		if fakeintake.Scheme != "https" {
-			e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
-		}
+		useSSL := fakeintake.Scheme.ApplyT(func(scheme string) bool {
+			if scheme != "https" {
+				e.Ctx().Log.Warn("Fakeintake is used in HTTP with dual-shipping, some endpoints will not work", nil)
+			}
+
+			return scheme == "https"
+		}).(pulumi.BoolOutput)
+
 		endpointsEnvVar = pulumi.StringMapArray{
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
@@ -633,7 +687,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS"),
-				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, fakeintake.Scheme == "https"),
+				"value": pulumi.Sprintf(`[{"host": "%s", "port": %v, "use_ssl": %t}]`, fakeintake.Host, fakeintake.Port, useSSL),
 			},
 			pulumi.StringMap{
 				"name":  pulumi.String("DD_LOGS_CONFIG_USE_HTTP"),

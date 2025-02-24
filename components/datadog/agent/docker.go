@@ -8,7 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/datadog/dockeragentparams"
 	"github.com/DataDog/test-infra-definitions/components/docker"
@@ -24,6 +23,7 @@ type DockerAgentOutput struct {
 
 	DockerManager docker.ManagerOutput `json:"dockerManager"`
 	ContainerName string               `json:"containerName"`
+	FIPSEnabled   bool                 `json:"fipsEnabled"`
 }
 
 // DockerAgent is a Docker installer on a remote Host
@@ -33,6 +33,7 @@ type DockerAgent struct {
 
 	DockerManager *docker.Manager     `pulumi:"dockerManager"`
 	ContainerName pulumi.StringOutput `pulumi:"containerName"`
+	FIPSEnabled   pulumi.BoolOutput   `pulumi:"fipsEnabled"`
 }
 
 func (h *DockerAgent) Export(ctx *pulumi.Context, out *DockerAgentOutput) error {
@@ -46,19 +47,23 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 			return err
 		}
 
-		defaultAgentParams(params)
+		comp.FIPSEnabled = pulumi.Bool(e.AgentFIPS() || params.FIPS).ToBoolOutput()
+		fullImagePath := params.FullImagePath
+		if fullImagePath == "" {
+			fullImagePath = dockerAgentFullImagePath(e, params.Repository, params.ImageTag, false, params.FIPS, params.JMX)
+		}
 
 		// Check FullImagePath exists in internal registry
-		exists, err := e.InternalRegistryFullImagePathExists(params.FullImagePath)
+		exists, err := e.InternalRegistryFullImagePathExists(fullImagePath)
 		if err != nil {
 			return err
 		}
 		if !exists {
-			return fmt.Errorf("image %q not found in the internal registry", params.FullImagePath)
+			return fmt.Errorf("image %q not found in the internal registry", fullImagePath)
 		}
 
 		// We can have multiple compose files in compose.
-		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(params.FullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
+		composeContents := []docker.ComposeInlineManifest{dockerAgentComposeManifest(fullImagePath, e.AgentAPIKey(), params.AgentServiceEnvironment)}
 		composeContents = append(composeContents, params.ExtraComposeManifests...)
 
 		opts := make([]pulumi.ResourceOption, 0, len(params.PulumiDependsOn)+1)
@@ -70,6 +75,7 @@ func NewDockerAgent(e config.Env, vm *remoteComp.Host, manager *docker.Manager, 
 		}
 
 		// Fill component
+		comp.FIPSEnabled = pulumi.Bool(params.FIPS).ToBoolOutput()
 		comp.DockerManager = manager
 		comp.ContainerName = pulumi.String(agentContainerName).ToStringOutput()
 
@@ -124,28 +130,4 @@ func dockerAgentComposeManifest(agentImagePath string, apiKey pulumi.StringInput
 		Name:    "agent",
 		Content: agentManifestContent,
 	}
-}
-
-func defaultAgentParams(params *dockeragentparams.Params) {
-	// After setting params.FullImagePath check if you need to use JMX Docker image
-	defer func(p *dockeragentparams.Params) {
-		if p.FIPS {
-			p.FullImagePath += "-fips"
-		}
-		if p.JMX {
-			p.FullImagePath = fmt.Sprintf("%s-jmx", p.FullImagePath)
-		}
-	}(params)
-
-	if params.FullImagePath != "" {
-		return
-	}
-
-	if params.Repository == "" {
-		params.Repository = defaultAgentImageRepo
-	}
-	if params.ImageTag == "" {
-		params.ImageTag = defaultAgentImageTag
-	}
-	params.FullImagePath = utils.BuildDockerImagePath(params.Repository, params.ImageTag)
 }

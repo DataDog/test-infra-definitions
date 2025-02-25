@@ -2,7 +2,6 @@ package kubernetes
 
 import (
 	"embed"
-	_ "embed"
 	"fmt"
 	"net/url"
 	"regexp"

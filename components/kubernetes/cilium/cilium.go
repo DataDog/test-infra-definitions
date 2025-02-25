@@ -8,7 +8,6 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 )
 
@@ -77,8 +76,6 @@ func NewHelmInstallation(e config.Env, params *Params, opts ...pulumi.ResourceOp
 	}
 
 	helmComponent.CiliumHelmReleaseStatus = ciliumBase.Status
-
-	opts = append(opts, utils.PulumiDependsOn(ciliumBase))
 	resourceOutputs := pulumi.Map{
 		"CiliumBaseHelmReleaseStatus": ciliumBase.Status,
 	}

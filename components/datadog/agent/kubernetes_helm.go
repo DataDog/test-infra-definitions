@@ -512,8 +512,8 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 									},
 								},
 							},
-							"tags": map[string]string{
-								"example-instance-tag": "static",
+							"tags": []string{
+								"example-instance-tag:static",
 							},
 						},
 					},

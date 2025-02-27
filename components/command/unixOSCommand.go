@@ -128,9 +128,12 @@ func (fs unixOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src, d
 		return fs.PathJoin(runner.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
 
-	tempCopyFile, err := remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
+	srcAsset := src.ToStringOutput().ApplyT(func(path string) pulumi.AssetOrArchive {
+		return pulumi.NewFileAsset(path)
+	}).(pulumi.AssetOrArchiveOutput)
+	tempCopyFile, err := remote.NewCopyToRemote(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyToRemoteArgs{
 		Connection: runner.Config().connection,
-		LocalPath:  src,
+		Source:     srcAsset,
 		RemotePath: tempRemotePath,
 		Triggers:   pulumi.Array{src, tempRemotePath},
 	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)

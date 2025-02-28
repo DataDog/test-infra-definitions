@@ -134,7 +134,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
-	clusterAgentImagePath := dockerClusterAgentFullImagePath(e, "")
+	clusterAgentImagePath := dockerClusterAgentFullImagePath(e, "", args.FIPS)
 	if args.ClusterAgentFullImagePath != "" {
 		clusterAgentImagePath = args.ClusterAgentFullImagePath
 	}

@@ -94,12 +94,14 @@ func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparam
 
 	var wantedExt string
 	switch h.Host.OS.Descriptor().Flavor {
-	case tifos.AmazonLinux, tifos.CentOS, tifos.RedHat, tifos.AmazonLinuxECS:
+	case tifos.AmazonLinux, tifos.CentOS, tifos.RedHat, tifos.AmazonLinuxECS, tifos.Fedora, tifos.Suse, tifos.RockyLinux:
 		wantedExt = ".rpm"
 	case tifos.Debian, tifos.Ubuntu:
 		wantedExt = ".deb"
 	case tifos.WindowsServer:
 		wantedExt = ".msi"
+	case tifos.MacosOS, tifos.Unknown:
+		fallthrough
 	default:
 		return nil, fmt.Errorf("unsupported flavor for local packages installation: %s", h.Host.OS.Descriptor().Flavor)
 	}

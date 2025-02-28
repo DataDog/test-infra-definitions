@@ -21,7 +21,7 @@ func newLinuxManager(host *remoteComp.Host) agentOSManager {
 	return &agentLinuxManager{targetOS: host.OS}
 }
 
-func (am *agentLinuxManager) directInstallCommand(env config.Env, packagePath string, version agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error) {
+func (am *agentLinuxManager) directInstallCommand(_ config.Env, packagePath string, _ agentparams.PackageVersion, _ []string, opts ...pulumi.ResourceOption) (command.Command, error) {
 	return am.targetOS.PackageManager().Ensure("./"+packagePath, nil, "", opts...)
 }
 

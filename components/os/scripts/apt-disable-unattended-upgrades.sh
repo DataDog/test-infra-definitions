@@ -6,7 +6,7 @@ sudo systemctl disable unattented-upgrades.service || true
 sudo systemctl stop unattented-upgrades.service || true
 
 sudo systemctl disable apt-daily.service || true
-sudo systemctl disable apt-daily.time || truer
+sudo systemctl disable apt-daily.time || true
 sudo systemctl stop apt-daily.service || true
 sudo systemctl stop apt-daily.timer || true
 

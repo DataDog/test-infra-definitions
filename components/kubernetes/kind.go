@@ -32,16 +32,6 @@ var kindClusterConfig string
 //go:embed kind-cilium-cluster.yaml
 var kindCilumClusterFS embed.FS
 
-var kindCiliumClusterTemplate *template.Template
-
-func init() {
-	var err error
-	kindCiliumClusterTemplate, err = template.ParseFS(kindCilumClusterFS, "kind-cilium-cluster.yaml")
-	if err != nil {
-		panic(err)
-	}
-}
-
 // Install Kind on a Linux virtual machine.
 func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return newKindCluster(env, vm, name, kubeVersion, kindClusterConfig, opts...)
@@ -137,8 +127,13 @@ func kindKubeClusterConfigFromCiliumParams(params *cilium.Params) (string, error
 		KubeProxyReplacement: params.HasKubeProxyReplacement(),
 	}
 
+	kindCiliumClusterTemplate, err := template.ParseFS(kindCilumClusterFS, "kind-cilium-cluster.yaml")
+	if err != nil {
+		return "", err
+	}
+
 	var kindCilumClusterConfig strings.Builder
-	if err := kindCiliumClusterTemplate.Execute(&kindCilumClusterConfig, o); err != nil {
+	if err = kindCiliumClusterTemplate.Execute(&kindCilumClusterConfig, o); err != nil {
 		return "", err
 	}
 

@@ -40,6 +40,7 @@ const (
 	DDAgentVersionParamName              = "version"
 	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
+	DDAgentLocalPackage                  = "localPackage"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
@@ -109,6 +110,7 @@ type Env interface {
 	AgentDeploy() bool
 	AgentVersion() string
 	AgentFIPS() bool
+	AgentLocalPackage() string
 	PipelineID() string
 	CommitSHA() string
 	ClusterAgentVersion() string
@@ -271,6 +273,9 @@ func (e *CommonEnvironment) AgentFlavor() string {
 	return e.AgentConfig.Get(DDAgentFlavorParamName)
 }
 
+func (e *CommonEnvironment) AgentLocalPackage() string {
+	return e.AgentConfig.Get(DDAgentLocalPackage)
+}
 func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
 }

@@ -109,8 +109,8 @@ func (fs windowsOSCommand) copyLocalFile(runner *LocalRunner, name string, src, 
 }
 
 func (fs windowsOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
-	srcAsset := src.ToStringOutput().ApplyT(func(s string) pulumi.AssetOrArchive {
-		return pulumi.NewFileAsset(s)
+	srcAsset := src.ToStringOutput().ApplyT(func(path string) pulumi.AssetOrArchive {
+		return pulumi.NewFileAsset(path)
 	}).(pulumi.AssetOrArchiveOutput)
 
 	return remote.NewCopyToRemote(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyToRemoteArgs{

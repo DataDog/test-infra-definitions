@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	"github.com/DataDog/test-infra-definitions/components/os"
@@ -18,6 +19,10 @@ type agentLinuxManager struct {
 
 func newLinuxManager(host *remoteComp.Host) agentOSManager {
 	return &agentLinuxManager{targetOS: host.OS}
+}
+
+func (am *agentLinuxManager) directInstallCommand(env config.Env, packagePath string, version agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error) {
+	return am.targetOS.PackageManager().Ensure("./"+packagePath, nil, "", opts...)
 }
 
 func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, _ []string) (string, error) {

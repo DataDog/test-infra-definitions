@@ -40,9 +40,9 @@ workers:
 //go:embed nvkind-config-template.yml
 var nvkindConfigTemplate string
 
-// NvidiaKindCluster represents a Kubernetes cluster that is GPU-enabled using nvkind.
+// KindCluster represents a Kubernetes cluster that is GPU-enabled using nvkind.
 // Both the cluster and the GPU operator should be depended on for resources that require GPU support.
-type NvidiaKindCluster struct {
+type KindCluster struct {
 	*kubernetes.Cluster
 
 	GPUOperator *helm.Release
@@ -53,7 +53,7 @@ type NvidiaKindCluster struct {
 // clusters require a set of patches that aren't trivial. Instead of writing them all down here, we have
 // decided to use the nvkind tool to create the cluster. This means that we cannot follow the same code path
 // as for regular kind clusters.
-func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*NvidiaKindCluster, error) {
+func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*KindCluster, error) {
 	// Configure the nvidia container toolkit
 	cmd, err := configureContainerToolkit(env, vm, opts...)
 	if err != nil {
@@ -67,7 +67,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 		return nil, fmt.Errorf("failed to create nvkind cluster: %w", err)
 	}
 
-	// Create the provider based on the kubeconfig output we ahve
+	// Create the provider based on the kubeconfig output we have
 	cluster.KubeProvider, err = pulumik8s.NewProvider(env.Ctx(), env.CommonNamer().ResourceName("k8s-provider"), &pulumik8s.ProviderArgs{
 		EnableServerSideApply: pulumi.Bool(true),
 		Kubeconfig:            cluster.KubeConfig,
@@ -83,7 +83,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 		return nil, fmt.Errorf("failed to install GPU operator: %w", err)
 	}
 
-	return &NvidiaKindCluster{
+	return &KindCluster{
 		Cluster:     cluster,
 		GPUOperator: operator,
 	}, nil
@@ -142,6 +142,9 @@ func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVers
 		},
 		opts...,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install kubectl: %w", err)
+	}
 
 	// We need Go to install nvkind as it's a go package
 	golangInstall, err := vm.OS.Runner().Command(
@@ -152,6 +155,9 @@ func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVers
 		},
 		opts...,
 	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to install golang: %w", err)
+	}
 
 	// Install nvkind using go install
 	nvkindInstall, err := vm.OS.Runner().Command(

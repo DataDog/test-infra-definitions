@@ -7,13 +7,14 @@ import (
 	"github.com/Masterminds/semver"
 )
 
-type kindConfig struct {
+// KindConfig contains the kind version and the kind node image to use
+type KindConfig struct {
 	KindVersion      string
 	NodeImageVersion string
 }
 
 // Source: https://github.com/kubernetes-sigs/kind/releases
-var kubeToKindVersion = map[string]kindConfig{
+var kubeToKindVersion = map[string]KindConfig{
 	"1.32": {
 		KindVersion:      "v0.26.0",
 		NodeImageVersion: "v1.32.0@sha256:c48c62eac5da28cdadcf560d1d8616cfa6783b58f0d94cf63ad1bf49600cb027",
@@ -86,7 +87,7 @@ var kubeToKindVersion = map[string]kindConfig{
 }
 
 // GetKindVersionConfig returns the kind version and the kind node image to use based on kubernetes version
-func GetKindVersionConfig(kubeVersion string) (*kindConfig, error) {
+func GetKindVersionConfig(kubeVersion string) (*KindConfig, error) {
 	kubeSemVer, err := semver.NewVersion(kubeVersion)
 	if err != nil {
 		return nil, err

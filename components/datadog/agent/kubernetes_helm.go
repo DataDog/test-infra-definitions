@@ -508,6 +508,9 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 									},
 								},
 							},
+							"tags": []string{
+								"kube_instance_tag:static",
+							},
 						},
 					},
 				})),

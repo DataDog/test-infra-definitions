@@ -134,7 +134,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 	agentImagePath, agentImageTag := utils.ParseImageReference(agentImagePath)
 
-	clusterAgentImagePath := dockerClusterAgentFullImagePath(e, "")
+	clusterAgentImagePath := dockerClusterAgentFullImagePath(e, "", args.FIPS)
 	if args.ClusterAgentFullImagePath != "" {
 		clusterAgentImagePath = args.ClusterAgentFullImagePath
 	}
@@ -447,8 +447,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"instances": []map[string]interface{}{
 						{
 							"collectors": []string{
+								"apiservices",
 								"secrets",
 								"configmaps",
+								"customresourcedefinitions",
 								"nodes",
 								"pods",
 								"services",

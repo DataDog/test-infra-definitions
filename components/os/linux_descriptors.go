@@ -2,8 +2,8 @@ package os
 
 // Implements commonly used descriptors for easier usage
 var (
+	UbuntuDefault = Ubuntu2204
 	Ubuntu2404    = NewDescriptor(Ubuntu, "24.04")
-	UbuntuDefault = Ubuntu2404
 	Ubuntu2204    = NewDescriptor(Ubuntu, "22.04")
 
 	DebianDefault = Debian12

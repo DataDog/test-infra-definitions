@@ -77,6 +77,13 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
+    - go install github.com/DataDog/orchestrion@v1.1.0
+    - orchestrion pin
+    - export DD_CIVISIBILITY_ENABLED=true
+    - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
+    - export DD_ENV=ci
+    - export DD_API_KEY=$(vault kv get -field=api_key kv/k8s/gitlab-runner/test-infra-definitions/dd-token)
+    - export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
   script:
     - |
       if [ ! -f ./dist/main ]; then

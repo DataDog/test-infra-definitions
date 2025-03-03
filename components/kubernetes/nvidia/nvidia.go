@@ -25,11 +25,6 @@ import (
 )
 
 const nvkindPackage = "github.com/NVIDIA/nvkind/cmd/nvkind"
-const nvkindVersion = "eeeb9ca30763177fbe7b4d10fb6b7e21725e2295"
-const nvkindRequiredGoVersion = "1.23"
-const kindNodeImageName = "kindest/node"
-
-const gpuOperatorVersion = "v24.9.2"
 
 const nvkindClusterValues = `
 image: %s
@@ -53,16 +48,16 @@ type KindCluster struct {
 // clusters require a set of patches that aren't trivial. Instead of writing them all down here, we have
 // decided to use the nvkind tool to create the cluster. This means that we cannot follow the same code path
 // as for regular kind clusters.
-func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*KindCluster, error) {
+func NewKindCluster(env config.Env, vm *remote.Host, name string, clusterOpts *KindClusterOptions, opts ...pulumi.ResourceOption) (*KindCluster, error) {
 	// Configure the nvidia container toolkit
-	cmd, err := configureContainerToolkit(env, vm, opts...)
+	cmd, err := configureContainerToolkit(env, vm, clusterOpts, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to prepare NVIDIA runtime: %w", err)
 	}
 	opts = utils.MergeOptions(opts, utils.PulumiDependsOn(cmd))
 
 	// Create the cluster
-	cluster, err := initNvkindCluster(env, vm, name, kubeVersion, opts...)
+	cluster, err := initNvkindCluster(env, vm, name, clusterOpts, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create nvkind cluster: %w", err)
 	}
@@ -78,7 +73,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 	opts = append(opts, pulumi.Provider(cluster.KubeProvider), pulumi.Parent(cluster.KubeProvider), pulumi.DeletedWith(cluster.KubeProvider))
 
 	// Now install the operator
-	operator, err := installGPUOperator(env, opts...)
+	operator, err := installGPUOperator(env, clusterOpts, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to install GPU operator: %w", err)
 	}
@@ -89,7 +84,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 	}, nil
 }
 
-func configureContainerToolkit(env config.Env, vm *remote.Host, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+func configureContainerToolkit(env config.Env, vm *remote.Host, clusterOpts *KindClusterOptions, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	// Ensure we have Docker
 	dockerManager, err := docker.NewManager(env, vm, opts...)
 	if err != nil {
@@ -119,14 +114,14 @@ func configureContainerToolkit(env config.Env, vm *remote.Host, opts ...pulumi.R
 	return vm.OS.Runner().Command(
 		env.CommonNamer().ResourceName("nvidia-ctk-check"),
 		&command.Args{
-			Create: pulumi.String("docker run --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all ubuntu:20.04 nvidia-smi -L"),
+			Create: pulumi.Sprintf("docker run --runtime=nvidia -e NVIDIA_VISIBLE_DEVICES=all %s nvidia-smi -L", clusterOpts.cudaSanityCheckImage),
 		},
 		utils.MergeOptions(opts, utils.PulumiDependsOn(ctkConfigureCmd))...,
 	)
 }
 
 // installNvkind installs the nvkind tool with all the necessary requisites
-func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVersion string, opts ...pulumi.ResourceOption) (command.Command, error) {
+func installNvkind(env config.Env, vm *remote.Host, kindVersion string, clusterOpts *KindClusterOptions, opts ...pulumi.ResourceOption) (command.Command, error) {
 	// kind is a requisite for nvkind, as it calls it under the hood
 	kindInstall, err := kubernetes.InstallKindBinary(env, vm, kindVersion, opts...)
 	if err != nil {
@@ -138,7 +133,7 @@ func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVers
 		env.CommonNamer().ResourceName("kubectl-install"),
 		&command.Args{
 			// use snap installer as it contains multiple versions, rather than APT
-			Create: pulumi.Sprintf("sudo snap install kubectl --classic --channel=%s/stable", kubeVersion),
+			Create: pulumi.Sprintf("sudo snap install kubectl --classic --channel=%s/stable", clusterOpts.kubeVersion),
 		},
 		opts...,
 	)
@@ -151,7 +146,7 @@ func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVers
 		env.CommonNamer().ResourceName("golang-install"),
 		&command.Args{
 			// use snap installer as it contains multiple versions, rather than APT
-			Create: pulumi.Sprintf("sudo snap install --classic go --channel=%s/stable", nvkindRequiredGoVersion),
+			Create: pulumi.Sprintf("sudo snap install --classic go --channel=%s/stable", clusterOpts.hostGoVersion),
 		},
 		opts...,
 	)
@@ -164,7 +159,7 @@ func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVers
 		env.CommonNamer().ResourceName("nvkind-install"),
 		&command.Args{
 			// Ensure it gets installed to the global $PATH to avoid having to copy it or change $PATH
-			Create: pulumi.Sprintf("sudo GOBIN=/usr/local/bin go install %s@%s", nvkindPackage, nvkindVersion),
+			Create: pulumi.Sprintf("sudo GOBIN=/usr/local/bin go install %s@%s", nvkindPackage, clusterOpts.nvkindVersion),
 		},
 		utils.MergeOptions(opts, utils.PulumiDependsOn(golangInstall, kindInstall, kubectlInstall))...,
 	)
@@ -177,16 +172,16 @@ func installNvkind(env config.Env, vm *remote.Host, kindVersion string, kubeVers
 
 // inivtNvkindCluster creates a new Kubernetes cluster using nvkind so that nodes can be GPU-enabled, installing
 // the necessary components and configuring the cluster.
-func initNvkindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*kubernetes.Cluster, error) {
+func initNvkindCluster(env config.Env, vm *remote.Host, name string, clusterOpts *KindClusterOptions, opts ...pulumi.ResourceOption) (*kubernetes.Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *kubernetes.Cluster) error {
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
-		kindVersionConfig, err := kubernetes.GetKindVersionConfig(kubeVersion)
+		kindVersionConfig, err := kubernetes.GetKindVersionConfig(clusterOpts.kubeVersion)
 		if err != nil {
 			return err
 		}
 
 		// Install nvkind to create the cluster
-		nvkindInstall, err := installNvkind(env, vm, kindVersionConfig.KindVersion, kubeVersion, opts...)
+		nvkindInstall, err := installNvkind(env, vm, kindVersionConfig.KindVersion, clusterOpts, opts...)
 		if err != nil {
 			return fmt.Errorf("failed to install nvkind: %w", err)
 		}
@@ -202,7 +197,7 @@ func initNvkindCluster(env config.Env, vm *remote.Host, name string, kubeVersion
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), clusterOpts.kindImage, kindVersionConfig.NodeImageVersion)
 		nvkindValuesPath := "/tmp/nvkind-values.yaml"
 		nvkindValuesContent := pulumi.Sprintf(nvkindClusterValues, nodeImage)
 		nvkindValues, err := vm.OS.FileManager().CopyInlineFile(
@@ -255,7 +250,7 @@ func initNvkindCluster(env config.Env, vm *remote.Host, name string, kubeVersion
 }
 
 // installGPUOperator installs the GPU operator in the cluster
-func installGPUOperator(env config.Env, opts ...pulumi.ResourceOption) (*helm.Release, error) {
+func installGPUOperator(env config.Env, clusterOpts *KindClusterOptions, opts ...pulumi.ResourceOption) (*helm.Release, error) {
 	// Create namespace
 	operatorNs := "gpu-operator"
 	ns, err := corev1.NewNamespace(env.Ctx(), operatorNs, &corev1.NamespaceArgs{
@@ -274,7 +269,7 @@ func installGPUOperator(env config.Env, opts ...pulumi.ResourceOption) (*helm.Re
 		},
 		Chart:            pulumi.String("gpu-operator"),
 		Namespace:        pulumi.String(operatorNs),
-		Version:          pulumi.String(gpuOperatorVersion),
+		Version:          pulumi.String(clusterOpts.gpuOperatorVersion),
 		CreateNamespace:  pulumi.Bool(true),
 		DependencyUpdate: pulumi.BoolPtr(true),
 	}, opts...)

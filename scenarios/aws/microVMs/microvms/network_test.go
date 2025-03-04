@@ -70,6 +70,11 @@ func TestNormalizeMAC(t *testing.T) {
 			mac:  "0:1c:42:a:70",
 			want: "",
 		},
+		{
+			name: "uint only range",
+			mac:  "1:0:5e:0:0:fb",
+			want: "01:00:5e:00:00:fb",
+		},
 	}
 
 	for _, tc := range cases {

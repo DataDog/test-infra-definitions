@@ -76,6 +76,10 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	if env.AgentFIPS() {
 		defaultFlavor = WithFlavor(FIPSFlavor)
 	}
+	fmt.Println("env.AgentLocalPackage(): ", env.AgentLocalPackage())
+	if env.AgentLocalPackage() != "" {
+		defaultFlavor = WithLocalPackage(env.AgentLocalPackage())
+	}
 
 	options = append([]Option{defaultFlavor}, options...)
 	options = append([]Option{WithMajorVersion(env.MajorVersion())}, options...)
@@ -119,6 +123,14 @@ func WithVersion(version string) func(*Params) error {
 func WithFlavor(flavor string) func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Flavor = flavor
+		return nil
+	}
+}
+
+// WithLocalPackage use a local package of the Agent
+func WithLocalPackage(path string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.LocalPath = path
 		return nil
 	}
 }

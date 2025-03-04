@@ -31,6 +31,7 @@ def deploy(
     agent_config_path: Optional[str] = None,
     agent_env: Optional[str] = None,
     helm_config: Optional[str] = None,
+    local_package: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -58,6 +59,7 @@ def deploy(
     flags["ddagent:configPath"] = agent_config_path
     flags["ddagent:extraEnvVars"] = agent_env
     flags["ddagent:helmConfig"] = helm_config
+    flags["ddagent:localPackage"] = local_package
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)

@@ -26,4 +26,5 @@ type PackageVersion struct {
 	Channel    channel
 	PipelineID string
 	Flavor     string // Empty means default (base)
+	LocalPath  string // Local path to the agent packages
 }

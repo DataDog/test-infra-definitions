@@ -297,7 +297,7 @@ func normalizeMAC(mac string) (string, error) {
 
 	var addr net.HardwareAddr = make([]byte, 6)
 	for i, part := range parts {
-		num, err := strconv.ParseInt(part, 16, 8)
+		num, err := strconv.ParseUint(part, 16, 8)
 		if err != nil {
 			return "", fmt.Errorf("normalizeMAC: invalid MAC address %s, cannot parse %s: %w", mac, part, err)
 		}

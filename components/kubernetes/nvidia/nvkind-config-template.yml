@@ -22,6 +22,9 @@ nodes:
   {{- if hasKey $ "image" }}
   image: {{ $.image }}
   {{- end }}
+  extraMounts:
+  - hostPath: /proc
+    containerPath: /host/proc
 {{- range $.workers }}
 - role: worker
   {{- if hasKey $ "image" }}

@@ -3,9 +3,10 @@ package kubernetes
 import (
 	_ "embed"
 	"fmt"
-
 	"regexp"
 	"strings"
+
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -14,8 +15,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/docker"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
-
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 const (
@@ -28,6 +27,10 @@ var kindClusterConfig string
 
 // Install Kind on a Linux virtual machine.
 func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+	return NewKindClusterWithConfig(env, vm, name, kubeVersion, kindClusterConfig, opts...)
+}
+
+func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kubeVersion, kindConfig string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
 		kindClusterName := env.CommonNamer().DisplayName(49) // We can have some issues if the name is longer than 50 characters
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
@@ -57,7 +60,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 
 		clusterConfigFilePath := fmt.Sprintf("/tmp/kind-cluster-%s.yaml", name)
 		clusterConfig, err := vm.OS.FileManager().CopyInlineFile(
-			pulumi.String(kindClusterConfig),
+			pulumi.String(kindConfig),
 			clusterConfigFilePath, opts...)
 		if err != nil {
 			return err
@@ -69,7 +72,7 @@ func NewKindCluster(env config.Env, vm *remote.Host, name string, kubeVersion st
 			&command.Args{
 				Create:   pulumi.Sprintf("kind create cluster --name %s --config %s --image %s --wait %s", kindClusterName, clusterConfigFilePath, nodeImage, kindReadinessWait),
 				Delete:   pulumi.Sprintf("kind delete cluster --name %s", kindClusterName),
-				Triggers: pulumi.Array{pulumi.String(kindClusterConfig)},
+				Triggers: pulumi.Array{pulumi.String(kindConfig)},
 			},
 			utils.MergeOptions(opts, utils.PulumiDependsOn(clusterConfig, kindInstall), pulumi.DeleteBeforeReplace(true))...,
 		)

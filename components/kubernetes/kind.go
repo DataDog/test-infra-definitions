@@ -48,22 +48,12 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 		}
 		opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerManager, curlCommand))
 
-		kindVersionConfig, err := getKindVersionConfig(kubeVersion)
+		kindVersionConfig, err := GetKindVersionConfig(kubeVersion)
 		if err != nil {
 			return err
 		}
 
-		kindArch := vm.OS.Descriptor().Architecture
-		if kindArch == os.AMD64Arch {
-			kindArch = "amd64"
-		}
-		kindInstall, err := runner.Command(
-			commonEnvironment.CommonNamer().ResourceName("kind-install"),
-			&command.Args{
-				Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersionConfig.kindVersion, kindArch),
-			},
-			opts...,
-		)
+		kindInstall, err := InstallKindBinary(env, vm, kindVersionConfig.KindVersion, opts...)
 		if err != nil {
 			return err
 		}
@@ -76,7 +66,7 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{
@@ -119,7 +109,7 @@ func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts .
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
 
-		kindVersionConfig, err := getKindVersionConfig(kubeVersion)
+		kindVersionConfig, err := GetKindVersionConfig(kubeVersion)
 		if err != nil {
 			return err
 		}
@@ -139,7 +129,7 @@ func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts .
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.nodeImageVersion)
+		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{
@@ -169,4 +159,18 @@ func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts .
 
 		return nil
 	}, opts...)
+}
+
+func InstallKindBinary(env config.Env, vm *remote.Host, kindVersion string, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	kindArch := vm.OS.Descriptor().Architecture
+	if kindArch == os.AMD64Arch {
+		kindArch = "amd64"
+	}
+	return vm.OS.Runner().Command(
+		env.CommonNamer().ResourceName("kind-install"),
+		&command.Args{
+			Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, kindArch),
+		},
+		opts...,
+	)
 }

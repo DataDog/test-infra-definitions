@@ -12,7 +12,7 @@ ARG CI_UPLOADER_VERSION=2.30.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 # Always prevent installing dependencies dynamically
-ENV DEVA_NO_DYNAMIC_DEPS=1
+ENV DDA_NO_DYNAMIC_DEPS=1
 
 # Install deps all in one step
 RUN apt-get update -y && \
@@ -125,9 +125,9 @@ RUN --mount=type=secret,id=github_token \
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
-RUN DEVA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/deva.env | awk -F= '/^DEVA_VERSION=/ {print $2}')" && \
-  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DEVA_VERSION}" && \
-  deva -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
+RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
+  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
+  dda -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support

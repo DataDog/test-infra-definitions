@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -14,6 +15,7 @@ import (
 
 // internal interface to be able to provide the different OS-specific commands
 type agentOSManager interface {
+	directInstallCommand(env config.Env, packagePath string, version agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error)
 	getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error)
 	getAgentConfigFolder() string
 	restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error)

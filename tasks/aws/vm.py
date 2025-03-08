@@ -48,6 +48,7 @@ remote_hostname = "aws-vm"
         "add_known_host": doc.add_known_host,
         "agent_flavor": doc.agent_flavor,
         "agent_config_path": doc.agent_config_path,
+        "local_package": doc.local_package,
     }
 )
 def create_vm(
@@ -72,6 +73,7 @@ def create_vm(
     add_known_host: Optional[bool] = True,
     agent_flavor: Optional[str] = None,
     agent_config_path: Optional[str] = None,
+    local_package: Optional[str] = None,
 ) -> None:
     """
     Create a new virtual machine on aws.
@@ -116,6 +118,7 @@ def create_vm(
         deploy_job=deploy_job,
         agent_flavor=agent_flavor,
         agent_config_path=agent_config_path,
+        local_package=local_package,
     )
 
     if interactive:

@@ -37,6 +37,7 @@ def deploy(
     agent_config_path: Optional[str] = None,
     agent_env: Optional[str] = None,
     helm_config: Optional[str] = None,
+    local_package: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -95,6 +96,7 @@ def deploy(
         agent_config_path,
         agent_env,
         helm_config,
+        local_package,
     )
 
 

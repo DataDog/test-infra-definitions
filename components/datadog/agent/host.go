@@ -2,7 +2,10 @@ package agent
 
 import (
 	"fmt"
+	"io/fs"
+	"os"
 	"path"
+	"strings"
 
 	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -12,6 +15,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
+	tifos "github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -69,10 +73,10 @@ func NewHostAgent(e config.Env, host *remoteComp.Host, options ...agentparams.Op
 	return hostInstallComp, nil
 }
 
-func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
+func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
 	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	installCmd, err := h.Host.OS.Runner().Command(
@@ -81,7 +85,77 @@ func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, bas
 			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
 		}, baseOpts...)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	return installCmd, nil
+}
+
+func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
+	var wantedExt string
+	switch h.Host.OS.Descriptor().Flavor {
+	case tifos.AmazonLinux, tifos.CentOS, tifos.RedHat, tifos.AmazonLinuxECS, tifos.Fedora, tifos.Suse, tifos.RockyLinux:
+		wantedExt = ".rpm"
+	case tifos.Debian, tifos.Ubuntu:
+		wantedExt = ".deb"
+	case tifos.WindowsServer:
+		wantedExt = ".msi"
+	case tifos.MacosOS, tifos.Unknown:
+		fallthrough
+	default:
+		return nil, fmt.Errorf("unsupported flavor for local packages installation: %s", h.Host.OS.Descriptor().Flavor)
+	}
+
+	pathInfo, err := os.Stat(params.Version.LocalPath)
+	if err != nil {
+		return nil, err
+	}
+	packagePath := params.Version.LocalPath
+	matches := []string{}
+	if pathInfo.IsDir() {
+		matches, err = fs.Glob(os.DirFS(params.Version.LocalPath), fmt.Sprintf("*%s", wantedExt))
+		if err != nil {
+			return nil, err
+		}
+		if len(matches) == 0 {
+			return nil, fmt.Errorf("no package found in %s with extension %s", params.Version.LocalPath, wantedExt)
+		}
+		if len(matches) > 1 {
+			env.Ctx().Log.Warn(fmt.Sprintf("Found multiple packages to install, using the first one: %s", matches[0]), nil)
+		}
+		packagePath = path.Join(packagePath, matches[0])
+	} else {
+		if strings.HasSuffix(params.Version.LocalPath, wantedExt) {
+			matches = append(matches, path.Base(params.Version.LocalPath))
+		} else {
+			return nil, fmt.Errorf("local package %s does not have the expected extension %s", params.Version.LocalPath, wantedExt)
+		}
+	}
+	packageToInstall := matches[0]
+	env.Ctx().Log.Info(fmt.Sprintf("Found local package to install %s", packageToInstall), nil)
+	uploadCmd, err := h.Host.OS.FileManager().CopyFile("copy-agent-package", pulumi.String(packagePath), pulumi.String("./"), baseOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	installCmd, err := h.manager.directInstallCommand(env, packageToInstall, params.Version, []string{}, utils.MergeOptions(baseOpts, utils.PulumiDependsOn(uploadCmd))...)
+	if err != nil {
+		return nil, err
+	}
+	return installCmd, nil
+}
+func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
+	var installCmd pulumi.Resource
+	var err error
+	if params.Version.LocalPath != "" {
+		installCmd, err = h.directInstallInstallation(env, params, baseOpts...)
+		if err != nil {
+			return err
+		}
+	} else {
+		installCmd, err = h.installScriptInstallation(env, params, baseOpts...)
+		if err != nil {
+			return err
+		}
 	}
 
 	afterInstallOpts := utils.MergeOptions(baseOpts, utils.PulumiDependsOn(installCmd))

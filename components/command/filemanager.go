@@ -68,6 +68,10 @@ func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.String
 	return fm.runner.newCopyFile(name, localPath, remotePath, opts...)
 }
 
+func (fm *FileManager) CopyToRemoteFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return fm.command.NewCopyToRemoteFile(fm.runner, name, localPath, remotePath, opts...)
+}
+
 func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	// Write the content into a temporary file and get the path
 	tempFile, err := os.CreateTemp("", filepath.Base(remotePath))

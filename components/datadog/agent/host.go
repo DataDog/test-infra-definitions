@@ -132,7 +132,7 @@ func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparam
 	}
 	packageToInstall := matches[0]
 	env.Ctx().Log.Info(fmt.Sprintf("Found local package to install %s", packageToInstall), nil)
-	uploadCmd, err := h.Host.OS.FileManager().CopyFile("copy-agent-package", pulumi.String(packagePath), pulumi.String("./"), baseOpts...)
+	uploadCmd, err := h.Host.OS.FileManager().CopyToRemoteFile("copy-agent-package", pulumi.String(packagePath), pulumi.String("./"), baseOpts...)
 	if err != nil {
 		return nil, err
 	}

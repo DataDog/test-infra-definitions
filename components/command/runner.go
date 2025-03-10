@@ -141,6 +141,7 @@ type Runner interface {
 	Command(name string, args RunnerCommandArgs, opts ...pulumi.ResourceOption) (Command, error)
 
 	newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
+	newCopyToRemoteFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error)
 }
 
 var _ Runner = &RemoteRunner{}
@@ -233,6 +234,10 @@ func (r *RemoteRunner) newCopyFile(name string, localPath, remotePath pulumi.Str
 	return r.osCommand.copyRemoteFile(r, name, localPath, remotePath, opts...)
 }
 
+func (r *RemoteRunner) newCopyToRemoteFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return r.osCommand.copyRemoteFileV2(r, name, localPath, remotePath, opts...)
+}
+
 func (r *RemoteRunner) PulumiOptions() []pulumi.ResourceOption {
 	return r.options
 }
@@ -296,6 +301,10 @@ func (r *LocalRunner) Command(name string, args RunnerCommandArgs, opts ...pulum
 
 func (r *LocalRunner) newCopyFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return r.osCommand.copyLocalFile(r, name, localPath, remotePath, opts...)
+}
+
+func (r *LocalRunner) newCopyToRemoteFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return r.newCopyFile(name, localPath, remotePath, opts...)
 }
 
 func (r *LocalRunner) PulumiOptions() []pulumi.ResourceOption {

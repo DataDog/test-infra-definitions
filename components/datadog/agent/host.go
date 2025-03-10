@@ -91,7 +91,6 @@ func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparam
 }
 
 func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
-
 	var wantedExt string
 	switch h.Host.OS.Descriptor().Flavor {
 	case tifos.AmazonLinux, tifos.CentOS, tifos.RedHat, tifos.AmazonLinuxECS, tifos.Fedora, tifos.Suse, tifos.RockyLinux:

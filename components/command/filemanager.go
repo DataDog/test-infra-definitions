@@ -74,12 +74,13 @@ func (fm *FileManager) CopyToRemoteFile(name string, localPath, remotePath pulum
 
 func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath string, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	// Write the content into a temporary file and get the path
-	tempFile, err := os.CreateTemp("", filepath.Base(remotePath))
-	if err != nil {
-		return nil, err
-	}
 
-	_ = fileContent.ToStringOutput().ApplyT(func(content string) (string, error) {
+	localTempPath := fileContent.ToStringOutput().ApplyT(func(content string) (string, error) {
+		tempFile, err := os.CreateTemp("", filepath.Base(remotePath))
+		if err != nil {
+			return "", err
+		}
+
 		if err != nil {
 			return "", err
 		}
@@ -93,7 +94,7 @@ func (fm *FileManager) CopyInlineFile(fileContent pulumi.StringInput, remotePath
 		return tempFilePath, nil
 	}).(pulumi.StringInput)
 
-	return fm.CopyFile(remotePath, pulumi.String(tempFile.Name()), pulumi.String(remotePath), opts...)
+	return fm.CopyFile(remotePath, localTempPath, pulumi.String(remotePath), opts...)
 }
 
 // CopyRelativeFolder copies recursively a relative folder to a remote folder.

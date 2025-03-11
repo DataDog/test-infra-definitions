@@ -68,6 +68,8 @@ func (fm *FileManager) CopyFile(name string, localPath, remotePath pulumi.String
 	return fm.runner.newCopyFile(name, localPath, remotePath, opts...)
 }
 
+// CopyToRemoteFile copies a local file to a remote file. Under the hood it uses remote.CopyToRemote, so localPath will be converted to a File Asset, it breaks if the local path is not known at plan time.
+// Ideally it should replace CopyFile but it is not possible due to the limitation of CopyToRemote for now.
 func (fm *FileManager) CopyToRemoteFile(name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
 	return fm.command.NewCopyToRemoteFile(fm.runner, name, localPath, remotePath, opts...)
 }

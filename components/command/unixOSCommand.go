@@ -80,6 +80,10 @@ func (fs unixOSCommand) NewCopyFile(runner Runner, name string, localPath, remot
 	return runner.newCopyFile(name, localPath, remotePath, opts...)
 }
 
+func (fs unixOSCommand) NewCopyToRemoteFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return runner.newCopyToRemoteFile(name, localPath, remotePath, opts...)
+}
+
 func formatCommandIfNeeded(command pulumi.StringInput, sudo bool, password bool, user string) pulumi.StringInput {
 	if command == nil {
 		return nil
@@ -128,12 +132,9 @@ func (fs unixOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src, d
 		return fs.PathJoin(runner.OsCommand().GetTemporaryDirectory(), filepath.Base(path))
 	}).(pulumi.StringOutput)
 
-	srcAsset := src.ToStringOutput().ApplyT(func(path string) pulumi.AssetOrArchive {
-		return pulumi.NewFileAsset(path)
-	}).(pulumi.AssetOrArchiveOutput)
-	tempCopyFile, err := remote.NewCopyToRemote(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyToRemoteArgs{
+	tempCopyFile, err := remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: runner.Config().connection,
-		Source:     srcAsset,
+		LocalPath:  src,
 		RemotePath: tempRemotePath,
 		Triggers:   pulumi.Array{src, tempRemotePath},
 	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
@@ -148,4 +149,17 @@ func (fs unixOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src, d
 	}
 
 	return moveCommand, err
+}
+
+func (fs unixOSCommand) copyRemoteFileV2(runner *RemoteRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	srcAsset := src.ToStringOutput().ApplyT(func(path string) pulumi.AssetOrArchive {
+		return pulumi.NewFileAsset(path)
+	}).(pulumi.AssetOrArchiveOutput)
+
+	return remote.NewCopyToRemote(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyToRemoteArgs{
+		Connection: runner.Config().connection,
+		Source:     srcAsset,
+		RemotePath: dst,
+		Triggers:   pulumi.Array{src, dst},
+	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
 }

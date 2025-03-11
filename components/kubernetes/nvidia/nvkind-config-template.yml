@@ -44,6 +44,10 @@ nodes:
     - hostPath: /dev/null
       containerPath: /var/run/nvidia-container-devices/{{ $d }}
     {{- end }}
+    # We need to mount the /host/proc directory to access the host's /proc directory inside
+    # of the agent container. Else we just get access to the process namespace of the docker container
+    - hostPath: /proc
+      containerPath: /host/proc
   {{- end }}
 {{- end }}
 containerdConfigPatches:

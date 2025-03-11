@@ -216,7 +216,7 @@ func initNvkindCluster(env config.Env, vm *remote.Host, name string, clusterOpts
 			env.CommonNamer().ResourceName("nvkind-create"),
 			&command.Args{
 				Create:   pulumi.Sprintf("nvkind cluster create --name %s --config-template %s --config-values %s", kindClusterName, nvkindTemplatePath, nvkindValuesPath),
-				Delete:   pulumi.Sprintf("kind cluster delete --name %s", kindClusterName),
+				Delete:   pulumi.Sprintf("kind delete clusters %s || true", kindClusterName),
 				Triggers: pulumi.Array{nvkindValuesContent, pulumi.String(nvkindConfigTemplate)},
 			},
 			opts...)

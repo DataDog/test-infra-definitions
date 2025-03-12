@@ -13,7 +13,7 @@ type InstallAgentParams struct {
 	AgentUserPassword string `installer_arg:"DDAGENTUSER_PASSWORD"`
 	DdURL             string `installer_arg:"DD_URL"`
 	Site              string `installer_arg:"SITE"`
-	InstallPath       string `installer_arg:"APPLICATIONDATADIRECTORY"`
+	InstallPath       string `installer_arg:"PROJECTLOCATION"`
 	InstallLogFile    string `installer_arg:"/log"`
 }
 

@@ -259,6 +259,9 @@ func parseArpDhcpLeases() ([]dhcpLease, error) {
 			fmt.Printf("warning: error parsing arp line: %v\n", err)
 			continue
 		}
+		if lease.mac == "" {
+			continue
+		}
 
 		leases = append(leases, lease)
 	}
@@ -275,6 +278,10 @@ func parseArpLine(line string) (dhcpLease, error) {
 	}
 
 	ip := strings.Trim(parts[1], "()")
+	if parts[3] == "(incomplete)" {
+		return dhcpLease{}, nil
+	}
+
 	mac, err := normalizeMAC(parts[3])
 	if err != nil {
 		return dhcpLease{}, fmt.Errorf("error normalizing MAC address: %w", err)

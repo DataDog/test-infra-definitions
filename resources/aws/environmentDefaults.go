@@ -156,7 +156,7 @@ func agentSandboxDefault() environmentDefault {
 				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-2", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-3", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs"},
 				defaultFakeintakeLBs: []FakeintakeLBConfig{
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106", baseHost: ".lb1.fi.sandbox.dda-testing.com"},
-					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/3df6c797d971c13b", baseHost: ".lb2.fi.sandbox.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/fc96f7de4b914cbd", baseHost: ".lb2.fi.sandbox.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake3/1af15fb150ca4eb4/041c6a59952354c1", baseHost: ".lb3.fi.sandbox.dda-testing.com"},
 				},
 				taskExecutionRole:          "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",

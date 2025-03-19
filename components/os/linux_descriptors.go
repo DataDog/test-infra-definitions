@@ -5,6 +5,7 @@ var (
 	UbuntuDefault = Ubuntu2204
 	Ubuntu2404    = NewDescriptor(Ubuntu, "24.04")
 	Ubuntu2204    = NewDescriptor(Ubuntu, "22.04")
+	Ubuntu2004    = NewDescriptor(Ubuntu, "20.04")
 
 	DebianDefault = Debian12
 	Debian12      = NewDescriptor(Debian, "12")

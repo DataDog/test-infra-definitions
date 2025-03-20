@@ -14,3 +14,7 @@ sudo systemctl disable apt-daily-upgrade.service || true
 sudo systemctl disable apt-daily-upgrade.timer || true
 sudo systemctl stop apt-daily-upgrade.service || true
 sudo systemctl stop apt-daily-upgrade.timer || true
+
+# Kill any remaining unattended-upgrades processes just in case
+sudo killall -9 unattended-upgrades || true
+sudo killall -9 unattended-upgrade-shutdown || true

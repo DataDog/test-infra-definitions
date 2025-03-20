@@ -191,7 +191,7 @@ func (d *Manager) install() (command.Command, error) {
 
 func (d *Manager) installCompose() (command.Command, error) {
 	opts := append(d.opts, pulumi.Parent(d))
-	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl --retry 10 -fsSLo /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
+	installCompose := pulumi.Sprintf("bash -c '(docker-compose version | grep %s) || (curl --retry 10 --retry-all-errors -fsSLo /usr/local/bin/docker-compose https://github.com/docker/compose/releases/download/%s/docker-compose-linux-$(uname -p) && sudo chmod 755 /usr/local/bin/docker-compose)'", composeVersion, composeVersion)
 	return d.Host.OS.Runner().Command(
 		d.namer.ResourceName("install-compose"),
 		&command.Args{

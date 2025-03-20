@@ -222,6 +222,8 @@ func agentQADefault() environmentDefault {
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake/de7956e70776e471/ddfa738893c2dc0e", baseHost: ".lb1.fi.qa.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake2/d59e26c0a29d8567/52a83f7da0f000ee", baseHost: ".lb2.fi.qa.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake3/f90da6a0eaf5638d/647ea5aff700de43", baseHost: ".lb3.fi.qa.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake4/44edf96cc2aafe05/56abdf1d1deb8309", baseHost: ".lb4.fi.qa.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake5/5aa6bcc44f54eb51/6acfe06ec29c5bd0", baseHost: ".lb5.fi.qa.dda-testing.com"},
 				},
 				taskExecutionRole:          "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
 				taskRole:                   "arn:aws:iam::669783387624:role/ecsTaskRole",

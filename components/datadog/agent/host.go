@@ -2,9 +2,9 @@ package agent
 
 import (
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 
 	"github.com/DataDog/datadog-agent/pkg/util/option"
@@ -112,13 +112,43 @@ func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparam
 	packagePath := params.Version.LocalPath
 	matches := []string{}
 	if pathInfo.IsDir() {
-		matches, err = fs.Glob(os.DirFS(params.Version.LocalPath), fmt.Sprintf("*%s", wantedExt))
+		entries, err := os.ReadDir(params.Version.LocalPath)
 		if err != nil {
 			return nil, err
 		}
-		if len(matches) == 0 {
-			return nil, fmt.Errorf("no package found in %s with extension %s", params.Version.LocalPath, wantedExt)
+
+		// First match all packages with the correct extension
+		allPackagesPattern := `.*\.` + strings.TrimPrefix(wantedExt, ".") + `$`
+		fipsPattern := `.*fips.*\.` + strings.TrimPrefix(wantedExt, ".") + `$`
+
+		for _, entry := range entries {
+			if entry.IsDir() {
+				continue
+			}
+			// It would have been easier to use ^(?!.*fips).*\.deb$ with lookahead to match non-FIPS packages, but it is not supported by Go regex.
+			// Instead we get all the packages and filter out the FIPS ones if we're looking for non-FIPS packages.
+			if matched, _ := regexp.MatchString(allPackagesPattern, entry.Name()); matched {
+				// If we're looking for FIPS packages, only include those
+				if params.Version.Flavor == agentparams.FIPSFlavor {
+					if matched, _ := regexp.MatchString(fipsPattern, entry.Name()); matched {
+						matches = append(matches, entry.Name())
+					}
+				} else {
+					// If we're looking for non-FIPS packages, exclude FIPS ones
+					if matched, _ := regexp.MatchString(fipsPattern, entry.Name()); !matched {
+						matches = append(matches, entry.Name())
+					}
+				}
+			}
 		}
+
+		if len(matches) == 0 {
+			if params.Version.Flavor == agentparams.FIPSFlavor {
+				return nil, fmt.Errorf("no FIPS package found in %s matching pattern %s", params.Version.LocalPath, fipsPattern)
+			}
+			return nil, fmt.Errorf("no package found in %s matching pattern %s without matching FIPS pattern %s", params.Version.LocalPath, allPackagesPattern, fipsPattern)
+		}
+
 		if len(matches) > 1 {
 			env.Ctx().Log.Warn(fmt.Sprintf("Found multiple packages to install, using the first one: %s", matches[0]), nil)
 		}

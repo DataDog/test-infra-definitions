@@ -69,6 +69,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		},
 		apiKeySSMParamName,
 		fakeIntake,
+		"",
 		opts...,
 	)
 	if err != nil {

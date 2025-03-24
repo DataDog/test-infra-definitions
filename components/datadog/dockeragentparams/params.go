@@ -3,11 +3,14 @@ package dockeragentparams
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/docker"
+	"github.com/samber/lo"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -37,6 +40,8 @@ type Params struct {
 	ImageTag string
 	// Repository is the docker repository to use.
 	Repository string
+	// JMX is true if the JMX image is needed
+	JMX bool
 	// AgentServiceEnvironment is a map of environment variables to set in the docker compose agent service's environment.
 	AgentServiceEnvironment pulumi.Map
 	// ExtraComposeManifests is a list of extra docker compose manifests to add beside the agent service.
@@ -45,6 +50,8 @@ type Params struct {
 	EnvironmentVariables pulumi.StringMap
 	// PulumiDependsOn is a list of resources to depend on.
 	PulumiDependsOn []pulumi.ResourceOption
+	// FIPS is true if FIPS image is needed.
+	FIPS bool
 }
 
 type Option = func(*Params) error
@@ -55,15 +62,8 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 		EnvironmentVariables:    pulumi.StringMap{},
 	}
 
-	if e.PipelineID() != "" && e.CommitSHA() != "" {
-		exists, err := e.InternalRegistryImageTagExists(fmt.Sprintf("%s/agent", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
-		if err != nil {
-			return nil, err
-		}
-		if !exists {
-			return nil, fmt.Errorf("image %s/agent:%s not found in the internal registry", e.InternalRegistry(), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))
-		}
-		options = append(options, WithFullImagePath(utils.BuildDockerImagePath("669783387624.dkr.ecr.us-east-1.amazonaws.com/agent", fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+	for k, v := range e.AgentExtraEnvVars() {
+		version.AgentServiceEnvironment[k] = pulumi.String(v)
 	}
 
 	return common.ApplyOption(version, options)
@@ -79,6 +79,22 @@ func WithImageTag(agentImageTag string) func(*Params) error {
 func WithRepository(repository string) func(*Params) error {
 	return func(p *Params) error {
 		p.Repository = repository
+		return nil
+	}
+}
+
+// WithJMX makes the image be the one with Java installed
+func WithJMX() func(*Params) error {
+	return func(p *Params) error {
+		p.JMX = true
+		return nil
+	}
+}
+
+// WithFIPS makes the image FIPS enabled
+func WithFIPS() func(*Params) error {
+	return func(p *Params) error {
+		p.FIPS = true
 		return nil
 	}
 }
@@ -104,6 +120,10 @@ func WithEnvironmentVariables(environmentVariables pulumi.StringMap) func(*Param
 	}
 }
 
+func WithTags(tags []string) func(*Params) error {
+	return WithAgentServiceEnvVariable("DD_TAGS", pulumi.String(strings.Join(tags, ",")))
+}
+
 // WithAgentServiceEnvVariable set an environment variable in the docker compose agent service's environment.
 func WithAgentServiceEnvVariable(key string, value pulumi.Input) func(*Params) error {
 	return func(p *Params) error {
@@ -119,31 +139,32 @@ func WithAgentServiceEnvVariable(key string, value pulumi.Input) func(*Params) e
 //
 // This option is overwritten by `WithFakeintake`.
 func WithIntake(url string) func(*Params) error {
-	return withIntakeHostname(pulumi.String(url), false)
+	return withIntakeHostname(pulumi.String(url), pulumi.Bool(false))
 }
 
 // WithFakeintake installs the fake intake and configures the Agent to use it.
 //
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
-	shouldSkipSSLValidation := fakeintake.Scheme == "http"
+	shouldSkipSSLValidation := fakeintake.Scheme.ApplyT(func(scheme string) bool { return scheme == "http" }).(pulumi.BoolInput)
 	return func(p *Params) error {
 		p.PulumiDependsOn = append(p.PulumiDependsOn, utils.PulumiDependsOn(fakeintake))
 		return withIntakeHostname(fakeintake.URL, shouldSkipSSLValidation)(p)
 	}
 }
 
-func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation bool) func(*Params) error {
+func withIntakeHostname(url pulumi.StringInput, shouldSkipSSLValidation pulumi.BoolInput) func(*Params) error {
 	return func(p *Params) error {
 		envVars := pulumi.Map{
-			"DD_DD_URL":                                 pulumi.Sprintf("%s", url),
-			"DD_PROCESS_CONFIG_PROCESS_DD_URL":          pulumi.Sprintf("%s", url),
-			"DD_APM_DD_URL":                             pulumi.Sprintf("%s", url),
-			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldSkipSSLValidation),
-			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldSkipSSLValidation),
-			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
-			"DD_LOGS_CONFIG_LOGS_DD_URL":                pulumi.Sprintf("%s", url),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldSkipSSLValidation),
+			"DD_DD_URL":                                  pulumi.Sprintf("%s", url),
+			"DD_PROCESS_CONFIG_PROCESS_DD_URL":           pulumi.Sprintf("%s", url),
+			"DD_APM_DD_URL":                              pulumi.Sprintf("%s", url),
+			"DD_SKIP_SSL_VALIDATION":                     shouldSkipSSLValidation,
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION":  shouldSkipSSLValidation,
+			"DD_LOGS_CONFIG_FORCE_USE_HTTP":              pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
+			"DD_LOGS_CONFIG_LOGS_DD_URL":                 pulumi.Sprintf("%s", url),
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                 shouldSkipSSLValidation,
+			"DD_SERVICE_DISCOVERY_FORWARDER_LOGS_DD_URL": pulumi.Sprintf("%s", url),
 		}
 		for key, value := range envVars {
 			if err := WithAgentServiceEnvVariable(key, value)(p); err != nil {
@@ -181,15 +202,15 @@ func WithAdditionalFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) e
 	}).(pulumi.StringOutput)
 
 	// fakeintake without LB does not have a valid SSL certificate and accepts http only
-	shouldEnforceHTTPInputAndSkipSSL := fakeintake.Scheme == "http"
+	shouldEnforceHTTPInputAndSkipSSL := fakeintake.Scheme.ApplyT(func(scheme string) bool { return scheme == "http" }).(pulumi.BoolInput)
 
 	return func(p *Params) error {
 		logsEnvVars := pulumi.Map{
 			"DD_ADDITIONAL_ENDPOINTS":                   additionalEndpointsContentInput,
 			"DD_LOGS_CONFIG_ADDITIONAL_ENDPOINTS":       additionalLogsEndpointsContentInput,
-			"DD_SKIP_SSL_VALIDATION":                    pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
-			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
-			"DD_LOGS_CONFIG_LOGS_NO_SSL":                pulumi.Bool(shouldEnforceHTTPInputAndSkipSSL),
+			"DD_SKIP_SSL_VALIDATION":                    shouldEnforceHTTPInputAndSkipSSL,
+			"DD_REMOTE_CONFIGURATION_NO_TLS_VALIDATION": shouldEnforceHTTPInputAndSkipSSL,
+			"DD_LOGS_CONFIG_LOGS_NO_SSL":                shouldEnforceHTTPInputAndSkipSSL,
 			"DD_LOGS_CONFIG_FORCE_USE_HTTP":             pulumi.Bool(true), // Force the use of HTTP/HTTPS rather than switching to TCP
 		}
 		for key, value := range logsEnvVars {
@@ -206,13 +227,18 @@ func WithLogs() func(*Params) error {
 	return WithAgentServiceEnvVariable("DD_LOGS_ENABLED", pulumi.String("true"))
 }
 
-// WithExtraComposeContent adds a cpm
+// WithExtraComposeManifest adds a docker.ComposeInlineManifest
 func WithExtraComposeManifest(name string, content pulumi.StringInput) func(*Params) error {
+	return WithExtraComposeInlineManifest(docker.ComposeInlineManifest{
+		Name:    name,
+		Content: content,
+	})
+}
+
+// WithExtraComposeInlineManifest adds extra docker.ComposeInlineManifest
+func WithExtraComposeInlineManifest(cpms ...docker.ComposeInlineManifest) func(*Params) error {
 	return func(p *Params) error {
-		p.ExtraComposeManifests = append(p.ExtraComposeManifests, docker.ComposeInlineManifest{
-			Name:    name,
-			Content: content,
-		})
+		p.ExtraComposeManifests = lo.Uniq(append(p.ExtraComposeManifests, cpms...))
 		return nil
 	}
 }

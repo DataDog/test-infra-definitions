@@ -238,8 +238,10 @@ def _get_root_path() -> str:
 class RemoteHost:
     def __init__(self, name, stack_outputs: Any):
         remoteHost: Any = stack_outputs[f"dd-Host-{name}"]
-        self.host: str = remoteHost["address"]
+        self.address: str = remoteHost["address"]
         self.user: str = remoteHost["username"]
+        self.password: str | None = "password" in remoteHost and remoteHost["password"] or None
+        self.port: int | None = "port" in remoteHost and remoteHost["port"] or None
 
 
 def show_connection_message(
@@ -247,10 +249,13 @@ def show_connection_message(
 ):
     outputs = get_stack_json_outputs(ctx, full_stack_name)
     remoteHost = RemoteHost(remote_host_name, outputs)
-    host = remoteHost.host
+    address = remoteHost.address
     user = remoteHost.user
 
-    command = f"ssh {user}@{host}"
+    command = f"ssh {user}@{address}"
+
+    if remoteHost.port:
+        command += f" -p {remoteHost.port}"
 
     print(f"\nYou can run the following command to connect to the host `{command}`.\n")
     if copy_to_clipboard:
@@ -258,24 +263,31 @@ def show_connection_message(
         pyperclip.copy(command)
 
 
-def clean_known_hosts(host: str) -> None:
+def add_known_host(ctx: Context, address: str) -> None:
+    """
+    Add the host to the known_hosts file.
+    """
+    # remove the host if it already exists
+    clean_known_hosts(ctx, address)
+    result = ctx.run(f"ssh-keyscan {address}", hide=True, warn=True)
+    if result and result.ok:
+        home = pathlib.Path.home()
+        filtered_hosts = '\n'.join([line for line in result.stdout.splitlines() if not line.startswith("#")])
+        with open(os.path.join(home, ".ssh", "known_hosts"), "a") as f:
+            f.write(filtered_hosts)
+
+
+def clean_known_hosts(ctx: Context, host: str) -> None:
     """
     Remove the host from the known_hosts file.
     """
-    home = os.environ.get("HOME", f"/Users/{getpass.getuser()}")
-    with open(f"{home}/.ssh/known_hosts") as f:
-        lines = f.readlines()
-
-    filtered_lines = [line for line in lines if not line.startswith(host)]
-    with open(f"{home}/.ssh/known_hosts", "w") as f:
-        f.writelines(filtered_lines)
+    ctx.run(f"ssh-keygen -R {host}", hide=True)
 
 
-def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> str:
+def get_host(ctx: Context, remote_host_name: str, scenario_name: str, stack_name: Optional[str] = None) -> RemoteHost:
     """
     Get the host of the VM.
     """
     full_stack_name = get_stack_name(stack_name, scenario_name)
     outputs = get_stack_json_outputs(ctx, full_stack_name)
-    remoteHost = RemoteHost(remote_host_name, outputs)
-    return remoteHost.host
+    return RemoteHost(remote_host_name, outputs)

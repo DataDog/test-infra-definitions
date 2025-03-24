@@ -1,21 +1,30 @@
 package local
 
 import (
-	"github.com/DataDog/test-infra-definitions/common/config"
+	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/namer"
+
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const (
+	localNamerNamespace = "local"
+	// local Infra (local)
+	DDInfraDefaultPublicKeyPath = "local/defaultPublicKeyPath"
+)
+
 type Environment struct {
-	// CommonEnvironment is the common environment for all the components
-	// in the test-infra-definitions.
 	*config.CommonEnvironment
+
+	Namer namer.Namer
 }
 
 var _ config.Env = (*Environment)(nil)
 
-// NewEnvironment creates a new local environment.
 func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
-	env := Environment{}
+	env := Environment{
+		Namer: namer.NewNamer(ctx, localNamerNamespace),
+	}
 
 	commonEnv, err := config.NewCommonEnvironment(ctx)
 	if err != nil {
@@ -26,6 +35,8 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 
 	return env, nil
 }
+
+// Cross Cloud Provider config
 
 // InternalRegistry returns the internal registry.
 func (e *Environment) InternalRegistry() string {
@@ -40,4 +51,14 @@ func (e *Environment) InternalDockerhubMirror() string {
 // InternalRegistryImageTagExists returns true if the image tag exists in the internal registry.
 func (e *Environment) InternalRegistryImageTagExists(_, _ string) (bool, error) {
 	return true, nil
+}
+
+// InternalRegistryFullImagePathExists returns true if the image and tag exists in the internal registry.
+func (e *Environment) InternalRegistryFullImagePathExists(_ string) (bool, error) {
+	return true, nil
+}
+
+// Common
+func (e *Environment) DefaultPublicKeyPath() string {
+	return e.InfraConfig.Get(DDInfraDefaultPublicKeyPath)
 }

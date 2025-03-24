@@ -32,12 +32,12 @@ build-runner-image:
 
 build-pulumi-go-main:
   stage: build
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci/datadog-agent-buildimages/deb_x64:v38375519-53773733
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/deb_x64:v48815877-9bfad02c
   tags: ["arch:amd64"]
   rules:
     - when: on_success
   script:
-    - go build -o dist/main -gcflags="all=-c=6" main.go 
+    - go build -o dist/main -gcflags="all=-c=6" main.go
   artifacts:
     paths:
       - dist/main
@@ -57,9 +57,9 @@ integration-testing:
   rules:
     - when: on_success
   before_script:
-    # Setup GCP credentials. https://www.pulumi.com/registry/packages/gcp/installation-configuration/
-    # The service account is called `agent-e2e-tests`
-    - export GOOGLE_CREDENTIALS=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.gcp_credentials --with-decryption --query "Parameter.Value" --out text)
+    # Setup GCP credentials https://cloud.google.com/docs/authentication/application-default-credentials#GAC
+    - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.gcp_credentials --with-decryption --query "Parameter.Value" --out text > ~/gcp-credentials.json || exit $?
+    - export GOOGLE_APPLICATION_CREDENTIALS=~/gcp-credentials.json
     # Setup Azure credentials. https://www.pulumi.com/registry/packages/azure-native/installation-configuration/#set-configuration-using-pulumi-config
     # The app is called `agent-e2e-tests`
     - export ARM_CLIENT_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.azure_client_id --with-decryption --query "Parameter.Value" --out text)
@@ -77,9 +77,16 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
+    - go install github.com/DataDog/orchestrion@v1.1.0
+    - orchestrion pin
+    - export DD_CIVISIBILITY_ENABLED=true
+    - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
+    - export DD_ENV=ci
+    - export DD_API_KEY=$(vault kv get -field=api_key kv/k8s/gitlab-runner/test-infra-definitions/dd-token)
+    - export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
   script:
     - |
-      if [ ! -f ./dist/main ]; then 
+      if [ ! -f ./dist/main ]; then
         echo "no main binary found, please run 'build-pulumi-go-main' job"
         exit 1
       fi
@@ -104,10 +111,19 @@ bump-version-on-datadog-agent:
   stage: post-release
   image: ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA}
   tags: ["arch:amd64"]
-  needs: ["release-runner-image"]
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+      needs: ["release-runner-image"]
       when: on_success
+    - if: $CI_COMMIT_BRANCH =~ /^mq-working-branch-/
+      when: never
+    - when: manual
+      needs: ["build-runner-image"]
+      allow_failure: true
+      variables:
+        EXTRA_UPDATE_ARGS: "--is-dev-image"
+  variables:
+    EXTRA_UPDATE_ARGS: ""
   before_script:
     - set +x
     - export GITHUB_APP_USER_ID=153269286 # Can be found on https://api.github.com/users/agent-platform-auto-pr[bot]
@@ -126,11 +142,11 @@ bump-version-on-datadog-agent:
     - pushd datadog-agent
     - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
-    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA
-    - git add test/new-e2e/go.mod test/new-e2e/go.sum .gitlab/common/test_infra_version.yml
+    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
+    - inv -e tidy
+    - git add -u
     - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
-    - popd 
+    - popd
     - pip install -r requirements.txt
     - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
-

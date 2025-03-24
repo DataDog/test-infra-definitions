@@ -5,4 +5,4 @@ import (
 )
 
 //go:embed scripts/setup-ssh.ps1
-var SetupSSHScriptContent string
+var WindowsSetupSSHScriptContent string

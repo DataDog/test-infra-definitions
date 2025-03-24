@@ -9,12 +9,16 @@ COMMIT_TITLE_REGEX = re.compile(r"\[test-infra-definitions\]\[automated\] Bump t
 
 @task
 def create_bump_pr_and_close_stale_ones_on_datadog_agent(ctx, branch: str, new_commit_sha: str, old_commit_sha: str):
+    is_dev_branch = False
     if os.getenv("CI") != "true":
         print("This task should only be run in CI")
         return
     if os.getenv("GITHUB_TOKEN") is None:
         print("GITHUB_TOKEN is not set")
         return
+    if os.getenv("CI_COMMIT_BRANCH") != "main":
+        print("Running on a dev branch")
+        is_dev_branch = True
 
     repo = Github(auth=Auth.Token(os.environ["GITHUB_TOKEN"])).get_repo("DataDog/datadog-agent")
     pr_body = f"""
@@ -36,6 +40,10 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
 
     print(f"PR created: {new_pr.html_url}")
 
+    if is_dev_branch:
+        print("Skipping stale PRs check since this is a dev branch")
+        return
+
     print("Looking for stale auto bump PRs...")
 
     issues = repo.get_issues(state="open", labels=["automatic/test-infra-bump"])
@@ -48,6 +56,11 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         if pr_commit_sha_match is None:
             print(f"No commit sha found in PR title: {pr.html_url}")
             continue
+
+        if pr.base.ref != 'main':
+            print(f"PR #{pr.html_url} is not merged to main, skipping")
+            continue
+
         pr_commit_sha = pr_commit_sha_match.group(1)
         res = ctx.run(f'git merge-base --is-ancestor {pr_commit_sha} {new_commit_sha}', warn=True, hide="both")
         if res.exited != 0:

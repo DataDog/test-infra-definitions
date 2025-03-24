@@ -60,6 +60,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600, params.DDDevForwarding)},
 			apiKeyParam.Name,
 			nil,
+			"public.ecr.aws/datadog/agent:latest",
 			opts...,
 		)
 		if err != nil {
@@ -145,8 +146,8 @@ func fargateSvcNoLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Farga
 		return []string{ipAddress, buildFakeIntakeURL("http", ipAddress, "", httpPort)}, nil
 	}).(pulumi.StringArrayOutput)
 
-	fi.Scheme = "http"
-	fi.Port = httpPort
+	fi.Scheme = pulumi.Sprintf("%s", "http")
+	fi.Port = pulumi.Int(httpPort).ToIntOutput()
 	fi.Host = output.Index(pulumi.Int(0))
 	fi.URL = output.Index(pulumi.Int(1))
 
@@ -205,8 +206,8 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 		return err
 	}
 
-	fi.Scheme = "https"
-	fi.Port = httpsPort
+	fi.Scheme = pulumi.Sprintf("%s", "https")
+	fi.Port = pulumi.Int(httpsPort).ToIntOutput()
 	fi.Host = host
 	fi.URL = pulumi.Sprintf("%s://%s", fi.Scheme, host)
 	return nil

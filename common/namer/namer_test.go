@@ -33,13 +33,13 @@ func TestJoinWithMaxLength(t *testing.T) {
 		{
 			maxLength: 19,
 			tokens:    []string{"foo", "bar", "baz", "qux", "quux"},
-			expected:  "fo-bar-ba-qux-quu-1",
+			expected:  "fo-ba-ba-qu-quu-100",
 		},
 		// Transition from truncated format to hash only
 		{
 			maxLength: 11,
 			tokens:    []string{"foo", "bar", "baz", "qux", "quux"},
-			expected:  "f-b-b-q-q-1",
+			expected:  "10087cd4460",
 		},
 		{
 			maxLength: 10,
@@ -137,28 +137,33 @@ func TestJoinWithMaxLength(t *testing.T) {
 		{
 			maxLength: 37,
 			tokens:    []string{"ci-17317712-4670-eks-cluster", "linux-arm", "ng"},
-			expected:  "ci-17317712-4670-eks-c-linux-a-ng-458",
+			expected:  "ci-17317712-4670-ek-linux-a-n-45816b0",
 		},
 		{
 			maxLength: 37,
 			tokens:    []string{"ci-17317712-4670-eks-cluster", "bottlerocket", "ng"},
-			expected:  "ci-17317712-4670-eks--bottleroc-n-a2e",
+			expected:  "ci-17317712-4670-e-bottlero-n-a2e7bad",
 		},
 		// 32 is the maximum size of load-balancer names
 		{
 			maxLength: 32,
 			tokens:    []string{"ci-17317712-4670-eks-cluster", "fakeintake"},
-			expected:  "ci-17317712-4670-eks-fakeint-5f1",
+			expected:  "ci-17317712-4670-e-fakein-5f12e1",
 		},
 		{
 			maxLength: 32,
 			tokens:    []string{"ci-17317712-4670-eks-cluster", "nginx"},
-			expected:  "ci-17317712-4670-eks-cl-ngin-db3",
+			expected:  "ci-17317712-4670-eks-ngin-db3fe1",
 		},
 		{
 			maxLength: 32,
-			tokens:    []string{"ci-17317712-4670-eks-cluster", "redis"},
-			expected:  "ci-17317712-4670-eks-cl-redi-7de",
+			tokens:    []string{"ci-796640089-4670-e2e-otlpingestopnamev2remappingtestsuite-1607f1ae0274c934", "fakeintake"},
+			expected:  "ci-796640089-4670-e2e-fak-bbb43c",
+		},
+		{
+			maxLength: 32,
+			tokens:    []string{"ci-796640089-4670-e2e-otelagentspanreceiverv2testsuite-68e83930ca520340", "fakeintake"},
+			expected:  "ci-796640089-4670-e2e-fak-bbb969",
 		},
 	} {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {

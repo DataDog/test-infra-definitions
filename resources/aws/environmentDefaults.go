@@ -123,7 +123,7 @@ func sandboxDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-46506837", "sg-b9e2ebcb"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -156,8 +156,8 @@ func agentSandboxDefault() environmentDefault {
 				fargateFakeintakeClusterArn: []string{"arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-2", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs-3", "arn:aws:ecs:us-east-1:376334461865:cluster/fakeintake-ecs"},
 				defaultFakeintakeLBs: []FakeintakeLBConfig{
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake/3bbebae6506eb8cb/eea87c947a30f106", baseHost: ".lb1.fi.sandbox.dda-testing.com"},
-					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/3df6c797d971c13b", baseHost: ".lb2.fi.sandbox.dda-testing.com"},
-					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake3/1af15fb150ca4eb4/88e1d12c35e7aba0", baseHost: ".lb3.fi.sandbox.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake2/e514320b44979d84/fc96f7de4b914cbd", baseHost: ".lb2.fi.sandbox.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:376334461865:listener/app/fakeintake3/1af15fb150ca4eb4/041c6a59952354c1", baseHost: ".lb3.fi.sandbox.dda-testing.com"},
 				},
 				taskExecutionRole:          "arn:aws:iam::376334461865:role/ecsTaskExecutionRole",
 				taskRole:                   "arn:aws:iam::376334461865:role/ecsTaskRole",
@@ -187,7 +187,7 @@ func agentSandboxDefault() environmentDefault {
 					},
 				},
 				allowedInboundSecurityGroups: []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -222,6 +222,8 @@ func agentQADefault() environmentDefault {
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake/de7956e70776e471/ddfa738893c2dc0e", baseHost: ".lb1.fi.qa.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake2/d59e26c0a29d8567/52a83f7da0f000ee", baseHost: ".lb2.fi.qa.dda-testing.com"},
 					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake3/f90da6a0eaf5638d/647ea5aff700de43", baseHost: ".lb3.fi.qa.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake4/44edf96cc2aafe05/56abdf1d1deb8309", baseHost: ".lb4.fi.qa.dda-testing.com"},
+					{listenerArn: "arn:aws:elasticloadbalancing:us-east-1:669783387624:listener/app/fakeintake5/5aa6bcc44f54eb51/6acfe06ec29c5bd0", baseHost: ".lb5.fi.qa.dda-testing.com"},
 				},
 				taskExecutionRole:          "arn:aws:iam::669783387624:role/ecsTaskExecutionRole",
 				taskRole:                   "arn:aws:iam::669783387624:role/ecsTaskRole",
@@ -252,7 +254,7 @@ func agentQADefault() environmentDefault {
 				},
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,
@@ -292,7 +294,7 @@ func tsePlaygroundDefault() environmentDefault {
 
 			eks: ddInfraEKS{
 				allowedInboundSecurityGroups: []string{"sg-091a00b0944f04fd2", "sg-0a3ec6b0ee295e826"},
-				fargateNamespace:             "fargate",
+				fargateNamespace:             "",
 				linuxNodeGroup:               true,
 				linuxARMNodeGroup:            true,
 				linuxBottlerocketNodeGroup:   true,

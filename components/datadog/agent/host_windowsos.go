@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/exp/slices"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
@@ -20,7 +21,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/pulumi/pulumi-command/sdk/go/command/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -32,12 +32,55 @@ func newWindowsManager(host *remoteComp.Host) agentOSManager {
 	return &agentWindowsManager{host: host}
 }
 
+func (am *agentWindowsManager) directInstallCommand(env config.Env, packagePath string, version agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error) {
+	cmd := fmt.Sprintf(`
+$ProgressPreference = 'SilentlyContinue';
+$ErrorActionPreference = 'Stop';
+`)
+	installCommandStr, err := am.getInstallPackageCommand(packagePath, version, additionalInstallParameters)
+	if err != nil {
+		return nil, err
+	}
+	cmd += installCommandStr
+	return am.host.OS.Runner().Command("install-agent", &command.Args{Create: pulumi.Sprintf(cmd, env.AgentAPIKey())}, opts...)
+}
+
 func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
 	url, err := getAgentURL(version)
 	if err != nil {
 		return "", err
 	}
 
+	cmd := ""
+	if version.Flavor == agentparams.FIPSFlavor {
+		cmd = fmt.Sprint(`
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy' -Name 'Enabled' -Value 1 -Type DWORD`)
+	}
+
+	localFilename := `C:\datadog-agent.msi`
+	cmd += fmt.Sprintf(`
+$ProgressPreference = 'SilentlyContinue';
+$ErrorActionPreference = 'Stop';
+for ($i=0; $i -lt 3; $i++) {
+	try {
+		(New-Object Net.WebClient).DownloadFile('%s','%s')
+	} catch {
+		if ($i -eq 2) {
+			throw
+		}
+	}
+};
+`, url, localFilename)
+	installPackageCommandStr, err := am.getInstallPackageCommand(localFilename, version, additionalInstallParameters)
+	if err != nil {
+		return "", err
+	}
+	cmd += installPackageCommandStr
+
+	return cmd, nil
+}
+
+func (am *agentWindowsManager) getInstallPackageCommand(filePath string, version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
 	logFilePath := "C:\\install.log"
 	logParamIdx := slices.IndexFunc(additionalInstallParameters, func(s string) bool {
 		return strings.HasPrefix(s, "/log")
@@ -52,24 +95,16 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 		}
 		logFilePath = paramParts[1]
 	}
-
-	localFilename := `C:\datadog-agent.msi`
-	cmd := fmt.Sprintf(`
-$ProgressPreference = 'SilentlyContinue';
-$ErrorActionPreference = 'Stop';
-for ($i=0; $i -lt 3; $i++) {
-	try {
-		(New-Object Net.WebClient).DownloadFile('%s','%s')
-	} catch {
-		if ($i -eq 2) {
-			throw
-		}
+	cmd := ""
+	if version.Flavor == agentparams.FIPSFlavor {
+		cmd = fmt.Sprintf(`
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy' -Name 'Enabled' -Value 1 -Type DWORD`)
 	}
-};
+	cmd += fmt.Sprintf(`
 $exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s %s').ExitCode
 Get-Content %s
-Exit $exitCode 
-`, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "), logFilePath)
+Exit $exitCode
+	`, filePath, strings.Join(additionalInstallParameters, " "), logFilePath)
 	return cmd, nil
 }
 
@@ -77,7 +112,7 @@ func (am *agentWindowsManager) getAgentConfigFolder() string {
 	return `C:\ProgramData\Datadog`
 }
 
-func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (*remote.Command, error) {
+func (am *agentWindowsManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	// TODO: When we introduce Namer in components, we should use it here.
 	cmdName := am.host.Name() + "-" + "restart-agent"
 	// Retry restart several time, workaround to https://datadoghq.atlassian.net/browse/WINA-747
@@ -92,13 +127,13 @@ while ($tries -lt 5) {
  }
  Start-Sleep -Seconds $sleepTime
  $sleepTime = $sleepTime * 2
- $tries++ 
+ $tries++
  }
  Get-Content stderr.txt
  Exit $exitCode
  `
 
-	cmdArgs := command.Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Create: pulumi.String(cmd),
 	}
 
@@ -107,10 +142,13 @@ while ($tries -lt 5) {
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	return am.host.OS.Runner().Command(cmdName, &cmdArgs, opts...)
+	return am.host.OS.Runner().Command(cmdName, cmdArgs, opts...)
 }
 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {
+	if version.Flavor == "" {
+		version.Flavor = agentparams.DefaultFlavor
+	}
 	minor := strings.ReplaceAll(version.Minor, "~", "-")
 	fullVersion := fmt.Sprintf("%v.%v", version.Major, minor)
 
@@ -119,22 +157,20 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	}
 
 	if version.Channel == agentparams.BetaChannel {
-		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json")
+		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json", version.Flavor)
 		if err != nil {
 			return "", err
 		}
 
 		url, err := finder.findVersion(fullVersion)
 		if err != nil {
-			// Try to handle custom build
-			minor = strings.TrimSuffix(minor, "-1")
-			return fmt.Sprintf("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/ddagent-cli-%v.%v.msi", version.Major, minor), nil
+			return "", err
 		}
 
 		return url, nil
 	}
 
-	finder, err := newAgentURLFinder("https://ddagent-windows-stable.s3.amazonaws.com/installers_v2.json")
+	finder, err := newAgentURLFinder("https://ddagent-windows-stable.s3.amazonaws.com/installers_v2.json", version.Flavor)
 	if err != nil {
 		return "", err
 	}
@@ -151,6 +187,28 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 }
 
 func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, error) {
+	url, err := getPipelineArtifact(version.PipelineID, "dd-agent-mstesting", version.Major, func(artifact string) bool {
+		if !strings.Contains(artifact, fmt.Sprintf("%s-%s", version.Flavor, version.Major)) {
+			return false
+		}
+		if !strings.HasSuffix(artifact, ".msi") {
+			return false
+		}
+
+		return true
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return url, nil
+}
+
+// getPipelineArtifact searches a public S3 bucket for a given artifact from a Gitlab pipeline
+// majorVersion = [6,7]
+// predicate = A function taking the artifact name (from github.com/aws/aws-sdk-go-v2/service/s3/types.Object.Key)
+// and that returns true when the artifact matches.
+func getPipelineArtifact(pipelineID, bucket, majorVersion string, predicate func(string) bool) (string, error) {
 	// TODO: Replace context.Background() with a Pulumi context.Context.
 	// dd-agent-mstesting is a public bucket so we can use anonymous credentials
 	config, err := awsConfig.LoadDefaultConfig(context.Background(), awsConfig.WithCredentialsProvider(aws.AnonymousCredentials{}))
@@ -160,19 +218,29 @@ func getAgentURLFromPipelineID(version agentparams.PackageVersion) (string, erro
 
 	s3Client := s3.NewFromConfig(config)
 
+	// Manual URL example: https://s3.amazonaws.com/dd-agent-mstesting?prefix=pipelines/A7/25309493
 	result, err := s3Client.ListObjectsV2(context.Background(), &s3.ListObjectsV2Input{
-		Bucket: aws.String("dd-agent-mstesting"),
-		Prefix: aws.String(fmt.Sprintf("pipelines/A%v/%v", version.Major, version.PipelineID)),
+		Bucket: aws.String(bucket),
+		Prefix: aws.String(fmt.Sprintf("pipelines/A%s/%s", majorVersion, pipelineID)),
 	})
+
 	if err != nil {
 		return "", err
 	}
 
 	if len(result.Contents) <= 0 {
-		return "", fmt.Errorf("no agent MSI found for pipeline %v", version.PipelineID)
+		return "", fmt.Errorf("no artifact found for pipeline %v", pipelineID)
 	}
 
-	return "https://s3.amazonaws.com/dd-agent-mstesting/" + *result.Contents[0].Key, nil
+	for _, obj := range result.Contents {
+		if !predicate(*obj.Key) {
+			continue
+		}
+
+		return fmt.Sprintf("https://s3.amazonaws.com/%s/%s", bucket, *obj.Key), nil
+	}
+
+	return "", fmt.Errorf("no agent artifact found for pipeline %v", pipelineID)
 }
 
 type agentURLFinder struct {
@@ -180,7 +248,7 @@ type agentURLFinder struct {
 	installerURL string
 }
 
-func newAgentURLFinder(installerURL string) (*agentURLFinder, error) {
+func newAgentURLFinder(installerURL string, flavor string) (*agentURLFinder, error) {
 	resp, err := http.Get(installerURL)
 	if err != nil {
 		return nil, err
@@ -195,7 +263,7 @@ func newAgentURLFinder(installerURL string) (*agentURLFinder, error) {
 		return nil, err
 	}
 
-	versions, err := getKey[map[string]interface{}](values, "datadog-agent")
+	versions, err := getKey[map[string]interface{}](values, flavor)
 	if err != nil {
 		return nil, err
 	}

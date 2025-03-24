@@ -130,14 +130,18 @@ func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 	if osInfo.Version == "" {
 		osInfo.Version = os.UbuntuDefault.Version
 	}
+	volumeType := "ebs-gp2"
 
 	paramArch := osInfo.Architecture
 	if paramArch == os.AMD64Arch {
 		// Override required as the architecture is x86_64 but the SSM parameter is amd64
 		paramArch = "amd64"
 	}
+	if osInfo.Version == "24.04" {
+		volumeType = "ebs-gp3"
+	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/ebs-gp2/ami-id", osInfo.Version, paramArch))
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/%s/ami-id", osInfo.Version, paramArch, volumeType))
 }
 
 func resolveDebianAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -159,7 +163,9 @@ func resolveRedHatAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.RedHatDefault.Version
 	}
 
-	return ec2.SearchAMI(e, "309956199498", fmt.Sprintf("RHEL-%s*_HVM-*-2-Hourly2-GP2", osInfo.Version), string(osInfo.Architecture))
+	// Use recommended name query filter by RedHat https://access.redhat.com/solutions/15356
+	redhatOwner := "309956199498"
+	return ec2.SearchAMI(e, redhatOwner, fmt.Sprintf("RHEL-%s*", osInfo.Version), string(osInfo.Architecture))
 }
 
 func resolveSuseAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -179,7 +185,7 @@ func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.FedoraDefault.Version
 	}
 
-	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base-%s-*", osInfo.Version), string(osInfo.Architecture))
+	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base*-%s-*", osInfo.Version), string(osInfo.Architecture))
 }
 
 func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

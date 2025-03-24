@@ -20,7 +20,7 @@ func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, 
 	}
 
 	// Now we can create the runner
-	runner, err := command.NewRunner(e, command.RunnerArgs{
+	runner, err := command.NewRemoteRunner(e, command.RemoteRunnerArgs{
 		ParentResource: host,
 		ConnectionName: host.Name(),
 		Connection:     conn,
@@ -39,6 +39,13 @@ func InitHost(e config.Env, conn remote.ConnectionOutput, osDesc os.Descriptor, 
 	host.OSFlavor = pulumi.Int(osDesc.Flavor).ToIntOutput()
 	host.OSVersion = pulumi.String(osDesc.Version).ToStringOutput()
 	host.Password = password
+	host.Port = conn.Port().ApplyT(func(p *float64) int {
+		if p == nil {
+			// default port to 22
+			return 22
+		}
+		return int(*p)
+	}).(pulumi.IntOutput)
 
 	// Set the OS for internal usage
 	host.OS = os.NewOS(e, osDesc, runner)

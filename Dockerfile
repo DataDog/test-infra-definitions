@@ -3,14 +3,16 @@
 
 FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.22.8
-ENV GO_SHA=5f467d29fc67c7ae6468cb6ad5b047a274bae8180cac5e0b7ddbfeba3e47e18f
+ENV GO_VERSION=1.23.6
+ENV GO_SHA=9379441ea310de000f33a4dc767bd966e72ab2826270e038e78b2c53c2e7802d
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
 ARG CI_UPLOADER_VERSION=2.30.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
+# Always prevent installing dependencies dynamically
+ENV DDA_NO_DYNAMIC_DEPS=1
 
 # Install deps all in one step
 RUN apt-get update -y && \
@@ -23,6 +25,7 @@ RUN apt-get update -y && \
   gnupg \
   software-properties-common \
   wget \
+  parallel \
   unzip && \
   # Get all of the signatures we need all at once.
   curl --retry 10 -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key    | apt-key add - && \
@@ -113,15 +116,22 @@ RUN --mount=type=secret,id=github_token \
   cd /tmp/test-infra && \
   go mod download && \
   export PULUMI_CONFIG_PASSPHRASE=dummy && \
-  pulumi --logflow --logtostderr -v 5 --non-interactive plugin install && \
+  pulumi --non-interactive plugin install && \
   pulumi --non-interactive plugin ls && \
+  pulumi --non-interactive plugin ls --json | jq -r '.[].name' | awk '{count[$1]++} END {for (plugin in count) if (count[plugin] > 1) print "Several versions of\t" plugin "\tplugin detected"}' | tee /tmp/plugin_list.txt && \
+  ! [ -s /tmp/plugin_list.txt ] && \
+  rm /tmp/plugin_list.txt && \
   cd /
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
-RUN pip3 install -r https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/requirements/e2e.txt & \
-  pip3 install -r /tmp/test-infra/requirements.txt & \
+RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
+  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
+  dda -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
   go install gotest.tools/gotestsum@latest
+
+# Install Orchestrion for native Go Test Visibility support
+RUN go install github.com/DataDog/orchestrion@v1.0.1
 
 RUN rm -rf /tmp/test-infra
 

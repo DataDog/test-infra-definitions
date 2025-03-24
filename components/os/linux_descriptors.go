@@ -3,7 +3,9 @@ package os
 // Implements commonly used descriptors for easier usage
 var (
 	UbuntuDefault = Ubuntu2204
+	Ubuntu2404    = NewDescriptor(Ubuntu, "24.04")
 	Ubuntu2204    = NewDescriptor(Ubuntu, "22.04")
+	Ubuntu2004    = NewDescriptor(Ubuntu, "20.04")
 
 	DebianDefault = Debian12
 	Debian12      = NewDescriptor(Debian, "12")
@@ -18,13 +20,13 @@ var (
 	AmazonLinuxECS2       = NewDescriptor(AmazonLinuxECS, "2")
 
 	RedHatDefault = RedHat9
-	RedHat9       = NewDescriptor(RedHat, "9.1")
+	RedHat9       = NewDescriptor(RedHat, "9")
 
 	SuseDefault = Suse15
 	Suse15      = NewDescriptor(Suse, "15-sp4")
 
-	FedoraDefault = Fedora37
-	Fedora37      = NewDescriptor(Fedora, "37")
+	FedoraDefault = Fedora40
+	Fedora40      = NewDescriptor(Fedora, "40")
 
 	CentOSDefault = CentOS7
 	CentOS7       = NewDescriptor(CentOS, "7")

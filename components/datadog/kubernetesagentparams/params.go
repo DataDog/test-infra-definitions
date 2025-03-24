@@ -1,9 +1,12 @@
 package kubernetesagentparams
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	"gopkg.in/yaml.v3"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
@@ -46,13 +49,17 @@ type Params struct {
 	// DisableLogsContainerCollectAll is a flag to disable collection of logs from all containers by default.
 	DisableLogsContainerCollectAll bool
 	// DualShipping is a flag to enable dual shipping.
-	DisableDualShipping bool
+	DualShipping bool
 	// OTelAgent is a flag to deploy the OTel agent.
 	OTelAgent bool
 	// OTelConfig is the OTel configuration to use for the agent installation.
 	OTelConfig string
 	// GKEAutopilot is a flag to deploy the agent with only GKE Autopilot compatible values.
 	GKEAutopilot bool
+	// FIPS is a flag to deploy the agent with FIPS agent image.
+	FIPS bool
+	// JMX is a flag to deploy the agent with JMX agent image.
+	JMX bool
 }
 
 type Option = func(*Params) error
@@ -62,6 +69,23 @@ func NewParams(options ...Option) (*Params, error) {
 		Namespace: defaultAgentNamespace,
 	}
 	return common.ApplyOption(version, options)
+}
+
+// WithClusterName sets the name of the cluster. Should only be used if you know what you are doing. Must no be necessary in most cases.
+// Mainly used to set the clusterName when the agent is installed on Kind clusters. Because the agent is not able to detect the cluster name.
+// It takes a pulumi.StringOutput as input to be able to use the pulumi output of the cluster name.
+func WithClusterName(clusterName pulumi.StringOutput) func(*Params) error {
+	return func(p *Params) error {
+		values := pulumi.Sprintf(`
+datadog:
+  clusterName: %s
+`, clusterName)
+
+		p.HelmValues = append(p.HelmValues, values.ApplyT(func(clusterName string) (pulumi.Asset, error) {
+			return pulumi.NewStringAsset(clusterName), nil
+		}).(pulumi.AssetOutput))
+		return nil
+	}
 }
 
 // WithAgentFullImagePath sets the full path of the agent image to use.
@@ -130,11 +154,11 @@ func WithoutLogsContainerCollectAll() func(*Params) error {
 	}
 }
 
-// WithoutDualShipping disables dual shipping. By default the agent is configured to send data to ddev and to the fakeintake.
-// With that flag data will be sent only to the fakeintake.
-func WithoutDualShipping() func(*Params) error {
+// DualShipping enables dual shipping. By default the agent is configured to send data only to the fakeintake and not dddev (the fakeintake will forward payloads to dddev).
+// With that flag data will be sent to the fakeintake and also to dddev.
+func WithDualShipping() func(*Params) error {
 	return func(p *Params) error {
-		p.DisableDualShipping = true
+		p.DualShipping = true
 		return nil
 	}
 }
@@ -160,9 +184,41 @@ func WithOTelConfig(config string) func(*Params) error {
 	}
 }
 
+func WithFIPS() func(*Params) error {
+	return func(p *Params) error {
+		p.FIPS = true
+		return nil
+	}
+}
+
+func WithJMX() func(*Params) error {
+	return func(p *Params) error {
+		p.JMX = true
+		return nil
+	}
+}
+
 func WithGKEAutopilot() func(*Params) error {
 	return func(p *Params) error {
 		p.GKEAutopilot = true
 		return nil
+	}
+}
+
+func WithTags(tags []string) func(*Params) error {
+	return func(p *Params) error {
+		tagsYAML, err := yaml.Marshal(tags)
+		if err != nil {
+			return err
+		}
+		tagsHelmValues := fmt.Sprintf(`
+datadog:
+  tags:
+%s
+  dogstatsd:
+    tags:
+%s
+`, utils.IndentMultilineString(string(tagsYAML), 4), utils.IndentMultilineString(string(tagsYAML), 6))
+		return WithHelmValues(tagsHelmValues)(p)
 	}
 }

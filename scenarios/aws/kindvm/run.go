@@ -1,8 +1,6 @@
 package kindvm
 
 import (
-	"fmt"
-
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
@@ -17,9 +15,11 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/operator"
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
 
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
@@ -51,7 +51,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, awsEnv.CommonNamer().ResourceName("kind"), kindClusterName, awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -69,7 +69,11 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	var dependsOnCrd pulumi.ResourceOption
+	vpaCrd, err := vpa.DeployCRD(&awsEnv, kindKubeProvider)
+	if err != nil {
+		return err
+	}
+	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.AgentUseFakeintake() {
@@ -78,6 +82,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 		if awsEnv.InfraShouldDeployFakeintakeWithLB() {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 		}
 
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
@@ -89,28 +97,34 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
+	var dependsOnDDAgent pulumi.ResourceOption
+
 	// Deploy the agent
 	if awsEnv.AgentDeploy() && !awsEnv.AgentDeployWithOperator() {
-		customValues := fmt.Sprintf(`
+		customValues := `
 datadog:
   kubelet:
     tlsVerify: false
-  clusterName: "%s"
 agents:
   useHostNetwork: true
-`, kindClusterName)
+`
 
 		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
 		k8sAgentOptions = append(
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog"),
 			kubernetesagentparams.WithHelmValues(customValues),
+			kubernetesagentparams.WithClusterName(kindCluster.ClusterName),
 		)
 		if fakeIntake != nil {
 			k8sAgentOptions = append(
 				k8sAgentOptions,
 				kubernetesagentparams.WithFakeintake(fakeIntake),
 			)
+		}
+
+		if awsEnv.AgentUseDualShipping() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
@@ -123,7 +137,7 @@ agents:
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(k8sAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy the operator
@@ -134,11 +148,31 @@ agents:
 			operatorparams.WithNamespace("datadog"),
 		)
 
+		operatorComp, err := operator.NewOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator"), kindKubeProvider, operatorOpts...)
+		if err != nil {
+			return err
+		}
+
+		if err := operatorComp.Export(awsEnv.Ctx(), nil); err != nil {
+			return err
+		}
+
+		ddaConfig := agentwithoperatorparams.DDAConfig{
+			Name: "dda-with-operator",
+			YamlConfig: `
+apiVersion: datadoghq.com/v2alpha1
+kind: DatadogAgent
+spec:
+  global:
+    kubelet:
+      tlsVerify: false
+`}
+
 		ddaOptions := make([]agentwithoperatorparams.Option, 0)
 		ddaOptions = append(
 			ddaOptions,
 			agentwithoperatorparams.WithNamespace("datadog"),
-			agentwithoperatorparams.WithTLSKubeletVerify(false),
+			agentwithoperatorparams.WithDDAConfig(ddaConfig),
 		)
 
 		if fakeIntake != nil {
@@ -148,15 +182,15 @@ agents:
 			)
 		}
 
-		operatorAgentComponent, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("dd-operator-agent"), kindKubeProvider, operatorOpts, ddaOptions...)
+		k8sAgentWithOperatorComp, err := agent.NewDDAWithOperator(&awsEnv, awsEnv.CommonNamer().ResourceName("datadog-agent-with-operator"), kindKubeProvider, ddaOptions...)
 
 		if err != nil {
 			return err
 		}
 
-		dependsOnCrd = utils.PulumiDependsOn(operatorAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentWithOperatorComp)
 
-		if err := operatorAgentComponent.Export(awsEnv.Ctx(), nil); err != nil {
+		if err := k8sAgentWithOperatorComp.Export(awsEnv.Ctx(), nil); err != nil {
 			return err
 		}
 
@@ -171,11 +205,11 @@ agents:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnCrd); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnCrd); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
@@ -184,13 +218,15 @@ agents:
 		}
 
 		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket"); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 
 		// dogstatsd clients that report to the dogstatsd standalone deployment
-		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket); err != nil {
-			return err
+		if awsEnv.DogstatsdDeploy() {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
+				return err
+			}
 		}
 
 		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel
@@ -202,7 +238,7 @@ agents:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

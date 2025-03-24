@@ -38,7 +38,9 @@ const (
 	DDAgentDeployParamName               = "deploy"
 	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
 	DDAgentVersionParamName              = "version"
+	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
+	DDAgentLocalPackage                  = "localPackage"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
@@ -51,9 +53,14 @@ const (
 	DDAgentAPIKeyParamName               = "apiKey"
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
+	DDAgentDualShipping                  = "dualshipping"
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
+	DDAgentJMX                           = "jmx"
+	DDAgentFIPS                          = "fips"
+	DDAgentConfigPathParamName           = "configPath"
+	DDAgentHelmConfig                    = "helmConfig"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -102,6 +109,8 @@ type Env interface {
 
 	AgentDeploy() bool
 	AgentVersion() string
+	AgentFIPS() bool
+	AgentLocalPackage() string
 	PipelineID() string
 	CommitSHA() string
 	ClusterAgentVersion() string
@@ -121,6 +130,7 @@ type Env interface {
 	DogstatsdFullImagePath() string
 	UpdaterDeploy() bool
 	MajorVersion() string
+	AgentHelmConfig() string
 
 	GetBoolWithDefault(config *sdkconfig.Config, paramName string, defaultValue bool) bool
 	GetStringListWithDefault(config *sdkconfig.Config, paramName string, defaultValue []string) []string
@@ -131,9 +141,14 @@ type Env interface {
 	CloudEnv
 }
 type CloudEnv interface {
+	// InternalDockerhubMirror returns the internal Dockerhub mirror.
 	InternalDockerhubMirror() string
+	// InternalRegistry returns the internal registry.
 	InternalRegistry() string
+	// InternalRegistryImageTagExists returns true if the image tag exists in the internal registry.
 	InternalRegistryImageTagExists(image, tag string) (bool, error)
+	// InternalRegistryFullImagePathExists returns true if the image and tag exists in the internal registry.
+	InternalRegistryFullImagePathExists(fullImagePath string) (bool, error)
 }
 
 func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
@@ -254,6 +269,13 @@ func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
 
+func (e *CommonEnvironment) AgentFlavor() string {
+	return e.AgentConfig.Get(DDAgentFlavorParamName)
+}
+
+func (e *CommonEnvironment) AgentLocalPackage() string {
+	return e.AgentConfig.Get(DDAgentLocalPackage)
+}
 func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
 }
@@ -304,6 +326,10 @@ func (e *CommonEnvironment) AgentAPPKey() pulumi.StringOutput {
 
 func (e *CommonEnvironment) AgentUseFakeintake() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFakeintake, true)
+}
+
+func (e *CommonEnvironment) AgentUseDualShipping() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDualShipping, false)
 }
 
 func (e *CommonEnvironment) Site() string {
@@ -419,4 +445,31 @@ func (e *CommonEnvironment) GetIntWithDefault(config *sdkconfig.Config, paramNam
 	}
 
 	return defaultValue
+}
+
+func (e *CommonEnvironment) AgentFIPS() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentFIPS, false)
+}
+
+func (e *CommonEnvironment) AgentJMX() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentJMX, false)
+}
+
+func (e *CommonEnvironment) AgentConfigPath() string {
+	return e.AgentConfig.Get(DDAgentConfigPathParamName)
+}
+
+func (e *CommonEnvironment) CustomAgentConfig() (string, error) {
+	configPath := e.AgentConfigPath()
+	if configPath == "" {
+		return "", fmt.Errorf("agent config path is empty")
+	}
+
+	config, err := os.ReadFile(configPath)
+
+	return string(config), err
+}
+
+func (e *CommonEnvironment) AgentHelmConfig() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentHelmConfig, "")
 }

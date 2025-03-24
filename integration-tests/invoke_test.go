@@ -80,11 +80,11 @@ func TestInvokes(t *testing.T) {
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 
-	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName := fmt.Sprintf("az-invoke-vm-%s", os.Getenv("CI_JOB_ID"))
 	stackName = sanitizeStackName(stackName)
 
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	createCmd := exec.Command("invoke", "az.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--no-add-known-host")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
@@ -99,11 +99,11 @@ func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory stri
 func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 
-	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName := fmt.Sprintf("aws-invoke-vm-%s", os.Getenv("CI_JOB_ID"))
 	stackName = sanitizeStackName(stackName)
 
 	t.Log("creating vm")
-	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake")
+	createCmd := exec.Command("invoke", "aws.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--no-add-known-host")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
@@ -117,7 +117,7 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 
 func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
-	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_PIPELINE_ID"))
+	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_JOB_ID"))
 	stackName = sanitizeStackName(stackName)
 	t.Log("creating vm with docker")
 	var stdOut, stdErr bytes.Buffer
@@ -145,7 +145,7 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	t.Helper()
 	stackParts := []string{"invoke", "kind"}
 	if os.Getenv("CI") == "true" {
-		stackParts = append(stackParts, os.Getenv("CI_PIPELINE_ID"))
+		stackParts = append(stackParts, os.Getenv("CI_JOB_ID"))
 	}
 	stackName := strings.Join(stackParts, "-")
 	stackName = sanitizeStackName(stackName)
@@ -166,7 +166,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory
 	t.Helper()
 	stackName := "invoke-kind-with-operator"
 	if os.Getenv("CI") == "true" {
-		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_PIPELINE_ID"))
+		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_JOB_ID"))
 	}
 	stackName = sanitizeStackName(stackName)
 	t.Log("creating kind cluster with operator")

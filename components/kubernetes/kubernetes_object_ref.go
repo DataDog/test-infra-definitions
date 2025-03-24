@@ -1,4 +1,4 @@
-package agent
+package kubernetes
 
 import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -7,7 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components"
 )
 
-type KubernetesObjRefOutput struct {
+type KubernetesObjRefOutput struct { // nolint:revive, We want to keep the name as <Component>ObjRefOutput
 	components.JSONImporter
 
 	Namespace      string            `json:"namespace"`
@@ -18,7 +18,7 @@ type KubernetesObjRefOutput struct {
 	LabelSelectors map[string]string `json:"labelSelectors"`
 }
 
-type KubernetesObjectRef struct {
+type KubernetesObjectRef struct { // nolint:revive, We want to keep the name as <Component>ObjectRef
 	pulumi.ResourceState
 	components.Component
 

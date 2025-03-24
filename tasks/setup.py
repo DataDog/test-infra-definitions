@@ -723,7 +723,7 @@ def _aws_import_keypair(
     )
     keypair_name = str(keypair_opts["keypair_name"])
     private_key_path = str(keypair_opts["private_key_path"])
-    public_key_path = keypair_opts["public_key_path"]
+    public_key_path = str(keypair_opts["public_key_path"])
 
     def _get_aws_cmd(cmd):
         return get_aws_cmd(cmd, use_aws_vault=use_aws_vault, aws_account=aws_account_name)

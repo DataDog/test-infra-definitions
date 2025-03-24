@@ -25,6 +25,8 @@ type vmArgs struct {
 	userData        string
 	instanceType    string
 	instanceProfile string
+
+	httpTokensRequired bool
 }
 
 type VMOption = func(*vmArgs) error
@@ -35,10 +37,9 @@ func buildArgs(options ...VMOption) (*vmArgs, error) {
 }
 
 // WithOS sets the OS
-// Architecture defaults to os.AMD64Arch
 // Version defaults to latest
 func WithOS(osDesc os.Descriptor) VMOption {
-	return WithOSArch(osDesc, os.AMD64Arch)
+	return WithOSArch(osDesc, osDesc.Architecture)
 }
 
 // WithArch set the architecture and the operating system.
@@ -78,6 +79,13 @@ func WithUserData(userData string) VMOption {
 func WithInstanceProfile(instanceProfile string) VMOption {
 	return func(p *vmArgs) error {
 		p.instanceProfile = instanceProfile
+		return nil
+	}
+}
+
+func WithIMDSv1Disable() VMOption {
+	return func(p *vmArgs) error {
+		p.httpTokensRequired = true
 		return nil
 	}
 }

@@ -2,10 +2,7 @@ package agent
 
 import (
 	"fmt"
-	"io/fs"
-	"os"
 	"path"
-	"strings"
 
 	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -91,7 +88,7 @@ func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparam
 
 func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
 
-	packagePath, err := utils.GetPackagePath(params.Version.LocalPath, h.Host.OS.Descriptor().Flavor, params.Version.Flavor)
+	packagePath, err := GetPackagePath(params.Version.LocalPath, h.Host.OS.Descriptor().Flavor, params.Version.Flavor)
 	if err != nil {
 		return nil, err
 	}

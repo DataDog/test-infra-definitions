@@ -15,9 +15,9 @@ const (
 	defaultAgentImageTag         = "latest"
 	defaultAgent6ImageTag        = "6"
 	defaultDevAgentImageRepo     = "datadog/agent-dev" // Used as default repository for images that are not stable and released yet, should not be used in the CI
-	defaultOTAgentImageTag       = "nightly-ot-beta-main"
+	defaultOTAgentImageTag       = "nightly-full-main-jmx"
 	jmxSuffix                    = "-jmx"
-	otelSuffix                   = "-7-ot-beta"
+	otelSuffix                   = "-7-full"
 	fipsSuffix                   = "-fips"
 )
 
@@ -40,7 +40,7 @@ func dockerAgentFullImagePath(e config.Env, repositoryPath, imageTag string, ote
 		case useOtel && useFIPS:
 			panic("Unsupported: no image with FIPS and OTel exists yet")
 		case useOtel && useJMX:
-			panic("Unsupported: no image with JMX and OTel exists yet")
+			tag += otelSuffix
 		case useFIPS && useJMX:
 			tag += fipsSuffix + jmxSuffix
 		case useFIPS:

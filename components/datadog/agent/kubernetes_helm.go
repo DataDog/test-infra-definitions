@@ -64,6 +64,8 @@ type HelmComponent struct {
 
 	WindowsHelmReleaseName   pulumi.StringPtrOutput
 	WindowsHelmReleaseStatus kubeHelm.ReleaseStatusOutput
+
+	ClusterAgentToken pulumi.StringOutput
 }
 
 func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
@@ -89,6 +91,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if err != nil {
 		return nil, err
 	}
+
+	helmComponent.ClusterAgentToken = randomClusterAgentToken.Result
 
 	// Create namespace if necessary
 	ns, err := corev1.NewNamespace(e.Ctx(), args.Namespace, &corev1.NamespaceArgs{
@@ -419,6 +423,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"useDatadogMetrics": pulumi.Bool(true),
 			},
 			"token": clusterAgentToken,
+			"admissionController": pulumi.Map{
+				"agentSidecarInjection": pulumi.Map{
+					"enabled":  pulumi.Bool(true),
+					"provider": pulumi.String("fargate"),
+				},
+			},
 			"resources": pulumi.StringMapMap{
 				"requests": pulumi.StringMap{
 					"cpu":    pulumi.String("50m"),

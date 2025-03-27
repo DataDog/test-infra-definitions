@@ -406,6 +406,21 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					},
 				},
 			},
+			// "useConfigMap" and "customAgentConfig" are used to configure the
+			// agent to get check configurations from etcd. "config_providers"
+			// cannot be configured via ENV, so we need to use a ConfigMap.
+			"useConfigMap": pulumi.Bool(true),
+			"customAgentConfig": pulumi.Map{
+				"config_providers": pulumi.Array{
+					pulumi.Map{
+						"name":         pulumi.String("etcd"),
+						"polling":      pulumi.Bool(true),
+						"template_dir": pulumi.String("/datadog/check_configs"),
+						// This relies on a service exposed by the etcd app
+						"template_url": pulumi.String("http://etcd.etcd.svc.cluster.local:2379"),
+					},
+				},
+			},
 		},
 		"clusterAgent": pulumi.Map{
 			"enabled": pulumi.Bool(true),

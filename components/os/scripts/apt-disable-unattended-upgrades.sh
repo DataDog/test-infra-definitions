@@ -27,4 +27,4 @@ done
 # Kill any unattended-upgrades processes that didn't terminate
 pgrep unattended-upgrades | xargs -r -n 1 -t kill -KILL || true
 
-apt-get -y purge unattended-upgrades
+apt-get -y purge unattended-upgrades || true

@@ -146,7 +146,7 @@ providers:
 			return err
 		}
 
-		if _, err := etcd.K8sAppDefinition(&env, aksCluster.KubeProvider, "etcd"); err != nil {
+		if _, err := etcd.K8sAppDefinition(&env, aksCluster.KubeProvider); err != nil {
 			return err
 		}
 	}

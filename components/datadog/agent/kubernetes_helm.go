@@ -9,6 +9,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/etcd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
@@ -417,7 +418,9 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 						"polling":      pulumi.Bool(true),
 						"template_dir": pulumi.String("/datadog/check_configs"),
 						// This relies on a service exposed by the etcd app
-						"template_url": pulumi.String("http://etcd.etcd.svc.cluster.local:2379"),
+						"template_url": pulumi.String(
+							fmt.Sprintf("http://%s.%s.svc.cluster.local:2379", etcd.ServiceName, etcd.Namespace),
+						),
 					},
 				},
 			},

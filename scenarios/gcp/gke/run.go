@@ -107,7 +107,7 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		if _, err := etcd.K8sAppDefinition(&env, cluster.KubeProvider, "etcd"); err != nil {
+		if _, err := etcd.K8sAppDefinition(&env, cluster.KubeProvider); err != nil {
 			return err
 		}
 

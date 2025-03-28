@@ -243,7 +243,7 @@ spec:
 			return err
 		}
 
-		if _, err := etcd.K8sAppDefinition(&awsEnv, kindKubeProvider, "etcd"); err != nil {
+		if _, err := etcd.K8sAppDefinition(&awsEnv, kindKubeProvider); err != nil {
 			return err
 		}
 	}

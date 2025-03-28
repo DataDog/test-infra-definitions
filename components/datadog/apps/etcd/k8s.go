@@ -63,7 +63,10 @@ echo "[init] Done setting check configuration keys in etcd"
 sleep infinity
 `
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+const Namespace = "etcd"
+const ServiceName = "etcd"
+
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
@@ -73,9 +76,9 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	opts = append(opts, pulumi.Parent(k8sComponent))
 
-	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
+	ns, err := corev1.NewNamespace(e.Ctx(), Namespace, &corev1.NamespaceArgs{
 		Metadata: metav1.ObjectMetaArgs{
-			Name: pulumi.String(namespace),
+			Name: pulumi.String(Namespace),
 		},
 	}, opts...)
 	if err != nil {
@@ -87,7 +90,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	_, err = appsv1.NewDeployment(e.Ctx(), "etcd", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("etcd"),
-			Namespace: pulumi.String(namespace),
+			Namespace: pulumi.String(Namespace),
 			Labels: pulumi.StringMap{
 				"app": pulumi.String("etcd"),
 			},
@@ -165,10 +168,10 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		return nil, err
 	}
 
-	_, err = corev1.NewService(e.Ctx(), "etcd", &corev1.ServiceArgs{
+	_, err = corev1.NewService(e.Ctx(), ServiceName, &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name:      pulumi.String("etcd"),
-			Namespace: pulumi.String(namespace),
+			Name:      pulumi.String(ServiceName),
+			Namespace: pulumi.String(Namespace),
 			Labels: pulumi.StringMap{
 				"app": pulumi.String("etcd"),
 			},

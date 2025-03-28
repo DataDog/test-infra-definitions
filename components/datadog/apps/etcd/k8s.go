@@ -12,13 +12,9 @@ import (
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 )
 
-// This stores an openmetrics check configuration in etcd.
-// It runs the check against the example prometheus app already deployed
-// ("apps-prometheus").
-// The check renames one of the prometheus metrics so that we can verify that
-// the check was discovered.
-const setupCommands = `
-# Start etcd in background
+// etcdStartCommand is the command to start etcd in a container.
+// The agent only supports the v2 API, that's why we use --enable-v2.
+const etcdStartCommand = `
 etcd --enable-v2 \
      --name=etcd-0 \
      --data-dir=/var/lib/etcd \
@@ -28,23 +24,43 @@ etcd --enable-v2 \
      --initial-advertise-peer-urls=http://etcd:2380 \
      --initial-cluster=etcd-0=http://etcd:2380 \
      --initial-cluster-token=etcd-cluster-1 \
-     --initial-cluster-state=new &
+     --initial-cluster-state=new
+`
 
-# Wait for etcd to be ready
-until etcdctl endpoint health; do
-  echo "Waiting for etcd..."
+// This stores an openmetrics check configuration in etcd.
+// It runs the check against the example prometheus app already deployed
+// ("apps-prometheus").
+// The check renames one of the prometheus metrics so that we can verify that
+// the check was discovered.
+const storeCheckConfigScript = `
+set -e
+
+apk add --no-cache curl netcat-openbsd
+
+echo "[init] Waiting for etcd to respond on TCP port 2379..."
+until nc -z localhost 2379; do
   sleep 1
 done
 
-# It's not always immediately ready. Let's wait a bit more to be sure.
-sleep 10
+echo "[init] Waiting for etcd v2 API to be ready..."
+until curl -sf http://localhost:2379/v2/keys/; do
+  echo "[init] etcd not ready yet..."
+  sleep 1
+done
 
-export ETCDCTL_API=2
-etcdctl set /datadog/check_configs/apps-prometheus/check_names '["openmetrics"]'
-etcdctl set /datadog/check_configs/apps-prometheus/init_configs '[{}]'
-etcdctl set /datadog/check_configs/apps-prometheus/instances '[{"openmetrics_endpoint": "http://%%host%%:8080/metrics", "metrics":[{"prom_gauge": "prom_gauge_configured_in_etcd"}]}]'
+echo "[init] Setting check configuration keys in etcd v2..."
 
-wait
+curl -sf -XPUT http://localhost:2379/v2/keys/datadog/check_configs/apps-prometheus/check_names \
+  --data-urlencode 'value=["openmetrics"]'
+
+curl -sf -XPUT http://localhost:2379/v2/keys/datadog/check_configs/apps-prometheus/init_configs \
+  --data-urlencode 'value=[{}]'
+
+curl -sf -XPUT http://localhost:2379/v2/keys/datadog/check_configs/apps-prometheus/instances \
+  --data-urlencode 'value=[{"openmetrics_endpoint": "http://%%host%%:8080/metrics", "metrics":[{"prom_gauge": "prom_gauge_configured_in_etcd"}]}]'
+
+echo "[init] Done setting check configuration keys in etcd"
+sleep infinity
 `
 
 func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
@@ -101,7 +117,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 								pulumi.String("-c"),
 							},
 							Args: pulumi.StringArray{
-								pulumi.String(setupCommands),
+								pulumi.String(etcdStartCommand),
 							},
 							Ports: &corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
@@ -127,6 +143,17 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 								},
 								InitialDelaySeconds: pulumi.Int(10),
 								TimeoutSeconds:      pulumi.Int(5),
+							},
+						},
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("etcd-config"),
+							Image: pulumi.String("public.ecr.aws/docker/library/alpine:3.21.3"),
+							Command: pulumi.StringArray{
+								pulumi.String("/bin/sh"),
+								pulumi.String("-c"),
+							},
+							Args: pulumi.StringArray{
+								pulumi.String(storeCheckConfigScript),
 							},
 						},
 					},

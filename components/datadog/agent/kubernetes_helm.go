@@ -749,10 +749,32 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 		if _, ok := values[section].(pulumi.Map); !ok {
 			continue
 		}
+
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), endpointsEnvVar...)
+		}
+	}
+
+	if _, ok := values["clusterAgent"]; ok {
+		if _, ok := values["clusterAgent"].(pulumi.Map)["admissionController"]; ok {
+			if _, ok := values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"]; ok {
+				if _, ok := values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"]; !ok {
+					values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"] = pulumi.Array{
+						pulumi.Map{
+							"env": endpointsEnvVar,
+						},
+					}
+				} else {
+					values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"] =
+						append(values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"].(pulumi.Array),
+							pulumi.Map{
+								"env": endpointsEnvVar,
+							},
+						)
+				}
+			}
 		}
 	}
 }

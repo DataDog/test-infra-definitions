@@ -34,6 +34,7 @@ type KubernetesAgent struct {
 	WindowsClusterAgent  *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterAgent"`
 	WindowsClusterChecks *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterChecks"`
 
+	ClusterAgentToken pulumi.StringOutput
 	FIPSEnabled pulumi.BoolOutput `pulumi:"fipsEnabled"`
 }
 

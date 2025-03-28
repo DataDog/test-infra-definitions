@@ -42,6 +42,8 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			return err
 		}
 
+		comp.ClusterAgentToken = helmComponent.ClusterAgentToken
+
 		platform := "linux"
 		appVersion := helmComponent.LinuxHelmReleaseStatus.AppVersion().Elem()
 		version := helmComponent.LinuxHelmReleaseStatus.Version().Elem()

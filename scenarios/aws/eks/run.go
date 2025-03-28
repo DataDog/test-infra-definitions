@@ -2,6 +2,7 @@ package eks
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
@@ -71,6 +72,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	var dependsOnDDAgent pulumi.ResourceOption
+	var k8sAgentComponent *agent.KubernetesAgent
 	if awsEnv.AgentDeploy() {
 		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
 		k8sAgentOptions = append(
@@ -91,7 +93,7 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())
 		}
 
-		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
+		k8sAgentComponent, err = helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
 
 		if err != nil {
 			return err
@@ -127,6 +129,10 @@ func Run(ctx *pulumi.Context) error {
 
 		// dogstatsd clients that report to the Agent
 		if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
+			return err
+		}
+
+		if _, err := dogstatsd.EksFargateAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-fargate", k8sAgentComponent.ClusterAgentToken, dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 

@@ -12,7 +12,7 @@ import (
 // NewENIConfigs creates ENIConfig CRDs to allow usage of custom networkwing for EKS pods when using AWS VPC CNI Plugin (default).
 // https://docs.aws.amazon.com/eks/latest/userguide/cni-custom-network.html
 // ENI = Elastic Network Interface (basically, a virtual network card)
-func NewENIConfigs(e aws.Environment, subnets []aws.DDInfraEKSPodSubnets, securityGroups []string, opts ...pulumi.ResourceOption) (*yaml.ConfigGroup, error) {
+func NewENIConfigs(e aws.Environment, subnets []aws.DDInfraEKSPodSubnets, securityGroups pulumi.StringArray, opts ...pulumi.ResourceOption) (*yaml.ConfigGroup, error) {
 	if len(subnets) == 0 {
 		return nil, fmt.Errorf("subnets must not be empty")
 	}

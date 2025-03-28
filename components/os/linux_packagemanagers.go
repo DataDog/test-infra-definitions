@@ -19,5 +19,5 @@ func newDnfManager(runner command.Runner) PackageManager {
 }
 
 func newZypperManager(runner command.Runner) PackageManager {
-	return command.NewGenericPackageManager(runner, "zypper", "zypper -n install", "zypper -n refresh", nil)
+	return command.NewGenericPackageManager(runner, "zypper", "zypper -n install", "", nil)
 }

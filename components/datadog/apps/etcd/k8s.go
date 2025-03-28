@@ -110,6 +110,24 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 									Protocol:      pulumi.String("TCP"),
 								},
 							},
+							ReadinessProbe: &corev1.ProbeArgs{
+								HttpGet: &corev1.HTTPGetActionArgs{
+									Path:   pulumi.String("/health"),
+									Port:   pulumi.Int(2379),
+									Scheme: pulumi.String("HTTP"),
+								},
+								InitialDelaySeconds: pulumi.Int(10),
+								TimeoutSeconds:      pulumi.Int(5),
+							},
+							LivenessProbe: &corev1.ProbeArgs{
+								HttpGet: &corev1.HTTPGetActionArgs{
+									Path:   pulumi.String("/health"),
+									Port:   pulumi.Int(2379),
+									Scheme: pulumi.String("HTTP"),
+								},
+								InitialDelaySeconds: pulumi.Int(10),
+								TimeoutSeconds:      pulumi.Int(5),
+							},
 						},
 					},
 				},

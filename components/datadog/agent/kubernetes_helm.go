@@ -414,6 +414,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"tag":           pulumi.String(clusterAgentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"replicas": pulumi.Int(2),
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),

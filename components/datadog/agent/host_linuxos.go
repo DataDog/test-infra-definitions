@@ -22,7 +22,7 @@ func newLinuxManager(host *remoteComp.Host) agentOSManager {
 }
 
 func (am *agentLinuxManager) directInstallCommand(_ config.Env, packagePath string, _ agentparams.PackageVersion, _ []string, opts ...pulumi.ResourceOption) (command.Command, error) {
-	return am.targetOS.PackageManager().Ensure("./"+packagePath, nil, "", opts...)
+	return am.targetOS.PackageManager().Ensure("./"+packagePath, nil, "", os.AllowUnsignedPackages(true), os.WithPulumiResourceOptions(opts...))
 }
 
 func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, _ []string) (string, error) {

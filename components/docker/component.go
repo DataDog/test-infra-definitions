@@ -11,6 +11,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -142,7 +143,7 @@ func (d *Manager) ComposeStrUp(name string, composeManifests []ComposeInlineMani
 func (d *Manager) install() (command.Command, error) {
 	opts := []pulumi.ResourceOption{pulumi.Parent(d)}
 	opts = utils.MergeOptions(d.opts, opts...)
-	dockerInstall, err := d.Host.OS.PackageManager().Ensure("docker.io", nil, "docker", opts...)
+	dockerInstall, err := d.Host.OS.PackageManager().Ensure("docker.io", nil, "docker", os.WithPulumiResourceOptions(opts...))
 	if err != nil {
 		return nil, err
 	}

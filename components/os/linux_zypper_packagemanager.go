@@ -32,9 +32,9 @@ func (m *ZypperPackageManager) Ensure(packageRef string, transform command.Trans
 
 	pulumiOpts := append(params.PulumiResourceOptions, m.pulumiOpts...)
 
-	zypperInstallCmd := "zypper"
+	zypperInstallCmd := "zypper -n"
 	if params.AllowUnsignedPackages {
-		zypperInstallCmd = "zypper --no-gpg-checks install"
+		zypperInstallCmd = "zypper -n --no-gpg-checks install"
 	}
 
 	var cmdStr string

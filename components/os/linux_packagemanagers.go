@@ -17,7 +17,3 @@ func newYumManager(runner command.Runner) PackageManager {
 func newDnfManager(runner command.Runner) PackageManager {
 	return command.NewGenericPackageManager(runner, "dnf", "dnf install -y", "", nil)
 }
-
-func newZypperManager(runner command.Runner) PackageManager {
-	return command.NewGenericPackageManager(runner, "zypper", "zypper -n install", "", nil)
-}

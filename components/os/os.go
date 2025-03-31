@@ -14,7 +14,28 @@ type PackageManager interface {
 	// Ensure ensures that a package is installed
 	// checkBinary is a binary that should be checked before running the install command, if it is not empty it will first run the `command -v checkBinary` command and if it fails it will run the installCmd,
 	// if it succeeds we consider the package is already installed
-	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...pulumi.ResourceOption) (command.Command, error)
+	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error)
+}
+
+type PackageManagerOption = func(*PackageManagerParams) error
+
+type PackageManagerParams struct {
+	AllowUnsignedPackages bool
+	PulumiResourceOptions []pulumi.ResourceOption
+}
+
+func AllowUnsignedPackages(allow bool) PackageManagerOption {
+	return func(pm *PackageManagerParams) error {
+		pm.AllowUnsignedPackages = allow
+		return nil
+	}
+}
+
+func WithPulumiResourceOptions(opts ...pulumi.ResourceOption) PackageManagerOption {
+	return func(pm *PackageManagerParams) error {
+		pm.PulumiResourceOptions = opts
+		return nil
+	}
 }
 
 type ServiceManager interface {

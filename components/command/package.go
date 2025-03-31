@@ -3,8 +3,10 @@ package command
 import (
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -36,15 +38,20 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, checkBinary string, opts ...pulumi.ResourceOption) (Command, error) {
-	opts = append(opts, m.opts...)
+func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, checkBinary string, opts ...os.PackageManagerOption) (Command, error) {
+	params, err := common.ApplyOption(&os.PackageManagerParams{}, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	pulumiOpts := append(params.PulumiResourceOptions, m.opts...)
 	if m.updateCmd != "" {
-		updateDB, err := m.updateDB(opts)
+		updateDB, err := m.updateDB(pulumiOpts)
 		if err != nil {
 			return nil, err
 		}
 
-		opts = append(opts, utils.PulumiDependsOn(updateDB))
+		pulumiOpts = append(pulumiOpts, utils.PulumiDependsOn(updateDB))
 	}
 	var cmdStr string
 	if checkBinary != "" {
@@ -65,7 +72,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	cmd, err := m.runner.Command(cmdName, cmdArgs, opts...)
+	cmd, err := m.runner.Command(cmdName, cmdArgs, pulumiOpts...)
 	if err != nil {
 		return nil, err
 	}

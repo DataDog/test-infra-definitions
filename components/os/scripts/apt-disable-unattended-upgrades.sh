@@ -28,3 +28,10 @@ done
 pgrep unattended-upgrades | xargs -r -n 1 -t kill -KILL || true
 
 apt-get -y purge unattended-upgrades || true
+
+# Ensure the lock files are removed
+rm -f /var/lib/apt/lists/lock || true
+rm -f /var/cache/apt/archives/lock || true
+rm -f /var/lib/dpkg/lock || true
+rm -f /var/lib/dpkg/lock-frontend || true
+rm -f /var/cache/apt/archives/partial/lock || true

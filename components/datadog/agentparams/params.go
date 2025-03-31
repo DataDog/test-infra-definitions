@@ -75,7 +75,6 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	if env.AgentFIPS() {
 		defaultFlavor = WithFlavor(FIPSFlavor)
 	}
-	fmt.Println("env.AgentLocalPackage(): ", env.AgentLocalPackage())
 	if env.AgentLocalPackage() != "" {
 		defaultFlavor = WithLocalPackage(env.AgentLocalPackage())
 	}

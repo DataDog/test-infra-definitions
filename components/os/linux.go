@@ -26,7 +26,7 @@ func newLinuxOS(e config.Env, desc Descriptor, runner command.Runner) OS {
 		os.packageManager = newAptManager(runner)
 
 	case Suse:
-		os.packageManager = newZypperPackageManager(runner)
+		os.packageManager = newZypperManager(runner)
 
 	case Unknown, WindowsServer, MacosOS:
 		fallthrough

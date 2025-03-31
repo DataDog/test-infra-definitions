@@ -17,13 +17,6 @@ type PackageManager interface {
 	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error)
 }
 
-type PackageManagerOption = func(*PackageManagerParams) error
-
-type PackageManagerParams struct {
-	AllowUnsignedPackages bool
-	PulumiResourceOptions []pulumi.ResourceOption
-}
-
 func AllowUnsignedPackages(allow bool) PackageManagerOption {
 	return func(pm *PackageManagerParams) error {
 		pm.AllowUnsignedPackages = allow
@@ -36,6 +29,13 @@ func WithPulumiResourceOptions(opts ...pulumi.ResourceOption) PackageManagerOpti
 		pm.PulumiResourceOptions = opts
 		return nil
 	}
+}
+
+type PackageManagerOption = func(*PackageManagerParams) error
+
+type PackageManagerParams struct {
+	AllowUnsignedPackages bool
+	PulumiResourceOptions []pulumi.ResourceOption
 }
 
 type ServiceManager interface {

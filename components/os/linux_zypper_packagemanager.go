@@ -10,7 +10,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func newZypperPackageManager(runner command.Runner) *ZypperPackageManager {
+func newZypperManager(runner command.Runner) *ZypperPackageManager {
 	return &ZypperPackageManager{
 		namer:      namer.NewNamer(runner.Environment().Ctx(), "zypper"),
 		runner:     runner,

@@ -36,4 +36,8 @@ rm -f /var/lib/dpkg/lock || true
 rm -f /var/lib/dpkg/lock-frontend || true
 rm -f /var/cache/apt/archives/partial/lock || true
 
-apt-get -y purge unattended-upgrade || true
+# Important note: we're searching for unattended-upgrade for the process because
+# apparently there can be 'unattended-upgrades' and 'unattended-upgrade' commands
+# However, the APT package is called unattended-upgrades
+
+apt-get -y purge unattended-upgrades || true

@@ -12,21 +12,6 @@ import (
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 )
 
-// etcdStartCommand is the command to start etcd in a container.
-// The agent only supports the v2 API, that's why we use --enable-v2.
-const etcdStartCommand = `
-etcd --enable-v2 \
-     --name=etcd-0 \
-     --data-dir=/var/lib/etcd \
-     --listen-client-urls=http://0.0.0.0:2379 \
-     --advertise-client-urls=http://etcd:2379 \
-     --listen-peer-urls=http://0.0.0.0:2380 \
-     --initial-advertise-peer-urls=http://etcd:2380 \
-     --initial-cluster=etcd-0=http://etcd:2380 \
-     --initial-cluster-token=etcd-cluster-1 \
-     --initial-cluster-state=new
-`
-
 // This stores an openmetrics check configuration in etcd.
 // It runs the check against the example prometheus app already deployed
 // ("apps-prometheus").
@@ -116,12 +101,21 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, opts ...p
 							// supported anymore in newer versions of etcd.
 							Image: pulumi.String("quay.io/coreos/etcd:v3.5.1"),
 							Command: pulumi.StringArray{
-								pulumi.String("/bin/sh"),
-								pulumi.String("-c"),
+								pulumi.String("etcd"),
 							},
-							Args: pulumi.StringArray{
-								pulumi.String(etcdStartCommand),
-							},
+							Args: pulumi.ToStringArray([]string{
+								// The agent only supports the v2 API, that's why we use --enable-v2.
+								"--enable-v2",
+								"--name=etcd-0",
+								"--data-dir=/var/lib/etcd",
+								"--listen-client-urls=http://0.0.0.0:2379",
+								"--advertise-client-urls=http://etcd:2379",
+								"--listen-peer-urls=http://0.0.0.0:2380",
+								"--initial-advertise-peer-urls=http://etcd:2380",
+								"--initial-cluster=etcd-0=http://etcd:2380",
+								"--initial-cluster-token=etcd-cluster-1",
+								"--initial-cluster-state=new",
+							}),
 							Ports: &corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
 									Name:          pulumi.String("etcd"),

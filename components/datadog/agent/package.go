@@ -66,11 +66,16 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 		// First match all packages with the correct extension
 		allPackagesPattern := `.*\.` + strings.TrimPrefix(wantedExt, ".") + `$`
 		fipsPattern := `.*fips.*\.` + strings.TrimPrefix(wantedExt, ".") + `$`
-
 		for _, entry := range entries {
 			if entry.IsDir() {
 				continue
 			}
+
+			// Exclude -dbg_ packages
+			if strings.Contains(entry.Name(), "-dbg_") {
+				continue
+			}
+
 			// Skip architecture check for Windows packages
 			if flavor != tifos.WindowsServer {
 				archStr := string(arch)

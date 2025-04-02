@@ -37,7 +37,7 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 		packageManager := vm.OS.PackageManager()
-		curlCommand, err := packageManager.Ensure("curl", nil, "", opts...)
+		curlCommand, err := packageManager.Ensure("curl", nil, "", os.WithPulumiResourceOptions(opts...))
 		if err != nil {
 			return err
 		}

@@ -10,6 +10,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/etcd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
@@ -151,7 +152,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.GKEAutopilot {
 		values = buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	} else {
-		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll)
+		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll, e.TestingWorkloadDeploy())
 	}
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
@@ -234,12 +235,12 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
+func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool) HelmValues {
 	agentImageElem := strings.Split(agentImagePath, "/")
 	containerRegistry := strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
 	imageName := agentImageElem[len(agentImageElem)-1]
 
-	return HelmValues{
+	helmValues := HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -559,6 +560,34 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			},
 		},
 	}
+
+	if testingWorkloadsEnabled {
+		// This is only needed when both etcd and the Prometheus app (that the
+		// check in etcd targets) are deployed.
+		//
+		// "useConfigMap" and "customAgentConfig" are used to configure the
+		// agent to get check configurations from etcd. "config_providers"
+		// cannot be configured via ENV, so we need to use a ConfigMap.
+
+		agents := helmValues["agents"].(pulumi.Map)
+
+		agents["useConfigMap"] = pulumi.Bool(true)
+		agents["customAgentConfig"] = pulumi.Map{
+			"config_providers": pulumi.Array{
+				pulumi.Map{
+					"name":         pulumi.String("etcd"),
+					"polling":      pulumi.Bool(true),
+					"template_dir": pulumi.String("/datadog/check_configs"),
+					// This relies on a service exposed by the etcd app
+					"template_url": pulumi.String(
+						fmt.Sprintf("http://%s.%s.svc.cluster.local:2379", etcd.ServiceName, etcd.Namespace),
+					),
+				},
+			},
+		}
+	}
+
+	return helmValues
 }
 
 func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput) HelmValues {

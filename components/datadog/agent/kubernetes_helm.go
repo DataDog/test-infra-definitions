@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
@@ -234,6 +235,10 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 type HelmValues pulumi.Map
 
 func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool) HelmValues {
+	agentImageElem := strings.Split(agentImagePath, "/")
+	containerRegistry := strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
+	imageName := agentImageElem[len(agentImageElem)-1]
+
 	return HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -425,8 +430,11 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"token": clusterAgentToken,
 			"admissionController": pulumi.Map{
 				"agentSidecarInjection": pulumi.Map{
-					"enabled":  pulumi.Bool(true),
-					"provider": pulumi.String("fargate"),
+					"enabled":           pulumi.Bool(true),
+					"provider":          pulumi.String("fargate"),
+					"containerRegistry": pulumi.String(containerRegistry),
+					"imageName":         pulumi.String(imageName),
+					"imageTag":          pulumi.String(agentImageTag),
 				},
 			},
 			"resources": pulumi.StringMapMap{

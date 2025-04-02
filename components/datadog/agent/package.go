@@ -131,10 +131,9 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 		packagePath = path.Join(packagePath, matches[0])
 	} else {
 		if strings.HasSuffix(localPath, wantedExt) {
-			matches = append(matches, path.Base(localPath))
-		} else {
-			return "", fmt.Errorf("local package %s does not have the expected extension %s", localPath, wantedExt)
+			return localPath, nil
 		}
+		return "", fmt.Errorf("local package %s does not have the expected extension %s", localPath, wantedExt)
 	}
 	return packagePath, nil
 }

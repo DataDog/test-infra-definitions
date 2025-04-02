@@ -13,13 +13,14 @@ type HostOutput struct {
 
 	CloudProvider components.CloudProviderIdentifier `json:"cloudProvider"`
 
-	Address   string    `json:"address"`
-	Port      int       `json:"port"`
-	Username  string    `json:"username"`
-	Password  string    `json:"password,omitempty"`
-	OSFamily  os.Family `json:"osFamily"`
-	OSFlavor  os.Flavor `json:"osFlavor"`
-	OSVersion string    `json:"osVersion"`
+	Address      string    `json:"address"`
+	Port         int       `json:"port"`
+	Username     string    `json:"username"`
+	Password     string    `json:"password,omitempty"`
+	OSFamily     os.Family `json:"osFamily"`
+	OSFlavor     os.Flavor `json:"osFlavor"`
+	OSVersion    string    `json:"osVersion"`
+	Architecture string    `json:"architecture"`
 }
 
 // Host represents a remote host (for instance, a VM)

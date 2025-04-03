@@ -750,6 +750,10 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 				"value": pulumi.Sprintf("%s", fakeintake.URL),
 			},
 			pulumi.StringMap{
+				"name":  pulumi.String("DD_ORCHESTRATOR_EXPLORER_ORCHESTRATOR_DD_URL"),
+				"value": pulumi.Sprintf("%s", fakeintake.URL),
+			},
+			pulumi.StringMap{
 				"name":  pulumi.String("DD_SKIP_SSL_VALIDATION"),
 				"value": pulumi.String("true"),
 			},

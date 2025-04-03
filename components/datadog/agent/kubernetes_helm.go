@@ -236,10 +236,15 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 type HelmValues pulumi.Map
 
 func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool) HelmValues {
-	agentImageElem := strings.Split(agentImagePath, "/")
-	containerRegistry := strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
-	imageName := agentImageElem[len(agentImageElem)-1]
-
+	var containerRegistry, imageName string
+	if strings.Contains(agentImagePath, "/") {
+		agentImageElem := strings.Split(agentImagePath, "/")
+		containerRegistry = strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
+		imageName = agentImageElem[len(agentImageElem)-1]
+	} else {
+		containerRegistry = ""
+		imageName = agentImagePath
+	}
 	helmValues := HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),

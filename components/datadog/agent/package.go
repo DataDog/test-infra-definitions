@@ -126,7 +126,7 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 		}
 
 		if len(matches) > 1 {
-			fmt.Printf("Found multiple packages to install, using the first one: %s", matches[0])
+			fmt.Printf("Found multiple packages to install, using the first one: %s\n", matches[0])
 		}
 		packagePath = path.Join(packagePath, matches[0])
 	} else {
@@ -134,6 +134,7 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 			return localPath, nil
 		}
 		return "", fmt.Errorf("local package %s does not have the expected extension %s", localPath, wantedExt)
+
 	}
 	return packagePath, nil
 }

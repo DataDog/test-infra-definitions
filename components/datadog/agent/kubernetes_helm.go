@@ -3,6 +3,7 @@ package agent
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/exp/maps"
 	"gopkg.in/yaml.v3"
@@ -65,6 +66,8 @@ type HelmComponent struct {
 
 	WindowsHelmReleaseName   pulumi.StringPtrOutput
 	WindowsHelmReleaseStatus kubeHelm.ReleaseStatusOutput
+
+	ClusterAgentToken pulumi.StringOutput
 }
 
 func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
@@ -90,6 +93,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if err != nil {
 		return nil, err
 	}
+
+	helmComponent.ClusterAgentToken = randomClusterAgentToken.Result
 
 	// Create namespace if necessary
 	ns, err := corev1.NewNamespace(e.Ctx(), args.Namespace, &corev1.NamespaceArgs{
@@ -231,6 +236,15 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 type HelmValues pulumi.Map
 
 func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool) HelmValues {
+	var containerRegistry, imageName string
+	if strings.Contains(agentImagePath, "/") {
+		agentImageElem := strings.Split(agentImagePath, "/")
+		containerRegistry = strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
+		imageName = agentImageElem[len(agentImageElem)-1]
+	} else {
+		containerRegistry = ""
+		imageName = agentImagePath
+	}
 	helmValues := HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
@@ -420,6 +434,15 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"useDatadogMetrics": pulumi.Bool(true),
 			},
 			"token": clusterAgentToken,
+			"admissionController": pulumi.Map{
+				"agentSidecarInjection": pulumi.Map{
+					"enabled":           pulumi.Bool(true),
+					"provider":          pulumi.String("fargate"),
+					"containerRegistry": pulumi.String(containerRegistry),
+					"imageName":         pulumi.String(imageName),
+					"imageTag":          pulumi.String(agentImageTag),
+				},
+			},
 			"resources": pulumi.StringMapMap{
 				"requests": pulumi.StringMap{
 					"cpu":    pulumi.String("50m"),
@@ -772,10 +795,32 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 		if _, ok := values[section].(pulumi.Map); !ok {
 			continue
 		}
+
 		if _, found := values[section].(pulumi.Map)["env"]; !found {
 			values[section].(pulumi.Map)["env"] = endpointsEnvVar
 		} else {
 			values[section].(pulumi.Map)["env"] = append(values[section].(pulumi.Map)["env"].(pulumi.StringMapArray), endpointsEnvVar...)
+		}
+	}
+
+	if _, ok := values["clusterAgent"]; ok {
+		if _, ok := values["clusterAgent"].(pulumi.Map)["admissionController"]; ok {
+			if _, ok := values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"]; ok {
+				if _, ok := values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"]; !ok {
+					values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"] = pulumi.Array{
+						pulumi.Map{
+							"env": endpointsEnvVar,
+						},
+					}
+				} else {
+					values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"] =
+						append(values["clusterAgent"].(pulumi.Map)["admissionController"].(pulumi.Map)["agentSidecarInjection"].(pulumi.Map)["profiles"].(pulumi.Array),
+							pulumi.Map{
+								"env": endpointsEnvVar,
+							},
+						)
+				}
+			}
 		}
 	}
 }

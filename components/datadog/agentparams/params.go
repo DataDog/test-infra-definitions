@@ -69,14 +69,15 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
+	if env.AgentLocalPackage() != "" {
+		defaultVersion = WithLocalPackage(env.AgentLocalPackage())
+	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
+
 	if env.AgentFIPS() {
 		defaultFlavor = WithFlavor(FIPSFlavor)
-	}
-	if env.AgentLocalPackage() != "" {
-		defaultFlavor = WithLocalPackage(env.AgentLocalPackage())
 	}
 
 	options = append([]Option{defaultFlavor}, options...)

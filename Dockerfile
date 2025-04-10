@@ -41,7 +41,7 @@ RUN apt-get update -y && \
   # AWS v2 cli
   curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
-  ./aws/install && \
+  ./aws/install --bin-dir /usr/local/bin --install-dir /usr/local/aws-cli --update && \
   rm -rf aws && \
   rm awscliv2.zip && \
   # Add additional apt repos all at once

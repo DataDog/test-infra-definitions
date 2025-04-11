@@ -117,6 +117,8 @@ agents:
 			kubernetesagentparams.WithHelmValues(customValues),
 			kubernetesagentparams.WithClusterName(kindCluster.ClusterName),
 		)
+
+		kubernetesagentparams.WithoutDualShipping()
 		if fakeIntake != nil {
 			k8sAgentOptions = append(
 				k8sAgentOptions,

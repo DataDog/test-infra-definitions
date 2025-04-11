@@ -141,6 +141,14 @@ func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		volumeType = "ebs-gp3"
 	}
 
+	// PATCH: Ubuntu 22.04 has a bugged version of curl. Use our own patched AMI instead
+	if osInfo.Version == "22.04" {
+		if paramArch == os.ARM64Arch {
+			return "ami-07e8e5f83dd25f929", nil
+		}
+		return "ami-0c6d6caaaa95d1d0c", nil
+	}
+
 	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/%s/ami-id", osInfo.Version, paramArch, volumeType))
 }
 

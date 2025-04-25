@@ -39,7 +39,7 @@ RUN apt-get update -y && \
   curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
   # AWS v2 cli
-  curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.22.35.zip && \
+  curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
   rm -rf aws awscliv2.zip && \
@@ -127,7 +127,7 @@ RUN --mount=type=secret,id=github_token \
 # Remove AWS-related deps as we already install AWS CLI v2
 RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
   pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
-  dda -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
+  dda -v self dep sync -f legacy-e2e && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support

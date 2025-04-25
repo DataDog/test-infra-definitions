@@ -79,7 +79,7 @@ RUN curl --retry 10 -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.lin
   export PATH="/usr/local/go/bin:$PATH" && \
   go version
 ENV GOPATH=/go
-ENV PATH=$GOPATH/bin:/usr/local/go/bin:/usr/local/aws-cli/v2/current/bin:$PATH
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Install Helm
 # Explicitly set env variables that helm reads to their defaults, so that subsequent calls to

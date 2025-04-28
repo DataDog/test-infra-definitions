@@ -125,7 +125,7 @@ RUN --mount=type=secret,id=github_token \
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
 RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
-  pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
+  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
   dda -v self dep sync -f legacy-e2e && \
   go install gotest.tools/gotestsum@latest
 

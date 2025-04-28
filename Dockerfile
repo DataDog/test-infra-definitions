@@ -39,7 +39,7 @@ RUN apt-get update -y && \
   curl --retry 10 -fsSLo /usr/bin/aws-iam-authenticator https://github.com/kubernetes-sigs/aws-iam-authenticator/releases/download/v0.5.9/aws-iam-authenticator_0.5.9_linux_amd64 && \
   chmod +x /usr/bin/aws-iam-authenticator && \
   # AWS v2 cli
-  curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64-2.22.35.zip && \
+  curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
   rm -rf aws awscliv2.zip && \
@@ -68,7 +68,6 @@ RUN apt-get update -y && \
   echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \
   chmod +x /usr/local/bin/datadog-ci && \
   # Clean up the lists work
-  apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 # Install Go

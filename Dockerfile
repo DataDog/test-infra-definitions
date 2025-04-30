@@ -42,8 +42,7 @@ RUN apt-get update -y && \
   curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
-  rm -rf aws && \
-  rm awscliv2.zip && \
+  rm -rf aws awscliv2.zip && \
   # Add additional apt repos all at once
   echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"                                          | tee /etc/apt/sources.list.d/docker.list           && \
   echo "deb https://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                                  | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -69,6 +68,7 @@ RUN apt-get update -y && \
   echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \
   chmod +x /usr/local/bin/datadog-ci && \
   # Clean up the lists work
+  apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 # Install Go
@@ -78,8 +78,8 @@ RUN curl --retry 10 -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.lin
   rm /tmp/go.tgz && \
   export PATH="/usr/local/go/bin:$PATH" && \
   go version
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Install Helm
 # Explicitly set env variables that helm reads to their defaults, so that subsequent calls to
@@ -126,8 +126,8 @@ RUN --mount=type=secret,id=github_token \
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
 RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
-  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
-  dda -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
+  pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
+  dda -v self dep sync -f legacy-e2e && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support

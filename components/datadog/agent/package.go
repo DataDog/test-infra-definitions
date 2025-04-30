@@ -76,6 +76,11 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 				continue
 			}
 
+			// Exclude datadog-agent-upgrade-test package on Windows
+			if flavor == tifos.WindowsServer && strings.Contains(entry.Name(), "upgrade-test") {
+				continue
+			}
+
 			// Skip architecture check for Windows packages
 			if flavor != tifos.WindowsServer {
 				archStr := string(arch)
@@ -126,7 +131,7 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 		}
 
 		if len(matches) > 1 {
-			fmt.Printf("Found multiple packages to install, using the first one: %s\n", matches[0])
+			return "", fmt.Errorf("found multiple packages to install:\n%s", strings.Join(matches, "\n"))
 		}
 		packagePath = path.Join(packagePath, matches[0])
 	} else {

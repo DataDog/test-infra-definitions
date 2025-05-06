@@ -2,6 +2,7 @@ package redis
 
 import (
 	_ "embed"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/components/docker"
 
@@ -13,5 +14,5 @@ var dockerComposeYAML string
 
 var DockerComposeManifest = docker.ComposeInlineManifest{
 	Name:    "redis",
-	Content: pulumi.String(dockerComposeYAML),
+	Content: pulumi.String(strings.ReplaceAll(dockerComposeYAML, "latest", RedisVersion)),
 }

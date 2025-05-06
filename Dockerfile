@@ -127,7 +127,9 @@ RUN --mount=type=secret,id=github_token \
 # Remove AWS-related deps as we already install AWS CLI v2
 RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
   pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
-  dda -v self dep sync -f legacy-e2e && \
+  dda -v self dep sync -f legacy-e2e -f legacy-github && \
+  # TODO: Remove once we have a new version of dda where the semver deps is in legacy_github
+  pip3 install semver==2.10.0 && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support

@@ -464,6 +464,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_CSI_ENABLED"),
+					"value": pulumi.String("true"),
+				},
 			},
 			"confd": pulumi.StringMap{
 				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{

@@ -3,6 +3,7 @@ package prometheus
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
@@ -35,7 +36,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"prometheus": {
 					Name:  pulumi.String("prometheus"),
-					Image: pulumi.String("ghcr.io/datadog/apps-prometheus:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-prometheus:" + apps.Version),
 					DockerLabels: pulumi.StringMap{
 						"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 							map[string]interface{}{

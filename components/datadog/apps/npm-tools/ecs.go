@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/ecs"
@@ -36,7 +37,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, testURL 
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"curl-dig": {
 					Name:  pulumi.String("curl-dig"),
-					Image: pulumi.String("ghcr.io/datadog/apps-npm-tools:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-npm-tools:" + apps.Version),
 					Command: pulumi.StringArray{
 						pulumi.String("sh"),
 						pulumi.String("-c"),

@@ -3,6 +3,7 @@ package istio
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -150,7 +151,7 @@ func NewHttpbinServiceInstallation(e config.Env, opts ...pulumi.ResourceOption) 
 					ServiceAccountName: pulumi.String("httpbin"),
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Image: pulumi.String("ghcr.io/datadog/apps-go-httpbin:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-go-httpbin:" + apps.Version),
 							Name:  pulumi.String("httpbin"),
 							Ports: corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{

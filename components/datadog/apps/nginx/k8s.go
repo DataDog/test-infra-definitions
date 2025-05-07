@@ -3,6 +3,7 @@ package nginx
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 
 	"github.com/Masterminds/semver"
@@ -107,7 +108,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("nginx"),
-							Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:" + apps.Version),
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),
@@ -411,7 +412,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("query"),
-							Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-http-client:" + apps.Version),
 							Args: pulumi.StringArray{
 								pulumi.String("-min-tps"),
 								pulumi.String("1"),

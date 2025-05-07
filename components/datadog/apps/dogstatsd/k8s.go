@@ -5,6 +5,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -60,7 +61,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name:  pulumi.String("STATSD_URL"),
@@ -126,7 +127,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name: pulumi.String("HOST_IP"),
@@ -193,7 +194,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name: pulumi.String("HOST_IP"),
@@ -252,7 +253,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name: pulumi.String("HOST_IP"),
@@ -324,7 +325,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 							Env: &corev1.EnvVarArray{
 								&corev1.EnvVarArgs{
 									Name: pulumi.String("HOST_IP"),

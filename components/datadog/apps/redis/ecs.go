@@ -2,6 +2,7 @@ package redis
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
@@ -54,7 +55,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				},
 				"query": {
 					Name:  pulumi.String("query"),
-					Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-redis-client:" + apps.Version),
 					Command: pulumi.StringArray{
 						pulumi.String("-addr"),
 						pulumi.String("redis:6379"),

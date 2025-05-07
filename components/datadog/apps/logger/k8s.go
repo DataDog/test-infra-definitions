@@ -3,6 +3,7 @@ package logger
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
@@ -63,7 +64,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
 							Name:  pulumi.String("logger"),
-							Image: pulumi.String("ghcr.io/datadog/apps-logger:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-logger:" + apps.Version),
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{
 									"cpu":    pulumi.String("100m"),

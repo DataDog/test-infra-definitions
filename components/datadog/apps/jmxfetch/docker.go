@@ -2,7 +2,9 @@ package jmxfetch
 
 import (
 	_ "embed"
+	"strings"
 
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	"github.com/DataDog/test-infra-definitions/components/docker"
 
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -19,7 +21,7 @@ var dockerComposeSlowMetricsContent string
 
 var DockerComposeManifest = docker.ComposeInlineManifest{
 	Name:    "jmx-test-app",
-	Content: pulumi.String(dockerComposeContent),
+	Content: pulumi.String(strings.ReplaceAll(dockerComposeContent, "{APPS_VERSION}", apps.Version)),
 }
 
 var DockerComposeAllMetricsManifest = docker.ComposeInlineManifest{

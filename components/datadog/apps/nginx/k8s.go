@@ -319,7 +319,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		}
 
 		if _, err := apiextensions.NewCustomResource(e.Ctx(), namespace+"/nginx", &apiextensions.CustomResourceArgs{
-			ApiVersion: pulumi.String("autoscaling.k8s.io/v1beta2"),
+			ApiVersion: pulumi.String("autoscaling.k8s.io/v1"),
 			Kind:       pulumi.String("VerticalPodAutoscaler"),
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("nginx"),

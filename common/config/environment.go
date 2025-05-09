@@ -209,7 +209,7 @@ func (e *CommonEnvironment) InfraOSImageID() string {
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.29")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.32")
 }
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {

@@ -3,6 +3,7 @@ package mutatedbyadmissioncontroller
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
@@ -88,7 +89,7 @@ func k8sDeploymentWithoutLibInjection(e config.Env, namespace string, name strin
 					Containers: corev1.ContainerArray{
 						corev1.ContainerArgs{
 							Name:  pulumi.String(name),
-							Image: pulumi.String("ghcr.io/datadog/apps-mutated:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-mutated:" + apps.Version),
 						},
 					},
 				},

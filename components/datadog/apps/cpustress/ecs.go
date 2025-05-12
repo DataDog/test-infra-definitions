@@ -2,6 +2,7 @@ package cpustress
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/pulumi/pulumi-awsx/sdk/v2/go/awsx/awsx"
@@ -33,7 +34,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"stress-ng": {
 					Name:  pulumi.String("stress-ng"),
-					Image: pulumi.String(getStressNGImage()),
+					Image: pulumi.String("ghcr.io/datadog/apps-stress-ng:" + apps.Version),
 					Command: pulumi.StringArray{
 						pulumi.String("--cpu=1"),
 						pulumi.String("--cpu-load=15"),

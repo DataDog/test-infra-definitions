@@ -4,7 +4,7 @@ version: "3.9"
 services:
 
   redis:
-    image: public.ecr.aws/docker/library/redis:latest
+    image: ghcr.io/datadog/redis:{APPS_VERSION}
     container_name: redis
     command:
       - --loglevel

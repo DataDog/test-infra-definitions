@@ -58,6 +58,10 @@ jobs:
             image: prometheus
           - app: redis
             image: redis-client
+          - app: redis
+            image: redis-server
+          - app: cpustress
+            image: stress-ng
           - app: tracegen
             image: tracegen
           - app: npm-tools
@@ -109,20 +113,50 @@ jobs:
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96
+        if: matrix.image != 'redis-server'
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/apps-${{ matrix.image }}
+
+      # Auto-discovery is based on docker image name.
+      # That’s why the Redis docker image needs to be named exactly `redis`
+      # https://github.com/DataDog/integrations-core/blob/d2f8df447526d3d264369093d20f7d7c5c95a1ec/redisdb/datadog_checks/redisdb/data/auto_conf.yaml#L7
+
+      # Extract metadata (tags, labels) for Docker
+      # https://github.com/docker/metadata-action
+      - name: Extract Docker metadata
+        id: meta_redis
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96
+        if: matrix.image == 'redis-server'
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/redis
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
         id: build-and-push
         uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc
+        if: matrix.image != 'redis-server'
         with:
           context: components/datadog/apps/${{ matrix.app }}/images/${{ matrix.image }}
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Build and push Docker image with Buildx (don't push on PR)
+      # https://github.com/docker/build-push-action
+      - name: Build and push Docker image
+        id: build-and-push_redis
+        uses: docker/build-push-action@b32b51a8eda65d6793cd0494a773d4f6bcef32dc
+        if: matrix.image == 'redis-server'
+        with:
+          context: components/datadog/apps/${{ matrix.app }}/images/${{ matrix.image }}
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta_redis.outputs.tags }}
+          labels: ${{ steps.meta_redis.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

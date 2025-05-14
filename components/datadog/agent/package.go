@@ -97,7 +97,9 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 			// If we're on Windows, we need to check if the pipeline ID is in the package name, this is a workaround to avoid an issue with the Windows Runners
 			// where other pipelines packages can pollute the artifacts
 			if flavor == tifos.WindowsServer && pipelineID != "" {
-				if !strings.Contains(entry.Name(), pipelineID) {
+
+				// If the package name contains "pipeline." and the pipeline ID is not in the name, skip it
+				if strings.Contains(entry.Name(), "pipeline.") && !strings.Contains(entry.Name(), pipelineID) {
 					continue
 				}
 			}

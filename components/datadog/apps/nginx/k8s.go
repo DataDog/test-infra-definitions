@@ -93,7 +93,8 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 						"ad.datadoghq.com/nginx.checks": pulumi.String(utils.JSONMustMarshal(
 							map[string]interface{}{
 								"nginx": map[string]interface{}{
-									"init_config": map[string]interface{}{},
+									"init_config":           map[string]interface{}{},
+									"check_tag_cardinality": "high",
 									"instances": []map[string]interface{}{
 										{
 											"nginx_status_url": "http://%%host%%/nginx_status",

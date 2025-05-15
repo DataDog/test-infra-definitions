@@ -52,31 +52,31 @@ func WithDomain(domainController *remote.Host, domainFqdn, domainAdmin, domainAd
 }
 
 func (adCtx *activeDirectoryContext) joinActiveDirectoryDomain(params *JoinDomainConfiguration) error {
-	var joinCmd command.Command
-	// TODO: Delete cmd
-	joinCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
-		// TODO: This doesn't work but this works:
-		// $User = "ad.datadogqa.lab\ddagentuser"
-		// $PWord = ConvertTo-SecureString -String "Test5678" -AsPlainText -Force
-		// $credentialParams = @{
-		//     TypeName = 'System.Management.Automation.PSCredential'
-		//     ArgumentList = $User, $PWord
-		// }
-		// $Credential = New-Object @credentialParams
-		// Add-Computer -DomainName "ad.datadogqa.lab" -Credential $Credential
+	// TODO: Need restart?
+	setDnsCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("set-dns"), &command.Args{
 		Create: pulumi.Sprintf(`
-# TODO: Undo
-# Set-DnsClientServerAddress -InterfaceAlias $interface.InterfaceAlias -ResetServerAddresses
 # Set the primary DNS to the domain controller
 $interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
-# TODO: Parse interface name
 Set-DnsClientServerAddress -InterfaceAlias $interface -ServerAddresses ("%s")
+`, params.DomainController.Address),
+		Delete: pulumi.Sprintf(`
+$interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
+Set-DnsClientServerAddress -InterfaceAlias $interface.InterfaceAlias -ResetServerAddresses
+`),
+	}, pulumi.Parent(adCtx.comp))
+	adCtx.createdResources = append(adCtx.createdResources, setDnsCmd)
 
-# TODO: Need reboot?
+	var joinCmd command.Command
+	joinCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
+		Create: pulumi.Sprintf(`
 # Join the domain
 Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
-`, params.DomainController.Address, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
-	}, pulumi.Parent(adCtx.comp))
+`, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
+		// TODO: This hangs
+		// 		Delete: pulumi.Sprintf(`
+		// Remove-Computer -UnjoinDomainCredential %s -PassThru -Force
+		// `, params.DomainAdminUser),
+	}, pulumi.Parent(setDnsCmd))
 	if err != nil {
 		return err
 	}

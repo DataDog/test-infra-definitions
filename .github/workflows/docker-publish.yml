@@ -58,6 +58,10 @@ jobs:
             image: prometheus
           - app: redis
             image: redis-client
+          - app: redis
+            image: redis-server
+          - app: cpustress
+            image: stress-ng
           - app: tracegen
             image: tracegen
           - app: npm-tools
@@ -110,7 +114,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@dbef88086f6cef02e264edb7dbf63250c17cef6c
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/apps-${{ matrix.image }}
+          # Auto-discovery is based on docker image name.
+          # That’s why the Redis docker image needs to be named exactly `redis`
+          # https://github.com/DataDog/integrations-core/blob/d2f8df447526d3d264369093d20f7d7c5c95a1ec/redisdb/datadog_checks/redisdb/data/auto_conf.yaml#L7
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image == 'redis-server' && 'redis' || format('apps-{0}', matrix.image) }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action

@@ -72,6 +72,16 @@ updates:
       interval: daily
 
   - package-ecosystem: docker
+    directory: /components/datadog/apps/redis/images/redis-server
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/cpustress/images/stress-ng
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
     directory: /components/datadog/apps/npm-tools/images/go-httpbin
     schedule:
       interval: daily

@@ -2,6 +2,7 @@ package redis
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	ecsClient "github.com/DataDog/test-infra-definitions/resources/aws/ecs"
@@ -28,7 +29,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("redis"),
-		Image: pulumi.String("public.ecr.aws/docker/library/redis:latest"),
+		Image: pulumi.String("ghcr.io/datadog/redis:" + apps.Version),
 		DockerLabels: pulumi.StringMap{
 			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
 		},
@@ -55,7 +56,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
 		Command: pulumi.StringArray{
 			pulumi.String("-addr"),
-			pulumi.Sprintf("localhost:6379"),
+			pulumi.String("localhost:6379"),
 		},
 		Cpu:       pulumi.IntPtr(50),
 		Memory:    pulumi.IntPtr(32),

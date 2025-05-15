@@ -222,8 +222,8 @@ github.com/pulumi/pulumi-azure-native-sdk/v2 v2.90.0 h1:clO7kyLNEPl6VCwm74/C/yoF
 github.com/pulumi/pulumi-azure-native-sdk/v2 v2.90.0/go.mod h1:2IvMmB8/M+RXKlMz330M8BFD+7ChBo7mEWhzpgPAkSc=
 github.com/pulumi/pulumi-command/sdk v1.0.1 h1:ZuBSFT57nxg/fs8yBymUhKLkjJ6qmyN3gNvlY/idiN0=
 github.com/pulumi/pulumi-command/sdk v1.0.1/go.mod h1:C7sfdFbUIoXKoIASfXUbP/U9xnwPfxvz8dBpFodohlA=
-github.com/pulumi/pulumi-docker/sdk/v4 v4.5.8 h1:rik9L2SIpsoDenY51MkogR6GWgu/0Sy/XmyQmKWNUqU=
-github.com/pulumi/pulumi-docker/sdk/v4 v4.5.8/go.mod h1:eph7BPNPkEIIK882/Ll4dbeHl5wZEc/UvTcUW0CK1UY=
+github.com/pulumi/pulumi-docker/sdk/v4 v4.6.2 h1:YJffxtgdexLoI4RPFJpoAbjksoqvBN6VUQlom9HlRuc=
+github.com/pulumi/pulumi-docker/sdk/v4 v4.6.2/go.mod h1:7fX6vITy/9ADh81dLC+0qZ2dVmPE8wXLsS1w499f5Yo=
 github.com/pulumi/pulumi-eks/sdk/v3 v3.7.0 h1:aDLyVV93p1g9nswSaH78mPiRZEXF6441eJRO5NLA1B4=
 github.com/pulumi/pulumi-eks/sdk/v3 v3.7.0/go.mod h1:QbAamxfUpDJC81BGtyEuV0P88RrdbOjQEhbgY+OOPpg=
 github.com/pulumi/pulumi-gcp/sdk/v7 v7.38.0 h1:21oSj+TKlKTzQcxN9Hik7iSNNHPUQXN4s3itOnahy/w=

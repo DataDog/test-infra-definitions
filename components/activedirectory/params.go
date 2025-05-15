@@ -61,7 +61,7 @@ Set-DnsClientServerAddress -InterfaceAlias $interface -ServerAddresses ("%s")
 `, params.DomainController.Address),
 		Delete: pulumi.Sprintf(`
 $interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
-Set-DnsClientServerAddress -InterfaceAlias $interface.InterfaceAlias -ResetServerAddresses
+Set-DnsClientServerAddress -InterfaceAlias $interface -ResetServerAddresses
 `),
 	}, pulumi.Parent(adCtx.comp))
 	adCtx.createdResources = append(adCtx.createdResources, setDnsCmd)
@@ -70,7 +70,15 @@ Set-DnsClientServerAddress -InterfaceAlias $interface.InterfaceAlias -ResetServe
 	joinCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
 		Create: pulumi.Sprintf(`
 # Join the domain
-Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
+try {
+	Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
+} catch {
+ 	if ($_.Exception.Message -like "*already in that domain*") {
+		Write-Host "Already joined to domain"
+	} else {
+		throw $_
+	}
+}
 `, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
 		// TODO: This hangs
 		// 		Delete: pulumi.Sprintf(`
@@ -98,23 +106,44 @@ Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automati
 type DomainControllerConfiguration struct {
 	DomainName     string
 	DomainPassword string
+	// Whether it is the secondary / read only domain controller
+	IsBackup bool
 }
 
 // WithDomainController promotes the machine to be a domain controller.
-func WithDomainController(domainFqdn, adminPassword string) func(*Configuration) error {
+func WithDomainController(domainFqdn, adminPassword string, isBackup bool) func(*Configuration) error {
 	return func(p *Configuration) error {
 		p.DomainControllerConfiguration = &DomainControllerConfiguration{
 			DomainName:     domainFqdn,
 			DomainPassword: adminPassword,
+			IsBackup:       isBackup,
 		}
 		return nil
 	}
 }
 
 func (adCtx *activeDirectoryContext) installDomainController(params *DomainControllerConfiguration) error {
+	var err error
 	var installCmd command.Command
-	installCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-forest"), &command.Args{
-		Create: pulumi.Sprintf(`
+	if params.IsBackup {
+		// This is the secondary domain controller so we don't use ADDSForest
+		installCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-dc-backup"), &command.Args{
+			Create: pulumi.Sprintf(`
+Add-WindowsFeature -name ad-domain-services -IncludeManagementTools;
+Import-Module ADDSDeployment;
+try {
+	Get-ADDomainController
+} catch {
+	Install-ADDSDomainController -DomainName "%1s" -ReadOnlyReplica -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%1s", (ConvertTo-SecureString -String "%2s" -AsPlainText -Force)) -InstallDNS -NoGlobalCatalog:$true
+}
+`, params.DomainName, params.DomainPassword),
+		}, pulumi.Parent(adCtx.comp), pulumi.DependsOn(adCtx.createdResources))
+		if err != nil {
+			return err
+		}
+	} else {
+		installCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-forest"), &command.Args{
+			Create: pulumi.Sprintf(`
 Add-WindowsFeature -name ad-domain-services -IncludeManagementTools;
 Import-Module ADDSDeployment;
 try {
@@ -130,9 +159,10 @@ try {
 	}; Install-ADDSForest @HashArguments
 }
 `, params.DomainName, params.DomainPassword),
-	}, pulumi.Parent(adCtx.comp), pulumi.DependsOn(adCtx.createdResources))
-	if err != nil {
-		return err
+		}, pulumi.Parent(adCtx.comp), pulumi.DependsOn(adCtx.createdResources))
+		if err != nil {
+			return err
+		}
 	}
 	adCtx.createdResources = append(adCtx.createdResources, installCmd)
 

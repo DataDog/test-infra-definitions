@@ -40,33 +40,46 @@ func AgentQARun(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-	_, _, err = activedirectory.NewActiveDirectory(ctx, &env, dcForest,
+	_, dcForestResource, err := activedirectory.NewActiveDirectory(ctx, &env, dcForest,
 		// TODO A: This doesn't work when we do up two times?
-		activedirectory.WithDomainController(adDomain, adPassword),
+		activedirectory.WithDomainController(adDomain, adPassword, false),
+		// TODO: Do we create the user now or when adding clients?
 		activedirectory.WithDomainUser(adUser, adUserPassword),
 	)
 	if err != nil {
 		return err
 	}
-	// err = activeDirectoryComp.Export(ctx, &env.ActiveDirectory.Output)
-	// if err != nil {
-	// 	return err
-	// }
 
-	// TODO: dc backup
+	// TODO: Proper way to wait for the domain controller to be ready + throw erro
+	pulumi.All(dcForestResource).ApplyT(func(_ []interface{}) error {
+		// // Domain controller backup node
+		// dcBackup, err := newWindowsNode(qaContext, "dcbackup", false)
+		// if err != nil {
+		// 	return err
+		// }
+		// _, _, err = activedirectory.NewActiveDirectory(ctx, &env, dcBackup,
+		// 	// TODO A: This doesn't work when we do up two times?
+		// 	activedirectory.WithDomainController(adDomain, adPassword, true),
+		// )
+		// if err != nil {
+		// 	return err
+		// }
 
-	// Client node
-	client, err := newWindowsNode(qaContext, "client", true)
-	if err != nil {
-		return err
-	}
-	// Setup active directory
-	_, _, err = activedirectory.NewActiveDirectory(ctx, &env, client,
-		activedirectory.WithDomain(dcForest, adDomain, fmt.Sprintf("%s\\%s", adDomain, adUser), adUserPassword),
-	)
-	if err != nil {
-		return err
-	}
+		// Client node
+		client, err := newWindowsNode(qaContext, "client", true)
+		if err != nil {
+			return err
+		}
+		// Setup active directory
+		_, _, err = activedirectory.NewActiveDirectory(ctx, &env, client,
+			activedirectory.WithDomain(dcForest, adDomain, fmt.Sprintf("%s\\%s", adDomain, adUser), adUserPassword),
+		)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
 
 	return nil
 }

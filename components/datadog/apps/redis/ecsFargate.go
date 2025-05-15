@@ -29,7 +29,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("redis"),
-		Image: pulumi.Sprintf("public.ecr.aws/docker/library/redis:%s", RedisVersion),
+		Image: pulumi.String("ghcr.io/datadog/redis:" + apps.Version),
 		DockerLabels: pulumi.StringMap{
 			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
 		},
@@ -56,7 +56,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Image: pulumi.String("ghcr.io/datadog/apps-redis-client:" + apps.Version),
 		Command: pulumi.StringArray{
 			pulumi.String("-addr"),
-			pulumi.Sprintf("localhost:6379"),
+			pulumi.String("localhost:6379"),
 		},
 		Cpu:       pulumi.IntPtr(50),
 		Memory:    pulumi.IntPtr(32),

@@ -69,7 +69,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("redis"),
-							Image: pulumi.Sprintf("public.ecr.aws/docker/library/redis:%s", RedisVersion),
+							Image: pulumi.String("ghcr.io/datadog/redis:" + apps.Version),
 							Args: pulumi.StringArray{
 								pulumi.String("--loglevel"),
 								pulumi.String("verbose"),

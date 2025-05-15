@@ -3,6 +3,7 @@ package activedirectory
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/command"
+	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/pulumiverse/pulumi-time/sdk/go/time"
 )
@@ -29,6 +30,7 @@ func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) Option {
 
 // JoinDomainConfiguration list the options required for a machine to join an Active Directory domain.
 type JoinDomainConfiguration struct {
+	DomainController        *remote.Host
 	DomainName              string
 	DomainAdminUser         string
 	DomainAdminUserPassword string
@@ -36,9 +38,11 @@ type JoinDomainConfiguration struct {
 
 // WithDomain joins a machine to a domain. The machine can then be promoted to a domain controller or remain
 // a domain client.
-func WithDomain(domainFqdn, domainAdmin, domainAdminPassword string) Option {
+// The domainAdmin is "mydomain.com\myuser"
+func WithDomain(domainController *remote.Host, domainFqdn, domainAdmin, domainAdminPassword string) Option {
 	return func(p *Configuration) error {
 		p.JoinDomainParams = &JoinDomainConfiguration{
+			DomainController:        domainController,
 			DomainName:              domainFqdn,
 			DomainAdminUser:         domainAdmin,
 			DomainAdminUserPassword: domainAdminPassword,
@@ -49,10 +53,29 @@ func WithDomain(domainFqdn, domainAdmin, domainAdminPassword string) Option {
 
 func (adCtx *activeDirectoryContext) joinActiveDirectoryDomain(params *JoinDomainConfiguration) error {
 	var joinCmd command.Command
+	// TODO: Delete cmd
 	joinCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
+		// TODO: This doesn't work but this works:
+		// $User = "ad.datadogqa.lab\ddagentuser"
+		// $PWord = ConvertTo-SecureString -String "Test5678" -AsPlainText -Force
+		// $credentialParams = @{
+		//     TypeName = 'System.Management.Automation.PSCredential'
+		//     ArgumentList = $User, $PWord
+		// }
+		// $Credential = New-Object @credentialParams
+		// Add-Computer -DomainName "ad.datadogqa.lab" -Credential $Credential
 		Create: pulumi.Sprintf(`
-Add-Computer -DomainName %s -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList %s, %s)
-`, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
+# TODO: Undo
+# Set-DnsClientServerAddress -InterfaceAlias $interface.InterfaceAlias -ResetServerAddresses
+# Set the primary DNS to the domain controller
+$interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
+# TODO: Parse interface name
+Set-DnsClientServerAddress -InterfaceAlias $interface -ServerAddresses ("%s")
+
+# TODO: Need reboot?
+# Join the domain
+Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
+`, params.DomainController.Address, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
 	}, pulumi.Parent(adCtx.comp))
 	if err != nil {
 		return err

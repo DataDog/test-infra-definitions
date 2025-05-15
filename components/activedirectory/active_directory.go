@@ -35,6 +35,7 @@ func (dc *Component) Export(ctx *pulumi.Context, out *Output) error {
 	return components.Export(ctx, dc, out)
 }
 
+// TODO: Rework this with primary DC, backup DC, clients?
 // A little structure to help manage state for the Active Directory component
 type activeDirectoryContext struct {
 	pulumiContext    *pulumi.Context

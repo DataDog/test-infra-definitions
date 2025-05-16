@@ -31,6 +31,7 @@ def deploy(
     agent_config_path: Optional[str] = None,
     agent_env: Optional[str] = None,
     helm_config: Optional[str] = None,
+    local_package: Optional[str] = None,
 ) -> str:
     flags = extra_flags if extra_flags else {}
 
@@ -58,6 +59,7 @@ def deploy(
     flags["ddagent:configPath"] = agent_config_path
     flags["ddagent:extraEnvVars"] = agent_env
     flags["ddagent:helmConfig"] = helm_config
+    flags["ddagent:localPackage"] = local_package
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
@@ -117,7 +119,9 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
     response = s3.list_objects_v2(Bucket=bucket, Prefix=path)
     exists = "Contents" in response
 
-    assert exists, f"Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy"
+    assert exists, (
+        f"Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy"
+    )
 
 
 # creates a stack with the given stack_name if it doesn't already exists

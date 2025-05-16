@@ -1,1 +1,1 @@
-FROM datadog/opentelemetry-examples:calendar-go-rest-0.16
+FROM datadog/opentelemetry-examples:calendar-go-rest-0.18

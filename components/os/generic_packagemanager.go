@@ -1,17 +1,19 @@
-package command
+package os
 
 import (
 	"fmt"
 
+	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 type GenericPackageManager struct {
 	namer           namer.Namer
-	updateDBCommand Command
-	runner          Runner
+	updateDBCommand command.Command
+	runner          command.Runner
 	opts            []pulumi.ResourceOption
 	installCmd      string
 	updateCmd       string
@@ -19,7 +21,7 @@ type GenericPackageManager struct {
 }
 
 func NewGenericPackageManager(
-	runner Runner,
+	runner command.Runner,
 	name string,
 	installCmd string,
 	updateCmd string,
@@ -36,15 +38,20 @@ func NewGenericPackageManager(
 	return packageManager
 }
 
-func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer, checkBinary string, opts ...pulumi.ResourceOption) (Command, error) {
-	opts = append(opts, m.opts...)
+func (m *GenericPackageManager) Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error) {
+	params, err := common.ApplyOption(&PackageManagerParams{}, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	pulumiOpts := append(params.PulumiResourceOptions, m.opts...)
 	if m.updateCmd != "" {
-		updateDB, err := m.updateDB(opts)
+		updateDB, err := m.updateDB(pulumiOpts)
 		if err != nil {
 			return nil, err
 		}
 
-		opts = append(opts, utils.PulumiDependsOn(updateDB))
+		pulumiOpts = append(pulumiOpts, utils.PulumiDependsOn(updateDB))
 	}
 	var cmdStr string
 	if checkBinary != "" {
@@ -54,7 +61,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 	}
 
 	cmdName := m.namer.ResourceName("install-"+packageRef, utils.StrHash(cmdStr))
-	var cmdArgs RunnerCommandArgs = &Args{
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Create:      pulumi.String(cmdStr),
 		Environment: m.env,
 		Sudo:        true,
@@ -65,7 +72,7 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 		cmdName, cmdArgs = transform(cmdName, cmdArgs)
 	}
 
-	cmd, err := m.runner.Command(cmdName, cmdArgs, opts...)
+	cmd, err := m.runner.Command(cmdName, cmdArgs, pulumiOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -75,14 +82,14 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform Transformer,
 	return cmd, nil
 }
 
-func (m *GenericPackageManager) updateDB(opts []pulumi.ResourceOption) (Command, error) {
+func (m *GenericPackageManager) updateDB(opts []pulumi.ResourceOption) (command.Command, error) {
 	if m.updateDBCommand != nil {
 		return m.updateDBCommand, nil
 	}
 
 	c, err := m.runner.Command(
 		m.namer.ResourceName("update"),
-		&Args{
+		&command.Args{
 			Create:      pulumi.String(m.updateCmd),
 			Environment: m.env,
 			Sudo:        true,

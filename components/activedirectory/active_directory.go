@@ -124,6 +124,16 @@ $HashArguments = @{
 					return err
 				}
 				createUserResources = append(createUserResources, createDomainUserCmd)
+
+				if user.IsAdmin {
+					setAdminCmd, err := host.OS.Runner().Command(comp.namer.ResourceName("set-admin-users", user.Username), &command.Args{
+						Create: pulumi.Sprintf(`Add-ADGroupMember -Identity "Domain Admins" -Members "%s"`, user.Username),
+					}, pulumi.DependsOn([]pulumi.Resource{createDomainUserCmd}))
+					if err != nil {
+						return err
+					}
+					createUserResources = append(createUserResources, setAdminCmd)
+				}
 			}
 			adCtx.createdResources = append(adCtx.createdResources, createUserResources...)
 		}

@@ -52,7 +52,6 @@ func WithDomain(domainController *remote.Host, domainFqdn, domainAdmin, domainAd
 }
 
 func (adCtx *activeDirectoryContext) joinActiveDirectoryDomain(params *JoinDomainConfiguration) error {
-	// TODO: Need restart?
 	setDnsCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("set-dns"), &command.Args{
 		Create: pulumi.Sprintf(`
 # Set the primary DNS to the domain controller
@@ -63,42 +62,46 @@ Set-DnsClientServerAddress -InterfaceAlias $interface -ServerAddresses ("%s")
 $interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
 Set-DnsClientServerAddress -InterfaceAlias $interface -ResetServerAddresses
 `),
-	}, pulumi.Parent(adCtx.comp))
+	}, pulumi.Parent(adCtx.comp), pulumi.DependsOn(adCtx.createdResources))
+	if err != nil {
+		return err
+	}
 	adCtx.createdResources = append(adCtx.createdResources, setDnsCmd)
 
-	var joinCmd command.Command
-	joinCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
-		Create: pulumi.Sprintf(`
-# Join the domain
-try {
-	Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
-} catch {
- 	if ($_.Exception.Message -like "*already in that domain*") {
-		Write-Host "Already joined to domain"
-	} else {
-		throw $_
-	}
-}
-`, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
-		// TODO: This hangs
-		// 		Delete: pulumi.Sprintf(`
-		// Remove-Computer -UnjoinDomainCredential %s -PassThru -Force
-		// `, params.DomainAdminUser),
-	}, pulumi.Parent(setDnsCmd))
-	if err != nil {
-		return err
-	}
-	adCtx.createdResources = append(adCtx.createdResources, joinCmd)
+	// TODO
+	// 	var joinCmd command.Command
+	// 	joinCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
+	// 		Create: pulumi.Sprintf(`
+	// # Join the domain
+	// try {
+	// 	Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%[1]s\%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
+	// } catch {
+	//  	if ($_.Exception.Message -like "*already in that domain*") {
+	// 		Write-Host "Already joined to domain"
+	// 	} else {
+	// 		throw $_
+	// 	}
+	// }
+	// `, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
+	// 		// TODO: This hangs
+	// 		// 		Delete: pulumi.Sprintf(`
+	// 		// Remove-Computer -UnjoinDomainCredential %s -PassThru -Force
+	// 		// `, params.DomainAdminUser),
+	// 	}, pulumi.Parent(setDnsCmd), pulumi.DependsOn(adCtx.createdResources))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	adCtx.createdResources = append(adCtx.createdResources, joinCmd)
 
-	waitForRebootAfterJoiningCmd, err := time.NewSleep(adCtx.pulumiContext, adCtx.comp.namer.ResourceName("wait-for-host-to-reboot-after-joining-domain"), &time.SleepArgs{
-		CreateDuration: pulumi.String("30s"),
-	},
-		pulumi.Provider(adCtx.timeProvider),
-		pulumi.DependsOn(adCtx.createdResources)) // Depend on all the previously created resources
-	if err != nil {
-		return err
-	}
-	adCtx.createdResources = append(adCtx.createdResources, waitForRebootAfterJoiningCmd)
+	// waitForRebootAfterJoiningCmd, err := time.NewSleep(adCtx.pulumiContext, adCtx.comp.namer.ResourceName("wait-for-host-to-reboot-after-joining-domain"), &time.SleepArgs{
+	// 	CreateDuration: pulumi.String("30s"),
+	// },
+	// 	pulumi.Provider(adCtx.timeProvider),
+	// 	pulumi.DependsOn(adCtx.createdResources)) // Depend on all the previously created resources
+	// if err != nil {
+	// 	return err
+	// }
+	// adCtx.createdResources = append(adCtx.createdResources, waitForRebootAfterJoiningCmd)
 	return nil
 }
 
@@ -106,26 +109,65 @@ try {
 type DomainControllerConfiguration struct {
 	DomainName     string
 	DomainPassword string
-	// Whether it is the secondary / read only domain controller
-	IsBackup bool
+	// If we want to setup a backup domain controller
+	IsBackup  bool
+	PrimaryDC *remote.Host
+	// Credentials for a user with admin rights on the domain
+	// Required for backup domain controller
+	AdminName     string
+	AdminPassword string
 }
 
 // WithDomainController promotes the machine to be a domain controller.
-func WithDomainController(domainFqdn, adminPassword string, isBackup bool) func(*Configuration) error {
+func WithDomainController(domainFqdn, domainPassword string) func(*Configuration) error {
 	return func(p *Configuration) error {
 		p.DomainControllerConfiguration = &DomainControllerConfiguration{
 			DomainName:     domainFqdn,
-			DomainPassword: adminPassword,
-			IsBackup:       isBackup,
+			DomainPassword: domainPassword,
 		}
 		return nil
 	}
 }
 
+// WithBackupDomainController promotes the machine to be a secondary read-only domain controller.
+// The admin credentials are the credentials of a user with admin rights on the domain.
+func WithBackupDomainController(domainFqdn, domainPassword, adminName, adminPassword string, primaryDc *remote.Host) func(*Configuration) error {
+	return func(p *Configuration) error {
+		p.DomainControllerConfiguration = &DomainControllerConfiguration{
+			DomainName:     domainFqdn,
+			DomainPassword: domainPassword,
+			AdminName:      adminName,
+			AdminPassword:  adminPassword,
+			PrimaryDC:      primaryDc,
+			IsBackup:       true,
+		}
+		return nil
+	}
+}
+
+func getComputerName(name string, host *remote.Host, opts ...pulumi.ResourceOption) (command.Command, error) {
+	cmd, err := host.OS.Runner().Command(name, &command.Args{
+		Create: pulumi.Sprintf(`Write-Host $env:COMPUTERNAME`),
+	}, opts...)
+	if err != nil {
+		return cmd, err
+	}
+
+	return cmd, nil
+}
+
+// Note for backup domain controllers: the host must have joined the domain before being promoted to a backup domain controller.
 func (adCtx *activeDirectoryContext) installDomainController(params *DomainControllerConfiguration) error {
 	var err error
 	var installCmd command.Command
 	if params.IsBackup {
+		primaryDCFQDNCmd, err := getComputerName(adCtx.comp.namer.ResourceName("primary-dc-fqdn"), params.PrimaryDC)
+		if err != nil {
+			return err
+		}
+		adCtx.createdResources = append(adCtx.createdResources, primaryDCFQDNCmd)
+		primaryDCFQDN := pulumi.Sprintf("%s.%s", primaryDCFQDNCmd.StdoutOutput(), params.DomainName)
+
 		// This is the secondary domain controller so we don't use ADDSForest
 		installCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-dc-backup"), &command.Args{
 			Create: pulumi.Sprintf(`
@@ -134,9 +176,19 @@ Import-Module ADDSDeployment;
 try {
 	Get-ADDomainController
 } catch {
-	Install-ADDSDomainController -DomainName "%1s" -ReadOnlyReplica -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%1s", (ConvertTo-SecureString -String "%2s" -AsPlainText -Force)) -InstallDNS -NoGlobalCatalog:$true
+	$HashArguments = @{
+		DomainName                    = "%[1]s"
+		SafeModeAdministratorPassword = (ConvertTo-SecureString "%[2]s" -AsPlainText -Force)
+		Credential                    = (New-Object System.Management.Automation.PSCredential -ArgumentList "%[1]s\%[4]s", (ConvertTo-SecureString -String "%[5]s" -AsPlainText -Force))
+		InstallDns                    = $true
+		Force                         = $true
+		SiteName                      = "Default-First-Site-Name"
+		NoGlobalCatalog               = $false
+		ReadOnlyReplica               = $true
+		ReplicationSourceDC           = "%[6]s"
+	}; Install-ADDSDomainController @HashArguments
 }
-`, params.DomainName, params.DomainPassword),
+`, params.DomainName, params.DomainPassword, params.PrimaryDC.Address, params.AdminName, params.AdminPassword, primaryDCFQDN),
 		}, pulumi.Parent(adCtx.comp), pulumi.DependsOn(adCtx.createdResources))
 		if err != nil {
 			return err
@@ -154,7 +206,7 @@ try {
 		ForestMode                    = "Win2012R2"
 		DomainMode                    = "Win2012R2"
 		DomainName                    = "%s"
-		SafeModeAdministratorPassword = (ConvertTo-SecureString %s -AsPlainText -Force)
+		SafeModeAdministratorPassword = (ConvertTo-SecureString "%s" -AsPlainText -Force)
 		Force                         = $true
 	}; Install-ADDSForest @HashArguments
 }
@@ -190,6 +242,7 @@ try {
 type DomainUser struct {
 	Username string
 	Password string
+	IsAdmin  bool
 }
 
 // WithDomainUser adds a user in Active Directory.
@@ -200,6 +253,18 @@ func WithDomainUser(username, password string) func(params *Configuration) error
 		p.DomainUsers = append(p.DomainUsers, DomainUser{
 			Username: username,
 			Password: password,
+			IsAdmin:  false,
+		})
+		return nil
+	}
+}
+
+func WithDomainAdmin(username, password string) func(params *Configuration) error {
+	return func(p *Configuration) error {
+		p.DomainUsers = append(p.DomainUsers, DomainUser{
+			Username: username,
+			Password: password,
+			IsAdmin:  true,
 		})
 		return nil
 	}

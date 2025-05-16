@@ -68,6 +68,10 @@
             <xsl:apply-templates select="@*|node()" />
         </xsl:copy>
     </xsl:template>
+    
+    <xsl:template match="disk/driver">
+      <driver name="qemu" type="qcow2" io="io_uring"/>
+    </xsl:template>
 
     <xsl:template
         match="/domain/devices/interface[@type='network']/mac/@address | /domain/devices/interface[@type='user']/mac/@address">

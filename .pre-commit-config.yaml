@@ -37,4 +37,4 @@ repos:
         entry: 'inv ci.check-protected-branch'
         language: system
         pass_filenames: false
-        stages: [pre-commit, pre-push]      
+        stages: [pre-commit, pre-push]

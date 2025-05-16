@@ -86,6 +86,10 @@ func (fs windowsOSCommand) NewCopyFile(runner Runner, name string, localPath, re
 	return runner.newCopyFile(name, localPath, remotePath, opts...)
 }
 
+func (fs windowsOSCommand) NewCopyToRemoteFile(runner Runner, name string, localPath, remotePath pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	return runner.newCopyToRemoteFile(name, localPath, remotePath, opts...)
+}
+
 func (fs windowsOSCommand) MoveFile(runner Runner, name string, source, destination pulumi.StringInput, sudo bool, opts ...pulumi.ResourceOption) (Command, error) {
 	backupPath := pulumi.Sprintf("%v.%s", destination, backupExtension)
 	copyCommand := pulumi.Sprintf(`Copy-Item -Path '%v' -Destination '%v'`, source, destination)
@@ -112,6 +116,19 @@ func (fs windowsOSCommand) copyRemoteFile(runner *RemoteRunner, name string, src
 	return remote.NewCopyFile(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyFileArgs{
 		Connection: runner.Config().connection,
 		LocalPath:  src,
+		RemotePath: dst,
+		Triggers:   pulumi.Array{src, dst},
+	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)
+}
+
+func (fs windowsOSCommand) copyRemoteFileV2(runner *RemoteRunner, name string, src, dst pulumi.StringInput, opts ...pulumi.ResourceOption) (pulumi.Resource, error) {
+	srcAsset := src.ToStringOutput().ApplyT(func(path string) pulumi.AssetOrArchive {
+		return pulumi.NewFileAsset(path)
+	}).(pulumi.AssetOrArchiveOutput)
+
+	return remote.NewCopyToRemote(runner.Environment().Ctx(), runner.Namer().ResourceName("copy", name), &remote.CopyToRemoteArgs{
+		Connection: runner.Config().connection,
+		Source:     srcAsset,
 		RemotePath: dst,
 		Triggers:   pulumi.Array{src, dst},
 	}, utils.MergeOptions(runner.PulumiOptions(), opts...)...)

@@ -69,10 +69,10 @@ func NewHostAgent(e config.Env, host *remoteComp.Host, options ...agentparams.Op
 	return hostInstallComp, nil
 }
 
-func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
+func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
 	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	installCmd, err := h.Host.OS.Runner().Command(
@@ -81,7 +81,43 @@ func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, bas
 			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
 		}, baseOpts...)
 	if err != nil {
-		return err
+		return nil, err
+	}
+	return installCmd, nil
+}
+
+func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
+	packagePath, err := GetPackagePath(params.Version.LocalPath, h.Host.OS.Descriptor().Flavor, params.Version.Flavor, h.Host.OS.Descriptor().Architecture)
+	if err != nil {
+		return nil, err
+	}
+
+	env.Ctx().Log.Info(fmt.Sprintf("Found local package to install %s", packagePath), nil)
+	uploadCmd, err := h.Host.OS.FileManager().CopyToRemoteFile("copy-agent-package", pulumi.String(packagePath), pulumi.String("./"), baseOpts...)
+	if err != nil {
+		return nil, err
+	}
+
+	installCmd, err := h.manager.directInstallCommand(env, path.Base(packagePath), params.Version, params.AdditionalInstallParameters, utils.MergeOptions(baseOpts, utils.PulumiDependsOn(uploadCmd))...)
+	if err != nil {
+		return nil, err
+	}
+	return installCmd, nil
+}
+
+func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) error {
+	var installCmd pulumi.Resource
+	var err error
+	if params.Version.LocalPath != "" {
+		installCmd, err = h.directInstallInstallation(env, params, baseOpts...)
+		if err != nil {
+			return err
+		}
+	} else {
+		installCmd, err = h.installScriptInstallation(env, params, baseOpts...)
+		if err != nil {
+			return err
+		}
 	}
 
 	afterInstallOpts := utils.MergeOptions(baseOpts, utils.PulumiDependsOn(installCmd))

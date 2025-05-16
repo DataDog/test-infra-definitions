@@ -34,7 +34,8 @@ type KubernetesAgent struct {
 	WindowsClusterAgent  *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterAgent"`
 	WindowsClusterChecks *kubernetes.KubernetesObjectRef `pulumi:"windowsClusterChecks"`
 
-	FIPSEnabled pulumi.BoolOutput `pulumi:"fipsEnabled"`
+	ClusterAgentToken pulumi.StringOutput
+	FIPSEnabled       pulumi.BoolOutput `pulumi:"fipsEnabled"`
 }
 
 func (h *KubernetesAgent) Export(ctx *pulumi.Context, out *KubernetesAgentOutput) error {

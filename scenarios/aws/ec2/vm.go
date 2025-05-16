@@ -110,7 +110,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 }
 
 func InstallECRCredentialsHelper(e aws.Environment, vm *remote.Host) (command.Command, error) {
-	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", nil, "")
+	ecrCredsHelperInstall, err := vm.OS.PackageManager().Ensure("amazon-ecr-credential-helper", nil, "docker-credential-ecr-login")
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,7 @@ import (
 
 	"golang.org/x/exp/slices"
 
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
@@ -31,12 +32,55 @@ func newWindowsManager(host *remoteComp.Host) agentOSManager {
 	return &agentWindowsManager{host: host}
 }
 
+func (am *agentWindowsManager) directInstallCommand(env config.Env, packagePath string, version agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error) {
+	cmd := fmt.Sprintf(`
+$ProgressPreference = 'SilentlyContinue';
+$ErrorActionPreference = 'Stop';
+`)
+	installCommandStr, err := am.getInstallPackageCommand(packagePath, version, additionalInstallParameters)
+	if err != nil {
+		return nil, err
+	}
+	cmd += installCommandStr
+	return am.host.OS.Runner().Command("install-agent", &command.Args{Create: pulumi.Sprintf(cmd, env.AgentAPIKey())}, opts...)
+}
+
 func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
 	url, err := getAgentURL(version)
 	if err != nil {
 		return "", err
 	}
 
+	cmd := ""
+	if version.Flavor == agentparams.FIPSFlavor {
+		cmd = fmt.Sprint(`
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy' -Name 'Enabled' -Value 1 -Type DWORD`)
+	}
+
+	localFilename := `C:\datadog-agent.msi`
+	cmd += fmt.Sprintf(`
+$ProgressPreference = 'SilentlyContinue';
+$ErrorActionPreference = 'Stop';
+for ($i=0; $i -lt 3; $i++) {
+	try {
+		(New-Object Net.WebClient).DownloadFile('%s','%s')
+	} catch {
+		if ($i -eq 2) {
+			throw
+		}
+	}
+};
+`, url, localFilename)
+	installPackageCommandStr, err := am.getInstallPackageCommand(localFilename, version, additionalInstallParameters)
+	if err != nil {
+		return "", err
+	}
+	cmd += installPackageCommandStr
+
+	return cmd, nil
+}
+
+func (am *agentWindowsManager) getInstallPackageCommand(filePath string, version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
 	logFilePath := "C:\\install.log"
 	logParamIdx := slices.IndexFunc(additionalInstallParameters, func(s string) bool {
 		return strings.HasPrefix(s, "/log")
@@ -51,24 +95,16 @@ func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVers
 		}
 		logFilePath = paramParts[1]
 	}
-
-	localFilename := `C:\datadog-agent.msi`
-	cmd := fmt.Sprintf(`
-$ProgressPreference = 'SilentlyContinue';
-$ErrorActionPreference = 'Stop';
-for ($i=0; $i -lt 3; $i++) {
-	try {
-		(New-Object Net.WebClient).DownloadFile('%s','%s')
-	} catch {
-		if ($i -eq 2) {
-			throw
-		}
+	cmd := ""
+	if version.Flavor == agentparams.FIPSFlavor {
+		cmd = fmt.Sprintf(`
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Lsa\FipsAlgorithmPolicy' -Name 'Enabled' -Value 1 -Type DWORD`)
 	}
-};
+	cmd += fmt.Sprintf(`
 $exitCode = (Start-Process -Wait msiexec -PassThru -ArgumentList '/qn /i %s APIKEY=%%s %s').ExitCode
 Get-Content %s
 Exit $exitCode
-`, url, localFilename, localFilename, strings.Join(additionalInstallParameters, " "), logFilePath)
+	`, filePath, strings.Join(additionalInstallParameters, " "), logFilePath)
 	return cmd, nil
 }
 

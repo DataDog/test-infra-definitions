@@ -8,7 +8,6 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -70,9 +69,13 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	if env.PipelineID() != "" {
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
+	if env.AgentLocalPackage() != "" {
+		defaultVersion = WithLocalPackage(env.AgentLocalPackage())
+	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
+
 	if env.AgentFIPS() {
 		defaultFlavor = WithFlavor(FIPSFlavor)
 	}
@@ -119,6 +122,14 @@ func WithVersion(version string) func(*Params) error {
 func WithFlavor(flavor string) func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Flavor = flavor
+		return nil
+	}
+}
+
+// WithLocalPackage use a local package of the Agent
+func WithLocalPackage(path string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.LocalPath = path
 		return nil
 	}
 }
@@ -306,7 +317,7 @@ func WithIntakeHostname(scheme string, hostname string) func(*Params) error {
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
-		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
+		p.ResourceOptions = append(p.ResourceOptions, pulumi.DependsOn([]pulumi.Resource{fakeintake}))
 		return withIntakeHostname(fakeintake.Scheme, fakeintake.Host, fakeintake.Port)(p)
 	}
 }

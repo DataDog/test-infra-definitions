@@ -77,6 +77,13 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
+    - go install github.com/DataDog/orchestrion@v1.1.0
+    - orchestrion pin
+    - export DD_CIVISIBILITY_ENABLED=true
+    - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
+    - export DD_ENV=ci
+    - export DD_API_KEY=$(vault kv get -field=api_key kv/k8s/gitlab-runner/test-infra-definitions/dd-token)
+    - export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
   script:
     - |
       if [ ! -f ./dist/main ]; then
@@ -117,6 +124,7 @@ bump-version-on-datadog-agent:
         EXTRA_UPDATE_ARGS: "--is-dev-image"
   variables:
     EXTRA_UPDATE_ARGS: ""
+    PR_BRANCH: auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
   before_script:
     - set +x
     - export GITHUB_APP_USER_ID=153269286 # Can be found on https://api.github.com/users/agent-platform-auto-pr[bot]
@@ -133,13 +141,13 @@ bump-version-on-datadog-agent:
     - git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password='${GITHUB_TOKEN}'"; }; f'
     - git clone https://github.com/DataDog/datadog-agent.git datadog-agent
     - pushd datadog-agent
-    - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - git checkout -b $PR_BRANCH
+    - git push origin $PR_BRANCH # Create the reference to push the commit through API later
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
-    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
-    - inv -e tidy
+    - dda inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
+    - dda inv -e tidy
     - git add -u
-    - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
-    - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - dda inv -e git.push-signed-commits --branch $PR_BRANCH --commit-message "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - popd
     - pip install -r requirements.txt
     - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA

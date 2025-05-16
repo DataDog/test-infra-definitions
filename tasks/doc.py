@@ -36,3 +36,4 @@ agent_flavor: str = "Use a specific Agent flavor (such as datadog-fips-agent, se
 agent_config_path: str = "Agent config to merge with default config from a file at this location"
 agent_env: str = "Extra environment variables to run the agent with, the format is `VAR1=val1,VAR2=val2`"
 helm_config: str = "Path to a custom helm config file that will be merged with the default one"
+local_package: str = "Path to a local package to install, it can be either a folder or a file. If a folder is targetted we automatically take the first file with the correct extension depending on the targetted OS"

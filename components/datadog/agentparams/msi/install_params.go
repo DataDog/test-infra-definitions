@@ -2,8 +2,9 @@ package msi
 
 import (
 	"fmt"
-	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"reflect"
+
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 )
 
 // InstallAgentParams are the parameters used for installing the Agent using msiexec.
@@ -12,6 +13,7 @@ type InstallAgentParams struct {
 	AgentUserPassword string `installer_arg:"DDAGENTUSER_PASSWORD"`
 	DdURL             string `installer_arg:"DD_URL"`
 	Site              string `installer_arg:"SITE"`
+	InstallPath       string `installer_arg:"PROJECTLOCATION"`
 	InstallLogFile    string `installer_arg:"/log"`
 }
 
@@ -93,4 +95,11 @@ func WithInstallLogFile(logFileName string) InstallAgentOption {
 // WithFakeIntake configures the Agent to use a fake intake URL.
 func WithFakeIntake(fakeIntake *fakeintake.FakeintakeOutput) InstallAgentOption {
 	return WithDdURL(fakeIntake.URL)
+}
+
+// WithFakeIntake configures the Agent to use a fake intake URL.
+func WithCustomInstallPath(installPath string) InstallAgentOption {
+	return func(i *InstallAgentParams) {
+		i.InstallPath = installPath
+	}
 }

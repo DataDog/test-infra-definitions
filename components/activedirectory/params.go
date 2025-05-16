@@ -51,13 +51,13 @@ func WithDomain(domainController *remote.Host, domainFqdn, domainAdmin, domainAd
 	}
 }
 
-func (adCtx *activeDirectoryContext) joinActiveDirectoryDomain(params *JoinDomainConfiguration) error {
+// Sets the primary DNS server to the domain controller.
+func (adCtx *activeDirectoryContext) setPrimaryDCDns(dc *remote.Host) error {
 	setDnsCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("set-dns"), &command.Args{
 		Create: pulumi.Sprintf(`
-# Set the primary DNS to the domain controller
 $interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
 Set-DnsClientServerAddress -InterfaceAlias $interface -ServerAddresses ("%s")
-`, params.DomainController.Address),
+`, dc.Address),
 		Delete: pulumi.Sprintf(`
 $interface = (Get-NetAdapter | Select-Object -First 1).InterfaceAlias
 Set-DnsClientServerAddress -InterfaceAlias $interface -ResetServerAddresses
@@ -68,40 +68,48 @@ Set-DnsClientServerAddress -InterfaceAlias $interface -ResetServerAddresses
 	}
 	adCtx.createdResources = append(adCtx.createdResources, setDnsCmd)
 
-	// TODO
-	// 	var joinCmd command.Command
-	// 	joinCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
-	// 		Create: pulumi.Sprintf(`
-	// # Join the domain
-	// try {
-	// 	Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%[1]s\%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
-	// } catch {
-	//  	if ($_.Exception.Message -like "*already in that domain*") {
-	// 		Write-Host "Already joined to domain"
-	// 	} else {
-	// 		throw $_
-	// 	}
-	// }
-	// `, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
-	// 		// TODO: This hangs
-	// 		// 		Delete: pulumi.Sprintf(`
-	// 		// Remove-Computer -UnjoinDomainCredential %s -PassThru -Force
-	// 		// `, params.DomainAdminUser),
-	// 	}, pulumi.Parent(setDnsCmd), pulumi.DependsOn(adCtx.createdResources))
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// 	adCtx.createdResources = append(adCtx.createdResources, joinCmd)
+	return nil
+}
 
-	// waitForRebootAfterJoiningCmd, err := time.NewSleep(adCtx.pulumiContext, adCtx.comp.namer.ResourceName("wait-for-host-to-reboot-after-joining-domain"), &time.SleepArgs{
-	// 	CreateDuration: pulumi.String("30s"),
-	// },
-	// 	pulumi.Provider(adCtx.timeProvider),
-	// 	pulumi.DependsOn(adCtx.createdResources)) // Depend on all the previously created resources
-	// if err != nil {
-	// 	return err
-	// }
-	// adCtx.createdResources = append(adCtx.createdResources, waitForRebootAfterJoiningCmd)
+func (adCtx *activeDirectoryContext) joinActiveDirectoryDomain(params *JoinDomainConfiguration) error {
+	err := adCtx.setPrimaryDCDns(params.DomainController)
+	if err != nil {
+		return err
+	}
+
+	var joinCmd command.Command
+	joinCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("join-domain"), &command.Args{
+		Create: pulumi.Sprintf(`
+	# Join the domain
+	try {
+		Add-Computer -DomainName "%s" -Credential (New-Object System.Management.Automation.PSCredential -ArgumentList "%[1]s\%s", (ConvertTo-SecureString -String "%s" -AsPlainText -Force))
+	} catch {
+		if ($_.Exception.Message -like "*already in that domain*") {
+			Write-Host "Already joined to domain"
+		} else {
+			throw $_
+		}
+	}
+	`, params.DomainName, params.DomainAdminUser, params.DomainAdminUserPassword),
+		// TODO: This hangs
+		// 		Delete: pulumi.Sprintf(`
+		// Remove-Computer -UnjoinDomainCredential %s -PassThru -Force
+		// `, params.DomainAdminUser),
+	}, pulumi.Parent(adCtx.comp), pulumi.DependsOn(adCtx.createdResources))
+	if err != nil {
+		return err
+	}
+	adCtx.createdResources = append(adCtx.createdResources, joinCmd)
+
+	waitForRebootAfterJoiningCmd, err := time.NewSleep(adCtx.pulumiContext, adCtx.comp.namer.ResourceName("wait-for-host-to-reboot-after-joining-domain"), &time.SleepArgs{
+		CreateDuration: pulumi.String("30s"),
+	},
+		pulumi.Provider(adCtx.timeProvider),
+		pulumi.DependsOn(adCtx.createdResources)) // Depend on all the previously created resources
+	if err != nil {
+		return err
+	}
+	adCtx.createdResources = append(adCtx.createdResources, waitForRebootAfterJoiningCmd)
 	return nil
 }
 
@@ -161,6 +169,12 @@ func (adCtx *activeDirectoryContext) installDomainController(params *DomainContr
 	var err error
 	var installCmd command.Command
 	if params.IsBackup {
+		// Setup DNS
+		err := adCtx.setPrimaryDCDns(params.PrimaryDC)
+		if err != nil {
+			return err
+		}
+
 		primaryDCFQDNCmd, err := getComputerName(adCtx.comp.namer.ResourceName("primary-dc-fqdn"), params.PrimaryDC)
 		if err != nil {
 			return err
@@ -168,7 +182,7 @@ func (adCtx *activeDirectoryContext) installDomainController(params *DomainContr
 		adCtx.createdResources = append(adCtx.createdResources, primaryDCFQDNCmd)
 		primaryDCFQDN := pulumi.Sprintf("%s.%s", primaryDCFQDNCmd.StdoutOutput(), params.DomainName)
 
-		// This is the secondary domain controller so we don't use ADDSForest
+		// Install the backup domain controller
 		installCmd, err = adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-dc-backup"), &command.Args{
 			Create: pulumi.Sprintf(`
 Add-WindowsFeature -name ad-domain-services -IncludeManagementTools;

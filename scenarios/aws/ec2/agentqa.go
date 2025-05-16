@@ -51,41 +51,27 @@ func AgentQARun(ctx *pulumi.Context) error {
 	if err != nil {
 		return err
 	}
-	_, _, err = activedirectory.NewActiveDirectory(ctx, &env, dcBackup,
+	_, dcBackupResource, err := activedirectory.NewActiveDirectory(ctx, &env, dcBackup,
 		activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcForestResource)),
-		activedirectory.WithDomain(dcForest, adDomain, adUser, adUserPassword),
 		activedirectory.WithBackupDomainController(adDomain, adPassword, adUser, adUserPassword, dcForest),
 	)
 	if err != nil {
 		return err
 	}
 
-	// TODO: Client
-	// // Client node
-	// client, err := newWindowsNode(qaContext, "client", true)
-	// if err != nil {
-	// 	return nil, nil
-	// }
-	// err = client.Export(ctx, nil)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	// // Setup active directory
-	// adClientComp, _, err := activedirectory.NewActiveDirectory(ctx, &env, client,
-	// // TODO: Wait for dcbackup to be ready
-	//	activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcBackupResource)),
-	// 	activedirectory.WithDomain(dcForest, adDomain, fmt.Sprintf("%s\\%s", adDomain, adUser), adUserPassword),
-	// )
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// err = adClientComp.Export(ctx, nil)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// return []*remote.Host{dcBackup, client}, nil
+	// Client node
+	client, err := newWindowsNode(qaContext, "client", true)
+	if err != nil {
+		return err
+	}
+	// Setup active directory
+	_, _, err = activedirectory.NewActiveDirectory(ctx, &env, client,
+		activedirectory.WithDomain(dcForest, adDomain, adUser, adUserPassword),
+		activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcBackupResource)),
+	)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }

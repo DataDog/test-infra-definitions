@@ -2,9 +2,11 @@ package eks
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/etcd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
@@ -71,6 +73,7 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	var dependsOnDDAgent pulumi.ResourceOption
+	var k8sAgentComponent *agent.KubernetesAgent
 	if awsEnv.AgentDeploy() {
 		k8sAgentOptions := make([]kubernetesagentparams.Option, 0)
 		k8sAgentOptions = append(
@@ -91,7 +94,7 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())
 		}
 
-		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
+		k8sAgentComponent, err = helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
 
 		if err != nil {
 			return err
@@ -130,6 +133,10 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
+		if _, err := dogstatsd.EksFargateAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-fargate", k8sAgentComponent.ClusterAgentToken, dependsOnDDAgent /* for admission */); err != nil {
+			return err
+		}
+
 		if awsEnv.DogstatsdDeploy() {
 			// dogstatsd clients that report to the dogstatsd standalone deployment
 			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
@@ -146,6 +153,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
+			return err
+		}
+
+		if _, err := etcd.K8sAppDefinition(&awsEnv, cluster.KubeProvider); err != nil {
 			return err
 		}
 	}

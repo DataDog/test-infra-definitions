@@ -38,6 +38,10 @@
       </xsl:copy>
   </xsl:template>
 
+  <xsl:template match="disk/driver">
+    <driver name="qemu" type="qcow2" io="io_uring"/>
+  </xsl:template>
+
   <xsl:template match="/domain/devices/interface[@type='network']/mac/@address">
       <xsl:attribute name="address">
       <xsl:value-of select="'{mac}'" />

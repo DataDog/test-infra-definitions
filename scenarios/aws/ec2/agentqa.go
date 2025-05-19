@@ -14,7 +14,7 @@ import (
 
 type AgentQAClient struct {
 	HostName string
-	// TODO: Windows version...
+	OsDesc   *os.Descriptor
 	// TODO: User creds / need to create user?
 }
 
@@ -59,7 +59,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 	}
 
 	// Domain controller node
-	dcForest, err := newWindowsNode(qaContext, "dcforest", false)
+	dcForest, err := newWindowsNode(qaContext, "dcforest", false, os.WindowsServer2022)
 	if err != nil {
 		return err
 	}
@@ -72,7 +72,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 	}
 
 	// Domain controller backup node
-	dcBackup, err := newWindowsNode(qaContext, "dcbackup", false)
+	dcBackup, err := newWindowsNode(qaContext, "dcbackup", false, os.WindowsServer2022)
 	if err != nil {
 		return err
 	}
@@ -86,7 +86,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 
 	// Client nodes
 	for _, client := range params.Clients {
-		client, err := newWindowsNode(qaContext, client.HostName, true)
+		client, err := newWindowsNode(qaContext, client.HostName, true, *client.OsDesc)
 		if err != nil {
 			return err
 		}
@@ -107,9 +107,8 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 // TODO: This will be configured outside of test-infra-definitions
 
 // A client node is a host VM where the agent is installed
-func newWindowsNode(qa *agentQAContext, name string, installAgent bool) (*remote.Host, error) {
+func newWindowsNode(qa *agentQAContext, name string, installAgent bool, osDesc os.Descriptor) (*remote.Host, error) {
 	// TODO: Os version / image config
-	osDesc := os.WindowsServer2022
 	vm, err := NewVM(qa.env, name, WithAMI(qa.env.InfraOSImageID(), osDesc, osDesc.Architecture), WithAgentQA())
 	if err != nil {
 		return nil, err

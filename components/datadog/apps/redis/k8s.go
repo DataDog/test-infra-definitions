@@ -3,6 +3,7 @@ package redis
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/Masterminds/semver"
 
@@ -68,7 +69,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("redis"),
-							Image: pulumi.String("public.ecr.aws/docker/library/redis:latest"),
+							Image: pulumi.String("ghcr.io/datadog/redis:" + apps.Version),
 							Args: pulumi.StringArray{
 								pulumi.String("--loglevel"),
 								pulumi.String("verbose"),
@@ -251,7 +252,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		}
 
 		if _, err := apiextensions.NewCustomResource(e.Ctx(), "redis", &apiextensions.CustomResourceArgs{
-			ApiVersion: pulumi.String("autoscaling.k8s.io/v1beta2"),
+			ApiVersion: pulumi.String("autoscaling.k8s.io/v1"),
 			Kind:       pulumi.String("VerticalPodAutoscaler"),
 			Metadata: &metav1.ObjectMetaArgs{
 				Name:      pulumi.String("redis"),
@@ -327,7 +328,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("query"),
-							Image: pulumi.String("ghcr.io/datadog/apps-redis-client:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-redis-client:" + apps.Version),
 							Args: pulumi.StringArray{
 								pulumi.String("-min-tps"),
 								pulumi.String("1"),

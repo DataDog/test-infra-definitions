@@ -31,3 +31,10 @@ repos:
         files: .*\.go$
         language: system
         pass_filenames: false
+      - id: protected-branches
+        name: protected-branches
+        description: checks that the commit isn't created on a protected branch
+        entry: 'inv ci.check-protected-branch'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]

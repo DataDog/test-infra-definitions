@@ -144,10 +144,10 @@ bump-version-on-datadog-agent:
     - git checkout -b $PR_BRANCH
     - git push origin $PR_BRANCH # Create the reference to push the commit through API later
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
-    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
-    - inv -e tidy
+    - dda inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
+    - dda inv -e tidy
     - git add -u
-    - inv -e git.push-signed-commits --branch $PR_BRANCH --commit-message "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
+    - dda inv -e git.push-signed-commits --branch $PR_BRANCH --commit-message "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - popd
     - pip install -r requirements.txt
     - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA

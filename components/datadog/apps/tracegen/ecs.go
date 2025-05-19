@@ -2,6 +2,7 @@ package tracegen
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
@@ -34,7 +35,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"tracegen": {
 					Name:  pulumi.String("tracegen"),
-					Image: pulumi.String("ghcr.io/datadog/apps-tracegen:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-tracegen:" + apps.Version),
 					Environment: ecs.TaskDefinitionKeyValuePairArray{
 						ecs.TaskDefinitionKeyValuePairArgs{
 							Name:  pulumi.StringPtr("DD_TRACE_AGENT_URL"),
@@ -80,7 +81,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"tracegen": {
 					Name:  pulumi.String("tracegen"),
-					Image: pulumi.String("ghcr.io/datadog/apps-tracegen:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-tracegen:" + apps.Version),
 					Environment: ecs.TaskDefinitionKeyValuePairArray{
 						ecs.TaskDefinitionKeyValuePairArgs{
 							Name:  pulumi.StringPtr("ECS_AGENT_HOST"),

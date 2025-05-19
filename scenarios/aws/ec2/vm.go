@@ -50,6 +50,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			UserData:           vmArgs.userData,
 			InstanceProfile:    vmArgs.instanceProfile,
 			HTTPTokensRequired: vmArgs.httpTokensRequired,
+			IsAgentQA:          vmArgs.isAgentQA,
 		}
 
 		// Create the EC2 instance

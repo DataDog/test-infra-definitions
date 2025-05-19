@@ -23,11 +23,18 @@ type InstanceArgs struct {
 	// Optional
 	UserData           string
 	HTTPTokensRequired bool
+	IsAgentQA          bool // Whether the instance is used for Agent QA Env
 }
 
 func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulumi.ResourceOption) (*ec2.Instance, error) {
 	defaultInstanceArgs(e, &args)
 
+	tags := pulumi.StringMap{
+		"Name": e.Namer.DisplayName(255, pulumi.String(name)),
+	}
+	if args.IsAgentQA {
+		tags["AgentQA"] = pulumi.String("true")
+	}
 	instanceArgs := &ec2.InstanceArgs{
 		Ami:                     pulumi.StringPtr(args.AMI),
 		SubnetId:                e.RandomSubnets().Index(pulumi.Int(0)),
@@ -41,9 +48,7 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 		RootBlockDevice: ec2.InstanceRootBlockDeviceArgs{
 			VolumeSize: pulumi.Int(args.StorageSize),
 		},
-		Tags: pulumi.StringMap{
-			"Name": e.Namer.DisplayName(255, pulumi.String(name)),
-		},
+		Tags:                              tags,
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
 	}
 

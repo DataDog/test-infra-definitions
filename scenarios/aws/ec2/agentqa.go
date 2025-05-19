@@ -1,6 +1,7 @@
 package ec2
 
 import (
+	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/components/activedirectory"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
@@ -11,13 +12,37 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+type AgentQAClient struct {
+	HostName string
+	// TODO: Windows version...
+	// TODO: User creds / need to create user?
+}
+
+type AgentQAOptions struct {
+	Clients []AgentQAClient
+}
+
+type AgentQAOption = func(*AgentQAOptions) error
+
+func WithClient(client AgentQAClient) AgentQAOption {
+	return func(o *AgentQAOptions) error {
+		o.Clients = append(o.Clients, client)
+		return nil
+	}
+}
+
 type agentQAContext struct {
 	pulumiContext *pulumi.Context
 	env           aws.Environment
 }
 
 // Will create the Agent QA Environment
-func AgentQARun(ctx *pulumi.Context) error {
+func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
+	params, err := common.ApplyOption(&AgentQAOptions{}, opts)
+	if err != nil {
+		return err
+	}
+
 	const adDomain = "ad.datadogqa.lab"
 	const adPassword = "Test1234"
 	const adUser = "ddagentuser"
@@ -59,18 +84,21 @@ func AgentQARun(ctx *pulumi.Context) error {
 		return err
 	}
 
-	// Client node
-	client, err := newWindowsNode(qaContext, "client", true)
-	if err != nil {
-		return err
-	}
-	// Setup active directory
-	_, _, err = activedirectory.NewActiveDirectory(ctx, &env, client,
-		activedirectory.WithDomain(dcForest, adDomain, adUser, adUserPassword),
-		activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcBackupResource)),
-	)
-	if err != nil {
-		return err
+	// Client nodes
+	for _, client := range params.Clients {
+		client, err := newWindowsNode(qaContext, client.HostName, true)
+		if err != nil {
+			return err
+		}
+		// Setup active directory
+		_, _, err = activedirectory.NewActiveDirectory(ctx, &env, client,
+			// TODO: Users...
+			activedirectory.WithDomain(dcForest, adDomain, adUser, adUserPassword),
+			activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcBackupResource)),
+		)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -82,7 +110,7 @@ func AgentQARun(ctx *pulumi.Context) error {
 func newWindowsNode(qa *agentQAContext, name string, installAgent bool) (*remote.Host, error) {
 	// TODO: Os version / image config
 	osDesc := os.WindowsServer2022
-	vm, err := NewVM(qa.env, name, WithAMI(qa.env.InfraOSImageID(), osDesc, osDesc.Architecture))
+	vm, err := NewVM(qa.env, name, WithAMI(qa.env.InfraOSImageID(), osDesc, osDesc.Architecture), WithAgentQA())
 	if err != nil {
 		return nil, err
 	}

@@ -2,6 +2,7 @@ import os
 import re
 
 from github import Auth, Github
+from invoke.exceptions import Exit
 from invoke.tasks import task
 
 COMMIT_TITLE_REGEX = re.compile(r"\[test-infra-definitions\]\[automated\] Bump test-infra-definitions to ([a-z0-9]*)")
@@ -77,3 +78,17 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         )
         closed_stale_prs += 1
     print(f"Closed {closed_stale_prs} stale PRs")
+
+
+@task
+def check_protected_branch(ctx):
+    """Test if we are trying to commit or push to a protected branch."""
+    local_branch = ctx.run("git rev-parse --abbrev-ref HEAD", hide=True).stdout.strip()
+
+    if local_branch == "main":
+        print(f"[WARNING] You're about to commit or push to {local_branch}, are you sure this is what you want?")
+        raise Exit(code=1)
+
+    if re.fullmatch(r'^[0-9]+\.[0-9]+\.x$', local_branch):
+        print("[WARNING] You're about to commit or push to a release branch, are you sure this is what you want?")
+        raise Exit(code=1)

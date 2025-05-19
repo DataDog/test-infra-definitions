@@ -3,6 +3,7 @@ package nginx
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 	classicECS "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ecs"
@@ -31,7 +32,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 				"nginx": {
 					Name:  pulumi.String("nginx"),
-					Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:" + apps.Version),
 					DockerLabels: pulumi.StringMap{
 						"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 							map[string]interface{}{
@@ -78,7 +79,7 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 				},
 				"query": {
 					Name:  pulumi.String("query"),
-					Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
+					Image: pulumi.String("ghcr.io/datadog/apps-http-client:" + apps.Version),
 					Command: pulumi.StringArray{
 						pulumi.String("-url"),
 						pulumi.String("http://nginx"),

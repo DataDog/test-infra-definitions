@@ -72,7 +72,7 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 			}
 
 			// Exclude -dbg_ packages
-			if strings.Contains(entry.Name(), "-dbg_") {
+			if strings.Contains(entry.Name(), "-dbg_") || strings.Contains(entry.Name(), "-dbg-") {
 				continue
 			}
 

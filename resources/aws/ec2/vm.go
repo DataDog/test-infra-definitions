@@ -33,7 +33,7 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 		"Name": e.Namer.DisplayName(255, pulumi.String(name)),
 	}
 	if args.IsAgentQA {
-		tags["AgentQA"] = pulumi.String("true")
+		tags["AgentQAEnvWindowsAgent"] = pulumi.String("true")
 	}
 	instanceArgs := &ec2.InstanceArgs{
 		Ami:                     pulumi.StringPtr(args.AMI),

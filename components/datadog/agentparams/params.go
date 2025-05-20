@@ -103,6 +103,14 @@ func WithLatestNightly() func(*Params) error {
 	}
 }
 
+func WithLatestChannel(channel channel, major string) func(*Params) error {
+	return func(p *Params) error {
+		p.Version.Major = major
+		p.Version.Channel = channel
+		return nil
+	}
+}
+
 // WithVersion use a specific version of the Agent. For example: `6.39.0` or `7.41.0~rc.7-1`
 func WithVersion(version string) func(*Params) error {
 	return func(p *Params) error {

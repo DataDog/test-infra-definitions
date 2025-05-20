@@ -139,6 +139,9 @@ func newWindowsNode(qa *agentQAContext, name string, installAgent bool, osDesc o
 		// 	agentOptions = append(agentOptions, agentparams.WithFlavor(qa.env.AgentFlavor()))
 		// }
 
+		// agentOptions = append(agentOptions, agentparams.WithLatestChannel(agentparams.BetaChannel, "7"))
+		agentOptions = append(agentOptions, agentparams.WithLatestChannel(agentparams.NightlyChannel, "7"))
+
 		// if qa.env.AgentConfigPath() != "" {
 		// 	configContent, err := qa.env.CustomAgentConfig()
 		// 	if err != nil {

@@ -156,18 +156,19 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		return getAgentURLFromPipelineID(version)
 	}
 
-	if version.Channel == agentparams.BetaChannel {
-		finder, err := newAgentURLFinder("https://s3.amazonaws.com/dd-agent-mstesting/builds/beta/installers_v2.json", version.Flavor)
+	if version.Channel != agentparams.StableChannel {
+		finder, err := newAgentURLFinder(fmt.Sprintf("https://s3.amazonaws.com/dd-agent-mstesting/builds/%s/installers_v2.json", version.Channel), version.Flavor)
 		if err != nil {
 			return "", err
 		}
 
-		url, err := finder.findVersion(fullVersion)
-		if err != nil {
-			return "", err
+		if version.Minor == "" { // Use latest
+			if fullVersion, err = finder.getLatestVersion(); err != nil {
+				return "", err
+			}
 		}
 
-		return url, nil
+		return finder.findVersion(fullVersion)
 	}
 
 	finder, err := newAgentURLFinder("https://ddagent-windows-stable.s3.amazonaws.com/installers_v2.json", version.Flavor)

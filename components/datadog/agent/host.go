@@ -87,7 +87,7 @@ func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparam
 }
 
 func (h *HostAgent) directInstallInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
-	packagePath, err := GetPackagePath(params.Version.LocalPath, h.Host.OS.Descriptor().Flavor, params.Version.Flavor, h.Host.OS.Descriptor().Architecture)
+	packagePath, err := GetPackagePath(params.Version.LocalPath, h.Host.OS.Descriptor().Flavor, params.Version.Flavor, h.Host.OS.Descriptor().Architecture, env.PipelineID())
 	if err != nil {
 		return nil, err
 	}

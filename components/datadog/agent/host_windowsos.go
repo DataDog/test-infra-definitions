@@ -282,7 +282,6 @@ func (f *agentURLFinder) getLatestVersion(major string) (string, error) {
 	if len(versions) == 0 {
 		return "", errors.New("no version found")
 	}
-	fmt.Printf("%v\n", versions[len(versions)-1])
 	return versions[len(versions)-1], nil
 }
 

@@ -13,8 +13,10 @@ import (
 )
 
 type AgentQAClient struct {
-	HostName string
-	OsDesc   *os.Descriptor
+	HostName     string
+	OsDesc       *os.Descriptor
+	Channel      agentparams.Channel
+	MajorVersion string
 	// TODO: User creds / need to create user?
 }
 
@@ -34,6 +36,13 @@ func WithClient(client AgentQAClient) AgentQAOption {
 type agentQAContext struct {
 	pulumiContext *pulumi.Context
 	env           aws.Environment
+}
+
+type windowsNodeOptions struct {
+	name         string
+	osDesc       os.Descriptor
+	installAgent bool
+	agentOptions []agentparams.Option
 }
 
 // Will create the Agent QA Environment
@@ -59,7 +68,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 	}
 
 	// Domain controller node
-	dcForest, err := newWindowsNode(qaContext, "dcforest", false, os.WindowsServer2022)
+	dcForest, err := newWindowsNode(qaContext, windowsNodeOptions{name: "dcforest", installAgent: false, osDesc: os.WindowsServer2022})
 	if err != nil {
 		return err
 	}
@@ -72,7 +81,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 	}
 
 	// Domain controller backup node
-	dcBackup, err := newWindowsNode(qaContext, "dcbackup", false, os.WindowsServer2022)
+	dcBackup, err := newWindowsNode(qaContext, windowsNodeOptions{name: "dcbackup", installAgent: false, osDesc: os.WindowsServer2022})
 	if err != nil {
 		return err
 	}
@@ -86,7 +95,9 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 
 	// Client nodes
 	for _, client := range params.Clients {
-		client, err := newWindowsNode(qaContext, client.HostName, true, *client.OsDesc)
+		client, err := newWindowsNode(qaContext, windowsNodeOptions{name: client.HostName, installAgent: true, osDesc: *client.OsDesc, agentOptions: []agentparams.Option{
+			agentparams.WithLatestChannel(client.Channel, client.MajorVersion),
+		}})
 		if err != nil {
 			return err
 		}
@@ -107,9 +118,9 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 // TODO: This will be configured outside of test-infra-definitions
 
 // A client node is a host VM where the agent is installed
-func newWindowsNode(qa *agentQAContext, name string, installAgent bool, osDesc os.Descriptor) (*remote.Host, error) {
+func newWindowsNode(qa *agentQAContext, options windowsNodeOptions) (*remote.Host, error) {
 	// TODO: Os version / image config
-	vm, err := NewVM(qa.env, name, WithAMI(qa.env.InfraOSImageID(), osDesc, osDesc.Architecture), WithAgentQA())
+	vm, err := NewVM(qa.env, options.name, WithAMI(qa.env.InfraOSImageID(), options.osDesc, options.osDesc.Architecture), WithAgentQA())
 	if err != nil {
 		return nil, err
 	}
@@ -117,9 +128,8 @@ func newWindowsNode(qa *agentQAContext, name string, installAgent bool, osDesc o
 		return nil, err
 	}
 
-	if installAgent {
+	if options.installAgent {
 		// TODO: Configure options differently for different nodes
-		agentOptions := []agentparams.Option{}
 		// TODO: Custom config
 		// if qa.env.AgentUseFakeintake() {
 		// 	fakeIntakeOptions := []fakeintake.Option{}
@@ -139,9 +149,6 @@ func newWindowsNode(qa *agentQAContext, name string, installAgent bool, osDesc o
 		// 	agentOptions = append(agentOptions, agentparams.WithFlavor(qa.env.AgentFlavor()))
 		// }
 
-		// agentOptions = append(agentOptions, agentparams.WithLatestChannel(agentparams.BetaChannel, "7"))
-		agentOptions = append(agentOptions, agentparams.WithLatestChannel(agentparams.NightlyChannel, "7"))
-
 		// if qa.env.AgentConfigPath() != "" {
 		// 	configContent, err := qa.env.CustomAgentConfig()
 		// 	if err != nil {
@@ -150,7 +157,7 @@ func newWindowsNode(qa *agentQAContext, name string, installAgent bool, osDesc o
 		// 	agentOptions = append(agentOptions, agentparams.WithAgentConfig(configContent))
 		// }
 
-		agent, err := agent.NewHostAgent(&qa.env, vm, agentOptions...)
+		agent, err := agent.NewHostAgent(&qa.env, vm, options.agentOptions...)
 		if err != nil {
 			return nil, err
 		}

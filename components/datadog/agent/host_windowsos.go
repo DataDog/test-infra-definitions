@@ -163,7 +163,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 		}
 
 		if version.Minor == "" { // Use latest
-			if fullVersion, err = finder.getLatestVersion(); err != nil {
+			if fullVersion, err = finder.getLatestVersion(version.Major); err != nil {
 				return "", err
 			}
 		}
@@ -177,7 +177,7 @@ func getAgentURL(version agentparams.PackageVersion) (string, error) {
 	}
 
 	if version.Minor == "" { // Use latest
-		if fullVersion, err = finder.getLatestVersion(); err != nil {
+		if fullVersion, err = finder.getLatestVersion(version.Major); err != nil {
 			return "", err
 		}
 	} else {
@@ -271,15 +271,18 @@ func newAgentURLFinder(installerURL string, flavor string) (*agentURLFinder, err
 	return &agentURLFinder{versions: versions, installerURL: installerURL}, nil
 }
 
-func (f *agentURLFinder) getLatestVersion() (string, error) {
+func (f *agentURLFinder) getLatestVersion(major string) (string, error) {
 	var versions []string
 	for version := range f.versions {
-		versions = append(versions, version)
+		if major == "" || strings.HasPrefix(version, major+".") {
+			versions = append(versions, version)
+		}
 	}
 	sort.Strings(versions)
 	if len(versions) == 0 {
 		return "", errors.New("no version found")
 	}
+	fmt.Printf("%v\n", versions[len(versions)-1])
 	return versions[len(versions)-1], nil
 }
 

@@ -103,7 +103,7 @@ func WithLatestNightly() func(*Params) error {
 	}
 }
 
-func WithLatestChannel(channel channel, major string) func(*Params) error {
+func WithLatestChannel(channel Channel, major string) func(*Params) error {
 	return func(p *Params) error {
 		p.Version.Major = major
 		p.Version.Channel = channel

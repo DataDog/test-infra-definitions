@@ -21,7 +21,12 @@ type AgentQAClient struct {
 }
 
 type AgentQAOptions struct {
-	Clients []AgentQAClient
+	Clients    []AgentQAClient
+	ADDomain   string
+	ADPassword string
+	// Admin credentials for the domain
+	ADUser         string
+	ADUserPassword string
 }
 
 type AgentQAOption = func(*AgentQAOptions) error
@@ -29,6 +34,16 @@ type AgentQAOption = func(*AgentQAOptions) error
 func WithClient(client AgentQAClient) AgentQAOption {
 	return func(o *AgentQAOptions) error {
 		o.Clients = append(o.Clients, client)
+		return nil
+	}
+}
+
+func WithADOptions(adDomain string, adPassword string, adUser string, adUserPassword string) AgentQAOption {
+	return func(o *AgentQAOptions) error {
+		o.ADDomain = adDomain
+		o.ADPassword = adPassword
+		o.ADUser = adUser
+		o.ADUserPassword = adUserPassword
 		return nil
 	}
 }
@@ -47,15 +62,15 @@ type windowsNodeOptions struct {
 
 // Will create the Agent QA Environment
 func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
-	params, err := common.ApplyOption(&AgentQAOptions{}, opts)
+	params, err := common.ApplyOption(&AgentQAOptions{
+		ADDomain:       "ad.datadogqa.lab",
+		ADPassword:     "Test1234",
+		ADUser:         "ddagentuser",
+		ADUserPassword: "Test5678",
+	}, opts)
 	if err != nil {
 		return err
 	}
-
-	const adDomain = "ad.datadogqa.lab"
-	const adPassword = "Test1234"
-	const adUser = "ddagentuser"
-	const adUserPassword = "Test5678"
 
 	env, err := aws.NewEnvironment(ctx)
 	if err != nil {
@@ -73,8 +88,8 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 		return err
 	}
 	_, dcForestResource, err := activedirectory.NewActiveDirectory(ctx, &env, dcForest,
-		activedirectory.WithDomainController(adDomain, adPassword),
-		activedirectory.WithDomainAdmin(adUser, adUserPassword),
+		activedirectory.WithDomainController(params.ADDomain, params.ADPassword),
+		activedirectory.WithDomainAdmin(params.ADUser, params.ADUserPassword),
 	)
 	if err != nil {
 		return err
@@ -87,7 +102,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 	}
 	_, dcBackupResource, err := activedirectory.NewActiveDirectory(ctx, &env, dcBackup,
 		activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcForestResource)),
-		activedirectory.WithBackupDomainController(adDomain, adPassword, adUser, adUserPassword, dcForest),
+		activedirectory.WithBackupDomainController(params.ADDomain, params.ADPassword, params.ADUser, params.ADUserPassword, dcForest),
 	)
 	if err != nil {
 		return err
@@ -104,7 +119,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 		// Setup active directory
 		_, _, err = activedirectory.NewActiveDirectory(ctx, &env, client,
 			// TODO: Users...
-			activedirectory.WithDomain(dcForest, adDomain, adUser, adUserPassword),
+			activedirectory.WithDomain(dcForest, params.ADDomain, params.ADUser, params.ADUserPassword),
 			activedirectory.WithPulumiResourceOptions(pulumi.DependsOn(dcBackupResource)),
 		)
 		if err != nil {
@@ -115,11 +130,8 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 	return nil
 }
 
-// TODO: This will be configured outside of test-infra-definitions
-
 // A client node is a host VM where the agent is installed
 func newWindowsNode(qa *agentQAContext, options windowsNodeOptions) (*remote.Host, error) {
-	// TODO: Os version / image config
 	vm, err := NewVM(qa.env, options.name, WithAMI(qa.env.InfraOSImageID(), options.osDesc, options.osDesc.Architecture), WithAgentQA())
 	if err != nil {
 		return nil, err
@@ -129,34 +141,6 @@ func newWindowsNode(qa *agentQAContext, options windowsNodeOptions) (*remote.Hos
 	}
 
 	if options.installAgent {
-		// TODO: Configure options differently for different nodes
-		// TODO: Custom config
-		// if qa.env.AgentUseFakeintake() {
-		// 	fakeIntakeOptions := []fakeintake.Option{}
-
-		// 	if qa.env.InfraShouldDeployFakeintakeWithLB() {
-		// 		fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
-		// 	}
-
-		// 	fakeintake, err := fakeintake.NewECSFargateInstance(qa.env, vm.Name(), fakeIntakeOptions...)
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// 	agentOptions = append(agentOptions, agentparams.WithFakeintake(fakeintake))
-		// }
-
-		// if qa.env.AgentFlavor() != "" {
-		// 	agentOptions = append(agentOptions, agentparams.WithFlavor(qa.env.AgentFlavor()))
-		// }
-
-		// if qa.env.AgentConfigPath() != "" {
-		// 	configContent, err := qa.env.CustomAgentConfig()
-		// 	if err != nil {
-		// 		return nil, err
-		// 	}
-		// 	agentOptions = append(agentOptions, agentparams.WithAgentConfig(configContent))
-		// }
-
 		agent, err := agent.NewHostAgent(&qa.env, vm, options.agentOptions...)
 		if err != nil {
 			return nil, err
@@ -167,16 +151,6 @@ func newWindowsNode(qa *agentQAContext, options windowsNodeOptions) (*remote.Hos
 			return nil, err
 		}
 	}
-
-	// TODO
-	// if qa.env.UpdaterDeploy() {
-	// 	if qa.env.AgentDeploy() {
-	// 		return nil, errors.New("cannot deploy both agent and updater installers, updater installs the agent")
-	// 	}
-
-	// 	_, err := updater.NewHostUpdater(&qa.env, vm)
-	// 	return nil, err
-	// }
 
 	return vm, nil
 }

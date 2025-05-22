@@ -297,6 +297,39 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"helmCheck": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
+			"kubeStateMetricsCore": pulumi.Map{
+				"enabled":           pulumi.Bool(true),
+				"collectVpaMetrics": pulumi.Bool(true),
+				"collectCrMetrics": pulumi.MapArray{
+					pulumi.Map{
+						"groupVersionKind": pulumi.StringMap{
+							"group":   pulumi.String("datadoghq.com"),
+							"kind":    pulumi.String("DatadogMetric"),
+							"version": pulumi.String("v1alpha1"),
+						},
+						"commonLabels": pulumi.StringMap{
+							"cr_type": pulumi.String("ddm"),
+						},
+						"labelsFromPath": pulumi.StringArrayMap{
+							"ddm_namespace": pulumi.ToStringArray([]string{"metadata", "namespace"}),
+							"ddm_name":      pulumi.ToStringArray([]string{"metadata", "name"}),
+						},
+						"metrics": pulumi.MapArray{
+							pulumi.Map{
+								"name": pulumi.String("ddm_value"),
+								"help": pulumi.String("DatadogMetric value"),
+								"each": pulumi.Map{
+									"type": pulumi.String("gauge"),
+									"gauge": pulumi.StringArrayMap{
+										"path": pulumi.ToStringArray([]string{"status", "currentValue"}),
+									},
+								},
+							},
+						},
+					},
+				},
+				"tags": pulumi.ToStringArray([]string{"kube_instance_tag:static"}),
+			},
 			"prometheusScrape": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
@@ -313,19 +346,19 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			// https://github.com/DataDog/datadog-agent/blob/34922393ce47261da9835d7bf62fb5e090e5fa55/test/fakeintake/server/server.go#L81
 			// So, we need `container_image` and `sbom` checks to resubmit their payloads more frequently than that.
 			"confd": pulumi.StringMap{
-				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]any{
 					"ad_identifiers": []string{"_container_image"},
-					"init_config":    map[string]interface{}{},
-					"instances": []map[string]interface{}{
+					"init_config":    map[string]any{},
+					"instances": []map[string]any{
 						{
 							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
-				"sbom.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+				"sbom.yaml": pulumi.String(utils.JSONMustMarshal(map[string]any{
 					"ad_identifiers": []string{"_sbom"},
-					"init_config":    map[string]interface{}{},
-					"instances": []map[string]interface{}{
+					"init_config":    map[string]any{},
+					"instances": []map[string]any{
 						{
 							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
@@ -356,10 +389,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"priorityClassCreate": pulumi.Bool(true),
 			"podAnnotations": pulumi.StringMap{
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
-					map[string]interface{}{
-						"openmetrics": map[string]interface{}{
-							"init_config": map[string]interface{}{},
-							"instances": []map[string]interface{}{
+					map[string]any{
+						"openmetrics": map[string]any{
+							"init_config": map[string]any{},
+							"instances": []map[string]any{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",
 									"namespace":            "datadog.agent",
@@ -464,80 +497,6 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
-			},
-			"confd": pulumi.StringMap{
-				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{
-					"init_config": nil,
-					"instances": []map[string]interface{}{
-						{
-							"collectors": []string{
-								"apiservices",
-								"secrets",
-								"configmaps",
-								"customresourcedefinitions",
-								"nodes",
-								"pods",
-								"services",
-								"resourcequotas",
-								"replicationcontrollers",
-								"limitranges",
-								"persistentvolumeclaims",
-								"persistentvolumes",
-								"namespaces",
-								"endpoints",
-								"daemonsets",
-								"deployments",
-								"replicasets",
-								"statefulsets",
-								"cronjobs",
-								"jobs",
-								"horizontalpodautoscalers",
-								"poddisruptionbudgets",
-								"storageclasses",
-								"volumeattachments",
-								"ingresses",
-								"verticalpodautoscalers",
-							},
-							"labels_as_tags":      map[string]interface{}{},
-							"annotations_as_tags": map[string]interface{}{},
-							"custom_resource": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"resources": []map[string]interface{}{
-										{
-											"groupVersionKind": map[string]interface{}{
-												"group":   "datadoghq.com",
-												"kind":    "DatadogMetric",
-												"version": "v1alpha1",
-											},
-											"commonLabels": map[string]interface{}{
-												"cr_type": "ddm",
-											},
-											"labelsFromPath": map[string]interface{}{
-												"ddm_namespace": []string{"metadata", "namespace"},
-												"ddm_name":      []string{"metadata", "name"},
-											},
-											"metrics": []map[string]interface{}{
-												{
-													"name": "ddm_value",
-													"help": "DatadogMetric value",
-													"each": map[string]interface{}{
-														"type": "gauge",
-														"gauge": map[string]interface{}{
-															"path": []string{"status", "currentValue"},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-							"tags": []string{
-								"kube_instance_tag:static",
-							},
-						},
-					},
-				})),
 			},
 		},
 		"clusterChecksRunner": pulumi.Map{
@@ -826,7 +785,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 }
 
 func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
-	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]interface{}) (pulumi.Asset, error) {
+	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]any) (pulumi.Asset, error) {
 		yamlValues, err := yaml.Marshal(v)
 		if err != nil {
 			return nil, err
@@ -839,22 +798,22 @@ func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
 func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fakeintake) pulumi.AssetOutput {
 
 	return fakeintake.URL.ApplyT(func(url string) (pulumi.Asset, error) {
-		defaultConfig := map[string]interface{}{
-			"exporters": map[string]interface{}{
-				"datadog": map[string]interface{}{
-					"metrics": map[string]interface{}{
+		defaultConfig := map[string]any{
+			"exporters": map[string]any{
+				"datadog": map[string]any{
+					"metrics": map[string]any{
 						"endpoint": url,
 					},
-					"traces": map[string]interface{}{
+					"traces": map[string]any{
 						"endpoint": url,
 					},
-					"logs": map[string]interface{}{
+					"logs": map[string]any{
 						"endpoint": url,
 					},
 				},
 			},
 		}
-		config := map[string]interface{}{}
+		config := map[string]any{}
 		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
 			return nil, err
 		}

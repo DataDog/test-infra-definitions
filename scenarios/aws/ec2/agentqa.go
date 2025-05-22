@@ -141,6 +141,9 @@ func newWindowsNode(qa *agentQAContext, options windowsNodeOptions) (*remote.Hos
 	}
 
 	if options.installAgent {
+		options.agentOptions = append(options.agentOptions, agentparams.WithAgentConfig(`
+env: agent-qa-pulumi
+`))
 		agent, err := agent.NewHostAgent(&qa.env, vm, options.agentOptions...)
 		if err != nil {
 			return nil, err

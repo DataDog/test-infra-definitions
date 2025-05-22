@@ -1,6 +1,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/components/activedirectory"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
@@ -54,10 +56,12 @@ type agentQAContext struct {
 }
 
 type windowsNodeOptions struct {
-	name         string
-	osDesc       os.Descriptor
-	installAgent bool
-	agentOptions []agentparams.Option
+	name              string
+	osDesc            os.Descriptor
+	installAgent      bool
+	agentChannel      agentparams.Channel
+	agentMajorVersion string
+	agentOptions      []agentparams.Option
 }
 
 // Will create the Agent QA Environment
@@ -110,9 +114,7 @@ func AgentQARun(ctx *pulumi.Context, opts ...AgentQAOption) error {
 
 	// Client nodes
 	for _, client := range params.Clients {
-		client, err := newWindowsNode(qaContext, windowsNodeOptions{name: client.HostName, installAgent: true, osDesc: *client.OsDesc, agentOptions: []agentparams.Option{
-			agentparams.WithLatestChannel(client.Channel, client.MajorVersion),
-		}})
+		client, err := newWindowsNode(qaContext, windowsNodeOptions{name: client.HostName, installAgent: true, osDesc: *client.OsDesc, agentChannel: client.Channel, agentMajorVersion: client.MajorVersion})
 		if err != nil {
 			return err
 		}
@@ -141,9 +143,14 @@ func newWindowsNode(qa *agentQAContext, options windowsNodeOptions) (*remote.Hos
 	}
 
 	if options.installAgent {
-		options.agentOptions = append(options.agentOptions, agentparams.WithAgentConfig(`
+		options.agentOptions = append(options.agentOptions,
+			agentparams.WithLatestChannel(options.agentChannel, options.agentMajorVersion),
+			agentparams.WithAgentConfig(fmt.Sprintf(`
 env: agent-qa-pulumi
-`))
+tags:
+  - agent-qa-channel:%s
+`, options.agentChannel)),
+			agentparams.WithHostname(options.name))
 		agent, err := agent.NewHostAgent(&qa.env, vm, options.agentOptions...)
 		if err != nil {
 			return nil, err

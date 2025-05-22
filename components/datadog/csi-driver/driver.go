@@ -17,7 +17,7 @@ const (
 	registrarRepository = " 669783387624.dkr.ecr.us-east-1.amazonaws.com/sig-storage/csi-node-driver-registrar"
 )
 
-func NewDatadogCSIDriver(e config.Env, kubeProvider *kubernetes.Provider) error {
+func NewDatadogCSIDriver(e config.Env, kubeProvider *kubernetes.Provider, csiDriverTag string) error {
 	opts := []pulumi.ResourceOption{pulumi.Providers(kubeProvider)}
 
 	// Create namespace if necessary
@@ -53,7 +53,7 @@ func NewDatadogCSIDriver(e config.Env, kubeProvider *kubernetes.Provider) error 
 			},
 			"image": pulumi.Map{
 				"repository": pulumi.String(csiRepository),
-				"tag":        pulumi.String("main"),
+				"tag":        pulumi.String(csiDriverTag),
 				"pullSecrets": pulumi.MapArray{
 					pulumi.Map{
 						"name": imgPullSecret.Metadata.Name(),

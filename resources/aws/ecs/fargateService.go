@@ -74,14 +74,37 @@ func FargateTaskDefinitionWithAgent(
 	name string,
 	family pulumi.StringInput,
 	cpu, memory int,
+	readonlyRootFS bool,
 	containers map[string]ecs.TaskDefinitionContainerDefinitionArgs,
 	apiKeySSMParamName pulumi.StringInput,
 	fakeintake *fakeintake.Fakeintake,
 	image string,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, image, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	initContainer, agentContainer := agent.ECSFargateLinuxContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName), readonlyRootFS)
+	if initContainer != nil {
+		containers["init-copy-agent-config"] = *initContainer
+	}
+	containers["datadog-agent"] = *agentContainer
 	containers["log_router"] = *FargateFirelensContainerDefinition()
+
+	var readonlyFSVolumes classicECS.TaskDefinitionVolumeArray
+	if readonlyRootFS {
+		readonlyFSVolumes = classicECS.TaskDefinitionVolumeArray{
+			classicECS.TaskDefinitionVolumeArgs{
+				Name: pulumi.String("agent-config"),
+			},
+			classicECS.TaskDefinitionVolumeArgs{
+				Name: pulumi.String("agent-option"),
+			},
+			classicECS.TaskDefinitionVolumeArgs{
+				Name: pulumi.String("agent-tmp"),
+			},
+			classicECS.TaskDefinitionVolumeArgs{
+				Name: pulumi.String("agent-log"),
+			},
+		}
+	}
 
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
 		Containers: containers,
@@ -95,11 +118,11 @@ func FargateTaskDefinitionWithAgent(
 		},
 		Family:  e.CommonNamer().DisplayName(255, family),
 		PidMode: pulumi.StringPtr("task"),
-		Volumes: classicECS.TaskDefinitionVolumeArray{
+		Volumes: append(classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),
 			},
-		},
+		}, readonlyFSVolumes...),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 

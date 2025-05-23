@@ -3,7 +3,6 @@ package nginx
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -13,8 +12,8 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeIntake *fakeintakeComp.Fakeintake, opts ...pulumi.ResourceOption) (*ecsComp.Workload, error) {
-	namer := e.Namer.WithPrefix("nginx").WithPrefix("fg")
+func FargateReadonlyAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeIntake *fakeintakeComp.Fakeintake, opts ...pulumi.ResourceOption) (*ecsComp.Workload, error) {
+	namer := e.Namer.WithPrefix("nginx").WithPrefix("fg-readonly")
 
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
@@ -27,7 +26,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	serverContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("nginx"),
-		Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:" + apps.Version),
+		Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:main"),
 		DockerLabels: pulumi.StringMap{
 			"com.datadoghq.ad.checks": pulumi.String(utils.JSONMustMarshal(
 				map[string]interface{}{
@@ -70,7 +69,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	queryContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("query"),
-		Image: pulumi.String("ghcr.io/datadog/apps-http-client:" + apps.Version),
+		Image: pulumi.String("ghcr.io/datadog/apps-http-client:main"),
 		Command: pulumi.StringArray{
 			pulumi.String("-url"),
 			pulumi.String("http://localhost"),
@@ -80,7 +79,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Essential: pulumi.BoolPtr(true),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-fg", pulumi.String("nginx-fg"), 1024, 2048, false,
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-fg-readonly", pulumi.String("nginx-fg-readonly"), 1024, 2048, false,
 		map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			"nginx": *serverContainer,
 			"query": *queryContainer,
@@ -95,7 +94,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	if _, err := ecs.NewFargateService(e.Ctx(), namer.ResourceName("server"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         e.CommonNamer().DisplayName(255, pulumi.String("nginx"), pulumi.String("fg")),
+		Name:         e.CommonNamer().DisplayName(255, pulumi.String("nginx"), pulumi.String("fg-readonly")),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),

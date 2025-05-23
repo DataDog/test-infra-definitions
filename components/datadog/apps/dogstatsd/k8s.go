@@ -36,6 +36,53 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
+	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-uds-with-csi-%d", statsdPort), &appsv1.DeploymentArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("dogstatsd-uds-with-csi"),
+			Namespace: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"app": pulumi.String("dogstatsd-uds-with-csi"),
+			},
+		},
+		Spec: &appsv1.DeploymentSpecArgs{
+			Replicas: pulumi.Int(1),
+			Selector: &metav1.LabelSelectorArgs{
+				MatchLabels: pulumi.StringMap{
+					"app": pulumi.String("dogstatsd-uds-with-csi"),
+				},
+			},
+			Template: &corev1.PodTemplateSpecArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Labels: pulumi.StringMap{
+						"admission.datadoghq.com/config.mode": pulumi.String("csi"),
+						"app":                                 pulumi.String("dogstatsd-uds-with-csi"),
+					},
+				},
+				Spec: &corev1.PodSpecArgs{
+					Containers: corev1.ContainerArray{
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("dogstatsd"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+
+							Resources: &corev1.ResourceRequirementsArgs{
+								Limits: pulumi.StringMap{
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("32Mi"),
+								},
+								Requests: pulumi.StringMap{
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
 	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-uds-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-uds"),

@@ -61,6 +61,11 @@ func TestInvokes(t *testing.T) {
 		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
 	})
 
+	t.Run("gcp.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testGcpInvokeVM(t, tmpConfigFile, *workingDir)
+	})
+
 	t.Run("aws.invoke-docker-vm", func(t *testing.T) {
 		t.Parallel()
 		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
@@ -110,6 +115,25 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 
 	t.Log("destroying vm")
 	destroyCmd := exec.Command("invoke", "aws.destroy-vm", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
+
+func testGcpInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+
+	stackName := fmt.Sprintf("gcp-invoke-vm-%s", os.Getenv("CI_JOB_ID"))
+	stackName = sanitizeStackName(stackName)
+
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "gcp.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--no-add-known-host")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "gcp.destroy-vm", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))

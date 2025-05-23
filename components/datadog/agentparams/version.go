@@ -1,11 +1,11 @@
 package agentparams
 
-type channel string
+type Channel string
 
 const (
-	StableChannel  channel = "stable"
-	BetaChannel    channel = "beta"
-	NightlyChannel channel = "nightly"
+	StableChannel  Channel = "stable"
+	BetaChannel    Channel = "beta"
+	NightlyChannel Channel = "nightly"
 )
 
 // Agent flavor constants
@@ -23,7 +23,7 @@ const (
 type PackageVersion struct {
 	Major      string
 	Minor      string // Empty means latest
-	Channel    channel
+	Channel    Channel
 	PipelineID string
 	Flavor     string // Empty means default (base)
 	LocalPath  string // Local path to the agent packages

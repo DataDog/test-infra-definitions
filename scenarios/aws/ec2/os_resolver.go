@@ -56,6 +56,7 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 			return nil, err
 		}
 	}
+	fmt.Printf("Using AMI %s\n for stack %s\n", vmArgs.ami, e.Ctx().Stack())
 
 	amiInfo := &amiInformation{
 		id:          vmArgs.ami,

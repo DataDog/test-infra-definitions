@@ -62,7 +62,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{

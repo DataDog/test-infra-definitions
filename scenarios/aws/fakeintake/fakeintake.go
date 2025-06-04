@@ -56,7 +56,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 		taskDef, err := ecs.FargateTaskDefinitionWithAgent(e,
 			namer.ResourceName("taskdef"),
 			pulumi.String("fakeintake-ecs"),
-			params.CPU, params.Memory,
+			params.CPU, params.Memory, false,
 			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600, params.DDDevForwarding)},
 			apiKeyParam.Name,
 			nil,

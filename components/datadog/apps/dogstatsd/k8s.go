@@ -56,6 +56,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Labels: pulumi.StringMap{
 						"admission.datadoghq.com/config.mode": pulumi.String("csi"),
 						"app":                                 pulumi.String("dogstatsd-uds-with-csi"),
+						"admission.datadoghq.com/enabled": pulumi.String("true"),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{

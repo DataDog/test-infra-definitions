@@ -56,13 +56,14 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					Labels: pulumi.StringMap{
 						"admission.datadoghq.com/config.mode": pulumi.String("csi"),
 						"app":                                 pulumi.String("dogstatsd-uds-with-csi"),
+						"admission.datadoghq.com/enabled":     pulumi.String("true"),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),
-							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:main"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
 
 							Resources: &corev1.ResourceRequirementsArgs{
 								Limits: pulumi.StringMap{

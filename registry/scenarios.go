@@ -3,6 +3,7 @@ package registry
 import (
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/scenarios/gcp/crcvm"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/gke"
 
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/ec2"
@@ -34,6 +35,7 @@ func Scenarios() ScenarioRegistry {
 		"az/aks":         aks.Run,
 		"gcp/vm":         gcpcompute.VMRun,
 		"gcp/gke":        gke.Run,
+		"gcp/crcvm":      crcvm.Run,
 		"localpodman/vm": localpodmanrun.VMRun,
 	}
 }

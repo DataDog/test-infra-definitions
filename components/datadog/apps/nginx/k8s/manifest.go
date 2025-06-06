@@ -1,0 +1,223 @@
+package k8s
+
+import (
+	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
+	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
+)
+
+// runtimeClassToPulumi converts a runtime class name to a pulumi.StringInput.
+// If runtimeClass is empty, it returns nil.
+func runtimeClassToPulumi(runtimeClass string) pulumi.StringInput {
+	if runtimeClass == "" {
+		return nil
+	}
+	return pulumi.String(runtimeClass)
+}
+
+func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *appsv1.DeploymentArgs {
+	manifest := &appsv1.DeploymentArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("nginx"),
+			Namespace: pulumi.String(namespace),
+		},
+		Spec: &appsv1.DeploymentSpecArgs{
+			Selector: &metav1.LabelSelectorArgs{
+				MatchLabels: pulumi.StringMap{
+					"app": pulumi.String("nginx"),
+				},
+			},
+			Template: &corev1.PodTemplateSpecArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Labels: pulumi.StringMap{
+						"app":           pulumi.String("nginx"),
+						"x-parent-type": pulumi.String("deployment"),
+					},
+					Annotations: pulumi.StringMap{
+						"x-parent-name": pulumi.String("nginx"),
+						"ad.datadoghq.com/nginx.checks": pulumi.String(utils.JSONMustMarshal(
+							map[string]interface{}{
+								"nginx": map[string]interface{}{
+									"init_config":           map[string]interface{}{},
+									"check_tag_cardinality": "high",
+									"instances": []map[string]interface{}{
+										{
+											"nginx_status_url": "http://%%host%%/nginx_status",
+										},
+									},
+								},
+							},
+						)),
+					},
+				},
+				Spec: &corev1.PodSpecArgs{
+					Containers: corev1.ContainerArray{
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("nginx"),
+							Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:" + apps.Version),
+							Resources: &corev1.ResourceRequirementsArgs{
+								Limits: pulumi.StringMap{
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("32Mi"),
+								},
+								Requests: pulumi.StringMap{
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
+								},
+							},
+							Ports: &corev1.ContainerPortArray{
+								&corev1.ContainerPortArgs{
+									Name:          pulumi.String("http"),
+									ContainerPort: pulumi.Int(80),
+									Protocol:      pulumi.String("TCP"),
+								},
+							},
+							LivenessProbe: &corev1.ProbeArgs{
+								HttpGet: &corev1.HTTPGetActionArgs{
+									Port: pulumi.Int(80),
+								},
+								TimeoutSeconds: pulumi.Int(5),
+							},
+							ReadinessProbe: &corev1.ProbeArgs{
+								HttpGet: &corev1.HTTPGetActionArgs{
+									Port: pulumi.Int(80),
+								},
+								TimeoutSeconds: pulumi.Int(5),
+							},
+							VolumeMounts: &corev1.VolumeMountArray{
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("cache"),
+									MountPath: pulumi.String("/var/cache/nginx"),
+								},
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("var-run"),
+									MountPath: pulumi.String("/var/run"),
+								},
+							},
+						},
+					},
+					Volumes: corev1.VolumeArray{
+						&corev1.VolumeArgs{
+							Name:     pulumi.String("cache"),
+							EmptyDir: &corev1.EmptyDirVolumeSourceArgs{},
+						},
+						&corev1.VolumeArgs{
+							Name:     pulumi.String("var-run"),
+							EmptyDir: &corev1.EmptyDirVolumeSourceArgs{},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, mod := range mods {
+		mod(manifest)
+	}
+
+	return manifest
+}
+
+func NewNginxQueryDeploymentManifest(namespace string, mods ...DeploymentModifier) *appsv1.DeploymentArgs {
+	manifest := &appsv1.DeploymentArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("nginx-query"),
+			Namespace: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"app": pulumi.String("nginx-query"),
+			},
+		},
+		Spec: &appsv1.DeploymentSpecArgs{
+			Replicas: pulumi.Int(1),
+			Selector: &metav1.LabelSelectorArgs{
+				MatchLabels: pulumi.StringMap{
+					"app": pulumi.String("nginx-query"),
+				},
+			},
+			Template: &corev1.PodTemplateSpecArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Labels: pulumi.StringMap{
+						"app": pulumi.String("nginx-query"),
+					},
+				},
+				Spec: &corev1.PodSpecArgs{
+					Containers: corev1.ContainerArray{
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("query"),
+							Image: pulumi.String("ghcr.io/datadog/apps-http-client:" + apps.Version),
+							Args: pulumi.StringArray{
+								pulumi.String("-min-tps"),
+								pulumi.String("1"),
+								pulumi.String("-max-tps"),
+								pulumi.String("60"),
+								pulumi.String("-period"),
+								pulumi.String("20m"),
+							},
+							Resources: &corev1.ResourceRequirementsArgs{
+								Limits: pulumi.StringMap{
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("64Mi"),
+								},
+								Requests: pulumi.StringMap{
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, mod := range mods {
+		mod(manifest)
+	}
+
+	return manifest
+}
+
+func NewNginxServiceManifest(namespace string) *corev1.ServiceArgs {
+	return &corev1.ServiceArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("nginx"),
+			Namespace: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"app": pulumi.String("nginx"),
+			},
+			Annotations: pulumi.StringMap{
+				"ad.datadoghq.com/service.checks": pulumi.String(utils.JSONMustMarshal(
+					map[string]interface{}{
+						"http_check": map[string]interface{}{
+							"init_config": map[string]interface{}{},
+							"instances": []map[string]interface{}{
+								{
+									"name":    "My Nginx",
+									"url":     "http://%%host%%",
+									"timeout": 1,
+								},
+							},
+						},
+					},
+				)),
+			},
+		},
+		Spec: &corev1.ServiceSpecArgs{
+			Selector: pulumi.StringMap{
+				"app": pulumi.String("nginx"),
+			},
+			Ports: &corev1.ServicePortArray{
+				&corev1.ServicePortArgs{
+					Name:       pulumi.String("http"),
+					Port:       pulumi.Int(80),
+					TargetPort: pulumi.String("http"),
+					Protocol:   pulumi.String("TCP"),
+				},
+			},
+		},
+	}
+}

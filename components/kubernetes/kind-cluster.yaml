@@ -1,10 +1,12 @@
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
 nodes:
-- role: control-plane
-  extraMounts:
-  - hostPath: /proc
-    containerPath: /host/proc
+  - role: control-plane
+    extraMounts:
+      - hostPath: /proc
+        containerPath: /host/proc
+      - hostPath: /sys
+        containerPath: /host/sys
 containerdConfigPatches:
   - |-
     [plugins."io.containerd.grpc.v1.cri".registry.mirrors."docker.io"]

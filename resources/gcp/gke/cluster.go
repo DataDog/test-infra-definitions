@@ -27,9 +27,10 @@ func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.R
 		MasterAuthorizedNetworksConfig: &container.ClusterMasterAuthorizedNetworksConfigArgs{
 			CidrBlocks: container.ClusterMasterAuthorizedNetworksConfigCidrBlockArray{
 				&container.ClusterMasterAuthorizedNetworksConfigCidrBlockArgs{
-					CidrBlock: pulumi.String(e.DefaultSubnet()),
+					CidrBlock:   pulumi.String("10.0.0.0/8"),
+					DisplayName: pulumi.String("all private ips"),
 				},
-			},
+			}, // Empty array to disable master authorized networks
 		},
 		NodeConfig: &container.ClusterNodeConfigArgs{
 			MachineType: pulumi.String(e.DefaultInstanceType()),

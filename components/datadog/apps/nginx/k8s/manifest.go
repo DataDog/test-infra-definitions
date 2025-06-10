@@ -19,6 +19,7 @@ func runtimeClassToPulumi(runtimeClass string) pulumi.StringInput {
 	return pulumi.String(runtimeClass)
 }
 
+// NewNginxDeploymentManifest creates a new deployment manifest for Nginx server
 func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *appsv1.DeploymentArgs {
 	manifest := &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -34,7 +35,7 @@ func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *a
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app":           pulumi.String("nginx"),
+						"app":           pulumi.String("nginx"), // required for service
 						"x-parent-type": pulumi.String("deployment"),
 					},
 					Annotations: pulumi.StringMap{
@@ -122,6 +123,7 @@ func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *a
 	return manifest
 }
 
+// NewNginxQueryDeploymentManifest creates a new deployment manifest for Nginx query app
 func NewNginxQueryDeploymentManifest(namespace string, mods ...DeploymentModifier) *appsv1.DeploymentArgs {
 	manifest := &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -181,6 +183,7 @@ func NewNginxQueryDeploymentManifest(namespace string, mods ...DeploymentModifie
 	return manifest
 }
 
+// NewNginxServiceManifest creates a new service manifest for the Nginx deployment
 func NewNginxServiceManifest(namespace string) *corev1.ServiceArgs {
 	return &corev1.ServiceArgs{
 		Metadata: &metav1.ObjectMetaArgs{
@@ -208,7 +211,7 @@ func NewNginxServiceManifest(namespace string) *corev1.ServiceArgs {
 		},
 		Spec: &corev1.ServiceSpecArgs{
 			Selector: pulumi.StringMap{
-				"app": pulumi.String("nginx"),
+				"app": pulumi.String("nginx"), // deployment is hardcoded above
 			},
 			Ports: &corev1.ServicePortArray{
 				&corev1.ServicePortArgs{

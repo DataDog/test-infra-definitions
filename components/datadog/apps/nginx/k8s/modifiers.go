@@ -94,39 +94,47 @@ func WithServiceAccount(serviceAccount *corev1.ServiceAccount) DeploymentModifie
 	}
 }
 
+func ensureDeploymentPodMetadata(d *appsv1.DeploymentArgs) (*metav1.ObjectMetaArgs, bool) {
+	// nil check spec
+	specPtr := d.Spec
+	if specPtr == nil {
+		d.Spec = &appsv1.DeploymentSpecArgs{}
+	}
+	// type check spec
+	spec, ok := specPtr.(*appsv1.DeploymentSpecArgs)
+	if !ok {
+		return nil, false
+	}
+
+	// nil check spec.Template
+	templatePtr := spec.Template
+	if templatePtr == nil {
+		spec.Template = &corev1.PodTemplateSpecArgs{}
+	}
+	// type check spec.Template
+	template, ok := templatePtr.(*corev1.PodTemplateSpecArgs)
+	if !ok {
+		return nil, false
+	}
+
+	// nil check template.Metadata
+	metadataPtr := template.Metadata
+	if metadataPtr == nil {
+		template.Metadata = &metav1.ObjectMetaArgs{}
+	}
+
+	metadata, ok := metadataPtr.(*metav1.ObjectMetaArgs)
+	if !ok {
+		return nil, false
+	}
+
+	return metadata, true
+}
+
 // WithLabels appends/ovewrites a Deployment template's labels
 func WithLabels(labels map[string]string) DeploymentModifier {
-	return func(m *appsv1.DeploymentArgs) {
-		// nil check spec
-		specPtr := m.Spec
-		if specPtr == nil {
-			m.Spec = &appsv1.DeploymentSpecArgs{}
-		}
-		// type check spec
-		spec, ok := specPtr.(*appsv1.DeploymentSpecArgs)
-		if !ok {
-			return
-		}
-
-		// nil check spec.Template
-		templatePtr := spec.Template
-		if templatePtr == nil {
-			spec.Template = &corev1.PodTemplateSpecArgs{}
-		}
-		// type check spec.Template
-		template, ok := templatePtr.(*corev1.PodTemplateSpecArgs)
-		if !ok {
-			return
-		}
-
-		// nil check template.Metadata
-		metadataPtr := template.Metadata
-		if metadataPtr == nil {
-			template.Metadata = &metav1.ObjectMetaArgs{}
-		}
-
-		// assign labels
-		if metadata, ok := metadataPtr.(*metav1.ObjectMetaArgs); ok {
+	return func(d *appsv1.DeploymentArgs) {
+		if metadata, ok := ensureDeploymentPodMetadata(d); ok {
 			// If labels is nil initialize it
 			if metadata.Labels == nil {
 				metadata.Labels = pulumi.StringMap{}
@@ -135,6 +143,22 @@ func WithLabels(labels map[string]string) DeploymentModifier {
 			merged := mergeStringMaps(metadata.Labels.(pulumi.StringMap), rawMapToStringMap(labels))
 			// reassign
 			metadata.Labels = merged
+		}
+	}
+}
+
+// WithLabels appends/ovewrites a Deployment template's labels
+func WithAnnotations(annotations map[string]string) DeploymentModifier {
+	return func(d *appsv1.DeploymentArgs) {
+		if metadata, ok := ensureDeploymentPodMetadata(d); ok {
+			// If annotations is nil initialize it
+			if metadata.Annotations == nil {
+				metadata.Annotations = pulumi.StringMap{}
+			}
+			// merge the existing annotations with new ones
+			merged := mergeStringMaps(metadata.Annotations.(pulumi.StringMap), rawMapToStringMap(annotations))
+			// reassign
+			metadata.Annotations = merged
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package k8ssidecar
 
 import (
+	"fmt"
+
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	rbacv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
@@ -8,15 +10,16 @@ import (
 )
 
 const (
-	datadogSecretName                  = "datadog-secret"
-	serviceAccountName                 = "datadog"
-	sidecarAgentClusterRoleName        = "datadog-sidecar"
-	sidecarAgentClusterRoleBindingName = sidecarAgentClusterRoleName
+	datadogSecretName      = "datadog-secret"
+	serviceAccountName     = "datadog-service-account"
+	clusterRoleName        = "datadog-cluster-role"
+	clusterRoleBindingName = "datadog-cluster-role-binding"
 )
 
 // NewServiceAccount creates a ServiceAccount
 func NewServiceAccount(ctx *pulumi.Context, namespace string, name string, opts ...pulumi.ResourceOption) (*corev1.ServiceAccount, error) {
-	sa, err := corev1.NewServiceAccount(ctx, "datadog", &corev1.ServiceAccountArgs{
+	pulumiName := fmt.Sprintf("%s-%s", namespace, name)
+	sa, err := corev1.NewServiceAccount(ctx, pulumiName, &corev1.ServiceAccountArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String(name),
 			Namespace: pulumi.String(namespace),
@@ -28,16 +31,15 @@ func NewServiceAccount(ctx *pulumi.Context, namespace string, name string, opts 
 	return sa, nil
 }
 
-// NewDatadogSecret creates a Secret with two fields
-// - api-key
-// - token
-func NewDatadogSecret(ctx *pulumi.Context, namespace string, name string, apiKey pulumi.StringInput,
+// NewDatadogSecret creates a Secret named datadog-secret with two fields: 1) api-key 2)token
+func NewDatadogSecret(ctx *pulumi.Context, namespace string, apiKey pulumi.StringInput,
 	token pulumi.StringInput, opts ...pulumi.ResourceOption) (*corev1.Secret, error) {
+	pulumiName := fmt.Sprintf("%s-%s", namespace, datadogSecretName)
 	s, err := corev1.NewSecret(ctx,
-		name,
+		pulumiName,
 		&corev1.SecretArgs{
 			Metadata: &metav1.ObjectMetaArgs{
-				Name:      pulumi.String(name),
+				Name:      pulumi.String(datadogSecretName),
 				Namespace: pulumi.String(namespace),
 			},
 			StringData: pulumi.StringMap{
@@ -130,22 +132,27 @@ func NewClusterRoleBinding(ctx *pulumi.Context, name string, clusterRole *rbacv1
 // with those permissions attached
 func NewServiceAccountWithClusterPermissions(ctx *pulumi.Context, namespace string, apiKey pulumi.StringInput,
 	clusterAgentToken pulumi.StringInput, opts ...pulumi.ResourceOption) (*corev1.ServiceAccount, error) {
-	_, err := NewDatadogSecret(ctx, namespace, datadogSecretName, apiKey, clusterAgentToken)
+
+	_, err := NewDatadogSecret(ctx, namespace, apiKey, clusterAgentToken, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	serviceAccount, err := NewServiceAccount(ctx, namespace, serviceAccountName)
+	serviceAccount, err := NewServiceAccount(ctx, namespace, serviceAccountName, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	clusterRole, err := NewAgentClusterRole(ctx, sidecarAgentClusterRoleName, opts...)
+	// Not namespaced so name must be globally unique
+	uniqueClusterRoleName := fmt.Sprintf("%s-%s", namespace, clusterRoleName)
+	clusterRole, err := NewAgentClusterRole(ctx, uniqueClusterRoleName, opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = NewClusterRoleBinding(ctx, sidecarAgentClusterRoleBindingName, clusterRole, serviceAccount, opts...)
+	// Not namespaced so name must be globally unique
+	uniqueClusterRoleBindingName := fmt.Sprintf("%s-%s", namespace, clusterRoleName)
+	_, err = NewClusterRoleBinding(ctx, uniqueClusterRoleBindingName, clusterRole, serviceAccount, opts...)
 	if err != nil {
 		return nil, err
 	}

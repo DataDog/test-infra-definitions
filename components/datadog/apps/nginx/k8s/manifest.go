@@ -25,6 +25,13 @@ func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *a
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx"),
 			Namespace: pulumi.String(namespace),
+			Annotations: pulumi.StringMap{
+				"x-sub-team": pulumi.String("contint"),
+			},
+			Labels: pulumi.StringMap{
+				"app":    pulumi.String("nginx"),
+				"x-team": pulumi.String("contp"),
+			},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
 			Selector: &metav1.LabelSelectorArgs{

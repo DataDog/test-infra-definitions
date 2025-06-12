@@ -19,6 +19,7 @@ const (
 	DDMicroVMLocalWorkingDirectory  = "localWorkingDir"
 	DDMicroVMRemoteWorkingDirectory = "remoteWorkingDir"
 	DDMicroVMShutdownPeriod         = "shutdownPeriod"
+	DDMicroVMGDBServerPort          = "gdbPort"
 )
 
 var SSHKeyConfigNames = map[string]string{

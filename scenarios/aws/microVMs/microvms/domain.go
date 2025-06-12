@@ -13,6 +13,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	microVMConfig "github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
@@ -146,6 +147,13 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 		hostOS = "linux" // Remote VMs are always on Linux hosts
 	}
 
+	m := microVMConfig.NewMicroVMConfig(e)
+	gdbPort, err = m.TryInt(microVMConfig.DDMicroVMGDBServerPort)
+	qemuArgs := make(map[string]pulumi.StringInput)
+	if err == nil {
+		qemuArgs["-gdb"] = pulumi.Sprintf("tcp:127.0.0.1:%d", gdbPort)
+	}
+
 	if hostOS == "linux" {
 		hypervisor = "kvm"
 	} else if hostOS == "darwin" {
@@ -153,21 +161,21 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 		// We have to use QEMU network devices because libvirt does not support the macOS
 		// network devices.
 		netID := libvirtResourceName(domainName, "netdev")
-		qemuArgs := map[string]pulumi.StringInput{
-			"-netdev": pulumi.Sprintf("vmnet-shared,id=%s", netID),
-			// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI
-			// device and that information can be used by udev to rename the device, instead of having eth0.
-			// This makes the naming consistent across different execution environments and avoids
-			// problems (for example, DHCP is configured for interfaces starting with en*, so
-			// if we had eth0 we wouldn't have a network connection)
-			// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
-			"-device": pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac),
-		}
 
-		for k, v := range qemuArgs {
-			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
-			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
-		}
+		qemuArgs["-netdev"] = pulumi.Sprintf("vmnet-shared,id=%s", netID)
+		// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI
+		// device and that information can be used by udev to rename the device, instead of having eth0.
+		// This makes the naming consistent across different execution environments and avoids
+		// problems (for example, DHCP is configured for interfaces starting with en*, so
+		// if we had eth0 we wouldn't have a network connection)
+		// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
+		qemuArgs["-device"] = pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac)
+
+	}
+
+	for k, v := range qemuArgs {
+		commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
+		commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
 	}
 
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(

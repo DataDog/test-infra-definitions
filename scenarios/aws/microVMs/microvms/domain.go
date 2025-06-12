@@ -13,7 +13,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
-	microVMConfig "github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
+	microvmConfig "github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
@@ -147,10 +147,15 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 		hostOS = "linux" // Remote VMs are always on Linux hosts
 	}
 
-	m := microVMConfig.NewMicroVMConfig(e)
-	gdbPort, err = m.TryInt(microVMConfig.DDMicroVMGDBServerPort)
+	commonEnv, err := config.NewCommonEnvironment(e.Ctx())
+	if err != nil {
+		return nil, err
+	}
+
+	m := microvmConfig.NewMicroVMConfig(commonEnv)
+	gdbPort := m.GetIntWithDefault(m.MicroVMConfig, microvmConfig.DDMicroVMGDBServerPort, 0)
 	qemuArgs := make(map[string]pulumi.StringInput)
-	if err == nil {
+	if gdbPort != 0 {
 		qemuArgs["-gdb"] = pulumi.Sprintf("tcp:127.0.0.1:%d", gdbPort)
 	}
 

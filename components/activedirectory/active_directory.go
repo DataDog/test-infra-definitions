@@ -35,6 +35,7 @@ func (dc *Component) Export(ctx *pulumi.Context, out *Output) error {
 	return components.Export(ctx, dc, out)
 }
 
+// TODO: Rework this with primary DC, backup DC, clients?
 // A little structure to help manage state for the Active Directory component
 type activeDirectoryContext struct {
 	pulumiContext    *pulumi.Context
@@ -123,6 +124,16 @@ $HashArguments = @{
 					return err
 				}
 				createUserResources = append(createUserResources, createDomainUserCmd)
+
+				if user.IsAdmin {
+					setAdminCmd, err := host.OS.Runner().Command(comp.namer.ResourceName("set-admin-users", user.Username), &command.Args{
+						Create: pulumi.Sprintf(`Add-ADGroupMember -Identity "Domain Admins" -Members "%s"`, user.Username),
+					}, pulumi.DependsOn([]pulumi.Resource{createDomainUserCmd}))
+					if err != nil {
+						return err
+					}
+					createUserResources = append(createUserResources, setAdminCmd)
+				}
 			}
 			adCtx.createdResources = append(adCtx.createdResources, createUserResources...)
 		}

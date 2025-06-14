@@ -63,7 +63,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Essential: pulumi.BoolPtr(true),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg", pulumi.String("redis-fg"), 1024, 2048,
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "redis-fg", pulumi.String("redis-fg"), 1024, 2048, false,
 		map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			"redis": *serverContainer,
 			"query": *queryContainer,

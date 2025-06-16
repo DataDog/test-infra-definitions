@@ -148,6 +148,7 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 
 	if hostOS == "linux" {
 		hypervisor = "kvm"
+		driver := "<driver name=\"qemu\" type=\"qcow2\" io=\"io_uring\"/>"
 	} else if hostOS == "darwin" {
 		hypervisor = "hvf"
 		// We have to use QEMU network devices because libvirt does not support the macOS
@@ -168,6 +169,8 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
 			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
 		}
+
+		driver := "<driver name=\"qemu\" type=\"qcow2\"/>"
 	}
 
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
@@ -181,6 +184,7 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 			resources.CPUTune:       pulumi.String(cputune),
 			resources.Hypervisor:    pulumi.String(hypervisor),
 			resources.CommandLine:   commandLine,
+			resources.DiskDriver:    driver,
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine

@@ -54,7 +54,7 @@ var installerLabVMs = []installerLabVMArgs{
 }
 
 const installScriptFormat = `#!/bin/bash
-DD_API_KEY=%s DD_HOSTNAME=%s DD_SITE=%s DD_REMOTE_UPDATES=true bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
+DD_API_KEY=%s DD_HOSTNAME=%s DD_SITE=%s DD_REMOTE_UPDATES=true DD_AGENT_MINOR_VERSION=67.0~rc.5 bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script_agent7.sh)"
 `
 
 const hostnamePrefix = "installer-lab-%s"

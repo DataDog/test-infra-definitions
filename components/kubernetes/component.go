@@ -26,6 +26,8 @@ type Cluster struct {
 	KubeConfig                pulumi.StringOutput `pulumi:"kubeConfig"`
 	KubeInternalServerAddress pulumi.StringOutput `pulumi:"kubeInternalServerAddress"`
 	KubeInternalServerPort    pulumi.StringOutput `pulumi:"kubeInternalServerPort"`
+	CRCStartLog               pulumi.StringOutput `pulumi:"crcStartLog"`
+	CRCVerifyLog              pulumi.StringOutput `pulumi:"crcVerifyLog"`
 }
 
 func (c *Cluster) Export(ctx *pulumi.Context, out *ClusterOutput) error {

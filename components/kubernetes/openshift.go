@@ -51,13 +51,6 @@ func NewLocalCRCCluster(env config.Env, name string, opts ...pulumi.ResourceOpti
 			return err
 		}
 
-		_, err = runner.Command(commonEnvironment.CommonNamer().ResourceName("keep-alive"), &command.Args{
-			Create: pulumi.String("sleep 300"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(kubeConfigCmd))...)
-		if err != nil {
-			return err
-		}
-
 		clusterComp.KubeConfig = kubeConfigCmd.StdoutOutput()
 		clusterComp.ClusterName = pulumi.String("crc").ToStringOutput()
 		return nil
@@ -113,14 +106,14 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 		}
 
 		setupCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
-			Create: pulumi.String("crc setup --log-level debug"),
+			Create: pulumi.String("crc setup"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(pullSecretFile, restartServices))...)
 		if err != nil {
 			return err
 		}
 
 		startCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.Sprintf("crc start -p /tmp/pull-secret.txt --log-level debug"),
+			Create: pulumi.Sprintf("crc start -p /tmp/pull-secret.txt"),
 			Delete: pulumi.String("crc stop"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(setupCRC))...)
 		if err != nil {
@@ -134,28 +127,6 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
-		installKubectl, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("install-kubectl"), &command.Args{
-			Create: pulumi.String(`curl -LO "https://dl.k8s.io/release/v1.28.0/bin/linux/amd64/kubectl" && chmod +x kubectl && sudo mv kubectl /usr/local/bin/`),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(kubeConfig))...)
-		if err != nil {
-			return err
-		}
-
-		switchContext, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("kubectl-use-context"), &command.Args{
-			Create: pulumi.String(`kubectl config use-context crc-admin`),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(installKubectl))...)
-		if err != nil {
-			return fmt.Errorf("failed to switch kubectl context to crc-admin: %w", err)
-		}
-
-		verifyCluster, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("verify-openshift"), &command.Args{
-			Create: pulumi.String(`kubectl get nodes`),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(switchContext))...)
-		if err != nil {
-			return fmt.Errorf("OpenShift cluster is not responding to kubectl get nodes: %w", err)
-		}
-		clusterComp.CRCVerifyLog = verifyCluster.StdoutOutput()
-		clusterComp.CRCStartLog = startCRC.StderrOutput().ToStringOutput()
 		clusterComp.KubeConfig = kubeConfig.StdoutOutput()
 		clusterComp.ClusterName = openShiftClusterName.ToStringOutput()
 		return nil

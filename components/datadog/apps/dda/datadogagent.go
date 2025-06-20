@@ -177,6 +177,10 @@ func (d datadogAgentWorkload) fakeIntakeEnvVars() []map[string]interface{} {
 			"value": "true",
 		},
 		{
+			"name":  "DD_SERVICE_DISCOVERY_FORWARDER_LOGS_DD_URL",
+			"value": d.opts.FakeIntake.URL,
+		},
+		{
 			"name":  "DD_SKIP_SSL_VALIDATION",
 			"value": "true",
 		},

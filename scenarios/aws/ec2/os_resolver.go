@@ -178,7 +178,7 @@ func resolveSuseAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 		if osInfo.Architecture == os.AMD64Arch {
 			return "ami-067dfda331f8296b0", nil // Private copy of the AMI dd-agent-sles-15-x86_64
 		} else if osInfo.Architecture == os.ARM64Arch {
-			return "ami-0dd7f664cbd69840b", nil // Private copy of the AMI dd-agent-sles-15-arm64
+			return "ami-0d446ba26bbe19573", nil // Private copy of the AMI dd-agent-sles-15-arm64
 		}
 		return "", fmt.Errorf("architecture %s is not supported for SUSE %s", osInfo.Architecture, osInfo.Version)
 	}

@@ -99,12 +99,13 @@ integration-testing:
 
 release-runner-image:
   stage: release
+  needs: ["build-runner-image"]
   image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
   tags: ["arch:amd64"]
   script:
     - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    - if: $CI_COMMIT_BRANCH == "7.67.x-fix-suse-ami"
       when: on_success
 
 bump-version-on-datadog-agent:

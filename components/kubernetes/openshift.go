@@ -13,7 +13,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewLocalCRCCluster(env config.Env, name string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
@@ -27,15 +27,16 @@ func NewLocalCRCCluster(env config.Env, name string, opts ...pulumi.ResourceOpti
 		}
 
 		crcSetup, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
-			Create: pulumi.String("crc setup --log-level debug"),
+			Create: pulumi.String("crc setup"),
 		}, opts...)
 		if err != nil {
 			return err
 		}
 
+		// Start CRC as a daemon using nohup to detach from Pulumi process
 		startCluster, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.Sprintf("crc start -p %s --log-level debug", pullSecretPath),
-			Delete: pulumi.String("crc delete -f || true"),
+			Create: pulumi.Sprintf("nohup crc start -p %s > /tmp/crc.log 2>&1 &", pullSecretPath),
+			Delete: pulumi.String("crc stop || true"),
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),
 			},
@@ -44,15 +45,23 @@ func NewLocalCRCCluster(env config.Env, name string, opts ...pulumi.ResourceOpti
 			return err
 		}
 
-		kubeConfigCmd, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
-			Create: pulumi.String("cat ~/.crc/cache/crc_vfkit_*/kubeconfig"),
+		// Wait for CRC to be ready
+		waitForCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("wait-for-crc"), &command.Args{
+			Create: pulumi.String(`timeout 300 bash -c 'until [ -f ~/.crc/machines/crc/kubeconfig ]; do sleep 10; echo "Waiting for CRC kubeconfig to be ready..."; done'`),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCluster))...)
 		if err != nil {
 			return err
 		}
 
+		kubeConfigCmd, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
+			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(waitForCRC))...)
+		if err != nil {
+			return err
+		}
+
 		clusterComp.KubeConfig = kubeConfigCmd.StdoutOutput()
-		clusterComp.ClusterName = pulumi.String("crc").ToStringOutput()
+		clusterComp.ClusterName = pulumi.String("openshift").ToStringOutput()
 		return nil
 	}, opts...)
 }
@@ -112,17 +121,31 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
+		// Start CRC as a daemon using nohup to detach from Pulumi process
 		startCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.Sprintf("crc start -p /tmp/pull-secret.txt"),
-			Delete: pulumi.String("crc stop"),
+			Create: pulumi.String("nohup crc start -p /tmp/pull-secret.txt > /tmp/crc.log 2>&1 &"),
+			Delete: pulumi.String("crc stop || true"),
+			Triggers: pulumi.Array{
+				pulumi.String(pullSecretPath),
+			},
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(setupCRC))...)
+		if err != nil {
+			return err
+		}
+
+		waitForCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("wait-for-crc"), &command.Args{
+			Create: pulumi.String(`timeout 300 bash -c 'until [ -f ~/.crc/machines/crc/kubeconfig ]; do sleep 10; echo "Waiting for CRC kubeconfig to be ready..."; done'`),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
 		if err != nil {
 			return err
 		}
 
 		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
 			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
+			Environment: pulumi.StringMap{
+				"KUBECONFIG": pulumi.String("~/.crc/machines/crc/kubeconfig"),
+			},
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(waitForCRC))...)
 		if err != nil {
 			return err
 		}

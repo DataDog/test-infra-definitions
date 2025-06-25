@@ -33,9 +33,9 @@ func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.Resour
 			return err
 		}
 
-		// Start CRC as a daemon using nohup to detach from Pulumi process
+		// Start CRC cluster with proper timeout
 		startCluster, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.Sprintf("nohup crc start -p %s > /tmp/crc.log 2>&1 &", pullSecretPath),
+			Create: pulumi.Sprintf("timeout 1800 crc start -p %s", pullSecretPath), // 30 minute timeout
 			Delete: pulumi.String("crc stop || true"),
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),
@@ -45,17 +45,9 @@ func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.Resour
 			return err
 		}
 
-		// Wait for CRC to be ready
-		waitForCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("wait-for-crc"), &command.Args{
-			Create: pulumi.String(`timeout 300 bash -c 'until [ -f ~/.crc/machines/crc/kubeconfig ]; do sleep 10; echo "Waiting for CRC kubeconfig to be ready..."; done'`),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCluster))...)
-		if err != nil {
-			return err
-		}
-
 		kubeConfigCmd, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
 			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(waitForCRC))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCluster))...)
 		if err != nil {
 			return err
 		}
@@ -121,10 +113,9 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
-		// Start CRC as a daemon using nohup to detach from Pulumi process
 		startCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.String("nohup crc start -p /tmp/pull-secret.txt > /tmp/crc.log 2>&1 &"),
-			Delete: pulumi.String("crc stop || true"),
+			Create: pulumi.String("crc start --log-level debug -p /tmp/pull-secret.txt"),
+			Delete: pulumi.String("crc stop && crc delete && crc cleanup && rm -rf ~/.crc"),
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),
 			},
@@ -133,23 +124,12 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
-		waitForCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("wait-for-crc"), &command.Args{
-			Create: pulumi.String(`timeout 300 bash -c 'until [ -f ~/.crc/machines/crc/kubeconfig ]; do sleep 10; echo "Waiting for CRC kubeconfig to be ready..."; done'`),
+		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
+			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
 		if err != nil {
 			return err
 		}
-
-		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
-			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
-			Environment: pulumi.StringMap{
-				"KUBECONFIG": pulumi.String("~/.crc/machines/crc/kubeconfig"),
-			},
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(waitForCRC))...)
-		if err != nil {
-			return err
-		}
-
 		clusterComp.KubeConfig = kubeConfig.StdoutOutput()
 		clusterComp.ClusterName = openShiftClusterName.ToStringOutput()
 		return nil

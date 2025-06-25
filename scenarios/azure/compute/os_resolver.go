@@ -16,6 +16,7 @@ type imageResolveFunc func(azure.Environment, os.Descriptor) (string, error)
 
 var imageResolvers = map[os.Flavor]imageResolveFunc{
 	os.WindowsServer: resolveWindowsURN,
+	os.WindowsClient: resolveWindowsClientURN,
 	os.Ubuntu:        resolveUbuntuURN,
 }
 
@@ -48,7 +49,23 @@ func resolveWindowsURN(_ azure.Environment, osInfo os.Descriptor) (string, error
 		osInfo.Version = os.WindowsDefault.Version
 	}
 
+	if osInfo.Version == "2016" {
+		// 2016 uses a different URN format
+		return "MicrosoftWindowsServer:WindowsServer:2016-datacenter-gensecond:latest", nil
+	}
+
 	return fmt.Sprintf("MicrosoftWindowsServer:WindowsServer:%s-datacenter-azure-edition-core:latest", osInfo.Version), nil
+}
+
+func resolveWindowsClientURN(_ azure.Environment, osInfo os.Descriptor) (string, error) {
+	if osInfo.Architecture == os.ARM64Arch {
+		return "", errors.New("ARM64 is not supported for Windows")
+	}
+	if osInfo.Version == "" {
+		osInfo.Version = os.WindowsDefault.Version
+	}
+
+	return fmt.Sprintf("MicrosoftWindowsDesktop:%s:latest", osInfo.Version), nil
 }
 
 func resolveUbuntuURN(_ azure.Environment, osInfo os.Descriptor) (string, error) {

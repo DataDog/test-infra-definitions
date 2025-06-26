@@ -87,13 +87,9 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
-		// https://documentation.ubuntu.com/server/how-to/virtualisation/libvirt/
 		installLibvirt, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("install-libvirt"), &command.Args{
 			Create: pulumi.String(`
-		sudo apt update && \
-		sudo apt install -y qemu-kvm libvirt-daemon-system && \
-		sudo adduser gce libvirt && \
-		newgrp libvirt`),
+		sudo dnf install -y libvirt NetworkManager`),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(openShiftInstallBinary))...)
 		if err != nil {
 			return err
@@ -114,7 +110,7 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 		}
 
 		startCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.String("crc start --log-level debug -p /tmp/pull-secret.txt"),
+			Create: pulumi.String("crc start -p /tmp/pull-secret.txt"),
 			Delete: pulumi.String("crc stop && crc delete && crc cleanup && rm -rf ~/.crc"),
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),

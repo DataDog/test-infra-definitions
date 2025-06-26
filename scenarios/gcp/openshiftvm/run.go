@@ -14,7 +14,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	osDesc := os.DescriptorFromString("ubuntu:22.04", os.UbuntuDefault)
+	osDesc := os.DescriptorFromString("redhat:9", os.RedHat9)
 	vm, err := compute.NewVM(gcpEnv, "openshift",
 		compute.WithOS(osDesc),
 		compute.WithInstanceType("n2-standard-8"))

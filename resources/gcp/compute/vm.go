@@ -24,8 +24,12 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 				Subnetwork: pulumi.String(e.DefaultSubnet()),
 			},
 		},
-		Name:        e.Namer.DisplayName(63, pulumi.String(name)),
-		MachineType: pulumi.String(instanceType),
+		Name:                   e.Namer.DisplayName(63, pulumi.String(name)),
+		MachineType:            pulumi.String(instanceType),
+		AllowStoppingForUpdate: pulumi.Bool(true),
+		AdvancedMachineFeatures: &compute.InstanceAdvancedMachineFeaturesArgs{
+			EnableNestedVirtualization: pulumi.Bool(true),
+		},
 		Tags: pulumi.StringArray{
 			pulumi.String("appgate-gateway"),
 			pulumi.String("nat-us-central1"),
@@ -36,6 +40,7 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 				Labels: pulumi.StringMap{
 					"my_label": pulumi.String("value"),
 				},
+				Size: pulumi.Int(100),
 			},
 		},
 		Metadata: pulumi.StringMap{

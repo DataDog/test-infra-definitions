@@ -41,7 +41,7 @@ func EksFargateAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 		return nil, err
 	}
 
-	nginxManifest := k8s.NewNginxDeploymentManifest(
+	nginxManifest, err := k8s.NewNginxDeploymentManifest(
 		namespace,
 		k8s.WithLabels(map[string]string{
 			"agent.datadoghq.com/sidecar": "fargate",
@@ -51,6 +51,10 @@ func EksFargateAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 		}),
 		k8s.WithServiceAccount(serviceAccount))
 
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx-fargate", nginxManifest, opts...); err != nil {
 		return nil, err
 	}
@@ -59,7 +63,7 @@ func EksFargateAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 		return nil, err
 	}
 
-	nginxQueryManifest := k8s.NewNginxQueryDeploymentManifest(
+	nginxQueryManifest, err := k8s.NewNginxQueryDeploymentManifest(
 		namespace,
 		k8s.WithLabels(map[string]string{
 			"agent.datadoghq.com/sidecar": "fargate",
@@ -68,6 +72,10 @@ func EksFargateAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 			"ad.datadoghq.com/query.logs": `[{"source": "sidecar", "service": "nginx-query-fargate"}]`,
 		}),
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx-query", nginxQueryManifest, opts...); err != nil {
 		return nil, err
 	}

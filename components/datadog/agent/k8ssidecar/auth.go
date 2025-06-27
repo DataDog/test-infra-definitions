@@ -19,23 +19,19 @@ const (
 // NewServiceAccount creates a ServiceAccount
 func NewServiceAccount(ctx *pulumi.Context, namespace string, name string, opts ...pulumi.ResourceOption) (*corev1.ServiceAccount, error) {
 	pulumiName := fmt.Sprintf("%s-%s", namespace, name)
-	sa, err := corev1.NewServiceAccount(ctx, pulumiName, &corev1.ServiceAccountArgs{
+	return corev1.NewServiceAccount(ctx, pulumiName, &corev1.ServiceAccountArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String(name),
 			Namespace: pulumi.String(namespace),
 		},
 	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return sa, nil
 }
 
 // NewDatadogSecret creates a Secret named datadog-secret with two fields: 1) api-key 2)token
 func NewDatadogSecret(ctx *pulumi.Context, namespace string, apiKey pulumi.StringInput,
 	token pulumi.StringInput, opts ...pulumi.ResourceOption) (*corev1.Secret, error) {
 	pulumiName := fmt.Sprintf("%s-%s", namespace, datadogSecretName)
-	s, err := corev1.NewSecret(ctx,
+	return corev1.NewSecret(ctx,
 		pulumiName,
 		&corev1.SecretArgs{
 			Metadata: &metav1.ObjectMetaArgs{
@@ -47,15 +43,11 @@ func NewDatadogSecret(ctx *pulumi.Context, namespace string, apiKey pulumi.Strin
 				"token":   token,
 			},
 		}, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return s, nil
 }
 
 // NewAgentClusterRole creates a cluster role for a sidecar agent
 func NewAgentClusterRole(ctx *pulumi.Context, name string, opts ...pulumi.ResourceOption) (*rbacv1.ClusterRole, error) {
-	cr, err := rbacv1.NewClusterRole(ctx, name, &rbacv1.ClusterRoleArgs{
+	return rbacv1.NewClusterRole(ctx, name, &rbacv1.ClusterRoleArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String(name),
 		},
@@ -93,17 +85,12 @@ func NewAgentClusterRole(ctx *pulumi.Context, name string, opts ...pulumi.Resour
 			},
 		},
 	}, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	return cr, nil
 }
 
 // NewClusterRoleBinding creates a cluster role binding
 func NewClusterRoleBinding(ctx *pulumi.Context, name string, clusterRole *rbacv1.ClusterRole,
 	serviceAccount *corev1.ServiceAccount, opts ...pulumi.ResourceOption) (*rbacv1.ClusterRoleBinding, error) {
-	crb, err := rbacv1.NewClusterRoleBinding(ctx, name, &rbacv1.ClusterRoleBindingArgs{
+	return rbacv1.NewClusterRoleBinding(ctx, name, &rbacv1.ClusterRoleBindingArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String(name),
 		},
@@ -120,12 +107,6 @@ func NewClusterRoleBinding(ctx *pulumi.Context, name string, clusterRole *rbacv1
 			},
 		},
 	}, opts...)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return crb, nil
 }
 
 // NewServiceAccountWithClusterPermissions creates a cluster role with default permissions, and returns a service account
@@ -144,14 +125,14 @@ func NewServiceAccountWithClusterPermissions(ctx *pulumi.Context, namespace stri
 	}
 
 	// Not namespaced so name must be globally unique
-	uniqueClusterRoleName := fmt.Sprintf("%s-%s", namespace, clusterRoleName)
+	uniqueClusterRoleName := namespace + "-" + clusterRoleName
 	clusterRole, err := NewAgentClusterRole(ctx, uniqueClusterRoleName, opts...)
 	if err != nil {
 		return nil, err
 	}
 
 	// Not namespaced so name must be globally unique
-	uniqueClusterRoleBindingName := fmt.Sprintf("%s-%s", namespace, clusterRoleName)
+	uniqueClusterRoleBindingName := namespace + "-" + clusterRoleBindingName
 	_, err = NewClusterRoleBinding(ctx, uniqueClusterRoleBindingName, clusterRole, serviceAccount, opts...)
 	if err != nil {
 		return nil, err

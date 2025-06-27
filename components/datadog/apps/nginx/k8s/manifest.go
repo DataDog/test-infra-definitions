@@ -20,7 +20,7 @@ func runtimeClassToPulumi(runtimeClass string) pulumi.StringInput {
 }
 
 // NewNginxDeploymentManifest creates a new deployment manifest for Nginx server
-func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *appsv1.DeploymentArgs {
+func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) (*appsv1.DeploymentArgs, error) {
 	manifest := &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx"),
@@ -124,14 +124,17 @@ func NewNginxDeploymentManifest(namespace string, mods ...DeploymentModifier) *a
 	}
 
 	for _, mod := range mods {
-		mod(manifest)
+		err := mod(manifest)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return manifest
+	return manifest, nil
 }
 
 // NewNginxQueryDeploymentManifest creates a new deployment manifest for Nginx query app
-func NewNginxQueryDeploymentManifest(namespace string, mods ...DeploymentModifier) *appsv1.DeploymentArgs {
+func NewNginxQueryDeploymentManifest(namespace string, mods ...DeploymentModifier) (*appsv1.DeploymentArgs, error) {
 	manifest := &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx-query"),
@@ -184,10 +187,13 @@ func NewNginxQueryDeploymentManifest(namespace string, mods ...DeploymentModifie
 	}
 
 	for _, mod := range mods {
-		mod(manifest)
+		err := mod(manifest)
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return manifest
+	return manifest, nil
 }
 
 // NewNginxServiceManifest creates a new service manifest for the Nginx deployment

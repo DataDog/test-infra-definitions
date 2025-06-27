@@ -52,6 +52,7 @@ const (
 
 	// Windows
 	WindowsServer Flavor = 500
+	WindowsClient Flavor = 501
 
 	// MacOS
 	MacosOS Flavor = 1000
@@ -80,6 +81,8 @@ func FlavorFromString(flavorStr string) Flavor {
 		return RockyLinux
 	case "windows", "windows-server":
 		return WindowsServer
+	case "windows-client":
+		return WindowsClient
 	case "macos":
 		return MacosOS
 	default:
@@ -122,6 +125,8 @@ func (f Flavor) String() string {
 		return "rocky-linux"
 	case WindowsServer:
 		return "windows-server"
+	case WindowsClient:
+		return "windows-client"
 	case MacosOS:
 		return "macos"
 	case Unknown:

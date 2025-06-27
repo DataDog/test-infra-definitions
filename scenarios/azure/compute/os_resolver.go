@@ -49,9 +49,9 @@ func resolveWindowsURN(_ azure.Environment, osInfo os.Descriptor) (string, error
 		osInfo.Version = os.WindowsDefault.Version
 	}
 
-	if osInfo.Version == "2016" {
-		// 2016 uses a different URN format
-		return "MicrosoftWindowsServer:WindowsServer:2016-datacenter-gensecond:latest", nil
+	if osInfo.Version == "2016" || osInfo.Version == "2019" {
+		// 2016 and 2019 uses a different URN format
+		return fmt.Sprintf("MicrosoftWindowsServer:WindowsServer:%s-datacenter-gensecond:latest", osInfo.Version), nil
 	}
 
 	return fmt.Sprintf("MicrosoftWindowsServer:WindowsServer:%s-datacenter-azure-edition-core:latest", osInfo.Version), nil

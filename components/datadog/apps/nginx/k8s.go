@@ -55,7 +55,10 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	nginxManifest := k8s.NewNginxDeploymentManifest(namespace, k8s.WithRuntimeClass(runtimeClass))
+	nginxManifest, err := k8s.NewNginxDeploymentManifest(namespace, k8s.WithRuntimeClass(runtimeClass))
+	if err != nil {
+		return nil, err
+	}
 
 	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx", nginxManifest, opts...); err != nil {
 		return nil, err
@@ -243,7 +246,11 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		return nil, err
 	}
 
-	nginxQueryManifest := k8s.NewNginxQueryDeploymentManifest(namespace)
+	nginxQueryManifest, err := k8s.NewNginxQueryDeploymentManifest(namespace)
+	if err != nil {
+		return nil, err
+	}
+
 	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx-query", nginxQueryManifest, opts...); err != nil {
 		return nil, err
 	}

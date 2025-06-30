@@ -25,6 +25,8 @@ const (
 //   - [WithClusterAgentFullImagePath]
 //   - [WithPulumiResourceOptions]
 //   - [WithDeployWindows]
+//   - [WithHelmRepoURL]
+//   - [WithHelmChartPath]
 //   - [WithHelmValues]
 //   - [WithNamespace]
 //   - [WithDeployWindows]

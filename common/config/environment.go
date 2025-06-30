@@ -48,7 +48,7 @@ const (
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
 	DDOperatorVersionParamName           = "operatorVersion"
 	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
-	DDOperatorLocalChartPath             = "operatorLocalChartPath"
+	DDOperatorLocalChartPath             = "localChartPath"
 	DDImagePullRegistryParamName         = "imagePullRegistry"
 	DDImagePullUsernameParamName         = "imagePullUsername"
 	DDImagePullPasswordParamName         = "imagePullPassword"

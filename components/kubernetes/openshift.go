@@ -102,30 +102,79 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
-		setupCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
-			Create: pulumi.String("crc setup"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(pullSecretFile, restartServices))...)
+		setNetworking, err := runner.Command("set-network-mode", &command.Args{
+			Create: pulumi.String(`crc config set network-mode system`),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(restartServices))...)
 		if err != nil {
 			return err
 		}
 
+		setupCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
+			Create: pulumi.String("crc cleanup && crc setup"),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(pullSecretFile, setNetworking))...)
+		if err != nil {
+			return err
+		}
+		//debugging purposes with pulumi verbose logs
+		ensureCRCDaemon, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("ensure-crc-daemon"), &command.Args{
+			Create: pulumi.String(`
+				systemctl --user enable crc-daemon.service && \
+				systemctl --user start crc-daemon.service && \
+				systemctl --user status crc-daemon.service
+			`),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(setupCRC))...)
+		if err != nil {
+			return err
+		}
+		//debugging purposes with pulumi verbose logs
 		startCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.String("crc start -p /tmp/pull-secret.txt"),
+			Create: pulumi.String(`
+				for i in {1..3}; do
+					crc start -p /tmp/pull-secret.txt && break
+					echo "crc start failed, retrying in 30s..."
+					sleep 30
+				done`),
 			Delete: pulumi.String("crc stop && crc delete && crc cleanup && rm -rf ~/.crc"),
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),
 			},
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(setupCRC))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(ensureCRCDaemon))...)
+		if err != nil {
+			return err
+		}
+		//debugging purposes with pulumi verbose logs
+		waitForAPI, err := runner.Command("wait-for-api", &command.Args{
+			Create: pulumi.String(`
+				for i in {1..60}; do
+					echo "Checking CRC status..."
+					crc status
+					if ! crc status | grep -q "Disk Usage: 0B"; then
+						if curl -k https://api.crc.testing:6443/healthz; then
+							echo "API is up!"
+							exit 0
+						else
+							echo "API not yet up, sleeping..."
+						fi
+					else
+						echo "CRC VM is up but disk not ready — waiting..."
+					fi
+					sleep 10
+				done
+				echo "API never became ready"
+				exit 1
+			`),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
 		if err != nil {
 			return err
 		}
 
 		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
 			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(waitForAPI))...)
 		if err != nil {
 			return err
 		}
+
 		clusterComp.KubeConfig = kubeConfig.StdoutOutput()
 		clusterComp.ClusterName = openShiftClusterName.ToStringOutput()
 		return nil
@@ -140,7 +189,7 @@ func InstallOpenShiftBinary(env config.Env, vm *remote.Host, opts ...pulumi.Reso
 	return vm.OS.Runner().Command(
 		env.CommonNamer().ResourceName("crc-install"),
 		&command.Args{
-			Create: pulumi.Sprintf(`curl --retry 10 -fsSL https://mirror.openshift.com/pub/openshift-v4/clients/crc/latest/crc-linux-%s.tar.xz -o crc.tar.xz && \
+			Create: pulumi.Sprintf(`curl --retry 10 -fsSL https://developers.redhat.com/content-gateway/file/pub/openshift-v4/clients/crc/2.52.0/crc-linux-%s.tar.xz -o crc.tar.xz && \
 	tar -xf crc.tar.xz && \
 	sudo mv crc-linux-*-%s/crc /usr/local/bin/crc`, openShiftArch, openShiftArch),
 		}, opts...)

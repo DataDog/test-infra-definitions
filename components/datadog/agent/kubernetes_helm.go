@@ -24,6 +24,7 @@ import (
 
 const (
 	DatadogHelmRepo = "https://helm.datadoghq.com"
+	HelmVersion     = "3.120.2"
 )
 
 // HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
@@ -182,6 +183,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,
+		Version:     pulumi.String(HelmVersion),
 	}, opts...)
 	if err != nil {
 		return nil, err

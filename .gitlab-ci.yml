@@ -12,7 +12,7 @@ stages:
 
 build-runner-image:
   stage: build
-  image: ${BUILD_STABLE_REGISTRY}/images/docker:27.3.1
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci-containers-project:v2.0.0
   tags: ["arch:amd64"]
   variables:
     RELEASE_IMAGE: "false"
@@ -32,7 +32,7 @@ build-runner-image:
 
 build-pulumi-go-main:
   stage: build
-  image: ${BUILD_STABLE_REGISTRY}/ci/datadog-agent-buildimages/deb_x64:v68913450-a14377f4
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/deb_x64:v48815877-9bfad02c
   tags: ["arch:amd64"]
   rules:
     - when: on_success
@@ -78,7 +78,8 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
-    - go install github.com/DataDog/orchestrion@v1.4.0
+    - go install github.com/DataDog/orchestrion@v1.1.0
+    - orchestrion pin
     - export DD_CIVISIBILITY_ENABLED=true
     - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
     - export DD_ENV=ci
@@ -99,7 +100,7 @@ integration-testing:
 
 release-runner-image:
   stage: release
-  image: ${BUILD_STABLE_REGISTRY}/images/docker:27.3.1
+  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
   tags: ["arch:amd64"]
   script:
     - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}

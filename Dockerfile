@@ -133,7 +133,7 @@ RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-age
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support
-RUN go install github.com/DataDog/orchestrion@v1.4.0
+RUN go install github.com/DataDog/orchestrion@v1.0.1
 
 RUN rm -rf /tmp/test-infra
 

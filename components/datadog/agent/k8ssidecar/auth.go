@@ -1,8 +1,6 @@
 package k8ssidecar
 
 import (
-	"fmt"
-
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	rbacv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
@@ -18,7 +16,7 @@ const (
 
 // NewServiceAccount creates a ServiceAccount
 func NewServiceAccount(ctx *pulumi.Context, namespace string, name string, opts ...pulumi.ResourceOption) (*corev1.ServiceAccount, error) {
-	pulumiName := fmt.Sprintf("%s-%s", namespace, name)
+	pulumiName := namespace + "-" + name
 	return corev1.NewServiceAccount(ctx, pulumiName, &corev1.ServiceAccountArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String(name),
@@ -30,7 +28,7 @@ func NewServiceAccount(ctx *pulumi.Context, namespace string, name string, opts 
 // NewDatadogSecret creates a Secret named datadog-secret with two fields: 1) api-key 2)token
 func NewDatadogSecret(ctx *pulumi.Context, namespace string, apiKey pulumi.StringInput,
 	token pulumi.StringInput, opts ...pulumi.ResourceOption) (*corev1.Secret, error) {
-	pulumiName := fmt.Sprintf("%s-%s", namespace, datadogSecretName)
+	pulumiName := namespace + "-" + datadogSecretName
 	return corev1.NewSecret(ctx,
 		pulumiName,
 		&corev1.SecretArgs{

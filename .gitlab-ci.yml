@@ -105,7 +105,7 @@ release-runner-image:
   script:
     - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
   rules:
-    - if: $CI_COMMIT_BRANCH == "7.67.x-fix-suse-ami"
+    - if: $CI_COMMIT_BRANCH == "7.67.x-fix-helm"
       when: on_success
 
 bump-version-on-datadog-agent:

@@ -23,7 +23,6 @@ import (
 )
 
 const (
-	DatadogHelmRepo = "https://helm.datadoghq.com"
 	HelmVersion     = "3.120.2"
 )
 
@@ -33,6 +32,10 @@ type HelmInstallationArgs struct {
 	KubeProvider *kubernetes.Provider
 	// Namespace is the namespace in which to install the agent
 	Namespace string
+	// ChartPath is the chart name or local chart path.
+	ChartPath string
+	// RepoURL is the Helm repository URL to use for the remote chart installation.
+	RepoURL string
 	// ValuesYAML is used to provide installation-specific values
 	ValuesYAML pulumi.AssetOrArchiveArray
 	// Fakeintake is used to configure the agent to send data to a fake intake
@@ -178,8 +181,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
-		RepoURL:     DatadogHelmRepo,
-		ChartName:   "datadog",
+		RepoURL:     args.RepoURL,
+		ChartName:   args.ChartPath,
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,
@@ -209,8 +212,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
-			RepoURL:     DatadogHelmRepo,
-			ChartName:   "datadog",
+			RepoURL:     args.RepoURL,
+			ChartName:   args.ChartPath,
 			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
 			ValuesYAML:  windowsValuesYAML,

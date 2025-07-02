@@ -37,7 +37,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 		Memory: pulumi.IntPtr(64),
 	}
 
-	stressTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "stress-ng-fg", pulumi.String("stress-ng-fg"), 1024, 2048,
+	stressTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "stress-ng-fg", pulumi.String("stress-ng-fg"), 1024, 2048, false,
 		map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			"stress-ng": *stressContainer,
 		},

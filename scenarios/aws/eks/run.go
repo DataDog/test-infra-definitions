@@ -120,6 +120,10 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
+		if _, err := nginx.EksFargateAppDefinition(&awsEnv, cluster.KubeProvider, "workload-nginx-fargate", k8sAgentComponent.ClusterAgentToken, dependsOnDDAgent /* for admission */); err != nil {
+			return err
+		}
+
 		if _, err := redis.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}

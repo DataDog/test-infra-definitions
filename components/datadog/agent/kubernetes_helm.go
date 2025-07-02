@@ -22,6 +22,10 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const (
+	HelmVersion     = "3.120.2"
+)
+
 // HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
 type HelmInstallationArgs struct {
 	// KubeProvider is the Kubernetes provider to use
@@ -182,6 +186,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,
+		Version:     pulumi.String(HelmVersion),
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -491,10 +496,14 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
-				// This option is disabled by default and not exposed in the
+				// These options are disabled by default and not exposed in the
 				// Helm chart yet, so we need to set the env.
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
+					"value": pulumi.String("true"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AGENT_SIDECAR_KUBELET_API_LOGGING_ENABLED"),
 					"value": pulumi.String("true"),
 				},
 			},

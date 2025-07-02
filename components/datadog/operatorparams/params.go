@@ -32,7 +32,9 @@ type Option = func(*Params) error
 
 func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace: "datadog",
+		Namespace:     "datadog",
+		HelmRepoURL:   DatadogHelmRepo,
+		HelmChartPath: "datadog-operator",
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
@@ -42,9 +44,6 @@ func NewParams(e config.Env, options ...Option) (*Params, error) {
 	if e.OperatorLocalChartPath() != "" {
 		options = append(options, WithHelmChartPath(e.OperatorLocalChartPath()))
 		options = append(options, WithHelmRepoURL(""))
-	} else {
-		options = append(options, WithHelmChartPath("datadog-operator"))
-		options = append(options, WithHelmRepoURL(DatadogHelmRepo))
 	}
 
 	return common.ApplyOption(version, options)

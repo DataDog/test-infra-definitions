@@ -74,15 +74,14 @@ type Option = func(*Params) error
 
 func NewParams(env config.Env, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace: defaultAgentNamespace,
+		Namespace:     defaultAgentNamespace,
+		HelmRepoURL:   DatadogHelmRepo,
+		HelmChartPath: "datadog",
 	}
 
 	if env.AgentLocalChartPath() != "" {
 		options = append([]Option{WithHelmChartPath(env.AgentLocalChartPath())}, options...)
 		options = append([]Option{WithHelmRepoURL("")}, options...)
-	} else {
-		options = append([]Option{WithHelmChartPath("datadog")}, options...)
-		options = append([]Option{WithHelmRepoURL(DatadogHelmRepo)}, options...)
 	}
 
 	return common.ApplyOption(version, options)

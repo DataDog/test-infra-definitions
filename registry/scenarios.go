@@ -23,6 +23,7 @@ type ScenarioRegistry map[string]pulumi.RunFunc
 
 func Scenarios() ScenarioRegistry {
 	return ScenarioRegistry{
+		"agent-qa":       ec2.AgentQARun,
 		"aws/vm":         ec2.VMRun,
 		"aws/dockervm":   ec2.VMRunWithDocker,
 		"aws/ecs":        ecs.Run,

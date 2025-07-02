@@ -12,7 +12,7 @@ stages:
 
 build-runner-image:
   stage: build
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci-containers-project:v2.0.0
+  image: ${BUILD_STABLE_REGISTRY}/images/docker:27.3.1
   tags: ["arch:amd64"]
   variables:
     RELEASE_IMAGE: "false"
@@ -35,7 +35,7 @@ build-runner-image:
 
 build-pulumi-go-main:
   stage: build
-  image: registry.ddbuild.io/ci/datadog-agent-buildimages/deb_x64:v48815877-9bfad02c
+  image: ${BUILD_STABLE_REGISTRY}/ci/datadog-agent-buildimages/deb_x64:v68913450-a14377f4
   tags: ["arch:amd64"]
   rules:
     - when: on_success
@@ -103,7 +103,7 @@ integration-testing:
 
 release-runner-image:
   stage: release
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
+  image: ${BUILD_STABLE_REGISTRY}/images/docker:27.3.1
   tags: ["arch:amd64"]
   script:
     - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}

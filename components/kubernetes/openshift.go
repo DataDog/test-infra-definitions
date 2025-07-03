@@ -32,7 +32,6 @@ func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.Resour
 		if err != nil {
 			return err
 		}
-		// Keeps the cluster running for 30 minutes
 		startCluster, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
 			Create: pulumi.Sprintf("crc start -p %s", pullSecretPath),
 			Delete: pulumi.String("crc stop"),
@@ -114,7 +113,7 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),
 			},
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(ensureCRCDaemon))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(setupCRC))...)
 		if err != nil {
 			return err
 		}
@@ -140,8 +139,7 @@ func InstallOpenShiftBinary(env config.Env, vm *remote.Host, opts ...pulumi.Reso
 	return vm.OS.Runner().Command(
 		env.CommonNamer().ResourceName("crc-install"),
 		&command.Args{
-			Create: pulumi.Sprintf(`curl --retry 10 -fsSL https://developers.redhat.com/content-gateway/file/pub/openshift-v4/clients/crc/2.52.0/crc-linux-%s.tar.xz -o crc.tar.xz && \
-	tar -xf crc.tar.xz && \
-	sudo mv crc-linux-*-%s/crc /usr/local/bin/crc`, openShiftArch, openShiftArch),
+			Create: pulumi.Sprintf(`curl -fsSL https://developers.redhat.com/content-gateway/file/pub/openshift-v4/clients/crc/2.52.0/crc-linux-%s.tar.xz | \
+	sudo tar -xJ -C /usr/local/bin --strip-components=1 crc-linux-2.52.0-%s/crc`, openShiftArch, openShiftArch),
 		}, opts...)
 }

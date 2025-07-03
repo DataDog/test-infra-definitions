@@ -34,8 +34,8 @@ func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.Resour
 		}
 		// Keeps the cluster running for 30 minutes
 		startCluster, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-start"), &command.Args{
-			Create: pulumi.Sprintf("timeout 1800 crc start -p %s", pullSecretPath),
-			Delete: pulumi.String("crc stop || true"),
+			Create: pulumi.Sprintf("crc start -p %s", pullSecretPath),
+			Delete: pulumi.String("crc stop"),
 			Triggers: pulumi.Array{
 				pulumi.String(pullSecretPath),
 			},
@@ -95,7 +95,7 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 		}
 		// To avoid the crc-daemon.service being stopped when the user session ends, we enable linger for the user
 		enableLinger, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("enable-linger"), &command.Args{
-			Create: pulumi.String("sudo loginctl enable-linger $USER"),
+			Create: pulumi.String("loginctl enable-linger"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(installLibvirt))...)
 		if err != nil {
 			return err
@@ -104,15 +104,6 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 		setupCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
 			Create: pulumi.String("crc setup"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(pullSecretFile, enableLinger))...)
-		if err != nil {
-			return err
-		}
-		// Ensure CRC daemon is running before starting the cluster
-		ensureCRCDaemon, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("ensure-crc-daemon"), &command.Args{
-			Create: pulumi.String(`
-				systemctl --user start crc-daemon.service
-			`),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(setupCRC))...)
 		if err != nil {
 			return err
 		}

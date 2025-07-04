@@ -69,6 +69,9 @@
   <xsl:template match="domain/devices/video" />
 
   <xsl:template match="/domain/devices">
+    <commandline xmlns="http://libvirt.org/schemas/domain/qemu/1.0">
+      {commandLine}
+    </commandline>
     <xsl:copy>
       <xsl:apply-templates select="node()|@*" />
       <xsl:element name="memballoon">

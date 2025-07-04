@@ -253,9 +253,9 @@ func GenerateDomainConfigurationsForVMSet(e config.Env, providerFn LibvirtProvid
 
 	commonEnv, err := config.NewCommonEnvironment(e.Ctx())
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	m := microvmConfig.NewMicroVMConfig(OcommonEnv)
+	m := microvmConfig.NewMicroVMConfig(commonEnv)
 	setupGDB := m.GetBoolWithDefault(m.MicroVMConfig, microvmConfig.DDMicroVMSetupGDB, false) && set.Arch == LocalVMSet
 	gdbPort := gdbPortRangeStart
 

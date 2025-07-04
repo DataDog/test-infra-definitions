@@ -151,11 +151,6 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory, gdb
 		hostOS = "linux" // Remote VMs are always on Linux hosts
 	}
 
-	commonEnv, err := config.NewCommonEnvironment(e.Ctx())
-	if err != nil {
-		return nil, err
-	}
-
 	qemuArgs := make(map[string]pulumi.StringInput)
 	if gdbPort != 0 {
 		qemuArgs["-gdb"] = pulumi.Sprintf("tcp:127.0.0.1:%d", gdbPort)
@@ -240,12 +235,13 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 
 // isPortFree checks if a given TCP port on localhost in free
 func isPortFree(port int) bool {
-	address := fmt.Sprintf("127.0.0.1:%d", host, port)
+	address := fmt.Sprintf("127.0.0.1:%d", port)
 	conn, err := net.DialTimeout("tcp", address, 1*time.Second)
 	if err != nil {
 		// If there's an error connecting, we assume the port is free
 		return true
 	}
+
 	conn.Close()
 	// If connection was successful, port is in use
 	return false
@@ -255,8 +251,13 @@ func GenerateDomainConfigurationsForVMSet(e config.Env, providerFn LibvirtProvid
 	var domains []*Domain
 	var cpuTuneXML string
 
-	m := microvmConfig.NewMicroVMConfig(commonEnv)
+	commonEnv, err := config.NewCommonEnvironment(e.Ctx())
+	if err != nil {
+		return nil, err
+	}
+	m := microvmConfig.NewMicroVMConfig(OcommonEnv)
 	setupGDB := m.GetBoolWithDefault(m.MicroVMConfig, microvmConfig.DDMicroVMSetupGDB, false) && set.Arch == LocalVMSet
+	gdbPort := gdbPortRangeStart
 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {

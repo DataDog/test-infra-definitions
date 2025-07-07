@@ -91,10 +91,10 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
     # Job to s3 directory mapping
     deploy_job_to_s3 = {
         # Deb
-        "deploy_deb_testing-a7_x64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a7-x86_64/7/binary-x86_64",
-        "deploy_deb_testing-a7_arm64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a7-arm64/7/binary-arm64",
-        "deploy_deb_testing-a6_x64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a6-x86_64/6/binary-x86_64",
-        "deploy_deb_testing-a6_arm64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a6-arm64/6/binary-arm64",
+        "deploy_deb_testing-a7_x64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a7/dists/stable-x86_64/7/binary-amd64",
+        "deploy_deb_testing-a7_arm64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a7/dists/stable-arm64/7/binary-arm64",
+        "deploy_deb_testing-a6_x64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a6/dists/stable-x86_64/6/binary-amd64",
+        "deploy_deb_testing-a6_arm64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a6/dists/stable-arm64/6/binary-arm64",
         # Rpm
         "deploy_rpm_testing-a7_x64": f"yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/x86_64",
         "deploy_rpm_testing-a7_arm64": f"yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/aarch64",
@@ -119,9 +119,7 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
     response = s3.list_objects_v2(Bucket=bucket, Prefix=path)
     exists = "Contents" in response
 
-    assert exists, (
-        f"Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy"
-    )
+    assert exists, f"Latest job {deploy_job} is outdated, use `inv retry-job {pipeline_id} {deploy_job}` to run it again or use --no-verify to force deploy"
 
 
 # creates a stack with the given stack_name if it doesn't already exists

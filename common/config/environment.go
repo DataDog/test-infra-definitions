@@ -41,12 +41,14 @@ const (
 	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentLocalPackage                  = "localPackage"
+	DDAgentLocalChartPath                = "localChartPath"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
 	DDOperatorVersionParamName           = "operatorVersion"
 	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
+	DDOperatorLocalChartPath             = "localChartPath"
 	DDImagePullRegistryParamName         = "imagePullRegistry"
 	DDImagePullUsernameParamName         = "imagePullUsername"
 	DDImagePullPasswordParamName         = "imagePullPassword"
@@ -111,6 +113,7 @@ type Env interface {
 	AgentVersion() string
 	AgentFIPS() bool
 	AgentLocalPackage() string
+	AgentLocalChartPath() string
 	PipelineID() string
 	CommitSHA() string
 	ClusterAgentVersion() string
@@ -118,6 +121,7 @@ type Env interface {
 	ClusterAgentFullImagePath() string
 	OperatorFullImagePath() string
 	OperatorVersion() string
+	OperatorLocalChartPath() string
 	ImagePullRegistry() string
 	ImagePullUsername() string
 	ImagePullPassword() pulumi.StringOutput
@@ -276,6 +280,9 @@ func (e *CommonEnvironment) AgentFlavor() string {
 func (e *CommonEnvironment) AgentLocalPackage() string {
 	return e.AgentConfig.Get(DDAgentLocalPackage)
 }
+func (e *CommonEnvironment) AgentLocalChartPath() string {
+	return e.AgentConfig.Get(DDAgentLocalChartPath)
+}
 func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
 }
@@ -303,7 +310,9 @@ func (e *CommonEnvironment) OperatorVersion() string {
 func (e *CommonEnvironment) OperatorFullImagePath() string {
 	return e.OperatorConfig.Get(DDOperatorFullImagePathParamName)
 }
-
+func (e *CommonEnvironment) OperatorLocalChartPath() string {
+	return e.OperatorConfig.Get(DDOperatorLocalChartPath)
+}
 func (e *CommonEnvironment) ImagePullRegistry() string {
 	return e.AgentConfig.Get(DDImagePullRegistryParamName)
 }

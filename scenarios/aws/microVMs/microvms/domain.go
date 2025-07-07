@@ -157,8 +157,10 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory, gdb
 		domain.gdbPort = gdbPort
 	}
 
+	var driver string
 	if hostOS == "linux" {
 		hypervisor = "kvm"
+		driver = "<driver name=\"qemu\" type=\"qcow2\" io=\"io_uring\"/>"
 	} else if hostOS == "darwin" {
 		hypervisor = "hvf"
 		// We have to use QEMU network devices because libvirt does not support the macOS
@@ -173,7 +175,7 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory, gdb
 		// if we had eth0 we wouldn't have a network connection)
 		// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
 		qemuArgs["-device"] = pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac)
-
+		driver = "<driver name=\"qemu\" type=\"qcow2\"/>"
 	}
 
 	for k, v := range qemuArgs {
@@ -192,6 +194,7 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory, gdb
 			resources.CPUTune:       pulumi.String(cputune),
 			resources.Hypervisor:    pulumi.String(hypervisor),
 			resources.CommandLine:   commandLine,
+			resources.DiskDriver:    pulumi.String(driver),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine

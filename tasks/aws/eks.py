@@ -34,6 +34,7 @@ scenario_name = "aws/eks"
         "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
         "agent_flavor": doc.agent_flavor,
         "helm_config": doc.helm_config,
+        "local_chart_path": doc.local_chart_path,
     }
 )
 def create_eks(
@@ -53,6 +54,7 @@ def create_eks(
     cluster_agent_full_image_path: Optional[str] = None,
     agent_flavor: Optional[str] = None,
     helm_config: Optional[str] = None,
+    local_chart_path: Optional[str] = None,
 ):
     """
     Create a new EKS environment. It lasts around 20 minutes.
@@ -63,6 +65,7 @@ def create_eks(
         "ddinfra:aws/eks/linuxBottlerocketNodeGroup": bottlerocket_node_group,
         "ddinfra:aws/eks/linuxNodeGroup": str(linux_node_group),
         "ddinfra:aws/eks/windowsNodeGroup": windows_node_group,
+        "ddagent:localChartPath": local_chart_path,
     }
 
     # Override the instance type if specified

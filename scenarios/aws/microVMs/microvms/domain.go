@@ -277,7 +277,7 @@ func GenerateDomainConfigurationsForVMSet(e config.Env, providerFn LibvirtProvid
 						return nil, 0, fmt.Errorf("could not find free port in range [%d,%d] for gdb server", gdbPortRangeStart, gdbPortRangeEnd)
 					}
 
-					gdbPort = domainPort
+					gdbPort = domainPort + 1 // evaluate another port in the next iteration
 				}
 
 				domain, err := newDomainConfiguration(e, set, vcpu, memory, domainPort, kernel, cpuTuneXML)

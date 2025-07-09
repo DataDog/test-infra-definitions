@@ -1,8 +1,11 @@
 package kubernetes
 
 import (
+	_ "embed"
 	"fmt"
 	"os"
+	"regexp"
+	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -102,7 +105,7 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 
 		setupCRC, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
 			Create: pulumi.String("crc setup"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(pullSecretFile, enableLinger))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(enableLinger, pullSecretFile))...)
 		if err != nil {
 			return err
 		}
@@ -118,14 +121,39 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 			return err
 		}
 
-		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
-			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
+		socatInstall, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("install-socat"), &command.Args{
+			Create: pulumi.String("sudo dnf install -y socat"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
 		if err != nil {
 			return err
 		}
 
-		clusterComp.KubeConfig = kubeConfig.StdoutOutput()
+		socatForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("socat-kubeapi-proxy"), &command.Args{
+			Create: pulumi.String(`
+				sudo nohup socat TCP-LISTEN:8443,bind=0.0.0.0,fork TCP:127.0.0.1:6443 > /tmp/socat.log 2>&1 &
+			`),
+			Delete: pulumi.String(`
+				sudo pkill -f "socat TCP-LISTEN:8443" || true
+			`),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(socatInstall))...)
+		if err != nil {
+			return err
+		}
+
+		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
+			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(socatForwarding))...)
+		if err != nil {
+			return err
+		}
+
+		clusterComp.KubeConfig = pulumi.All(kubeConfig.StdoutOutput(), vm.Address).ApplyT(func(args []interface{}) string {
+			kubeconfigRaw := args[0].(string)
+			vmIP := args[1].(string)
+			allowInsecure := regexp.MustCompile("certificate-authority-data:.+").ReplaceAllString(kubeconfigRaw, "insecure-skip-tls-verify: true")
+			updated := strings.ReplaceAll(allowInsecure, "api.crc.testing:6443", vmIP+":8443")
+			return updated
+		}).(pulumi.StringOutput)
 		clusterComp.ClusterName = openShiftClusterName.ToStringOutput()
 		return nil
 	}, opts...)

@@ -27,6 +27,7 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 		Name:                   e.Namer.DisplayName(63, pulumi.String(name)),
 		MachineType:            pulumi.String(instanceType),
 		AllowStoppingForUpdate: pulumi.Bool(true),
+		CanIpForward:           pulumi.Bool(true),
 		AdvancedMachineFeatures: &compute.InstanceAdvancedMachineFeaturesArgs{
 			EnableNestedVirtualization: pulumi.Bool(true),
 		},

@@ -328,6 +328,22 @@ def setup_gcp_config(config: Config):
     if default_account:
         config.configParams.gcp.account = default_account
 
+    # openShift pull secret path
+    if config.configParams.gcp.pullSecretPath is None:
+        config.configParams.gcp.pullSecretPath = ""
+    default_pull_secret_path = config.configParams.gcp.pullSecretPath
+    while True:
+        config.configParams.gcp.pullSecretPath = default_pull_secret_path
+        pull_secret_path = ask(
+            f"🔑 Path to your OpenShift pull secret file (optional, can be set later): "
+        )
+        if pull_secret_path:
+            config.configParams.gcp.pullSecretPath = pull_secret_path
+
+        if os.path.isfile(config.configParams.gcp.pullSecretPath):
+            break
+        warn(f"{config.configParams.gcp.pullSecretPath} is not a valid file")
+
 
 def setupAgentConfig(config):
     if config.configParams.agent is None:

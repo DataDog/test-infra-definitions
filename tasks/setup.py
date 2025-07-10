@@ -119,7 +119,7 @@ def _install_pulumi(ctx: Context):
 
 # Check if gke-gcloud-auth-plugin is installed and install it if not
 def _install_gcloud_auth_plugin(ctx):
-    res = ctx.run("gcloud components list --format=json --filter 'name: gke-gcloud-auth-plugin'", hide=True)
+    res = ctx.run('gcloud components list --format=json --filter "name: gke-gcloud-auth-plugin"', hide=True)
     installed_component = json.loads(res.stdout)
     if installed_component[0]["state"]["name"] == "Installed":
         print("✅ gke-gcloud-auth-plugin is already installed")

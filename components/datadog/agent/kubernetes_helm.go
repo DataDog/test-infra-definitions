@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	HelmVersion     = "3.120.2"
+	HelmVersion = "3.120.2"
 )
 
 // HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
@@ -467,7 +467,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"tag":           pulumi.String(clusterAgentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
-			"replicas": pulumi.Int(2),
+			"replicas": pulumi.Int(1),
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),

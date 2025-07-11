@@ -27,6 +27,7 @@ type vmArgs struct {
 	instanceProfile string
 
 	httpTokensRequired bool
+	isAgentQA          bool
 }
 
 type VMOption = func(*vmArgs) error
@@ -86,6 +87,13 @@ func WithInstanceProfile(instanceProfile string) VMOption {
 func WithIMDSv1Disable() VMOption {
 	return func(p *vmArgs) error {
 		p.httpTokensRequired = true
+		return nil
+	}
+}
+
+func WithAgentQA() VMOption {
+	return func(p *vmArgs) error {
+		p.isAgentQA = true
 		return nil
 	}
 }

@@ -1,7 +1,7 @@
 package openshiftvm
 
 import (
-	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resGcp "github.com/DataDog/test-infra-definitions/resources/gcp"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/compute"
@@ -16,8 +16,7 @@ func Run(ctx *pulumi.Context) error {
 
 	osDesc := os.DescriptorFromString("redhat:9", os.RedHat9)
 	vm, err := compute.NewVM(gcpEnv, "openshift",
-		compute.WithOS(osDesc),
-		compute.WithInstanceType("n2-standard-8"))
+		compute.WithOS(osDesc))
 	if err != nil {
 		return err
 	}
@@ -25,7 +24,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	openshiftCluster, err := localKubernetes.NewOpenShiftCluster(&gcpEnv, vm, "openshift")
+	openshiftCluster, err := kubernetes.NewOpenShiftCluster(&gcpEnv, vm, "openshift", gcpEnv.OpenShiftPullSecretPath())
 	if err != nil {
 		return err
 	}

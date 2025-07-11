@@ -24,8 +24,8 @@ def create_openshift(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    interactive: Optional[bool] = True,
     pull_secret_path: Optional[str] = None,
+    use_nested_virtualization: Optional[bool] = True,
 ):
     """
     Create an OpenShift environment.
@@ -46,7 +46,9 @@ def create_openshift(
         "scenario": scenario_name,
         "ddinfra:env": f"gcp/{cfg.get_gcp().account}",
         "ddinfra:gcp/defaultPublicKeyPath": cfg.get_gcp().publicKeyPath,
-        "ddinfra:openShiftPullSecretPath": pull_secret_path,
+        "ddinfra:gcp/openshift/pullSecretPath": pull_secret_path,
+        "ddinfra:gcp/enableNestedVirtualization": use_nested_virtualization,
+        "ddinfra:gcp/defaultInstanceType": "n2-standard-8",
     }
 
     full_stack_name = deploy(

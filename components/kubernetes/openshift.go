@@ -1,9 +1,6 @@
 package kubernetes
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
@@ -11,21 +8,16 @@ import (
 	oscomp "github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
-func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+func NewLocalOpenShiftCluster(env config.Env, name string, pullSecretPath string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
+		openShiftClusterName := env.CommonNamer().DisplayName(49)
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		commonEnvironment := env
 		runner := command.NewLocalRunner(env, command.LocalRunnerArgs{
 			OSCommand: command.NewUnixOSCommand(),
 		})
-
-		pullSecretPath := os.Getenv("PULL_SECRET_PATH")
-		if pullSecretPath == "" {
-			return fmt.Errorf("PULL_SECRET_PATH environment variable is not set")
-		}
 
 		crcSetup, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("crc-setup"), &command.Args{
 			Create: pulumi.String("crc setup"),
@@ -52,20 +44,17 @@ func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.Resour
 		}
 
 		clusterComp.KubeConfig = kubeConfigCmd.StdoutOutput()
-		clusterComp.ClusterName = pulumi.String("openshift").ToStringOutput()
+		clusterComp.ClusterName = openShiftClusterName.ToStringOutput()
 		return nil
 	}, opts...)
 }
 
-func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...pulumi.ResourceOption) (*Cluster, error) {
+func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, pullSecretPath string, opts ...pulumi.ResourceOption) (*Cluster, error) {
 	return components.NewComponent(env, name, func(clusterComp *Cluster) error {
 		openShiftClusterName := env.CommonNamer().DisplayName(49)
 		opts = utils.MergeOptions[pulumi.ResourceOption](opts, pulumi.Parent(clusterComp))
 		runner := vm.OS.Runner()
 		commonEnvironment := env
-
-		infraConfig := sdkconfig.New(env.Ctx(), "ddinfra")
-		pullSecretPath := infraConfig.Require("openShiftPullSecretPath")
 
 		openShiftInstallBinary, err := InstallOpenShiftBinary(env, vm, opts...)
 		if err != nil {

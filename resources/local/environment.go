@@ -10,7 +10,8 @@ import (
 const (
 	localNamerNamespace = "local"
 	// local Infra (local)
-	DDInfraDefaultPublicKeyPath = "local/defaultPublicKeyPath"
+	DDInfraDefaultPublicKeyPath    = "local/defaultPublicKeyPath"
+	DDInfraOpenShiftPullSecretPath = "local/openshift/pullSecretPath"
 )
 
 type Environment struct {
@@ -61,4 +62,9 @@ func (e *Environment) InternalRegistryFullImagePathExists(_ string) (bool, error
 // Common
 func (e *Environment) DefaultPublicKeyPath() string {
 	return e.InfraConfig.Get(DDInfraDefaultPublicKeyPath)
+}
+
+// OpenShiftPullSecretPath returns the path to the OpenShift pull secret file
+func (e *Environment) OpenShiftPullSecretPath() string {
+	return e.InfraConfig.Get(DDInfraOpenShiftPullSecretPath)
 }

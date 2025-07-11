@@ -24,7 +24,6 @@ def create_openshift(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
-    interactive: Optional[bool] = True,
     pull_secret_path: Optional[str] = None,
 ):
     """

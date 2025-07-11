@@ -14,7 +14,7 @@ import (
 	oscomp "github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
-	sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
+	// sdkconfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 func NewLocalOpenShiftCluster(env config.Env, name string, opts ...pulumi.ResourceOption) (*Cluster, error) {
@@ -67,8 +67,12 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 		runner := vm.OS.Runner()
 		commonEnvironment := env
 
-		infraConfig := sdkconfig.New(env.Ctx(), "ddinfra")
-		pullSecretPath := infraConfig.Require("openShiftPullSecretPath")
+		// infraConfig := sdkconfig.New(env.Ctx(), "ddinfra")
+		// pullSecretPath := infraConfig.Require("openShiftPullSecretPath")
+		pullSecretPath := os.Getenv("PULL_SECRET_PATH")
+		if pullSecretPath == "" {
+			return fmt.Errorf("PULL_SECRET_PATH environment variable is not set")
+		}
 
 		openShiftInstallBinary, err := InstallOpenShiftBinary(env, vm, opts...)
 		if err != nil {
@@ -119,29 +123,111 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, opts ...p
 		if err != nil {
 			return err
 		}
+		// Option 1: Using socat (current approach, works but on next try try this without the nohup)
+		// socatInstall, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("install-socat"), &command.Args{
+		// 	Create: pulumi.String("sudo dnf install -y socat"),
+		// }, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
+		// if err != nil {
+		// 	return err
+		// }
 
-		socatInstall, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("install-socat"), &command.Args{
-			Create: pulumi.String("sudo dnf install -y socat"),
+		// socatForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("socat-kubeapi-proxy"), &command.Args{
+		// 	Create: pulumi.String(`
+		// 		sudo nohup socat TCP-LISTEN:8443,bind=0.0.0.0,fork TCP:127.0.0.1:6443 > /tmp/socat.log 2>&1 &
+		// 	`),
+		// 	Delete: pulumi.String(`
+		// 		sudo pkill -f "socat TCP-LISTEN:8443" || true
+		// 	`),
+		// }, utils.MergeOptions(opts, utils.PulumiDependsOn(socatInstall))...)
+
+		// Option 2: Using UFW (haven't tried this yet)
+		ufwInstall, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("install-ufw"), &command.Args{
+			Create: pulumi.String("sudo dnf install -y ufw"),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
 		if err != nil {
 			return err
 		}
 
-		socatForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("socat-kubeapi-proxy"), &command.Args{
+		ufwForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("ufw-forwarding"), &command.Args{
 			Create: pulumi.String(`
-				sudo nohup socat TCP-LISTEN:8443,bind=0.0.0.0,fork TCP:127.0.0.1:6443 > /tmp/socat.log 2>&1 &
+				sudo ufw enable && \
+				sudo ufw allow 8443 && \
+				sudo ufw route allow from any port 8443 to 127.0.0.1 port 6443 && \
+				sudo su -c 'ufw export save > /etc/ufw/user.rules'
 			`),
 			Delete: pulumi.String(`
-				sudo pkill -f "socat TCP-LISTEN:8443" || true
+				sudo ufw route delete allow from any port 8443 to 127.0.0.1 port 6443 || true
 			`),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(socatInstall))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(ufwInstall))...)
 		if err != nil {
 			return err
 		}
 
+		// Option 3: Using firewalld (haven't tried this yet)
+		// firewalldForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("firewalld-forwarding"), &command.Args{
+		// 	Create: pulumi.String(`
+		// 		sudo systemctl start firewalld && \
+		// 		sudo systemctl enable firewalld && \
+		// 		sudo firewall-cmd --zone=public --add-port=8443/tcp --permanent && \
+		// 		sudo firewall-cmd --zone=public --add-forward-port=port=8443:proto=tcp:toport=6443:toaddr=127.0.0.1 --permanent && \
+		// 		sudo firewall-cmd --reload
+		// 	`),
+		// 	Delete: pulumi.String(`
+		// 		sudo firewall-cmd --zone=public --remove-port=8443/tcp --permanent || true && \
+		// 		sudo firewall-cmd --zone=public --remove-forward-port=port=8443:proto=tcp:toport=6443:toaddr=127.0.0.1 --permanent || true && \
+		// 		sudo firewall-cmd --reload || true
+		// 	`),
+		// }, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// Option 4: Using nftables (haven't tried this yet)
+		// nftablesForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("nftables-forwarding"), &command.Args{
+		// 	Create: pulumi.String(`
+		// 		sudo systemctl start nftables && \
+		// 		sudo systemctl enable nftables && \
+		// 		sudo nft add table ip nat && \
+		// 		sudo nft add chain ip nat PREROUTING { type nat hook prerouting priority 0 \; } && \
+		// 		sudo nft add rule ip nat PREROUTING tcp dport 8443 dnat to 127.0.0.1:6443 && \
+		// 		sudo nft add table ip filter && \
+		// 		sudo nft add chain ip filter FORWARD && \
+		// 		sudo nft add rule ip filter FORWARD tcp daddr 127.0.0.1 dport 6443 accept
+		// 	`),
+		// 	Delete: pulumi.String(`
+		// 		sudo nft delete rule ip nat PREROUTING tcp dport 8443 dnat to 127.0.0.1:6443 || true && \
+		// 		sudo nft delete rule ip filter FORWARD tcp daddr 127.0.0.1 dport 6443 accept || true && \
+		// 		sudo nft delete chain ip nat PREROUTING || true && \
+		// 		sudo nft delete chain ip filter FORWARD || true && \
+		// 		sudo nft delete table ip nat || true && \
+		// 		sudo nft delete table ip filter || true
+		// 	`),
+		// }, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
+		// if err != nil {
+		// 	return err
+		// }
+
+		//Option 5: Using iptables (tried and didn't work so far)
+		// iptablesForwarding, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("iptables-forwarding"), &command.Args{
+		// 	Create: pulumi.Sprintf(`
+		// 		sudo iptables -t nat -A PREROUTING -p tcp --dport 8443 -j DNAT --to-destination 127.0.0.1:6443 && \
+		// 		sudo iptables -t nat -A OUTPUT -p tcp -d %[1]s --dport 8443 -j DNAT --to-destination 127.0.0.1:6443 && \
+		// 		sudo iptables -A FORWARD -p tcp -d 127.0.0.1 --dport 6443 -j ACCEPT && \
+		// 		sudo iptables -t nat -A POSTROUTING -j MASQUERADE
+		// 	`, vm.Address),
+		// 	Delete: pulumi.String(`
+		// 		sudo iptables -t nat -D PREROUTING -p tcp --dport 8443 -j DNAT --to-destination 127.0.0.1:6443 || true && \
+		// 		sudo iptables -D FORWARD -p tcp -d 127.0.0.1 --dport 6443 -j ACCEPT || true && \
+		// 		sudo iptables -t nat -D POSTROUTING -j MASQUERADE || true
+		// 	`),
+		// }, utils.MergeOptions(opts, utils.PulumiDependsOn(startCRC))...)
+		// if err != nil {
+		// 	return err
+		// }
+
 		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
 			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),
-		}, utils.MergeOptions(opts, utils.PulumiDependsOn(socatForwarding))...)
+		}, utils.MergeOptions(opts, utils.PulumiDependsOn(ufwForwarding))...)
 		if err != nil {
 			return err
 		}

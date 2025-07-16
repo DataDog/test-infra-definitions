@@ -32,7 +32,7 @@ jobs:
 
       - name: Install orchestrion
         run: |
-          go install github.com/DataDog/orchestrion@v1.1.0
+          go install github.com/DataDog/orchestrion@v1.4.0
           orchestrion pin
 
       - name: Test

@@ -39,7 +39,7 @@
   </xsl:template>
 
   <xsl:template match="disk/driver">
-    <driver name="qemu" type="qcow2" io="io_uring"/>
+    {diskDriver}
   </xsl:template>
 
   <xsl:template match="/domain/devices/interface[@type='network']/mac/@address">
@@ -69,6 +69,9 @@
   <xsl:template match="domain/devices/video" />
 
   <xsl:template match="/domain/devices">
+    <commandline xmlns="http://libvirt.org/schemas/domain/qemu/1.0">
+      {commandLine}
+    </commandline>
     <xsl:copy>
       <xsl:apply-templates select="node()|@*" />
       <xsl:element name="memballoon">

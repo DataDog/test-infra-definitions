@@ -70,7 +70,7 @@
     </xsl:template>
     
     <xsl:template match="disk/driver">
-      <driver name="qemu" type="qcow2" io="io_uring"/>
+      {diskDriver}
     </xsl:template>
 
     <xsl:template

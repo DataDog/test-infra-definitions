@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	DatadogHelmRepo = "https://helm.datadoghq.com"
+	HelmVersion = "3.120.2"
 )
 
 // HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
@@ -32,6 +32,10 @@ type HelmInstallationArgs struct {
 	KubeProvider *kubernetes.Provider
 	// Namespace is the namespace in which to install the agent
 	Namespace string
+	// ChartPath is the chart name or local chart path.
+	ChartPath string
+	// RepoURL is the Helm repository URL to use for the remote chart installation.
+	RepoURL string
 	// ValuesYAML is used to provide installation-specific values
 	ValuesYAML pulumi.AssetOrArchiveArray
 	// Fakeintake is used to configure the agent to send data to a fake intake
@@ -177,11 +181,12 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
-		RepoURL:     DatadogHelmRepo,
-		ChartName:   "datadog",
+		RepoURL:     args.RepoURL,
+		ChartName:   args.ChartPath,
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,
+		Version:     pulumi.String(HelmVersion),
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -207,8 +212,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
-			RepoURL:     DatadogHelmRepo,
-			ChartName:   "datadog",
+			RepoURL:     args.RepoURL,
+			ChartName:   args.ChartPath,
 			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
 			ValuesYAML:  windowsValuesYAML,
@@ -462,6 +467,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"tag":           pulumi.String(clusterAgentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"replicas": pulumi.Int(1),
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),
@@ -491,10 +497,14 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
-				// This option is disabled by default and not exposed in the
+				// These options are disabled by default and not exposed in the
 				// Helm chart yet, so we need to set the env.
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
+					"value": pulumi.String("true"),
+				},
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AGENT_SIDECAR_KUBELET_API_LOGGING_ENABLED"),
 					"value": pulumi.String("true"),
 				},
 			},

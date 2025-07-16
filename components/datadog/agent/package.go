@@ -57,8 +57,16 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 	packagePath := localPath
 	matches := []string{}
 	if pathInfo.IsDir() {
-		packagePath = path.Join(packagePath, subFolder)
-		packagePath = path.Join(packagePath, "pkg")
+		packagePath = path.Join(packagePath, subFolder, "pkg")
+
+		// On Windows, if a dedicated pipeline-identified folder is available, use that
+		if flavor == tifos.WindowsServer {
+			packagePathWithPipelineID := path.Join(packagePath, "pipeline-"+pipelineID)
+			if info, err := os.Stat(packagePathWithPipelineID); err == nil && info.IsDir() {
+				packagePath = packagePathWithPipelineID
+			}
+		}
+
 		entries, err := os.ReadDir(packagePath)
 		if err != nil {
 			return "", err

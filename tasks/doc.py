@@ -38,3 +38,4 @@ agent_env: str = "Extra environment variables to run the agent with, the format 
 helm_config: str = "Path to a custom helm config file that will be merged with the default one"
 local_package: str = "Path to a local package to install, it can be either a folder or a file. If a folder is targetted we automatically take the first file with the correct extension depending on the targetted OS"
 pull_secret_path: str = "Path to the OpenShift pull secret file (required for OpenShift cluster creation)."
+local_chart_path: str = "Path to a local helm chart to install the Datadog Agent."

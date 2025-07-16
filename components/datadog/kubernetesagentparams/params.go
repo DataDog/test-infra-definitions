@@ -2,6 +2,7 @@ package kubernetesagentparams
 
 import (
 	"fmt"
+	"github.com/DataDog/test-infra-definitions/common/config"
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -13,6 +14,7 @@ import (
 
 const (
 	defaultAgentNamespace = "datadog"
+	DatadogHelmRepo       = "https://helm.datadoghq.com"
 )
 
 // Params defines the parameters for the Kubernetes Agent installation.
@@ -23,6 +25,8 @@ const (
 //   - [WithClusterAgentFullImagePath]
 //   - [WithPulumiResourceOptions]
 //   - [WithDeployWindows]
+//   - [WithHelmRepoURL]
+//   - [WithHelmChartPath]
 //   - [WithHelmValues]
 //   - [WithNamespace]
 //   - [WithDeployWindows]
@@ -38,6 +42,10 @@ type Params struct {
 	ClusterAgentFullImagePath string
 	// Namespace is the namespace to deploy the agent to.
 	Namespace string
+	// HelmRepoURL is the Helm repo URL to use for the agent installation.
+	HelmRepoURL string
+	// HelmChartPath is the Helm chart path to use for the agent installation.
+	HelmChartPath string
 	// HelmValues is the Helm values to use for the agent installation.
 	HelmValues pulumi.AssetOrArchiveArray
 	// PulumiDependsOn is a list of resources to depend on.
@@ -64,10 +72,18 @@ type Params struct {
 
 type Option = func(*Params) error
 
-func NewParams(options ...Option) (*Params, error) {
+func NewParams(env config.Env, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace: defaultAgentNamespace,
+		Namespace:     defaultAgentNamespace,
+		HelmRepoURL:   DatadogHelmRepo,
+		HelmChartPath: "datadog",
 	}
+
+	if env.AgentLocalChartPath() != "" {
+		options = append([]Option{WithHelmChartPath(env.AgentLocalChartPath())}, options...)
+		options = append([]Option{WithHelmRepoURL("")}, options...)
+	}
+
 	return common.ApplyOption(version, options)
 }
 
@@ -124,6 +140,22 @@ func WithPulumiResourceOptions(resources ...pulumi.ResourceOption) func(*Params)
 func WithDeployWindows() func(*Params) error {
 	return func(p *Params) error {
 		p.DeployWindows = true
+		return nil
+	}
+}
+
+// WithHelmRepoURL specifies the remote Helm repo URL to use for the agent installation.
+func WithHelmRepoURL(repoURL string) func(*Params) error {
+	return func(p *Params) error {
+		p.HelmRepoURL = repoURL
+		return nil
+	}
+}
+
+// WithHelmChartPath specifies the remote chart name or local chart path to use for the agent installation.
+func WithHelmChartPath(chartPath string) func(*Params) error {
+	return func(p *Params) error {
+		p.HelmChartPath = chartPath
 		return nil
 	}
 }

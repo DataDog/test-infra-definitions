@@ -30,10 +30,10 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 	testEnvVars := []string{}
 
 	if version.PipelineID != "" {
-		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_APT_URL=apttesting.datad0g.com/datadog-agent/pipeline-%v-a%v", version.PipelineID, version.Major))
 		// apt testing repo
 		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="pipeline-%[1]v-a%[2]v-%[3]s %[2]v"`, version.PipelineID, version.Major, am.targetOS.Descriptor().Architecture))
+		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="stable-%[1]s %[2]v"`, am.targetOS.Descriptor().Architecture, version.Major))
 		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"

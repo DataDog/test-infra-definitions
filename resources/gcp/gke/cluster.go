@@ -11,12 +11,31 @@ func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.R
 	opts = append(opts, e.WithProviders(config.ProviderGCP))
 
 	cluster, err := container.NewCluster(e.Ctx(), e.Namer.ResourceName(name), &container.ClusterArgs{
+		Network:            pulumi.String(e.DefaultNetworkName()),
+		Subnetwork:         pulumi.String(e.DefaultSubnet()),
 		InitialNodeCount:   pulumi.Int(1),
 		MinMasterVersion:   pulumi.String(e.KubernetesVersion()),
 		NodeVersion:        pulumi.String(e.KubernetesVersion()),
 		DeletionProtection: pulumi.Bool(false),
 		EnableAutopilot:    pulumi.Bool(autopilot),
 		NodeLocations:      pulumi.StringArray{pulumi.String(e.Zone())},
+		PrivateClusterConfig: &container.ClusterPrivateClusterConfigArgs{
+			EnablePrivateNodes:        pulumi.Bool(true),
+			EnablePrivateEndpoint:     pulumi.Bool(true),
+			PrivateEndpointSubnetwork: pulumi.String(e.DefaultSubnet()),
+		},
+		MasterAuthorizedNetworksConfig: &container.ClusterMasterAuthorizedNetworksConfigArgs{
+			CidrBlocks: container.ClusterMasterAuthorizedNetworksConfigCidrBlockArray{
+				&container.ClusterMasterAuthorizedNetworksConfigCidrBlockArgs{
+					CidrBlock:   pulumi.String("10.0.0.0/8"),
+					DisplayName: pulumi.String("all private ips"),
+				},
+				&container.ClusterMasterAuthorizedNetworksConfigCidrBlockArgs{
+					CidrBlock:   pulumi.String("172.16.0.0/12"),
+					DisplayName: pulumi.String("ddbuild vpn private ips"),
+				},
+			}, // Empty array to disable master authorized networks
+		},
 		NodeConfig: &container.ClusterNodeConfigArgs{
 			MachineType: pulumi.String(e.DefaultInstanceType()),
 
@@ -31,10 +50,8 @@ func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.R
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err
 	}
-
 	// https://github.com/pulumi/examples/blob/master/gcp-go-gke/main.go
 	kubeConfig := generateKubeconfig(cluster.Endpoint, cluster.Name, cluster.MasterAuth)
-
 	return cluster, kubeConfig, nil
 }
 

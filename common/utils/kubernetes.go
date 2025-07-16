@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"strings"
 
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
@@ -33,15 +34,24 @@ func KubeConfigYAMLToJSON(kubeConfig pulumi.StringOutput) pulumi.StringInput {
 
 // NewImagePullSecret creates an image pull secret based on environment
 func NewImagePullSecret(e config.Env, namespace string, opts ...pulumi.ResourceOption) (*corev1.Secret, error) {
+	registries := strings.Split(e.ImagePullRegistry(), ",")
+	usernames := strings.Split(e.ImagePullUsername(), ",")
+
 	dockerConfigJSON := e.ImagePullPassword().ApplyT(func(password string) (string, error) {
+		passwords := strings.Split(password, ",")
+		if len(registries) != len(usernames) || len(registries) != len(passwords) {
+			return "", fmt.Errorf("the number of registries, usernames, and passwords must be the same")
+		}
+
+		authMap := make(map[string]map[string]string)
+		for i := range registries {
+			authMap[registries[i]] = map[string]string{
+				"username": usernames[i],
+				"password": passwords[i],
+			}
+		}
 		dockerConfigJSON, err := json.Marshal(map[string]map[string]map[string]string{
-			"auths": {
-				e.ImagePullRegistry(): {
-					"username": e.ImagePullUsername(),
-					"password": password,
-					"auth":     base64.StdEncoding.EncodeToString([]byte(e.ImagePullUsername() + ":" + password)),
-				},
-			},
+			"auths": authMap,
 		})
 		return string(dockerConfigJSON), err
 	}).(pulumi.StringOutput)

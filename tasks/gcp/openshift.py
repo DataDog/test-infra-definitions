@@ -53,7 +53,7 @@ def create_openshift(
         "ddinfra:gcp/defaultInstanceType": "n2-standard-8",
     }
 
-    full_stack_name = deploy(
+    deploy(
         ctx,
         scenario_name,
         config_path,

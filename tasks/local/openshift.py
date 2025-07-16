@@ -10,7 +10,7 @@ from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy
 
-scenario_name = "gcp/openshiftvm"
+scenario_name = "local/openshiftvm"
 
 
 @task(
@@ -24,11 +24,11 @@ def create_openshift(
     ctx: Context,
     config_path: Optional[str] = None,
     stack_name: Optional[str] = None,
+    interactive: Optional[bool] = True,
     pull_secret_path: Optional[str] = None,
-    use_nested_virtualization: Optional[bool] = True,
 ):
     """
-    Create an OpenShift environment.
+    Create a local OpenShift environment.
     """
 
     try:
@@ -38,17 +38,15 @@ def create_openshift(
 
     # Use parameter if provided during invoke setup, otherwise use config
     if not pull_secret_path:
-        pull_secret_path = cfg.get_gcp().pullSecretPath
+        pull_secret_path = cfg.get_local().pullSecretPath
         if not pull_secret_path:
-            raise Exit("pull_secret_path is required. Either use invoke.gcp.create-openshift -p <pull_secret_path> or configure it with 'invoke setup'")
+            raise Exit("pull_secret_path is required. Either use invoke.local.create-openshift -p <pull_secret_path> or configure it with 'invoke setup'")
 
     extra_flags = {
         "scenario": scenario_name,
-        "ddinfra:env": f"gcp/{cfg.get_gcp().account}",
-        "ddinfra:gcp/defaultPublicKeyPath": cfg.get_gcp().publicKeyPath,
-        "ddinfra:gcp/openshift/pullSecretPath": pull_secret_path,
-        "ddinfra:gcp/enableNestedVirtualization": use_nested_virtualization,
-        "ddinfra:gcp/defaultInstanceType": "n2-standard-8",
+        "ddinfra:env": "local",
+        "ddinfra:local/defaultPublicKeyPath": cfg.get_local().publicKeyPath,
+        "ddinfra:local/openshift/pullSecretPath": pull_secret_path,
     }
 
     full_stack_name = deploy(
@@ -59,6 +57,7 @@ def create_openshift(
         install_agent=False,
         extra_flags=extra_flags,
     )
+
 
 @task(
     help={
@@ -72,7 +71,7 @@ def destroy_openshift(
     stack_name: Optional[str] = None,
 ):
     """
-    Destroy an environment created by invoke gcp.create-openshift.
+    Destroy an environment created by invoke local.create-openshift.
     """
     destroy(
         ctx,

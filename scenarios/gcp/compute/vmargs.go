@@ -34,11 +34,3 @@ func WithOSArch(osDesc os.Descriptor, arch os.Architecture) VMOption {
 		return nil
 	}
 }
-
-// WithInstanceType set the instance type
-func WithInstanceType(instanceType string) VMOption {
-	return func(p *vmArgs) error {
-		p.instanceType = instanceType
-		return nil
-	}
-}

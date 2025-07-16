@@ -13,7 +13,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/etcd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/resources/helm"
-	"github.com/Masterminds/semver"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
@@ -80,10 +79,6 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	appKey := e.AgentAPPKey()
 	baseName := "dda"
 	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.DeletedWith(args.KubeProvider))
-	kubeVersion, err := semver.NewVersion(e.KubernetesVersion())
-	if err != nil {
-		kubeVersion, _ = semver.NewVersion("1.21.0")
-	}
 
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
@@ -161,7 +156,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.GKEAutopilot {
 		values = buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	} else {
-		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll, e.TestingWorkloadDeploy(), kubeVersion)
+		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll, e.TestingWorkloadDeploy())
 	}
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
@@ -245,13 +240,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(
-	baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string,
-	clusterAgentToken pulumi.StringInput,
-	logsContainerCollectAll bool,
-	testingWorkloadsEnabled bool,
-	kubeVersion *semver.Version,
-) HelmValues {
+func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool) HelmValues {
 	var containerRegistry, imageName string
 	if strings.Contains(agentImagePath, "/") {
 		agentImageElem := strings.Split(agentImagePath, "/")
@@ -261,18 +250,11 @@ func buildLinuxHelmValues(
 		containerRegistry = ""
 		imageName = agentImagePath
 	}
-	// Determine leader election mechanism based on kubeVersion
-	kubeThresholdVersion, _ := semver.NewVersion("1.21.0")
-	leaderElectionType := "" // Default empty string will be mapped to "lease" for versions >= 1.14.0
-	if kubeVersion.LessThan(kubeThresholdVersion) {
-		leaderElectionType = "configmap"
-	}
-
 	helmValues := HelmValues{
 		"datadog": pulumi.Map{
 			"apiKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
 			"appKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
-			"leaderElectionResource": pulumi.String(leaderElectionType),
+			"leaderElectionResource": pulumi.String(""),
 			"checksCardinality":      pulumi.String("high"),
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),

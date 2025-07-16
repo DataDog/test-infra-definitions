@@ -5,9 +5,20 @@
 #include <stdio.h>
 #include <string>
 #include <unistd.h>
+#include <signal.h>
+#include <atomic>
 
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
+
+// Global flag for signal handling
+std::atomic<bool> should_exit{false};
+
+// Signal handler function for graceful shutdown
+void signal_handler(int signum) {
+	printf("Received signal %d, shutting down gracefully...\n", signum);
+	should_exit = true;
+}
 
 // Code to be executed in the GPU. Allows managing the number of loops to have
 // an increased execution time.
@@ -161,6 +172,8 @@ int main(int argc, const char **argv) {
 	// Free device global memory
 	err = cudaFree(d_A);
 
+	printf("Test PASSED\n");
+
 	if (err != cudaSuccess) {
 		fprintf(stderr, "Failed to free device vector A (error code %s)!\n",
 				cudaGetErrorString(err));
@@ -188,6 +201,18 @@ int main(int argc, const char **argv) {
 	free(h_B);
 	free(h_C);
 
-	printf("Done\n");
+	// Register signal handlers for graceful shutdown
+    signal(SIGTERM, signal_handler);
+    signal(SIGINT, signal_handler);
+
+    printf("GPU computation completed successfully. Container ready for monitoring.\n");
+    printf("Waiting for termination signal...\n");
+
+    // Keep container alive until signal received
+    while (!should_exit) {
+        sleep(5);
+    }
+
+    printf("Shutting down...\n");
 	return 0;
 }

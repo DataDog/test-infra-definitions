@@ -40,7 +40,9 @@ def create_openshift(
     if not pull_secret_path:
         pull_secret_path = cfg.get_gcp().pullSecretPath
         if not pull_secret_path:
-            raise Exit("pull_secret_path is required. Either use invoke.gcp.create-openshift -p <pull_secret_path> or configure it with 'invoke setup'")
+            raise Exit(
+                "pull_secret_path is required. Either use invoke.gcp.create-openshift -p <pull_secret_path> or configure it with 'invoke setup'"
+            )
 
     extra_flags = {
         "scenario": scenario_name,
@@ -59,6 +61,7 @@ def create_openshift(
         install_agent=False,
         extra_flags=extra_flags,
     )
+
 
 @task(
     help={
@@ -79,4 +82,4 @@ def destroy_openshift(
         scenario_name=scenario_name,
         config_path=config_path,
         stack=stack_name,
-    ) 
+    )

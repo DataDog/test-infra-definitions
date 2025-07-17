@@ -252,9 +252,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 	}
 	helmValues := HelmValues{
 		"datadog": pulumi.Map{
-			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-			"checksCardinality":    pulumi.String("high"),
+			"apiKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
+			"leaderElectionResource": pulumi.String(""),
+			"checksCardinality":      pulumi.String("high"),
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),
 			},

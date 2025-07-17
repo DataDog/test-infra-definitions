@@ -26,25 +26,26 @@ int main(int argc, const char **argv) {
 	// Error code to check return values for CUDA calls
 	cudaError_t err = cudaSuccess;
 
-	if (argc != 4) {
-		fprintf(stderr, "Usage: %s <numElements> <loops> <waitTimeSeconds>\n",
+	if (argc != 5) {
+		fprintf(stderr, "Usage: %s <numElements> <loops> <startWaitTimeSeconds> <endWaitTimeSeconds>\n",
 				argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
-	int numElements, loops, waitTimeSeconds;
+	int numElements, loops, startWaitTimeSeconds, endWaitTimeSeconds;
 
 	try {
 		numElements = std::stoi(argv[1]);
 		loops = std::stoi(argv[2]);
-		waitTimeSeconds = std::stoi(argv[3]);
+		startWaitTimeSeconds = std::stoi(argv[3]);
+		endWaitTimeSeconds = std::stoi(argv[4]);
 	} catch (const std::invalid_argument &e) {
 		fprintf(stderr, "Invalid argument: %s\n", e.what());
 		exit(EXIT_FAILURE);
 	}
 
-	printf("Will wait %d seconds before starting...\n", waitTimeSeconds);
-	sleep(waitTimeSeconds);
+	printf("Will wait %d seconds before starting...\n", startWaitTimeSeconds);
+	sleep(startWaitTimeSeconds);
 
 	// Print the vector length to be used, and compute its size
 	size_t size = numElements * sizeof(float);
@@ -188,6 +189,10 @@ int main(int argc, const char **argv) {
 	free(h_B);
 	free(h_C);
 
+	// wait some interval before shutting down
+	printf("Will wait %d seconds before quitting...\n", endWaitTimeSeconds);
+	sleep(endWaitTimeSeconds);
 	printf("Done\n");
+
 	return 0;
 }

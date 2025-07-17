@@ -1,7 +1,7 @@
 # Adapted from https://github.com/pulumi/pulumi-docker-containers/blob/main/docker/pulumi/Dockerfile
 # to minimize image size
 
-FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
+FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS builder
 
 ENV GO_VERSION=1.24.3
 ENV GO_SHA=3333f6ea53afa971e9078895eaa4ac7204a8c6b5c68c10e6bc9a33e8e391bdd8
@@ -14,9 +14,9 @@ ENV PULUMI_SKIP_UPDATE_CHECK=true
 # Always prevent installing dependencies dynamically
 ENV DDA_NO_DYNAMIC_DEPS=1
 
-# Install deps all in one step
+# Install build dependencies
 RUN apt-get update -y && \
-  apt-get install -y \
+  apt-get install -y --no-install-recommends \
   apt-transport-https \
   build-essential \
   ca-certificates \
@@ -51,7 +51,7 @@ RUN apt-get update -y && \
   echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list        && \
   # Install second wave of dependencies
   apt-get update -y && \
-  apt-get install -y \
+  apt-get install -y --no-install-recommends \
   azure-cli \
   docker-ce \
   google-cloud-sdk \
@@ -106,23 +106,6 @@ RUN --mount=type=secret,id=github_token \
   curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
   mv ~/.pulumi/bin/* /usr/bin
 
-# Install Pulumi plugins
-# The time resource is installed explicitly here instead in go.mod
-# because it's not used directly by this repository, thus go mod tidy
-# would remove it...
-COPY . /tmp/test-infra
-RUN --mount=type=secret,id=github_token \
-  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
-  cd /tmp/test-infra && \
-  go mod download && \
-  export PULUMI_CONFIG_PASSPHRASE=dummy && \
-  pulumi --non-interactive plugin install && \
-  pulumi --non-interactive plugin ls && \
-  pulumi --non-interactive plugin ls --json | jq -r '.[].name' | awk '{count[$1]++} END {for (plugin in count) if (count[plugin] > 1) print "Several versions of\t" plugin "\tplugin detected"}' | tee /tmp/plugin_list.txt && \
-  ! [ -s /tmp/plugin_list.txt ] && \
-  rm /tmp/plugin_list.txt && \
-  cd /
-
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
 RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
@@ -135,7 +118,81 @@ RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-age
 # Install Orchestrion for native Go Test Visibility support
 RUN go install github.com/DataDog/orchestrion@v1.0.1
 
-RUN rm -rf /tmp/test-infra
+# Copy go module files first for better caching
+COPY go.mod go.sum /tmp/test-infra/
+WORKDIR /tmp/test-infra
+RUN --mount=type=secret,id=github_token \
+  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+  go mod download
+
+# Copy source code and install Pulumi plugins
+# The time resource is installed explicitly here instead in go.mod
+# because it's not used directly by this repository, thus go mod tidy
+# would remove it...
+COPY . /tmp/test-infra
+RUN --mount=type=secret,id=github_token \
+  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
+  export PULUMI_CONFIG_PASSPHRASE=dummy && \
+  pulumi --non-interactive plugin install && \
+  pulumi --non-interactive plugin ls && \
+  pulumi --non-interactive plugin ls --json | jq -r '.[].name' | awk '{count[$1]++} END {for (plugin in count) if (count[plugin] > 1) print "Several versions of\t" plugin "\tplugin detected"}' | tee /tmp/plugin_list.txt && \
+  ! [ -s /tmp/plugin_list.txt ] && \
+  rm /tmp/plugin_list.txt
+
+# Create runtime stage
+FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS runtime
+
+# Copy environment variables from builder
+ENV GO_VERSION=1.24.3
+ENV HELM_VERSION=3.12.3
+ENV PULUMI_SKIP_UPDATE_CHECK=true
+ENV DDA_NO_DYNAMIC_DEPS=1
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
+ENV XDG_CONFIG_HOME=/root/.config
+ENV XDG_CACHE_HOME=/root/.cache
+
+# Install only runtime dependencies
+RUN apt-get update -y && \
+  apt-get install -y --no-install-recommends \
+  ca-certificates \
+  curl \
+  git \
+  gnupg \
+  jq \
+  xsltproc && \
+  # Add package repositories
+  curl --retry 10 -fsSL https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add - && \
+  curl --retry 10 -fsSL https://packages.microsoft.com/keys/microsoft.asc | apt-key add - && \
+  curl --retry 10 -fsSL https://pkgs.k8s.io/core:/stable:/v1.28/deb/Release.key | gpg --dearmor -o /usr/share/keyrings/kubernetes-archive-keyring.gpg && \
+  curl --retry 10 -fsSL https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
+  echo "deb https://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main" | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
+  echo "deb [signed-by=/usr/share/keyrings/kubernetes-archive-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.28/deb/ /" | tee /etc/apt/sources.list.d/kubernetes.list && \
+  echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/azure.list && \
+  echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
+  apt-get update -y && \
+  apt-get install -y --no-install-recommends \
+  azure-cli \
+  google-cloud-sdk \
+  google-cloud-sdk-gke-gcloud-auth-plugin \
+  kubectl \
+  vault && \
+  setcap -r /usr/bin/vault && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/*
+
+# Copy built tools and binaries from builder stage
+COPY --from=builder /usr/local/go /usr/local/go
+COPY --from=builder /usr/local/bin/helm /usr/local/bin/helm
+COPY --from=builder /usr/bin/pulumi /usr/bin/pulumi
+COPY --from=builder /usr/bin/aws-iam-authenticator /usr/bin/aws-iam-authenticator
+COPY --from=builder /usr/local/bin/datadog-ci /usr/local/bin/datadog-ci
+COPY --from=builder /usr/local/aws-cli /usr/local/aws-cli
+COPY --from=builder /usr/local/bin/aws /usr/local/bin/aws
+COPY --from=builder /root/.pulumi /root/.pulumi
+COPY --from=builder /root/.config /root/.config
+COPY --from=builder /root/.cache /root/.cache
+COPY --from=builder /go /go
 
 # Configure aws retries
 COPY .awsconfig $HOME/.aws/config

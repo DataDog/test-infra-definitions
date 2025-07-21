@@ -26,6 +26,8 @@ const (
 	DDInfraDefaultZoneNameParamName        = "gcp/defaultZone"
 	DDInfraDefautVMServiceAccountParamName = "gcp/defaultVMServiceAccount"
 	DDInfraGKEEnableAutopilot              = "gcp/gke/enableAutopilot"
+	DDInfraOpenShiftPullSecretPath         = "gcp/openshift/pullSecretPath"
+	DDInfraEnableNestedVirtualization      = "gcp/enableNestedVirtualization"
 )
 
 type Environment struct {
@@ -169,4 +171,14 @@ func (e *Environment) Region() string {
 // Zone returns the default zone for the GCP environment
 func (e *Environment) Zone() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultZoneNameParamName, e.envDefault.gcp.zone)
+}
+
+// OpenShiftPullSecretPath returns the path to the OpenShift pull secret file
+func (e *Environment) OpenShiftPullSecretPath() string {
+	return e.InfraConfig.Get(DDInfraOpenShiftPullSecretPath)
+}
+
+// EnableNestedVirtualization returns whether to enable nested virtualization
+func (e *Environment) EnableNestedVirtualization() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEnableNestedVirtualization, e.envDefault.ddInfra.openshift.nestedVirtualization)
 }

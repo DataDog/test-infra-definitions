@@ -24,6 +24,7 @@ scenario_name = "az/aks"
         "stack_name": doc.stack_name,
         "agent_flavor": doc.agent_flavor,
         "helm_config": doc.helm_config,
+        "local_chart_path": doc.local_chart_path,
     }
 )
 def create_aks(
@@ -41,6 +42,7 @@ def create_aks(
     use_fakeintake: Optional[bool] = False,
     agent_flavor: Optional[str] = None,
     helm_config: Optional[str] = None,
+    local_chart_path: Optional[str] = None,
 ):
     """
     Create a new AKS environment. It lasts around 5 minutes.
@@ -54,6 +56,7 @@ def create_aks(
     extra_flags = {
         "ddinfra:env": f"az/{account if account else cfg.get_azure().account}",
         "ddinfra:az/defaultPublicKeyPath": cfg.get_azure().publicKeyPath,
+        "ddagent:localChartPath": local_chart_path,
     }
 
     full_stack_name = deploy(

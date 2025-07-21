@@ -18,7 +18,9 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 		NetworkInterfaces: compute.InstanceNetworkInterfaceArray{
 			&compute.InstanceNetworkInterfaceArgs{
 				AccessConfigs: compute.InstanceNetworkInterfaceAccessConfigArray{
-					nil,
+					&compute.InstanceNetworkInterfaceAccessConfigArgs{
+						NatIp: pulumi.String(""),
+					},
 				},
 				Network:    pulumi.String(e.DefaultNetworkName()),
 				Subnetwork: pulumi.String(e.DefaultSubnet()),

@@ -4,11 +4,14 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	helm "github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 
+	// dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
+
 	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
+	// "github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -171,28 +174,38 @@ clusterAgent:
 		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
-	// got rid of standalone dogstatsd and etcd
-	//cpustress workload removed - generates high cpu usage and openshift secruity policies may block this
+	// Deploy standalone dogstatsd
+	// if gcpEnv.DogstatsdDeploy() {
+	// 	if _, err := dogstatsdstandalone.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "dogstatsd-standalone", fakeIntake, false, ctx.Stack()); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	// Deploy testing workload
 	if gcpEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
-			return err
-		}
+		// if _, err := nginx.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
+		// 	return err
+		// }
 
 		if _, err := redis.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
-		// cpustress workload removed - causes OpenShift security issues
 		if _, err := cpustress.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
 
-		// dogstatsd clients that report to the Agent
-		if _, err := dogstatsd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
-			return err
-		}
+		// dogstatsd clients that report to the dogstatsd standalone deployment
+		// if gcpEnv.DogstatsdDeploy() {
+		// 	if _, err := dogstatsd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
+		// 		return err
+		// 	}
+		// }
+
+		// // dogstatsd clients that report to the Agent
+		// if _, err := dogstatsd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
+		// 	return err
+		// }
 
 		if _, err := prometheus.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-prometheus"); err != nil {
 			return err
@@ -201,6 +214,9 @@ clusterAgent:
 		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
+		// if _, err := etcd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-etcd"); err != nil {
+		// 	return err
+		// }
 	}
 
 	return nil

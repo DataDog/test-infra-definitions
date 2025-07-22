@@ -14,8 +14,8 @@ import (
 )
 
 const (
-	amazonLinux2AMD64AmiType = "AL2_x86_64"
-	amazonLinux2ARM64AmiType = "AL2_ARM_64"
+	amazonLinux2AMD64AmiType = "AL2023_x86_64_STANDARD"
+	amazonLinux2ARM64AmiType = "AL2023_ARM_64_STANDARD"
 	bottlerocketAmiType      = "BOTTLEROCKET_x86_64"
 	windowsAmiType           = "WINDOWS_CORE_2022_x86_64"
 )

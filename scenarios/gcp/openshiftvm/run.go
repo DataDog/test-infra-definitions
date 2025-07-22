@@ -119,7 +119,6 @@ clusterAgent:
 			kubernetesagentparams.WithNamespace("datadog-openshift"),
 			kubernetesagentparams.WithHelmValues(customValues),
 		)
-		// this tells the datadog agent where to send the data
 		if fakeIntake != nil {
 			k8sAgentOptions = append(
 				k8sAgentOptions,

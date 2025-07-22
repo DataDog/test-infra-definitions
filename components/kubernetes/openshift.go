@@ -119,10 +119,10 @@ func NewOpenShiftCluster(env config.Env, vm *remote.Host, name string, pullSecre
 			Create: pulumi.String(`
                 sudo nohup socat TCP-LISTEN:8443,bind=0.0.0.0,fork TCP:127.0.0.1:6443 > /tmp/socat.log 2>&1 &
             `),
-			Delete: pulumi.String(`
-                sudo pkill -f "socat TCP-LISTEN:8443"
-            `),
 		}, utils.MergeOptions(opts, utils.PulumiDependsOn(socatInstall))...)
+		if err != nil {
+			return err
+		}
 
 		kubeConfig, err := runner.Command(commonEnvironment.CommonNamer().ResourceName("get-kubeconfig"), &command.Args{
 			Create: pulumi.String("cat ~/.crc/machines/crc/kubeconfig"),

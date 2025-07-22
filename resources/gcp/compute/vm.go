@@ -17,9 +17,12 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 	instance, err := compute.NewInstance(e.Ctx(), e.Namer.ResourceName(name), &compute.InstanceArgs{
 		NetworkInterfaces: compute.InstanceNetworkInterfaceArray{
 			&compute.InstanceNetworkInterfaceArgs{
-				AccessConfigs: compute.InstanceNetworkInterfaceAccessConfigArray{
-					nil,
-				},
+				AccessConfigs: func() compute.InstanceNetworkInterfaceAccessConfigArray {
+					if e.EnableNestedVirtualization() {
+						return compute.InstanceNetworkInterfaceAccessConfigArray{}
+					}
+					return nil
+				}(),
 				Network:    pulumi.String(e.DefaultNetworkName()),
 				Subnetwork: pulumi.String(e.DefaultSubnet()),
 			},

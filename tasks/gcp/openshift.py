@@ -5,7 +5,7 @@ from invoke.exceptions import Exit
 from invoke.tasks import task
 from pydantic_core._pydantic_core import ValidationError
 
-from tasks import config, doc, tool
+from tasks import config, doc
 from tasks.config import get_full_profile_path
 from tasks.deploy import deploy
 from tasks.destroy import destroy

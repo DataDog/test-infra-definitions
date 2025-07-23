@@ -655,6 +655,9 @@ func buildWindowsHelmValues(baseName string, agentImagePath, agentImageTag, _, _
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"nodeSelector": pulumi.Map{
+				"kubernetes.io/arch": pulumi.String("amd64"),
+			},
 		},
 		// Make the Windows node agents target the Linux cluster agent
 		"clusterAgent": pulumi.Map{

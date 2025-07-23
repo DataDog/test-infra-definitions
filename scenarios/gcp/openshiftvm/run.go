@@ -118,6 +118,7 @@ clusterAgent:
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog-openshift"),
 			kubernetesagentparams.WithHelmValues(customValues),
+			kubernetesagentparams.WithClusterName(openshiftCluster.ClusterName),
 		)
 		if fakeIntake != nil {
 			k8sAgentOptions = append(

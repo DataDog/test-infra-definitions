@@ -3,9 +3,12 @@ package openshiftvm
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	"github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -79,7 +82,7 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
-	var dependsOnDDAgent pulumi.ResourceOption
+	// var dependsOnDDAgent pulumi.ResourceOption
 
 	// Deploy the agent
 	if gcpEnv.AgentDeploy() {
@@ -118,6 +121,7 @@ clusterAgent:
 			k8sAgentOptions,
 			kubernetesagentparams.WithNamespace("datadog-openshift"),
 			kubernetesagentparams.WithHelmValues(customValues),
+			kubernetesagentparams.WithClusterName(openshiftCluster.ClusterName),
 		)
 		if fakeIntake != nil {
 			k8sAgentOptions = append(
@@ -140,13 +144,12 @@ clusterAgent:
 			return err
 		}
 
-		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
+		// dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 	}
 
 	// Deploy testing workload
 	if gcpEnv.TestingWorkloadDeploy() {
-
-		if _, err := redis.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
+		if _, err := redis.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-redis", true /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
@@ -154,7 +157,16 @@ clusterAgent:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+			return err
+		}
+		if _, err := cpustress.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
+			return err
+		}
+		if _, err := nginx.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-nginx", "", true /* for DDM */, dependsOnVPA); err != nil {
+			return err
+		}
+		if _, err := tracegen.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
 			return err
 		}
 	}

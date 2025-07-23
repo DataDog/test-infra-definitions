@@ -596,6 +596,30 @@ func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clus
 				"doNotCheckTag": pulumi.Bool(true),
 			},
 		},
+		"clusterChecksRunner": pulumi.Map{
+			"enabled": pulumi.Bool(false),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
+					"value": pulumi.String("true"),
+				},
+			},
+			"resources": pulumi.StringMapMap{
+				"requests": pulumi.StringMap{
+					"cpu":    pulumi.String("20m"),
+					"memory": pulumi.String("300Mi"),
+				},
+				"limits": pulumi.StringMap{
+					"cpu":    pulumi.String("200m"),
+					"memory": pulumi.String("400Mi"),
+				},
+			},
+		},
 	}
 }
 

@@ -27,6 +27,8 @@ if ($service -ne $null) {
     $retries++
   } 
   Write-Output "Firewall rule 'OpenSSH-Server-In-TCP' created."
+
+  
   $powershellPath = "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"
   $retries = 0
   $res = Get-ItemProperty "HKLM:\SOFTWARE\OpenSSH"
@@ -62,6 +64,42 @@ if ($service -ne $null) {
     Set-Service -Name sshd -StartupType Automatic
     $retries++
   }
+}
+
+# Create SSH firewall rule that works across all network profiles
+Write-Host "Configuring network profile for SSH connectivity..."
+try {
+  $netProfile = Get-NetConnectionProfile -ErrorAction SilentlyContinue
+  if ($netProfile -and $netProfile.NetworkCategory -eq 'Public') {
+    Set-NetConnectionProfile -InterfaceAlias $netProfile.InterfaceAlias -NetworkCategory Private
+    Write-Host "Network profile changed from Public to Private for interface: $($netProfile.InterfaceAlias)"
+  } else {
+    Write-Host "Network profile is already Private or not found"
+  }
+  
+  # Create a SSH firewall rule that works across all network profiles
+  Write-Host "Creating SSH firewall rule..."
+  # Remove any existing SSH rules that might be conflicting
+  Get-NetFirewallRule | Where-Object {$_.DisplayName -like "*SSH*" -or $_.DisplayName -like "*OpenSSH*"} | Remove-NetFirewallRule -ErrorAction SilentlyContinue
+  
+  # Create a new comprehensive SSH rule with broader access
+  New-NetFirewallRule -Name 'SSH-Server-Inbound' `
+    -DisplayName 'SSH Server (Custom)' `
+    -Description 'Allow SSH inbound connections on port 22' `
+    -Enabled True `
+    -Direction Inbound `
+    -Protocol TCP `
+    -LocalPort 22 `
+    -Action Allow `
+    -Profile Any `
+    -RemoteAddress Any `
+    -EdgeTraversalPolicy Allow
+  
+  Write-Host "SSH firewall rule created - firewall remains enabled for security"
+  
+} catch {
+  Write-Warning "Failed to set network profile or disable firewall: $($_.Exception.Message)"
+  # Continue execution - this is not critical enough to fail the entire setup
 }
 
 Write-Host "Resetting ssh authorized keys"
@@ -105,3 +143,4 @@ while ((Get-Service -Name sshd -ErrorAction SilentlyContinue).Status -ne "Runnin
   Start-Service sshd
   $retries++
 }
+

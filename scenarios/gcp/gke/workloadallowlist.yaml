@@ -73,7 +73,7 @@ matchingCriteria:
       envFrom:
         - secretRef:
             name: ^datadog-.*
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: process-agent
       volumeMounts:
         - mountPath: /etc/datadog-agent
@@ -171,7 +171,7 @@ matchingCriteria:
       envFrom:
         - secretRef:
             name: ^datadog-.*
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: agent
       volumeMounts:
         - mountPath: /etc/datadog-agent/install_info
@@ -282,7 +282,7 @@ matchingCriteria:
       envFrom:
         - secretRef:
             name: ^datadog-.*
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: trace-agent
       volumeMounts:
         - mountPath: /etc/datadog-agent
@@ -364,7 +364,7 @@ matchingCriteria:
       envFrom:
         - secretRef:
             name: ^datadog-.*$
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: system-probe
       securityContext:
         appArmorProfile:
@@ -516,7 +516,7 @@ matchingCriteria:
         - name: S6_READ_ONLY_ROOT
         - name: S6_BEHAVIOUR_IF_STAGE2_FAILS
         - name: CURL_CA_BUNDLE
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: init-config
       volumeMounts:
         - mountPath: /var/log/datadog
@@ -543,7 +543,7 @@ matchingCriteria:
       command:
         - bash
         - -c
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: init-volume
       volumeMounts:
         - mountPath: /opt/datadog-agent
@@ -552,7 +552,7 @@ matchingCriteria:
         - cp
         - /etc/config/system-probe-seccomp.json
         - /host/var/lib/kubelet/seccomp/system-probe
-      image: ^us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa/agent(:[0-9]+\.[0-9]+\.[0-9]+)?$
+      image: ^.*$
       name: seccomp-setup
       volumeMounts:
         - mountPath: /etc/config

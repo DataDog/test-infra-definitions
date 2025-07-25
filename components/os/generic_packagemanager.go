@@ -17,6 +17,7 @@ type GenericPackageManager struct {
 	opts            []pulumi.ResourceOption
 	installCmd      string
 	updateCmd       string
+	uninstallCmd    string
 	env             pulumi.StringMap
 }
 
@@ -25,19 +26,57 @@ func NewGenericPackageManager(
 	name string,
 	installCmd string,
 	updateCmd string,
+	uninstallCmd string,
 	env pulumi.StringMap,
 ) *GenericPackageManager {
 	packageManager := &GenericPackageManager{
-		namer:      namer.NewNamer(runner.Environment().Ctx(), name),
-		runner:     runner,
-		installCmd: installCmd,
-		updateCmd:  updateCmd,
-		env:        env,
+		namer:        namer.NewNamer(runner.Environment().Ctx(), name),
+		runner:       runner,
+		installCmd:   installCmd,
+		updateCmd:    updateCmd,
+		uninstallCmd: uninstallCmd,
+		env:          env,
 	}
 
 	return packageManager
 }
 
+func (m *GenericPackageManager) EnsureUninstalled(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error) {
+	params, err := common.ApplyOption(&PackageManagerParams{}, opts)
+	if err != nil {
+		return nil, err
+	}
+	pulumiOpts := append(params.PulumiResourceOptions, m.opts...)
+	var cmdStr string
+	if checkBinary != "" {
+		cmdStr = fmt.Sprintf("bash -c 'command -v %s && %s %s || exit 0'", checkBinary, m.uninstallCmd, packageRef)
+	} else if m.uninstallCmd != "" {
+		cmdStr = fmt.Sprintf("%s %s", m.uninstallCmd, packageRef)
+	} else {
+		return nil, fmt.Errorf("uninstall command is not set")
+	}
+
+	cmdName := m.namer.ResourceName("uninstall-"+packageRef, utils.StrHash(cmdStr))
+	var cmdArgs command.RunnerCommandArgs = &command.Args{
+		Create:      pulumi.String(cmdStr),
+		Environment: m.env,
+		Sudo:        true,
+	}
+
+	// If a transform is provided, use it to modify the command name and args
+	if transform != nil {
+		cmdName, cmdArgs = transform(cmdName, cmdArgs)
+	}
+
+	cmd, err := m.runner.Command(cmdName, cmdArgs, pulumiOpts...)
+	if err != nil {
+		return nil, err
+	}
+	// Make sure the package manager isn't running in parallel
+	m.opts = append(m.opts, utils.PulumiDependsOn(cmd))
+
+	return cmd, nil
+}
 func (m *GenericPackageManager) Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error) {
 	params, err := common.ApplyOption(&PackageManagerParams{}, opts)
 	if err != nil {

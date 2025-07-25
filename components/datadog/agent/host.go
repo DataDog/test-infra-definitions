@@ -12,8 +12,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentparams"
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
+	"github.com/DataDog/test-infra-definitions/components/os"
 	remoteComp "github.com/DataDog/test-infra-definitions/components/remote"
-
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -75,11 +75,34 @@ func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparam
 		return nil, err
 	}
 
+	var uninstallCmd pulumi.Resource
+	if h.Host.OS.Descriptor().Family() == os.LinuxFamily {
+		uninstallCmd, err = h.Host.OS.PackageManager().EnsureUninstalled("datadog-agent", func(name string, cmdArgs command.RunnerCommandArgs) (string, command.RunnerCommandArgs) {
+			args := *cmdArgs.Arguments()
+			args.Triggers = pulumi.Array{
+				pulumi.String(params.Version.Major),
+				pulumi.String(params.Version.Minor),
+				pulumi.String(params.Version.PipelineID),
+				pulumi.String(params.Version.Flavor),
+				pulumi.String(params.Version.Channel),
+			}
+			args.Update = nil
+			return name, &args
+		}, "datadog-agent", os.WithPulumiResourceOptions(baseOpts...))
+		if err != nil {
+			return nil, err
+		}
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	opts := utils.MergeOptions(baseOpts, utils.PulumiDependsOn(uninstallCmd))
 	installCmd, err := h.Host.OS.Runner().Command(
 		h.namer.ResourceName("install-agent"),
 		&command.Args{
 			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
-		}, baseOpts...)
+		}, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +185,7 @@ func (h *HostAgent) installAgent(env config.Env, params *agentparams.Params, bas
 		// Transformer used to add triggers to the restart command
 		func(name string, cmdArgs command.RunnerCommandArgs) (string, command.RunnerCommandArgs) {
 			args := *cmdArgs.Arguments()
-			args.Triggers = pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash)}
+			args.Triggers = pulumi.Array{configFiles["datadog.yaml"], configFiles["system-probe.yaml"], configFiles["security-agent.yaml"], pulumi.String(intgHash), pulumi.String(params.Version.Major), pulumi.String(params.Version.Minor), pulumi.String(params.Version.PipelineID), pulumi.String(params.Version.Flavor), pulumi.String(params.Version.Channel)}
 			return name, &args
 		},
 		utils.PulumiDependsOn(h),

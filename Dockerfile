@@ -9,6 +9,7 @@ ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
 ARG CI_UPLOADER_VERSION=2.30.1
+ARG DDA_VERSION=v0.23.1
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 # Always prevent installing dependencies dynamically
@@ -125,9 +126,10 @@ RUN --mount=type=secret,id=github_token \
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
-RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
-  pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
+RUN pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
   dda -v self dep sync -f legacy-e2e -f legacy-github && \
+  # Disable update check as it is not needed in the CI and it can pollute the output when displaying changelog
+  dda config set update.mode off && \
   # TODO: Remove once we have a new version of dda where the semver deps is in legacy_github
   pip3 install semver==2.10.0 && \
   go install gotest.tools/gotestsum@latest

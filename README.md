@@ -67,7 +67,7 @@ Run any `-h` on any of the available tasks for more information
 The `setup.debug` invoke task will check for common mistakes such as key unavailable in configured AWS region, ssh-agent not running, invalid key format, and more.
 
 ```
-aws-vault exec sso-agent-sandbox-account-admin -- inv setup.debug
+aws-vault exec sso-agent-sandbox-account-admin -- dda inv setup.debug
 aws-vault exec sso-agent-sandbox-account-admin -- inv setup --debug --no-interactive
 ```
 

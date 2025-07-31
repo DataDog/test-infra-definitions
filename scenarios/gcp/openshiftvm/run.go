@@ -108,6 +108,13 @@ agents:
     securityContextConstraints:
       create: true
 clusterAgent:
+  resources:
+    limits:
+      cpu: 300m
+      memory: 400Mi
+    requests:
+      cpu: 150m
+      memory: 300Mi
   enabled: true
   podSecurity:
     securityContextConstraints:

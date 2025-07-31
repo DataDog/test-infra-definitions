@@ -1,6 +1,8 @@
 package openshiftvm
 
 import (
+	"log"
+
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
@@ -18,7 +20,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/compute"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/fakeintake"
 	kubernetesNewProvider "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
-
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -82,14 +83,19 @@ func Run(ctx *pulumi.Context) error {
 		}
 	}
 
-	// var dependsOnDDAgent pulumi.ResourceOption
+	var dependsOnDDAgent pulumi.ResourceOption
+	log.Println("[DEBUG] dependsOnDDAgent initialized as nil")
 
 	// Deploy the agent
 	if gcpEnv.AgentDeploy() {
+		log.Println("[DEBUG] Agent deployment enabled, starting agent deployment")
 		customValues := `
 datadog:
   kubelet:
     tlsVerify: false
+  apm:
+    portEnabled: true
+    socketEnabled: false
 agents:
   enabled: true
   tolerations:
@@ -111,6 +117,13 @@ agents:
     securityContextConstraints:
       create: true
 clusterAgent:
+  resources:
+    limits:
+      cpu: 300m
+      memory: 400Mi
+    requests:
+      cpu: 150m
+      memory: 300Mi
   enabled: true
   podSecurity:
     securityContextConstraints:
@@ -137,38 +150,44 @@ clusterAgent:
 		k8sAgentComponent, err := helm.NewKubernetesAgent(&gcpEnv, gcpEnv.Namer.ResourceName("datadog-agent"), openshiftKubeProvider, k8sAgentOptions...)
 
 		if err != nil {
+			log.Printf("[ERROR] Failed to create Kubernetes agent: %v", err)
 			return err
 		}
+		log.Println("[DEBUG] Kubernetes agent component created successfully")
 
 		if err := k8sAgentComponent.Export(gcpEnv.Ctx(), nil); err != nil {
+			log.Printf("[ERROR] Failed to export Kubernetes agent component: %v", err)
 			return err
 		}
+		log.Println("[DEBUG] Kubernetes agent component exported successfully")
 
-		// dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
+		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
+		log.Println("[DEBUG] dependsOnDDAgent set to depend on k8sAgentComponent")
+	} else {
+		log.Println("[DEBUG] Agent deployment disabled, dependsOnDDAgent remains nil")
 	}
 
 	// Deploy testing workload
 	if gcpEnv.TestingWorkloadDeploy() {
-		if _, err := redis.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-redis", true /* for DDM */, dependsOnVPA); err != nil {
+		if _, err := redis.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-redis", true /* for DDM */, dependsOnVPA, dependsOnDDAgent); err != nil {
 			return err
 		}
-
 		if _, err := prometheus.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-prometheus"); err != nil {
 			return err
 		}
-
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection"); err != nil {
+		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection" /* for admission */, dependsOnDDAgent); err != nil {
 			return err
 		}
 		if _, err := cpustress.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
-		if _, err := nginx.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-nginx", "", true /* for DDM */, dependsOnVPA); err != nil {
+		if _, err := nginx.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-nginx", "", true /* for DDM */, dependsOnVPA, dependsOnDDAgent); err != nil {
 			return err
 		}
 		if _, err := tracegen.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
 			return err
 		}
+
 	}
 
 	return nil

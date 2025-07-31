@@ -30,6 +30,10 @@ function Set-SshFirewallConfiguration {
   # return if the OS is not Windows server 2025
   if (-not (Is-WindowsServer2025)) {
     return
+  } else {
+    # first add the following command: icacls.exe C:\ /inheritance:d
+    # this disables inheritance on the C:\ drive
+    icacls.exe C:\ /inheritance:d
   }
 
   Write-Host "Creating universal SSH firewall rule..."

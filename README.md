@@ -68,7 +68,7 @@ The `setup.debug` invoke task will check for common mistakes such as key unavail
 
 ```
 aws-vault exec sso-agent-sandbox-account-admin -- dda inv setup.debug
-aws-vault exec sso-agent-sandbox-account-admin -- inv setup --debug --no-interactive
+aws-vault exec sso-agent-sandbox-account-admin -- dda inv setup --debug --no-interactive
 ```
 
 

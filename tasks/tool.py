@@ -84,7 +84,8 @@ def get_stack_name(stack_name: Optional[str], scenario_name: str) -> str:
 
 def get_stack_name_prefix() -> str:
     user_name = f"{getpass.getuser()}-"
-    return user_name.replace(".", "-")  # EKS doesn't support '.'
+    # EKS doesn't support '.' and spaces in the user name could be problematic on Windows
+    return user_name.replace(".", "-").replace(" ", "-")
 
 
 def get_stack_json_outputs(ctx: Context, full_stack_name: str) -> Any:

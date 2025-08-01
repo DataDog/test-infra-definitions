@@ -88,6 +88,8 @@ func WithDomainController(domainFqdn, adminPassword string) func(*Configuration)
 	}
 }
 
+// Windows Server 2025 requires functional level of 7 (WinThreshold). To achieve better consistency, we use number representation.
+// https://learn.microsoft.com/en-us/powershell/module/addsdeployment/install-addsforest?view=windowsserver2022-ps&viewFallbackFrom=win10-ps
 func (adCtx *activeDirectoryContext) installDomainController(params *DomainControllerConfiguration) error {
 	var installCmd command.Command
 	installCmd, err := adCtx.comp.host.OS.Runner().Command(adCtx.comp.namer.ResourceName("install-forest"), &command.Args{
@@ -99,8 +101,8 @@ try {
 } catch {
 	$HashArguments = @{
 		CreateDNSDelegation           = $false
-		ForestMode                    = "Win2012R2"
-		DomainMode                    = "Win2012R2"
+		ForestMode                    = "7"
+		DomainMode                    = "7"
 		DomainName                    = "%s"
 		SafeModeAdministratorPassword = (ConvertTo-SecureString %s -AsPlainText -Force)
 		Force                         = $true

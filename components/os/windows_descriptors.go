@@ -2,7 +2,8 @@ package os
 
 // Implements commonly used descriptors for easier usage
 var (
-	WindowsDefault    = WindowsServer2022
+	WindowsDefault    = WindowsServer2025
+	WindowsServer2025 = NewDescriptor(WindowsServer, "2025")
 	WindowsServer2022 = NewDescriptor(WindowsServer, "2022")
 	WindowsServer2019 = NewDescriptor(WindowsServer, "2019")
 	WindowsServer2016 = NewDescriptor(WindowsServer, "2016")

@@ -125,4 +125,4 @@ def _get_public_path_key_name(cfg: Config, require: bool) -> Optional[str]:
     defaultPublicKeyPath = cfg.get_aws().publicKeyPath
     if require and defaultPublicKeyPath is None:
         raise Exit(f"Your scenario requires to define {default_public_path_key_name} in the configuration file")
-    return f'"{defaultPublicKeyPath}"'
+    return defaultPublicKeyPath

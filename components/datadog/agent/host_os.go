@@ -19,6 +19,7 @@ type agentOSManager interface {
 	getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error)
 	getAgentConfigFolder() string
 	restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error)
+	ensureAgentUninstalled(version agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error)
 }
 
 func getOSManager(host *remoteComp.Host) agentOSManager {

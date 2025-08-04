@@ -190,7 +190,6 @@ pulumi up -c scenario=gcp/gke -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/de
 ```
 # You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
 pulumi up -c scenario=gcp/openshiftvm -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/openshift/pullSecretPath=<your_pull_secret_path -c ddinfra:gcp/enableNestedVirtualization=true -c ddinfra:gcp/defaultInstanceType=n2-standard-8 -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddagent:apiKey=$DD_API_KEY  -c ddagent:appKey=$DD_APP_KEY -c ddtestworkload:deploy=false -s <your_name>-openshift
-
 ```
 
 ## Troubleshooting

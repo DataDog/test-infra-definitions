@@ -205,7 +205,7 @@ func agentQADefault() environmentDefault {
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-0097b9307ec2c8139",
-			defaultSubnets:                 []string{"subnet-0d8bd689da421970c", "subnet-06eecbdafc2dac21e", "subnet-09540c6dec9c38018"},
+			defaultSubnets:                 []string{"subnet-04bf3124d5c31c2e0", "subnet-06eecbdafc2dac21e", "subnet-0dabe4bab92b2b9a7"},
 			defaultSecurityGroups:          []string{"sg-05e9573fcc582f22c", "sg-0498c960a173dff1e"},
 			defaultInstanceType:            "t3.medium",
 			defaultInstanceProfileName:     "ec2InstanceRole",
@@ -241,15 +241,15 @@ func agentQADefault() environmentDefault {
 				podSubnets: []DDInfraEKSPodSubnets{
 					{
 						AZ:       "us-east-1a",
-						SubnetID: "subnet-02cef8d896085b24b",
+						SubnetID: "	subnet-08233fcbc3198be58",
 					},
 					{
 						AZ:       "us-east-1b",
-						SubnetID: "subnet-0950e55ed25f3bdc0",
+						SubnetID: "subnet-0d3b82115b032c236",
 					},
 					{
 						AZ:       "us-east-1d",
-						SubnetID: "subnet-0190651c83b3ebbbe",
+						SubnetID: "subnet-0c051745b55cce91c",
 					},
 				},
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},

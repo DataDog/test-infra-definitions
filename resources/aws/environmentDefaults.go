@@ -241,7 +241,7 @@ func agentQADefault() environmentDefault {
 				podSubnets: []DDInfraEKSPodSubnets{
 					{
 						AZ:       "us-east-1a",
-						SubnetID: "	subnet-08233fcbc3198be58",
+						SubnetID: "subnet-08233fcbc3198be58",
 					},
 					{
 						AZ:       "us-east-1b",

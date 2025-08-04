@@ -171,6 +171,20 @@ pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_
 pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
 ```
 
+## Quick start: Create a GKE Standard + Agent (Helm) or a GKE Autopilot + Agent (Helm)
+**Prerequisites:**
+- Install the GKE authentication plugin: `gcloud components install gke-gcloud-auth-plugin`
+- Add the plugin to your PATH: `export PATH="/opt/homebrew/share/google-cloud-sdk/bin:$PATH"`
+- Authenticate with GCP: `gcloud auth application-default login`
+```
+# You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
+# GKE Standard
+pulumi up -c scenario=gcp/gke -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-gke
+
+# GKE Autopilot
+pulumi up -c scenario=gcp/gke -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddinfra:gcp/gke/enableAutopilot=true -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-gke-autopilot
+```
+
 ## Quick start: Create an OpenShift Cluster + Agent (Helm) on an OpenShift Cluster
 
 ```

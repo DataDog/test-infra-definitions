@@ -22,6 +22,23 @@ function Test-SshInstallationNeeded {
   return $false
 }
 
+# function to restore the auto inherited flag without affecting the DACL
+# This function applies to Windows Server 2025 only
+# WINA-1694: The root drive on Windows Server 2025 is missing the SE_DACL_AUTO_INHERITED flag
+# This causes new files/directories under the root drive to have incorrect permissions,
+# which causes failures in some of our E2E tests.
+# Microsoft support case ID: 2508040010002067
+# https://serviceshub.microsoft.com/support/case/2508040010002067?workspaceId=687f2284-0ce3-40c9-8d3e-ebf747c76eab
+function Restore-AutoInheritedFlag {
+   if (-not (Is-WindowsServer2025)) {
+    return
+  } else {
+    # first add the following command: icacls.exe C:\ /inheritance:d
+    # this disables inheritance on the C:\ drive
+    icacls.exe C:\ /inheritance:d
+  }
+}
+
 # function to create a universal SSH firewall rule
 # Windows Server 2025 runs preinstalled SSH but the rule is specific to a different binary path.
 # The MSI creates a rule as well but it only applies to private profiles. Here we create our
@@ -30,10 +47,6 @@ function Set-SshFirewallConfiguration {
   # return if the OS is not Windows server 2025
   if (-not (Is-WindowsServer2025)) {
     return
-  } else {
-    # first add the following command: icacls.exe C:\ /inheritance:d
-    # this disables inheritance on the C:\ drive
-    icacls.exe C:\ /inheritance:d
   }
 
   Write-Host "Creating universal SSH firewall rule..."
@@ -123,6 +136,7 @@ if (Test-SshInstallationNeeded) {
   }
 }
 
+Restore-AutoInheritedFlag
 Set-SshFirewallConfiguration
 
 Write-Host "Resetting ssh authorized keys"

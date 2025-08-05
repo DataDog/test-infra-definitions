@@ -81,7 +81,7 @@ func FargateTaskDefinitionWithAgent(
 	image string,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	initContainer, agentContainer := agent.ECSFargateLinuxContainerDefinition(&e, "public.ecr.aws/datadog/agent:latest", apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName), readonlyRootFS)
+	initContainer, agentContainer := agent.ECSFargateLinuxContainerDefinition(&e, image, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName), readonlyRootFS)
 	if initContainer != nil {
 		containers["init-copy-agent-config"] = *initContainer
 	}

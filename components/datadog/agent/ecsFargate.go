@@ -22,7 +22,7 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 			Cpu:                    pulumi.IntPtr(0),
 			Name:                   pulumi.String("init-copy-agent-config"),
 			Image:                  pulumi.String(image),
-			Essential:              pulumi.BoolPtr(true),
+			Essential:              pulumi.BoolPtr(false),
 			ReadonlyRootFilesystem: pulumi.BoolPtr(false),
 			Command:                pulumi.StringArray{pulumi.String("sh"), pulumi.String("-c"), pulumi.String("cp -R /etc/datadog-agent/* /agent-config/")},
 			MountPoints: ecs.TaskDefinitionMountPointArray{

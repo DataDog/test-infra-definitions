@@ -14,7 +14,7 @@ import (
 )
 
 func FargateReadonlyAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiKeySSMParamName pulumi.StringInput, fakeIntake *fakeintakeComp.Fakeintake, opts ...pulumi.ResourceOption) (*ecsComp.Workload, error) {
-	namer := e.Namer.WithPrefix("nginx").WithPrefix("fg-readonly")
+	namer := e.Namer.WithPrefix("nginx").WithPrefix("fg")
 
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
@@ -80,7 +80,7 @@ func FargateReadonlyAppDefinition(e aws.Environment, clusterArn pulumi.StringInp
 		Essential: pulumi.BoolPtr(true),
 	}
 
-	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-fg-readonly", pulumi.String("nginx-fg-readonly"), 1024, 2048, true,
+	serverTaskDef, err := ecsClient.FargateTaskDefinitionWithAgent(e, "nginx-fg", pulumi.String("nginx-fg"), 1024, 2048, true,
 		map[string]ecs.TaskDefinitionContainerDefinitionArgs{
 			"nginx": *serverContainer,
 			"query": *queryContainer,
@@ -95,7 +95,7 @@ func FargateReadonlyAppDefinition(e aws.Environment, clusterArn pulumi.StringInp
 
 	if _, err := ecs.NewFargateService(e.Ctx(), namer.ResourceName("server"), &ecs.FargateServiceArgs{
 		Cluster:      clusterArn,
-		Name:         e.CommonNamer().DisplayName(255, pulumi.String("nginx"), pulumi.String("fg-readonly")),
+		Name:         e.CommonNamer().DisplayName(255, pulumi.String("nginx"), pulumi.String("fg")),
 		DesiredCount: pulumi.IntPtr(1),
 		NetworkConfiguration: classicECS.ServiceNetworkConfigurationArgs{
 			AssignPublicIp: pulumi.BoolPtr(e.ECSServicePublicIP()),

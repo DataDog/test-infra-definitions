@@ -103,10 +103,6 @@ func Run(ctx *pulumi.Context) error {
 			return err
 		}
 
-		if _, err = nginx.FargateAppDefinition(awsEnv, cluster.ClusterArn, apiKeyParam.Name, fakeIntake); err != nil {
-			return err
-		}
-
 		if _, err = nginx.FargateReadonlyAppDefinition(awsEnv, cluster.ClusterArn, apiKeyParam.Name, fakeIntake); err != nil {
 			return err
 		}

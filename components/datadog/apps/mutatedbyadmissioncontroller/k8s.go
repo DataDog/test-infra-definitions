@@ -71,7 +71,6 @@ func k8sDeploymentWithoutLibInjection(e config.Env, namespace string, name strin
 			Labels:    pulumi.StringMap{"app": pulumi.String(name)},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
-			Replicas: pulumi.Int(1),
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{"app": pulumi.String(name)},
 			},
@@ -95,7 +94,11 @@ func k8sDeploymentWithoutLibInjection(e config.Env, namespace string, name strin
 				},
 			},
 		},
-	}, opts...)
+	}, append(opts, pulumi.Timeouts(&pulumi.CustomTimeouts{
+		Create: "30m",
+		Update: "30m",
+		Delete: "30m",
+	}))...)
 
 	return err
 }
@@ -113,7 +116,8 @@ func k8sDeploymentWithLibInjection(e config.Env, namespace string, name string, 
 			Labels:    pulumi.StringMap{"app": pulumi.String(name)},
 		},
 		Spec: &appsv1.DeploymentSpecArgs{
-			Replicas: pulumi.Int(1),
+			Replicas:                pulumi.Int(1),
+			ProgressDeadlineSeconds: pulumi.Int(1200), // 20 minutes for OpenShift to handle large image pulls
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{"app": pulumi.String(name)},
 			},
@@ -142,7 +146,11 @@ func k8sDeploymentWithLibInjection(e config.Env, namespace string, name string, 
 				},
 			},
 		},
-	}, opts...); err != nil {
+	}, append(opts, pulumi.Timeouts(&pulumi.CustomTimeouts{
+		Create: "30m",
+		Update: "30m",
+		Delete: "30m",
+	}))...); err != nil {
 		return err
 	}
 

@@ -137,6 +137,11 @@ RUN pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-de
 # Install Orchestrion for native Go Test Visibility support
 RUN go install github.com/DataDog/orchestrion@v1.4.0
 
+# Install authanywhere for infra token management
+RUN curl -OL "binaries.ddbuild.io/dd-source/authanywhere/LATEST/authanywhere-linux-amd64" && \
+    mv authanywhere-linux-amd64 /bin/authanywhere && \
+    chmod +x /bin/authanywhere
+
 RUN rm -rf /tmp/test-infra
 
 # Configure aws retries

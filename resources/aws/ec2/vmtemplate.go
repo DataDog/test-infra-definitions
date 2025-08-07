@@ -1,6 +1,8 @@
 package ec2
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
@@ -8,28 +10,31 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func CreateLaunchTemplate(e aws.Environment, name string, ami, instanceType, iamProfileArn, keyPair, userData pulumi.StringInput) (*ec2.LaunchTemplate, error) {
+type LaunchTemplateArgs struct {
+	InstanceType      pulumi.StringInput
+	ImageID           pulumi.StringInput
+	UserData          pulumi.StringInput
+	AssociatePublicIp bool
+	KeyName           pulumi.StringInput
+	SecurityGroupIDs  pulumi.StringArrayInput
+}
+
+func NewEC2LaunchTemplate(e aws.Environment, name string, args *LaunchTemplateArgs) (*ec2.LaunchTemplate, error) {
 	launchTemplate, err := ec2.NewLaunchTemplate(e.Ctx(), e.Namer.ResourceName(name), &ec2.LaunchTemplateArgs{
-		ImageId:      ami,
 		NamePrefix:   e.CommonNamer().DisplayName(128, pulumi.String(name)),
-		InstanceType: instanceType,
-		IamInstanceProfile: ec2.LaunchTemplateIamInstanceProfileArgs{
-			Arn: iamProfileArn,
-		},
+		InstanceType: args.InstanceType,
+		ImageId:      args.ImageID,
+		UserData:     args.UserData,
+		KeyName:      args.KeyName,
 		NetworkInterfaces: ec2.LaunchTemplateNetworkInterfaceArray{
 			ec2.LaunchTemplateNetworkInterfaceArgs{
-				SubnetId:                 e.RandomSubnets().Index(pulumi.Int(0)),
+				AssociatePublicIpAddress: pulumi.StringPtr(fmt.Sprintf("%v", args.AssociatePublicIp)),
 				DeleteOnTermination:      pulumi.StringPtr("true"),
-				AssociatePublicIpAddress: pulumi.StringPtr("false"),
-				SecurityGroups:           pulumi.ToStringArray(e.DefaultSecurityGroups()),
+				SecurityGroups:           args.SecurityGroupIDs,
 			},
 		},
-		BlockDeviceMappings: ec2.LaunchTemplateBlockDeviceMappingArray{
-			ec2.LaunchTemplateBlockDeviceMappingArgs{},
-		},
-		KeyName:              keyPair,
-		UserData:             userData,
 		UpdateDefaultVersion: pulumi.BoolPtr(true),
 	}, e.WithProviders(config.ProviderAWS))
+
 	return launchTemplate, err
 }

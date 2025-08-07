@@ -73,12 +73,13 @@ func NewWindowsNodeGroup(e aws.Environment, clusterName pulumi.StringInput) (pul
 }
 
 func newNodeGroup(e aws.Environment, ngName string, ami, instanceType, userData pulumi.StringInput) (pulumi.StringOutput, error) {
-	lt, err := ec2.CreateLaunchTemplate(e, ngName,
-		ami,
-		instanceType,
-		pulumi.String(e.ECSInstanceProfile()),
-		pulumi.String(e.DefaultKeyPairName()),
-		userData)
+	lt, err := ec2.NewEC2LaunchTemplate(e, ngName, &ec2.LaunchTemplateArgs{
+		InstanceType:     instanceType,
+		ImageID:          ami,
+		UserData:         userData,
+		KeyName:          pulumi.String(e.DefaultKeyPairName()),
+		SecurityGroupIDs: pulumi.ToStringArray(e.DefaultSecurityGroups()),
+	})
 	if err != nil {
 		return pulumi.StringOutput{}, err
 	}

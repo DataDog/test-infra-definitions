@@ -225,6 +225,10 @@ func (e *Environment) DefaultSubnets() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
 }
 
+func (e *Environment) PublicSubnets() []string {
+	return e.GetStringListWithDefault(e.InfraConfig, "aws/publicSubnets", e.envDefault.ddInfra.publicSubnets)
+}
+
 func (e *Environment) DefaultFakeintakeECSArns() []string {
 	return e.GetStringListWithDefault(e.InfraConfig, DDInfraEcsFargateFakeintakeClusterArns, e.envDefault.ddInfra.ecs.fargateFakeintakeClusterArn)
 }

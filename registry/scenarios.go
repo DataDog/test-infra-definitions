@@ -3,6 +3,7 @@ package registry
 import (
 	"strings"
 
+	"github.com/DataDog/test-infra-definitions/scenarios/aws/asg"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/gke"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/openshiftvm"
 
@@ -28,6 +29,7 @@ func Scenarios() ScenarioRegistry {
 		"aws/dockervm":    ec2.VMRunWithDocker,
 		"aws/ecs":         ecs.Run,
 		"aws/eks":         eks.Run,
+		"aws/asg":         asg.Run,
 		"aws/installer":   installer.Run,
 		"aws/microvms":    microvms.Run,
 		"aws/kind":        kindvm.Run,

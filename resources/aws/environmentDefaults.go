@@ -29,6 +29,7 @@ type FakeintakeLBConfig struct {
 type ddInfra struct {
 	defaultVPCID                   string
 	defaultSubnets                 []string
+	publicSubnets                  []string
 	defaultSecurityGroups          []string
 	defaultInstanceType            string
 	defaultInstanceProfileName     string
@@ -141,10 +142,10 @@ func agentSandboxDefault() environmentDefault {
 		},
 		ddInfra: ddInfra{
 			defaultVPCID:                   "vpc-029c0faf8f49dee8d",
-			defaultSubnets:                 []string{"subnet-0a15f3482cd3f9820", "subnet-091570395d476e9ce", "subnet-003831c49a10df3dd"},
+			defaultSubnets:                 []string{"subnet-091570395d476e9ce", "subnet-0e7ff59a43a41893c", "subnet-05595535568850a31"},
+			publicSubnets:                  []string{"subnet-0f161570a33bc6ca9", "subnet-039ef29c53fff2c90", "subnet-06073afc873f61b1a"},
 			defaultSecurityGroups:          []string{"sg-038231b976eb13d44", "sg-05466e7ce253d21b1"},
 			defaultInstanceType:            "t3.medium",
-			defaultInstanceProfileName:     "ec2InstanceRole",
 			defaultARMInstanceType:         "t4g.medium",
 			defaultInstanceStorageSize:     200,
 			defaultShutdownBehavior:        "stop",

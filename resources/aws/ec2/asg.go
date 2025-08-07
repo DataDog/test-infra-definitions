@@ -16,10 +16,11 @@ func NewAutoscalingGroup(e aws.Environment, name string,
 	desiredCapacity, minSize, maxSize int,
 ) (*autoscaling.Group, error) {
 	return autoscaling.NewGroup(e.Ctx(), e.Namer.ResourceName(name), &autoscaling.GroupArgs{
-		NamePrefix:      e.CommonNamer().DisplayName(255, pulumi.String(name)),
-		DesiredCapacity: pulumi.Int(desiredCapacity),
-		MinSize:         pulumi.Int(minSize),
-		MaxSize:         pulumi.Int(maxSize),
+		NamePrefix:         e.CommonNamer().DisplayName(255, pulumi.String(name)),
+		DesiredCapacity:    pulumi.Int(desiredCapacity),
+		MinSize:            pulumi.Int(minSize),
+		MaxSize:            pulumi.Int(maxSize),
+		VpcZoneIdentifiers: pulumi.ToStringArray(e.PublicSubnets()),
 		LaunchTemplate: autoscaling.GroupLaunchTemplateArgs{
 			Id:      launchTemplateID,
 			Version: launchTemplateVersion.ToIntOutput().ApplyT(func(v int) pulumi.String { return pulumi.String(strconv.Itoa(v)) }).(pulumi.StringInput),

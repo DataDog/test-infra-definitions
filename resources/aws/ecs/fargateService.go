@@ -80,7 +80,25 @@ func FargateTaskDefinitionWithAgent(
 	image string,
 	opts ...pulumi.ResourceOption,
 ) (*ecs.FargateTaskDefinition, error) {
-	containers["datadog-agent"] = *agent.ECSFargateLinuxContainerDefinition(&e, image, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	initContainer, agentContainer := agent.ECSFargateLinuxContainerDefinition(&e, image, apiKeySSMParamName, fakeintake, GetFirelensLogConfiguration(pulumi.String("datadog-agent"), pulumi.String("datadog-agent"), apiKeySSMParamName))
+	containers["init-copy-agent-config"] = *initContainer
+	containers["datadog-agent"] = *agentContainer
+
+	readonlyFSVolumes := classicECS.TaskDefinitionVolumeArray{
+		classicECS.TaskDefinitionVolumeArgs{
+			Name: pulumi.String("agent-config"),
+		},
+		classicECS.TaskDefinitionVolumeArgs{
+			Name: pulumi.String("agent-option"),
+		},
+		classicECS.TaskDefinitionVolumeArgs{
+			Name: pulumi.String("agent-tmp"),
+		},
+		classicECS.TaskDefinitionVolumeArgs{
+			Name: pulumi.String("agent-log"),
+		},
+	}
+
 	containers["log_router"] = *FargateFirelensContainerDefinition()
 
 	return ecs.NewFargateTaskDefinition(e.Ctx(), e.Namer.ResourceName(name), &ecs.FargateTaskDefinitionArgs{
@@ -95,11 +113,11 @@ func FargateTaskDefinitionWithAgent(
 		},
 		Family:  e.CommonNamer().DisplayName(255, family),
 		PidMode: pulumi.StringPtr("task"),
-		Volumes: classicECS.TaskDefinitionVolumeArray{
+		Volumes: append(classicECS.TaskDefinitionVolumeArray{
 			classicECS.TaskDefinitionVolumeArgs{
 				Name: pulumi.String("dd-sockets"),
 			},
-		},
+		}, readonlyFSVolumes...),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))...)
 }
 

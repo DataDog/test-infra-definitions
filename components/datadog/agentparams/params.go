@@ -1,6 +1,7 @@
 package agentparams
 
 import (
+	"encoding/base64"
 	"fmt"
 	"path"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -223,6 +225,42 @@ func WithFileWithPermissions(absolutePath string, content string, useSudo bool, 
 			UseSudo:     useSudo,
 			Permissions: perms,
 		}
+		return nil
+	}
+}
+
+// WithBase64BinaryFileWithPermissions writes a binary file to a given path using base64 encoding.
+func WithBase64BinaryFileWithPermissions(
+	absolutePath string,
+	data []byte,
+	useSudo bool,
+	perms option.Option[perms.FilePermissions],
+) func(*Params) error {
+	return func(p *Params) error {
+		encoded := base64.StdEncoding.EncodeToString(data)
+
+		script := fmt.Sprintf(`#!/bin/bash
+set -e
+mkdir -p "$(dirname %[1]s)"
+echo '%[2]s' | base64 -d > %[1]s
+chmod %[3]o %[1]s
+`, absolutePath, encoded, 500)
+
+		// Drop a temp shell script
+		scriptPath := path.Join("/tmp", fmt.Sprintf("install-%s.sh", utils.StrHash(absolutePath)))
+
+		p.Files[scriptPath] = &FileDefinition{
+			Content:     script,
+			UseSudo:     useSudo,
+			Permissions: perms,
+		}
+
+		// Then register the actual binary output as a no-op (if needed)
+		p.Files[absolutePath] = &FileDefinition{
+			UseSudo:     useSudo,
+			Permissions: perms,
+		}
+
 		return nil
 	}
 }

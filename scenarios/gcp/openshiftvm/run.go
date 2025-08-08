@@ -3,7 +3,6 @@ package openshiftvm
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -87,6 +86,9 @@ func Run(ctx *pulumi.Context) error {
 datadog:
   kubelet:
     tlsVerify: false
+  apm:
+    portEnabled: true
+    socketEnabled: false
 agents:
   enabled: true
   tolerations:
@@ -162,9 +164,6 @@ clusterAgent:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
-			return err
-		}
 	}
 
 	return nil

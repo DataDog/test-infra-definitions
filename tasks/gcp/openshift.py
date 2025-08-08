@@ -36,7 +36,7 @@ def create_openshift(
     pull_secret_path: Optional[str] = None,
     use_nested_virtualization: Optional[bool] = True,
     install_agent: Optional[bool] = True,
-    install_workload: Optional[bool] = False,
+    install_workload: Optional[bool] = True,
     use_fakeintake: Optional[bool] = False,
     use_loadBalancer: Optional[bool] = False,
     agent_version: Optional[str] = None,

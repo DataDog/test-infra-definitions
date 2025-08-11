@@ -6,6 +6,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	"github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -166,6 +167,9 @@ clusterAgent:
 		}
 
 		if _, err := cpustress.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
+			return err
+		}
+		if _, err := tracegen.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
 			return err
 		}
 	}

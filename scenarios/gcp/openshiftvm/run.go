@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
@@ -170,6 +171,9 @@ clusterAgent:
 			return err
 		}
 		if _, err := tracegen.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
+			return err
+		}
+		if _, err := dogstatsd.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

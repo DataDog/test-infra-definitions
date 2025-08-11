@@ -3,6 +3,7 @@ package openshiftvm
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
@@ -164,6 +165,9 @@ clusterAgent:
 			return err
 		}
 
+		if _, err := cpustress.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
+			return err
+		}
 	}
 
 	return nil

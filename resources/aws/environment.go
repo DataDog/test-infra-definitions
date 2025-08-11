@@ -76,6 +76,11 @@ type Environment struct {
 	randomSubnets pulumi.StringArrayOutput
 	randomLBIdx   pulumi.IntOutput
 	randomECSArn  pulumi.StringOutput
+
+	// Optional overrides to allow multi-region/multi-network scenarios
+	overrideRegion        string
+	overrideDefaultVPCID  string
+	overridePublicSubnets []string
 }
 
 var registryIDCheck, _ = regexp.Compile("^[0-9]{12}")
@@ -85,6 +90,31 @@ var _ config.Env = (*Environment)(nil)
 func WithCommonEnvironment(e *config.CommonEnvironment) func(*Environment) {
 	return func(awsEnv *Environment) {
 		awsEnv.CommonEnvironment = e
+	}
+}
+
+// WithPrefix appends a static prefix to the environment namer without relying on the common environment context.
+func WithPrefix(prefix string) func(*Environment) {
+	return func(awsEnv *Environment) {
+		awsEnv.Namer = awsEnv.Namer.WithPrefix(prefix)
+	}
+}
+
+// WithRegion overrides the AWS region used by this Environment instance.
+func WithRegion(region string) func(*Environment) {
+	return func(awsEnv *Environment) {
+		awsEnv.overrideRegion = region
+	}
+}
+
+// WithNetwork overrides VPC and subnets used by this Environment instance.
+// If publicSubnets is empty, defaultSubnets will be used for public subnets as well.
+func WithNetwork(vpcID string, publicSubnets []string) func(*Environment) {
+	return func(awsEnv *Environment) {
+		awsEnv.overrideDefaultVPCID = vpcID
+		if len(publicSubnets) > 0 {
+			awsEnv.overridePublicSubnets = publicSubnets
+		}
 	}
 }
 
@@ -108,7 +138,9 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 	}
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(env.InfraEnvironmentNames(), awsConfigNamespace))
 
-	awsProvider, err := sdkaws.NewProvider(ctx, string(config.ProviderAWS), &sdkaws.ProviderArgs{
+	// Ensure provider resource name is unique per region to avoid duplicate URNs when using multiple environments
+	providerName := string(config.ProviderAWS) + "-" + env.Region()
+	awsProvider, err := sdkaws.NewProvider(ctx, providerName, &sdkaws.ProviderArgs{
 		Region:  pulumi.String(env.Region()),
 		Profile: pulumi.String(env.Profile()),
 		DefaultTags: sdkaws.ProviderDefaultTagsArgs{
@@ -121,6 +153,14 @@ func NewEnvironment(ctx *pulumi.Context, options ...func(*Environment)) (Environ
 		return Environment{}, err
 	}
 	env.RegisterProvider(config.ProviderAWS, awsProvider)
+
+	// Create a uniquely named Random provider per environment to avoid duplicate URNs when multiple environments are used in one stack
+	randomProviderName := string(config.ProviderRandom) + "-" + env.Region()
+	rndProvider, err := random.NewProvider(ctx, randomProviderName, nil)
+	if err != nil {
+		return Environment{}, err
+	}
+	env.RegisterProvider(config.ProviderRandom, rndProvider)
 
 	shuffle, err := random.NewRandomShuffle(env.Ctx(), env.Namer.ResourceName("rnd-subnet"), &random.RandomShuffleArgs{
 		Inputs:      pulumi.ToStringArray(env.DefaultSubnets()),
@@ -202,6 +242,9 @@ func (e *Environment) InternalRegistryFullImagePathExists(fullImagePath string) 
 
 // Common
 func (e *Environment) Region() string {
+	if e.overrideRegion != "" {
+		return e.overrideRegion
+	}
 	return e.GetStringWithDefault(e.awsConfig, awsRegionParamName, e.envDefault.aws.region)
 }
 
@@ -218,6 +261,9 @@ func (e *Environment) Profile() string {
 }
 
 func (e *Environment) DefaultVPCID() string {
+	if e.overrideDefaultVPCID != "" {
+		return e.overrideDefaultVPCID
+	}
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultVPCIDParamName, e.envDefault.ddInfra.defaultVPCID)
 }
 
@@ -226,6 +272,9 @@ func (e *Environment) DefaultSubnets() []string {
 }
 
 func (e *Environment) PublicSubnets() []string {
+	if len(e.overridePublicSubnets) > 0 {
+		return e.overridePublicSubnets
+	}
 	return e.GetStringListWithDefault(e.InfraConfig, "aws/publicSubnets", e.envDefault.ddInfra.publicSubnets)
 }
 

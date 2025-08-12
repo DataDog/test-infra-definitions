@@ -1,8 +1,13 @@
 package kubernetes
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
+	"regexp"
+	"sort"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/semver"
 )
@@ -11,6 +16,20 @@ import (
 type KindConfig struct {
 	KindVersion      string
 	NodeImageVersion string
+}
+
+// DockerHubTag represents a tag from Docker Hub API
+type DockerHubTag struct {
+	Name      string `json:"name"`
+	Digest    string `json:"digest"`
+	FullSize  int64  `json:"full_size"`
+	TagStatus string `json:"tag_status"`
+}
+
+// DockerHubResponse represents the response from Docker Hub API
+type DockerHubResponse struct {
+	Results []DockerHubTag `json:"results"`
+	Next    string         `json:"next"`
 }
 
 // Source: https://github.com/kubernetes-sigs/kind/releases
@@ -86,8 +105,73 @@ var kubeToKindVersion = map[string]KindConfig{
 	},
 }
 
+// getLatestKindVersion fetches the latest Kubernetes version from Docker Hub
+func getLatestKindVersion() (*KindConfig, error) {
+	client := &http.Client{Timeout: 30 * time.Second}
+	
+	// Fetch tags from Docker Hub API
+	resp, err := client.Get("https://hub.docker.com/v2/repositories/kindest/node/tags?page_size=100")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Docker Hub tags: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Docker Hub API returned status %d", resp.StatusCode)
+	}
+	
+	var dockerResp DockerHubResponse
+	if err := json.NewDecoder(resp.Body).Decode(&dockerResp); err != nil {
+		return nil, fmt.Errorf("failed to decode Docker Hub response: %v", err)
+	}
+	
+	// Filter and sort versions - look for active tags
+	kubeVersionRegex := regexp.MustCompile(`^v(\d+\.\d+\.\d+)$`)
+	var versions []*semver.Version
+	tagToDigest := make(map[string]string)
+	
+	for _, tag := range dockerResp.Results {
+		// Only process active tags
+		if tag.TagStatus != "active" {
+			continue
+		}
+		
+		matches := kubeVersionRegex.FindStringSubmatch(tag.Name)
+		if len(matches) >= 2 {
+			if version, err := semver.NewVersion(matches[1]); err == nil {
+				versions = append(versions, version)
+				// Create full tag with digest (format: v1.33.2@sha256:...)
+				fullTag := fmt.Sprintf("%s@%s", tag.Name, tag.Digest)
+				tagToDigest[version.String()] = fullTag
+			}
+		}
+	}
+	
+	if len(versions) == 0 {
+		return nil, fmt.Errorf("no valid active Kubernetes versions found in Docker Hub")
+	}
+	
+	// Sort to get the latest version
+	sort.Sort(sort.Reverse(semver.Collection(versions)))
+	latestVersion := versions[0]
+	fullTag := tagToDigest[latestVersion.String()]
+	
+	// Use the latest Kind version from our map (v0.26.0 as of now)
+	latestKindVersion := "v0.26.0"
+	
+	return &KindConfig{
+		KindVersion:      latestKindVersion,
+		NodeImageVersion: fullTag,
+	}, nil
+}
+
 // GetKindVersionConfig returns the kind version and the kind node image to use based on kubernetes version
 func GetKindVersionConfig(kubeVersion string) (*KindConfig, error) {
+	// Handle "latest" as a special case
+	if kubeVersion == "latest" {
+		return getLatestKindVersion()
+	}
+	
 	kubeSemVer, err := semver.NewVersion(kubeVersion)
 	if err != nil {
 		return nil, err

@@ -9,15 +9,40 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 )
 
-func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) *ecs.TaskDefinitionContainerDefinitionArgs {
+func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, logConfig ecs.TaskDefinitionLogConfigurationPtrInput) (*ecs.TaskDefinitionContainerDefinitionArgs, *ecs.TaskDefinitionContainerDefinitionArgs) {
 	if image == "" {
 		image = dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false, false, false)
 	}
-	return &ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:       pulumi.IntPtr(0),
-		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(image),
-		Essential: pulumi.BoolPtr(true),
+
+	// Init container copies files to a writeable volume
+	initContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:                    pulumi.IntPtr(0),
+		Name:                   pulumi.String("init-copy-agent-config"),
+		Image:                  pulumi.String(image),
+		Essential:              pulumi.BoolPtr(false),
+		ReadonlyRootFilesystem: pulumi.BoolPtr(true),
+		Command:                pulumi.StringArray{pulumi.String("sh"), pulumi.String("-c"), pulumi.String("cp -R /etc/datadog-agent/* /agent-config/")},
+		MountPoints: ecs.TaskDefinitionMountPointArray{
+			ecs.TaskDefinitionMountPointArgs{
+
+				ContainerPath: pulumi.StringPtr("/agent-config"),
+				SourceVolume:  pulumi.StringPtr("agent-config"),
+			},
+		},
+	}
+
+	agentContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:                    pulumi.IntPtr(0),
+		Name:                   pulumi.String("datadog-agent"),
+		Image:                  pulumi.String(image),
+		Essential:              pulumi.BoolPtr(true),
+		ReadonlyRootFilesystem: pulumi.BoolPtr(true),
+		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
+			ecs.TaskDefinitionContainerDependencyArgs{
+				ContainerName: pulumi.String("init-copy-agent-config"),
+				Condition:     pulumi.String("SUCCESS"),
+			},
+		},
 		Environment: append(append(ecs.TaskDefinitionKeyValuePairArray{
 			ecs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("DD_DOGSTATSD_SOCKET"),
@@ -59,6 +84,22 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 				ContainerPath: pulumi.StringPtr("/var/run/datadog"),
 				SourceVolume:  pulumi.StringPtr("dd-sockets"),
 			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/etc/datadog-agent"),
+				SourceVolume:  pulumi.StringPtr("agent-config"),
+			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/opt/datadog-agent/run"),
+				SourceVolume:  pulumi.StringPtr("agent-option"),
+			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/tmp"),
+				SourceVolume:  pulumi.StringPtr("agent-tmp"),
+			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/var/log/datadog"),
+				SourceVolume:  pulumi.StringPtr("agent-log"),
+			},
 		},
 		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
 			Retries:     pulumi.IntPtr(2),
@@ -89,6 +130,8 @@ func ECSFargateLinuxContainerDefinition(e config.Env, image string, apiKeySSMPar
 			)),
 		},
 	}
+
+	return initContainer, agentContainer
 }
 
 // ECSFargateWindowsContainerDefinition returns the container definition for the Windows agent running on ECS Fargate.

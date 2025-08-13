@@ -252,9 +252,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 	}
 	helmValues := HelmValues{
 		"datadog": pulumi.Map{
-			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-			"checksCardinality":    pulumi.String("high"),
+			"apiKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
+			"leaderElectionResource": pulumi.String(""),
+			"checksCardinality":      pulumi.String("high"),
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),
 			},
@@ -303,8 +304,9 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"enabled": pulumi.Bool(true),
 			},
 			"kubeStateMetricsCore": pulumi.Map{
-				"enabled":           pulumi.Bool(true),
-				"collectVpaMetrics": pulumi.Bool(true),
+				"enabled":                pulumi.Bool(true),
+				"collectVpaMetrics":      pulumi.Bool(true),
+				"useClusterCheckRunners": pulumi.Bool(true),
 				"collectCrMetrics": pulumi.MapArray{
 					pulumi.Map{
 						"groupVersionKind": pulumi.StringMap{
@@ -467,7 +469,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"tag":           pulumi.String(clusterAgentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
-			"replicas": pulumi.Int(1),
+			"replicas": pulumi.Int(2),
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),
@@ -520,6 +522,13 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
 					"value": pulumi.String("true"),
+				},
+				// namespace labels as tags are removed here ƒrom the cluster check runner to
+				// be able to test that it can get the namespace labels from the cluster tagger
+				// via the remote tagger
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_NAMESPACE_LABELS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(map[string]interface{}{}),
 				},
 			},
 			"resources": pulumi.StringMapMap{
@@ -595,6 +604,30 @@ func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clus
 				"doNotCheckTag": pulumi.Bool(true),
 			},
 		},
+		"clusterChecksRunner": pulumi.Map{
+			"enabled": pulumi.Bool(false),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
+					"value": pulumi.String("true"),
+				},
+			},
+			"resources": pulumi.StringMapMap{
+				"requests": pulumi.StringMap{
+					"cpu":    pulumi.String("20m"),
+					"memory": pulumi.String("300Mi"),
+				},
+				"limits": pulumi.StringMap{
+					"cpu":    pulumi.String("200m"),
+					"memory": pulumi.String("400Mi"),
+				},
+			},
+		},
 	}
 }
 
@@ -629,6 +662,9 @@ func buildWindowsHelmValues(baseName string, agentImagePath, agentImageTag, _, _
 				"repository":    pulumi.String(agentImagePath),
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"nodeSelector": pulumi.Map{
+				"kubernetes.io/arch": pulumi.String("amd64"),
 			},
 		},
 		// Make the Windows node agents target the Linux cluster agent

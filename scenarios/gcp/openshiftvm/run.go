@@ -89,6 +89,7 @@ func Run(ctx *pulumi.Context) error {
 datadog:
   kubelet:
     tlsVerify: false
+  # https://docs.datadoghq.com/containers/troubleshooting/admission-controller/?tab=helm#openshift
   apm:
     portEnabled: true
     socketEnabled: false

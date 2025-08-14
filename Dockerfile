@@ -136,7 +136,7 @@ RUN pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-de
   pip3 install semver==2.10.0 && \
   go install gotest.tools/gotestsum@latest
 
-  # Install Orchestrion for native Go Test Visibility support
+# Install Orchestrion for native Go Test Visibility support
 RUN go install github.com/DataDog/orchestrion@v1.4.0
 
 # Install authanywhere for infra token management

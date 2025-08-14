@@ -1,6 +1,8 @@
 package kindvm
 
 import (
+	"fmt"
+
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
@@ -52,7 +54,18 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	// Resolve "latest" to actual version before creating cluster
+	kubeVersion := awsEnv.KubernetesVersion()
+	if kubeVersion == "latest" {
+		kindConfig, err := localKubernetes.GetKindVersionConfig("latest")
+		if err != nil {
+			return fmt.Errorf("failed to resolve latest Kubernetes version: %v", err)
+		}
+		// Use the clean semantic version for components, not the full image tag
+		kubeVersion = kindConfig.KubeVersion
+	}
+	
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", kubeVersion, utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}

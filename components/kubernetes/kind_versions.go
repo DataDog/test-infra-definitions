@@ -16,6 +16,7 @@ import (
 type KindConfig struct {
 	KindVersion      string
 	NodeImageVersion string
+	KubeVersion      string // Clean Kubernetes version for semantic parsing
 }
 
 // DockerHubTag represents a tag from Docker Hub API
@@ -162,6 +163,7 @@ func getLatestKindVersion() (*KindConfig, error) {
 	return &KindConfig{
 		KindVersion:      latestKindVersion,
 		NodeImageVersion: fullTag,
+		KubeVersion:      latestVersion.String(), // Clean version for semantic parsing
 	}, nil
 }
 
@@ -182,6 +184,8 @@ func GetKindVersionConfig(kubeVersion string) (*KindConfig, error) {
 		return nil, fmt.Errorf("unsupported kubernetes version. Supported versions are %s", strings.Join(kubeSupportedVersions(), ", "))
 	}
 
+	// Ensure KubeVersion is populated for static configs too
+	kindVersionConfig.KubeVersion = kubeVersion
 	return &kindVersionConfig, nil
 }
 

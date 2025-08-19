@@ -10,6 +10,8 @@ ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
 ARG CI_UPLOADER_VERSION=2.30.1
 ARG DDA_VERSION=v0.23.1
+ARG CODECOV_VERSION=0.6.1
+ARG CODECOV_SHA=0c9b79119b0d8dbe7aaf460dc3bd7c3094ceda06e5ae32b0d11a8ff56e2cc5c5
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 # Always prevent installing dependencies dynamically
@@ -141,6 +143,13 @@ RUN go install github.com/DataDog/orchestrion@v1.4.0
 RUN curl -OL "binaries.ddbuild.io/dd-source/authanywhere/LATEST/authanywhere-linux-amd64" && \
     mv authanywhere-linux-amd64 /bin/authanywhere && \
     chmod +x /bin/authanywhere
+
+# Install Codecov
+RUN curl -Os https://uploader.codecov.io/v${CODECOV_VERSION}/linux/codecov && \
+  echo "${CODECOV_SHA} codecov" | sha256sum -c - && \
+  mv codecov /usr/local/bin/codecov && \
+  chmod +x /usr/local/bin/codecov
+
 
 RUN rm -rf /tmp/test-infra
 

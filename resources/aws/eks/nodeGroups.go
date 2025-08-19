@@ -38,6 +38,7 @@ func NewWindowsNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsI
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
 	taints := awsEks.NodeGroupTaintArray{}
+	enableIMDv2 := utils.Pointer(true)
 	if strings.Contains(amiType, "WINDOWS") {
 		taints = append(taints,
 			awsEks.NodeGroupTaintArgs{
@@ -46,13 +47,14 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 				Effect: pulumi.String("NO_SCHEDULE"),
 			},
 		)
+		enableIMDv2 = nil
 	}
 
 	return eks.NewManagedNodeGroup(e.Ctx(), e.Namer.ResourceName(name), &eks.ManagedNodeGroupArgs{
 		AmiType:             pulumi.StringPtr(amiType),
 		Cluster:             cluster.Core,
 		DiskSize:            pulumi.Int(80),
-		EnableIMDSv2:        utils.Pointer(true),
+		EnableIMDSv2:        enableIMDv2,
 		InstanceTypes:       pulumi.ToStringArray([]string{instanceType}),
 		ForceUpdateVersion:  pulumi.BoolPtr(true),
 		NodeGroupNamePrefix: e.CommonNamer().DisplayName(37, pulumi.String(name), pulumi.String("ng")),

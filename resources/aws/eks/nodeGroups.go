@@ -52,6 +52,7 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 		AmiType:             pulumi.StringPtr(amiType),
 		Cluster:             cluster.Core,
 		DiskSize:            pulumi.Int(80),
+		EnableIMDSv2:        utils.Pointer(true),
 		InstanceTypes:       pulumi.ToStringArray([]string{instanceType}),
 		ForceUpdateVersion:  pulumi.BoolPtr(true),
 		NodeGroupNamePrefix: e.CommonNamer().DisplayName(37, pulumi.String(name), pulumi.String("ng")),

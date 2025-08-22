@@ -161,7 +161,7 @@ def _deploy(
     # Building run func parameters
     for key, value in flags.items():
         if value is not None:
-            up_flags += f" -c {key}={value}"
+            up_flags += f' -c "{key}={value}"'
 
     should_log = debug or log_level is not None or log_to_stderr
     if log_level is None:

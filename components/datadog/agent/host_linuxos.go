@@ -38,6 +38,8 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
 		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/pipeline-%[1]v-a%[2]v/%[2]v", version.PipelineID, version.Major))
+		// target testing keys
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_KEYS_URL=apttesting.datad0g.com/test-keys"))
 	} else {
 		testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v", version.Major))
 

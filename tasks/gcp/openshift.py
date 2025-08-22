@@ -18,6 +18,15 @@ scenario_name = "gcp/openshiftvm"
         "config_path": doc.config_path,
         "stack_name": doc.stack_name,
         "pull_secret_path": doc.pull_secret_path,
+        "install_agent": doc.install_agent,
+        "install_workload": doc.install_workload,
+        "use_fakeintake": doc.fakeintake,
+        "use_loadBalancer": doc.use_loadBalancer,
+        "agent_version": doc.agent_version,
+        "full_image_path": doc.full_image_path,
+        "cluster_agent_full_image_path": doc.cluster_agent_full_image_path,
+        "agent_flavor": doc.agent_flavor,
+        "helm_config": doc.helm_config,
     }
 )
 def create_openshift(
@@ -26,6 +35,15 @@ def create_openshift(
     stack_name: Optional[str] = None,
     pull_secret_path: Optional[str] = None,
     use_nested_virtualization: Optional[bool] = True,
+    install_agent: Optional[bool] = True,
+    install_workload: Optional[bool] = True,
+    use_fakeintake: Optional[bool] = False,
+    use_loadBalancer: Optional[bool] = False,
+    agent_version: Optional[str] = None,
+    full_image_path: Optional[str] = None,
+    cluster_agent_full_image_path: Optional[str] = None,
+    agent_flavor: Optional[str] = None,
+    helm_config: Optional[str] = None,
 ):
     """
     Create an OpenShift environment.
@@ -51,6 +69,7 @@ def create_openshift(
         "ddinfra:gcp/openshift/pullSecretPath": pull_secret_path,
         "ddinfra:gcp/enableNestedVirtualization": use_nested_virtualization,
         "ddinfra:gcp/defaultInstanceType": "n2-standard-8",
+        "ddinfra:gcp/fakeintakeWithLB": use_loadBalancer,
     }
 
     deploy(
@@ -58,8 +77,16 @@ def create_openshift(
         scenario_name,
         config_path,
         stack_name=stack_name,
-        install_agent=False,
+        install_agent=install_agent,
+        install_workload=install_workload,
+        use_fakeintake=use_fakeintake,
+        agent_version=agent_version,
         extra_flags=extra_flags,
+        app_key_required=True,
+        full_image_path=full_image_path,
+        cluster_agent_full_image_path=cluster_agent_full_image_path,
+        agent_flavor=agent_flavor,
+        helm_config=helm_config,
     )
 
 

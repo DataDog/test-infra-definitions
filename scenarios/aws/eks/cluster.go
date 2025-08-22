@@ -243,16 +243,30 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 		// Create managed node groups
 		if params.LinuxNodeGroup {
-			_, err := localEks.NewLinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
-			if err != nil {
-				return err
+			if params.UseAL2023Nodes {
+				_, err := localEks.NewAL2023LinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err := localEks.NewLinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
 		if params.LinuxARMNodeGroup {
-			_, err := localEks.NewLinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
-			if err != nil {
-				return err
+			if params.UseAL2023Nodes {
+				_, err := localEks.NewAL2023LinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err := localEks.NewLinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

@@ -72,3 +72,22 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", transform, opts...)
 }
+
+func (am *agentLinuxManager) ensureAgentUninstalled(version agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error) {
+	uninstallCmd, err := am.targetOS.PackageManager().EnsureUninstalled(version.Flavor, func(name string, cmdArgs command.RunnerCommandArgs) (string, command.RunnerCommandArgs) {
+		args := *cmdArgs.Arguments()
+		args.Triggers = pulumi.Array{
+			pulumi.String(version.Major),
+			pulumi.String(version.Minor),
+			pulumi.String(version.PipelineID),
+			pulumi.String(version.Flavor),
+			pulumi.String(version.Channel),
+		}
+		args.Update = nil
+		return name, &args
+	}, version.Flavor, os.WithPulumiResourceOptions(opts...))
+	if err != nil {
+		return nil, err
+	}
+	return uninstallCmd, nil
+}

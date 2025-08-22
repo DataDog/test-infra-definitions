@@ -67,6 +67,7 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	defaultVersion := WithLatestNightly()
 	defaultFlavor := WithFlavor(DefaultFlavor)
 	if env.PipelineID() != "" {
+		fmt.Printf("Pipeline ID: %s\n", env.PipelineID())
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
 	if env.AgentLocalPackage() != "" {

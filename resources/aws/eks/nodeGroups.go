@@ -14,14 +14,24 @@ import (
 )
 
 const (
-	amazonLinux2AMD64AmiType = "AL2_x86_64"
-	amazonLinux2ARM64AmiType = "AL2_ARM_64"
-	bottlerocketAmiType      = "BOTTLEROCKET_x86_64"
-	windowsAmiType           = "WINDOWS_CORE_2022_x86_64"
+	amazonLinux2AMD64AmiType    = "AL2_x86_64"
+	amazonLinux2ARM64AmiType    = "AL2_ARM_64"
+	amazonLinux2023AMD64AmiType = "AL2023_x86_64_STANDARD"
+	amazonLinux2023ARM64AmiType = "AL2023_ARM_64_STANDARD"
+	bottlerocketAmiType         = "BOTTLEROCKET_x86_64"
+	windowsAmiType              = "WINDOWS_CORE_2022_x86_64"
 )
 
 func NewLinuxNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
 	return newManagedNodeGroup(e, "linux", cluster, nodeRole, amazonLinux2AMD64AmiType, e.DefaultInstanceType(), opts...)
+}
+
+func NewAL2023LinuxNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
+	return newManagedNodeGroup(e, "linux", cluster, nodeRole, amazonLinux2023AMD64AmiType, e.DefaultInstanceType(), opts...)
+}
+
+func NewAL2023LinuxARMNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
+	return newManagedNodeGroup(e, "linux-arm", cluster, nodeRole, amazonLinux2023ARM64AmiType, e.DefaultARMInstanceType(), opts...)
 }
 
 func NewLinuxARMNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {

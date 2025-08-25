@@ -386,6 +386,11 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"value": pulumi.String("*"),
 				},
 			},
+			"autoscaling": pulumi.Map{
+				"workload": pulumi.Map{
+					"enabled": pulumi.Bool(true),
+				},
+			},
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{

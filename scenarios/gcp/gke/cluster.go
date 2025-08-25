@@ -43,8 +43,8 @@ func NewGKECluster(env gcp.Environment, opts ...Option) (*kubeComp.Cluster, erro
 		return nil, err
 	}
 
-	return components.NewComponent(&env, env.Namer.ResourceName("gke"), func(comp *kubeComp.Cluster) error {
-		cluster, kubeConfig, err := gke.NewCluster(env, "gke", params.autopilot)
+	return components.NewComponent(&env, env.Namer.ResourceName(env.Ctx().Stack()), func(comp *kubeComp.Cluster) error {
+		cluster, kubeConfig, err := gke.NewCluster(env, env.Namer.ResourceName(env.Ctx().Stack()), params.autopilot)
 		if err != nil {
 			return err
 		}

@@ -41,7 +41,7 @@ func (am *agentMacOSManager) getInstallCommand(version agentparams.PackageVersio
 	}
 
 	if version.PipelineID != "" {
-		exports = append(exports, fmt.Sprintf("DD_REPO_URL=https://dd-agent-macostesting.s3.amazonaws.com/ci/datadog-agent/pipeline-%s", version.PipelineID))
+		exports = append(exports, fmt.Sprintf("DD_REPO_URL=https://dd-agent-macostesting.s3.amazonaws.com/ci/datadog-agent/pipeline-%s-%s", version.PipelineID, am.host.OS.Descriptor().Architecture))
 	}
 
 	env := strings.Join(exports, " ")

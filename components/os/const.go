@@ -17,7 +17,7 @@ func ArchitectureFromString(archStr string) Architecture {
 	switch archStr {
 	case "x86_64", "amd64", "", "x86_64_mac": // Default architecture is AMD64
 		return AMD64Arch
-	case "arm64", "aarch64":
+	case "arm64", "aarch64", "arm64_mac":
 		return ARM64Arch
 	default:
 		panic(fmt.Sprintf("unknown architecture: %s", archStr))

@@ -69,3 +69,10 @@ func (am *agentMacOSManager) restartAgentServices(transform command.Transformer,
 	}
 	return am.host.OS.Runner().Command(cmdName, cmdArgs, opts...)
 }
+
+func (am *agentMacOSManager) ensureAgentUninstalled(version agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error) {
+	// No-op the install script should support installing again when the agent is already installed
+	return am.host.OS.Runner().Command("no-op-uninstall-agent", &command.Args{
+		Create: pulumi.String("true"),
+	}, opts...)
+}

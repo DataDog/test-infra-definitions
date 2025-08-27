@@ -25,7 +25,6 @@ const (
 	// AWS Infra
 	DDInfraDefaultVPCIDParamName           = "aws/defaultVPCID"
 	DDInfraDefaultSubnetsParamName         = "aws/defaultSubnets"
-	DDInfraSubnetIdOverrideParamName       = "aws/subnetId"
 	DDInfraDefaultSecurityGroupsParamName  = "aws/defaultSecurityGroups"
 	DDInfraDefaultInstanceTypeParamName    = "aws/defaultInstanceType"
 	DDInfraDefaultInstanceProfileParamName = "aws/defaultInstanceProfile"
@@ -38,7 +37,6 @@ const (
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 	DDInfraDefaultInternalDockerhubMirror  = "aws/defaultInternalDockerhubMirror"
-	DDInfraHostIdParamName                 = "aws/hostId"
 	DDInfraUseMacosCompatibleSubnets       = "aws/useMacosCompatibleSubnets"
 
 	// AWS ECS
@@ -287,10 +285,6 @@ func (e *Environment) DefaultInstanceStorageSize() int {
 // shutdown behavior can be 'terminate' or 'stop'
 func (e *Environment) DefaultShutdownBehavior() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
-}
-
-func (e *Environment) HostId() string {
-	return e.InfraConfig.Get(DDInfraHostIdParamName)
 }
 
 func (e *Environment) UseMacosCompatibleSubnets() bool {

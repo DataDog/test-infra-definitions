@@ -1,7 +1,6 @@
 package ec2
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/common/config"
@@ -35,7 +34,6 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	if err != nil {
 		return nil, err
 	}
-	fmt.Printf("AMI INFO: %+v", amiInfo)
 	sshUser := amiInfo.defaultUser
 	if infraSSHUser := e.InfraSSHUser(); infraSSHUser != "" {
 		sshUser = infraSSHUser
@@ -174,13 +172,6 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		}
 		if vmArgs.tenancy == "" {
 			vmArgs.tenancy = "host"
-		}
-		// Set host ID if provided in environment
-		if vmArgs.hostId == "" {
-			hostId := e.HostId()
-			if hostId != "" {
-				vmArgs.hostId = hostId
-			}
 		}
 	}
 

@@ -49,20 +49,10 @@ func NewDedicatedHost(e aws.Environment, name string, args DedicatedHostArgs, op
 		availabilityZone = pulumi.String(args.AvailabilityZone)
 	}
 
-	// Set default tags if none provided
-	if args.Tags == nil {
-		args.Tags = pulumi.StringMap{
-			"Name": e.Namer.DisplayName(255, pulumi.String(name)),
-		}
-	} else if _, exists := args.Tags["Name"]; !exists {
-		args.Tags["Name"] = e.Namer.DisplayName(255, pulumi.String(name))
-	}
-
 	dedicatedHostArgs := &ec2.DedicatedHostArgs{
 		InstanceType:     pulumi.String(args.InstanceType),
 		AvailabilityZone: availabilityZone,
 		HostRecovery:     pulumi.String(args.HostRecovery),
-		Tags:             args.Tags,
 	}
 
 	return ec2.NewDedicatedHost(e.Ctx(),

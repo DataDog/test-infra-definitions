@@ -45,10 +45,10 @@ $ErrorActionPreference = 'Stop';
 	return am.host.OS.Runner().Command("install-agent", &command.Args{Create: pulumi.Sprintf(cmd, env.AgentAPIKey())}, opts...)
 }
 
-func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
+func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, apiKey pulumi.StringInput, additionalInstallParameters []string) (pulumi.StringOutput, error) {
 	url, err := getAgentURL(version)
 	if err != nil {
-		return "", err
+		return pulumi.Sprintf(""), err
 	}
 
 	cmd := ""
@@ -73,11 +73,11 @@ for ($i=0; $i -lt 3; $i++) {
 `, url, localFilename)
 	installPackageCommandStr, err := am.getInstallPackageCommand(localFilename, version, additionalInstallParameters)
 	if err != nil {
-		return "", err
+		return pulumi.Sprintf(""), err
 	}
 	cmd += installPackageCommandStr
 
-	return cmd, nil
+	return pulumi.Sprintf(cmd, apiKey), nil
 }
 
 func (am *agentWindowsManager) getInstallPackageCommand(filePath string, version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {

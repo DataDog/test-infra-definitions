@@ -15,7 +15,7 @@ const (
 func ArchitectureFromString(archStr string) Architecture {
 	archStr = strings.ToLower(archStr)
 	switch archStr {
-	case "x86_64", "amd64", "": // Default architecture is AMD64
+	case "x86_64", "amd64", "", "x86_64_mac": // Default architecture is AMD64
 		return AMD64Arch
 	case "arm64", "aarch64":
 		return ARM64Arch

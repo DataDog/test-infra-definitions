@@ -69,7 +69,7 @@ func NewHostAgent(e config.Env, host *remoteComp.Host, options ...agentparams.Op
 }
 
 func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparams.Params, baseOpts ...pulumi.ResourceOption) (command.Command, error) {
-	installCmdStr, err := h.manager.getInstallCommand(params.Version, params.AdditionalInstallParameters)
+	installCmdStr, err := h.manager.getInstallCommand(params.Version, env.AgentAPIKey(), params.AdditionalInstallParameters)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +83,7 @@ func (h *HostAgent) installScriptInstallation(env config.Env, params *agentparam
 	installCmd, err := h.Host.OS.Runner().Command(
 		h.namer.ResourceName("install-agent"),
 		&command.Args{
-			Create: pulumi.Sprintf(installCmdStr, env.AgentAPIKey()),
+			Create: installCmdStr,
 		}, baseOpts...)
 	if err != nil {
 		return nil, err

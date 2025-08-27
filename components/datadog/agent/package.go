@@ -44,8 +44,8 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 		wantedExt = ".deb"
 	case tifos.WindowsServer:
 		wantedExt = ".msi"
-	case tifos.MacosOS, tifos.Unknown:
-		fallthrough
+	case tifos.MacosOS:
+		wantedExt = ".dmg"
 	default:
 		return "", fmt.Errorf("unsupported flavor for local packages installation: %s", flavor)
 	}

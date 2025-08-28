@@ -34,7 +34,6 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 	if err != nil {
 		return nil, err
 	}
-
 	sshUser := amiInfo.defaultUser
 	if infraSSHUser := e.InfraSSHUser(); infraSSHUser != "" {
 		sshUser = infraSSHUser
@@ -50,6 +49,21 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			UserData:           vmArgs.userData,
 			InstanceProfile:    vmArgs.instanceProfile,
 			HTTPTokensRequired: vmArgs.httpTokensRequired,
+			Tenancy:            vmArgs.tenancy,
+			HostID:             pulumi.String(vmArgs.hostID),
+		}
+
+		if vmArgs.osInfo.Family() == os.MacOSFamily && vmArgs.hostID == "" {
+			dedicatedHost, err := ec2.NewDedicatedHost(e, name, ec2.DedicatedHostArgs{
+				InstanceType: vmArgs.instanceType,
+			})
+			if err != nil {
+				return err
+			}
+			instanceArgs.HostID = dedicatedHost.Arn.ApplyT(func(arn string) pulumi.StringInput {
+				splitted := strings.Split(arn, "/")
+				return pulumi.String(splitted[len(splitted)-1])
+			}).(pulumi.StringInput)
 		}
 
 		// Create the EC2 instance
@@ -143,6 +157,21 @@ func defaultVMArgs(e aws.Environment, vmArgs *vmArgs) error {
 		vmArgs.instanceType = e.DefaultInstanceType()
 		if vmArgs.osInfo.Architecture == os.ARM64Arch {
 			vmArgs.instanceType = e.DefaultARMInstanceType()
+		}
+	}
+
+	// macOS dedicated host defaults
+	if vmArgs.osInfo.Family() == os.MacOSFamily {
+		// default to mac2.metal for arm64 and mac1.metal for amd64 if not set explicitly
+		if vmArgs.instanceType == "" || strings.HasPrefix(vmArgs.instanceType, "t3.") || strings.HasPrefix(vmArgs.instanceType, "t4g.") {
+			if vmArgs.osInfo.Architecture == os.ARM64Arch {
+				vmArgs.instanceType = "mac2.metal"
+			} else {
+				vmArgs.instanceType = "mac1.metal"
+			}
+		}
+		if vmArgs.tenancy == "" {
+			vmArgs.tenancy = "host"
 		}
 	}
 

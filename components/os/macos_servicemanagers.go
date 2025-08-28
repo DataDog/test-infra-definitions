@@ -21,7 +21,7 @@ func (s *macOSServiceManager) EnsureRestarted(serviceName string, transform comm
 	cmdName := s.e.CommonNamer().ResourceName("running", serviceName)
 	var cmdArgs command.RunnerCommandArgs = &command.Args{
 		Sudo:   true,
-		Create: pulumi.String(fmt.Sprintf("launchctl stop %s && launchctl start %s", serviceName, serviceName)),
+		Create: pulumi.String(fmt.Sprintf("launchctl kickstart -k %s'", serviceName)),
 	}
 
 	// If a transform is provided, use it to modify the command name and args

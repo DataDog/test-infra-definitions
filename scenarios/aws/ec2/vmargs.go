@@ -16,6 +16,8 @@ import (
 //   - [WithInstanceType]
 //   - [WithUserData]
 //   - [WithName]
+//   - [WithHostID]
+//   - [WithTenancy]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -25,6 +27,8 @@ type vmArgs struct {
 	userData        string
 	instanceType    string
 	instanceProfile string
+	tenancy         string
+	hostID          string
 
 	httpTokensRequired bool
 }
@@ -86,6 +90,22 @@ func WithInstanceProfile(instanceProfile string) VMOption {
 func WithIMDSv1Disable() VMOption {
 	return func(p *vmArgs) error {
 		p.httpTokensRequired = true
+		return nil
+	}
+}
+
+// WithHostId sets the dedicated host ID for the instance
+func WithHostID(hostID string) VMOption {
+	return func(p *vmArgs) error {
+		p.hostID = hostID
+		return nil
+	}
+}
+
+// WithTenancy sets the tenancy for the instance
+func WithTenancy(tenancy string) VMOption {
+	return func(p *vmArgs) error {
+		p.tenancy = tenancy
 		return nil
 	}
 }

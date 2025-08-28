@@ -29,6 +29,7 @@ var amiResolvers = map[os.Flavor]amiResolverFunc{
 	os.Fedora:         resolveFedoraAMI,
 	os.CentOS:         resolveCentOSAMI,
 	os.RockyLinux:     resolveRockyLinuxAMI,
+	os.MacosOS:        resolveMacosAMI,
 }
 
 var defaultUsers = map[os.Flavor]string{
@@ -42,6 +43,7 @@ var defaultUsers = map[os.Flavor]string{
 	os.Fedora:         "fedora",
 	os.CentOS:         "centos",
 	os.RockyLinux:     "cloud-user",
+	os.MacosOS:        "ec2-user",
 }
 
 // resolveOS returns the AMI ID for the given OS.
@@ -233,4 +235,12 @@ func resolveRockyLinuxAMI(_ aws.Environment, osInfo *os.Descriptor) (string, err
 	}
 
 	return amiID, nil
+}
+
+func resolveMacosAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
+	if osInfo.Version == "" {
+		osInfo.Version = os.MacOSSonoma.Version
+	}
+
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ec2-macos/%s/%s_mac/latest/image_id", osInfo.Version, osInfo.Architecture))
 }

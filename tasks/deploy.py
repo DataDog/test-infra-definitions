@@ -109,6 +109,8 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
         # Windows
         "deploy_windows_testing-a7": f"dd-agent-mstesting/pipelines/A7/{pipeline_id}",
         "deploy_windows_testing-a6": f"dd-agent-mstesting/pipelines/A6/{pipeline_id}",
+        # macOS
+        "deploy_dmg_testing-a7_x64": f"dd-agent-macostesting/ci/datadog-agent/pipeline-{pipeline_id}",
     }
 
     bucket_path = deploy_job_to_s3[deploy_job]

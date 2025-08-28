@@ -24,7 +24,6 @@ func VMRun(ctx *pulumi.Context) error {
 	}
 
 	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
-
 	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
 	if err != nil {
 		return err

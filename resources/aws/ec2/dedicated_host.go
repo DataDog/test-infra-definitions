@@ -58,6 +58,6 @@ func NewDedicatedHost(e aws.Environment, name string, args DedicatedHostArgs, op
 	return ec2.NewDedicatedHost(e.Ctx(),
 		e.Namer.ResourceName(name),
 		dedicatedHostArgs,
-		utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS), pulumi.RetainOnDelete(true))..., // Retain on delete because deleting a dedicated host is not possible unless  it lived for at least 24 hours, the cleanup will be done by test-infra-cleaner
+		utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS), pulumi.RetainOnDelete(true))..., // Retain on delete because deleting a dedicated host is not possible unless it lived for at least 24 hours, the cleanup will be done by test-infra-cleaner
 	)
 }

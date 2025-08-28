@@ -22,7 +22,7 @@ func newMacOSManager(host *remoteComp.Host) agentOSManager {
 
 // directInstallCommand expects a locally provided .dmg or .pkg uploaded to the host; it will install it with installer
 func (am *agentMacOSManager) directInstallCommand(env config.Env, packagePath string, _ agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error) {
-	// Unsupported for now, installing directly from a dmg without the install script requires way too many step that would imply duplicating the install script code in there.
+	// Unsupported for now.
 	return nil, fmt.Errorf("installing directly from a dmg without the install script requires way too many step that would imply duplicating the install script code in there")
 }
 

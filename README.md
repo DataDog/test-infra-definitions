@@ -63,9 +63,6 @@ Run any `-h` on any of the available tasks for more information
 ## MacOS support
 
 The `aws.create-vm` task should allow you to spin up a MacOS instance using `-o macos` flag. Note that spinning such an instance is expensive because it requires a dedicated host. When you have one running please reuse it instead of creating new instances every time you need it. The cleaner will automatically get rid of the dedicated hosts.
-
-
-
 ## Troubleshooting
 
 ### Environment and configuration

@@ -50,17 +50,17 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 			InstanceProfile:    vmArgs.instanceProfile,
 			HTTPTokensRequired: vmArgs.httpTokensRequired,
 			Tenancy:            vmArgs.tenancy,
-			HostId:             pulumi.String(vmArgs.hostId),
+			HostID:             pulumi.String(vmArgs.hostID),
 		}
 
-		if vmArgs.osInfo.Family() == os.MacOSFamily && vmArgs.hostId == "" {
+		if vmArgs.osInfo.Family() == os.MacOSFamily && vmArgs.hostID == "" {
 			dedicatedHost, err := ec2.NewDedicatedHost(e, name, ec2.DedicatedHostArgs{
 				InstanceType: vmArgs.instanceType,
 			})
 			if err != nil {
 				return err
 			}
-			instanceArgs.HostId = dedicatedHost.Arn.ApplyT(func(arn string) pulumi.StringInput {
+			instanceArgs.HostID = dedicatedHost.Arn.ApplyT(func(arn string) pulumi.StringInput {
 				splitted := strings.Split(arn, "/")
 				return pulumi.String(splitted[len(splitted)-1])
 			}).(pulumi.StringInput)

@@ -23,7 +23,7 @@ type InstanceArgs struct {
 	// Optional
 	UserData           string
 	HTTPTokensRequired bool
-	HostId             pulumi.StringInput // For dedicated host tenancy
+	HostID             pulumi.StringInput // For dedicated host tenancy
 }
 
 func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulumi.ResourceOption) (*ec2.Instance, error) {
@@ -46,7 +46,7 @@ func NewInstance(e aws.Environment, name string, args InstanceArgs, opts ...pulu
 			"Name": e.Namer.DisplayName(255, pulumi.String(name)),
 		},
 		InstanceInitiatedShutdownBehavior: pulumi.String(e.DefaultShutdownBehavior()),
-		HostId:                            args.HostId,
+		HostId:                            args.HostID,
 	}
 
 	if args.HTTPTokensRequired {

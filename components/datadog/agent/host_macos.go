@@ -21,7 +21,7 @@ func newMacOSManager(host *remoteComp.Host) agentOSManager {
 }
 
 // directInstallCommand expects a locally provided .dmg or .pkg uploaded to the host; it will install it with installer
-func (am *agentMacOSManager) directInstallCommand(env config.Env, packagePath string, _ agentparams.PackageVersion, additionalInstallParameters []string, opts ...pulumi.ResourceOption) (command.Command, error) {
+func (am *agentMacOSManager) directInstallCommand(_ config.Env, _ string, _ agentparams.PackageVersion, _ []string, _ ...pulumi.ResourceOption) (command.Command, error) {
 	// Unsupported for now.
 	return nil, fmt.Errorf("installing directly from a dmg without the install script requires way too many step that would imply duplicating the install script code in there")
 }
@@ -70,7 +70,7 @@ func (am *agentMacOSManager) restartAgentServices(transform command.Transformer,
 	return am.host.OS.Runner().Command(cmdName, cmdArgs, opts...)
 }
 
-func (am *agentMacOSManager) ensureAgentUninstalled(version agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error) {
+func (am *agentMacOSManager) ensureAgentUninstalled(_ agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error) {
 	// No-op the install script should support installing again when the agent is already installed
 	return am.host.OS.Runner().Command("no-op-uninstall-agent", &command.Args{
 		Create: pulumi.String("true"),

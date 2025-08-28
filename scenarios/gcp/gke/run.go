@@ -55,6 +55,14 @@ func Run(ctx *pulumi.Context) error {
 			kubernetesagentparams.WithNamespace("datadog"),
 		)
 
+		if agentFullImagePath := env.AgentFullImagePath(); agentFullImagePath != "" {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithAgentFullImagePath(agentFullImagePath))
+		}
+
+		if clusterAgentFullImagePath := env.ClusterAgentFullImagePath(); clusterAgentFullImagePath != "" {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithClusterAgentFullImagePath(clusterAgentFullImagePath))
+		}
+
 		if env.GKEAutopilot() {
 			k8sAgentOptions = append(
 				k8sAgentOptions,

@@ -67,6 +67,14 @@ providers:
 			kubernetesagentparams.WithHelmValues(customValues),
 		)
 
+		if agentFullImagePath := env.AgentFullImagePath(); agentFullImagePath != "" {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithAgentFullImagePath(agentFullImagePath))
+		}
+
+		if clusterAgentFullImagePath := env.ClusterAgentFullImagePath(); clusterAgentFullImagePath != "" {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithClusterAgentFullImagePath(clusterAgentFullImagePath))
+		}
+
 		if env.AgentUseFakeintake() {
 			fakeIntakeOptions := []fakeintake.Option{}
 			if env.AgentUseDualShipping() {

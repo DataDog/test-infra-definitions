@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"regexp"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/Masterminds/semver"
@@ -106,6 +105,57 @@ var kubeToKindVersion = map[string]KindConfig{
 	},
 }
 
+// getDynamicKindVersion fetches a specific Kubernetes version from Docker Hub
+func getDynamicKindVersion(kubeVersion string) (*KindConfig, error) {
+	client := &http.Client{Timeout: 30 * time.Second}
+	
+	// Fetch tags from Docker Hub API
+	resp, err := client.Get("https://hub.docker.com/v2/repositories/kindest/node/tags?page_size=100")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch Docker Hub tags: %v", err)
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Docker Hub API returned status %d", resp.StatusCode)
+	}
+	
+	var dockerResp DockerHubResponse
+	if err := json.NewDecoder(resp.Body).Decode(&dockerResp); err != nil {
+		return nil, fmt.Errorf("failed to decode Docker Hub response: %v", err)
+	}
+	
+	// Look for the specific version
+	targetTag := fmt.Sprintf("v%s", kubeVersion)
+	kubeVersionRegex := regexp.MustCompile(`^v(\d+\.\d+\.\d+)$`)
+	
+	for _, tag := range dockerResp.Results {
+		// Only process active tags
+		if tag.TagStatus != "active" {
+			continue
+		}
+		
+		if tag.Name == targetTag {
+			matches := kubeVersionRegex.FindStringSubmatch(tag.Name)
+			if len(matches) >= 2 {
+				// Create full tag with digest (format: v1.33.2@sha256:...)
+				fullTag := fmt.Sprintf("%s@%s", tag.Name, tag.Digest)
+				
+				// Use the latest Kind version from our map (v0.26.0 as of now)
+				latestKindVersion := "v0.26.0"
+				
+				return &KindConfig{
+					KindVersion:      latestKindVersion,
+					NodeImageVersion: fullTag,
+					KubeVersion:      kubeVersion, // Use the requested version
+				}, nil
+			}
+		}
+	}
+	
+	return nil, fmt.Errorf("Kubernetes version %s not found in Docker Hub kindest/node repository", kubeVersion)
+}
+
 // getLatestKindVersion fetches the latest Kubernetes version from Docker Hub
 func getLatestKindVersion() (*KindConfig, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -181,7 +231,9 @@ func GetKindVersionConfig(kubeVersion string) (*KindConfig, error) {
 
 	kindVersionConfig, found := kubeToKindVersion[fmt.Sprintf("%d.%d", kubeSemVer.Major(), kubeSemVer.Minor())]
 	if !found {
-		return nil, fmt.Errorf("unsupported kubernetes version. Supported versions are %s", strings.Join(kubeSupportedVersions(), ", "))
+		// If not in static map, try to resolve dynamically from Docker Hub
+		// This handles cases where "latest" was resolved to a newer version not yet in our static map
+		return getDynamicKindVersion(kubeVersion)
 	}
 
 	// Ensure KubeVersion is populated for static configs too

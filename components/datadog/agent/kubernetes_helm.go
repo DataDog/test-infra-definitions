@@ -242,6 +242,10 @@ type HelmValues pulumi.Map
 
 func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool, isFIPS bool) HelmValues {
 	var containerRegistry, imageName string
+	isAutoscaling := true
+	if isFIPS {
+		isAutoscaling = false
+	}
 	if strings.Contains(agentImagePath, "/") {
 		agentImageElem := strings.Split(agentImagePath, "/")
 		containerRegistry = strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
@@ -389,7 +393,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"autoscaling": pulumi.Map{
 				"workload": pulumi.Map{
 					// Autoscaling is not possible for FIPS as it requires remote-config and this is not available in FIPS agent.
-					"enabled": pulumi.Bool(!isFIPS),
+					"enabled": pulumi.Bool(isAutoscaling),
 				},
 			},
 		},

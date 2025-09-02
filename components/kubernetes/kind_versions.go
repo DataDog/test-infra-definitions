@@ -107,6 +107,7 @@ var kubeToKindVersion = map[string]KindConfig{
 
 // getDynamicKindVersion fetches a specific Kubernetes version from Docker Hub
 func getDynamicKindVersion(kubeVersion string) (*KindConfig, error) {
+	fmt.Printf("DEBUG: getDynamicKindVersion called for version %s\n", kubeVersion)
 	client := &http.Client{Timeout: 30 * time.Second}
 	
 	// Fetch tags from Docker Hub API
@@ -144,11 +145,13 @@ func getDynamicKindVersion(kubeVersion string) (*KindConfig, error) {
 				// Use the latest Kind version from our map (v0.26.0 as of now)
 				latestKindVersion := "v0.26.0"
 				
-				return &KindConfig{
+				result := &KindConfig{
 					KindVersion:      latestKindVersion,
 					NodeImageVersion: fullTag,
 					KubeVersion:      kubeVersion, // Use the requested version
-				}, nil
+				}
+				fmt.Printf("DEBUG: getDynamicKindVersion returning: %+v\n", result)
+				return result, nil
 			}
 		}
 	}
@@ -221,23 +224,32 @@ func getLatestKindVersion() (*KindConfig, error) {
 func GetKindVersionConfig(kubeVersion string) (*KindConfig, error) {
 	// Handle "latest" as a special case
 	if kubeVersion == "latest" {
+		fmt.Printf("DEBUG: GetKindVersionConfig resolving 'latest' via Docker Hub\n")
 		return getLatestKindVersion()
 	}
 	
 	kubeSemVer, err := semver.NewVersion(kubeVersion)
 	if err != nil {
+		fmt.Printf("DEBUG: GetKindVersionConfig failed to parse semver for %s: %v\n", kubeVersion, err)
 		return nil, err
 	}
 
-	kindVersionConfig, found := kubeToKindVersion[fmt.Sprintf("%d.%d", kubeSemVer.Major(), kubeSemVer.Minor())]
+	mapKey := fmt.Sprintf("%d.%d", kubeSemVer.Major(), kubeSemVer.Minor())
+	staticConfig, found := kubeToKindVersion[mapKey]
 	if !found {
 		// If not in static map, try to resolve dynamically from Docker Hub
 		// This handles cases where "latest" was resolved to a newer version not yet in our static map
+		fmt.Printf("DEBUG: GetKindVersionConfig %s (map key: %s) not found in static map, using dynamic resolution\n", kubeVersion, mapKey)
 		return getDynamicKindVersion(kubeVersion)
 	}
 
-	// Ensure KubeVersion is populated for static configs too
-	kindVersionConfig.KubeVersion = kubeVersion
+	// Make a copy to avoid modifying the original map entry
+	fmt.Printf("DEBUG: GetKindVersionConfig %s (map key: %s) found in static map: %+v\n", kubeVersion, mapKey, staticConfig)
+	kindVersionConfig := KindConfig{
+		KindVersion:      staticConfig.KindVersion,
+		NodeImageVersion: staticConfig.NodeImageVersion,
+		KubeVersion:      kubeVersion, // Use the requested version
+	}
 	return &kindVersionConfig, nil
 }
 

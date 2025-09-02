@@ -89,6 +89,14 @@ func Run(ctx *pulumi.Context) error {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 		}
 
+		if storeType := awsEnv.AgentFakeintakeStoreType(); storeType != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+		}
+
+		if retentionPeriod := awsEnv.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
+		}
+
 		if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, kindCluster.Name(), fakeIntakeOptions...); err != nil {
 			return err
 		}

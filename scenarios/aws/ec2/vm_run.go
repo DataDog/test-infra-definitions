@@ -45,6 +45,14 @@ func VMRun(ctx *pulumi.Context) error {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
 			}
 
+			if storeType := env.AgentFakeintakeStoreType(); storeType != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+			}
+
+			if retentionPeriod := env.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
+			}
+
 			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)
 			if err != nil {
 				return err
@@ -134,6 +142,14 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 
 			if env.InfraShouldDeployFakeintakeWithLB() {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
+			if storeType := env.AgentFakeintakeStoreType(); storeType != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+			}
+
+			if retentionPeriod := env.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
 			}
 
 			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)

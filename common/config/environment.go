@@ -57,6 +57,8 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentDualShipping                  = "dualshipping"
+	DDAgentFakeintakeStoreType           = "fakeintakeStoreType"
+	DDAGentFakeintakeRetentionPeriod     = "fakeintakeRetentionPeriod"
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
@@ -344,6 +346,14 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) AgentUseDualShipping() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDualShipping, false)
+}
+
+func (e *CommonEnvironment) AgentFakeintakeStoreType() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentFakeintakeStoreType, "memory")
+}
+
+func (e *CommonEnvironment) AgentFakeintakeRetentionPeriod() string {
+	return e.AgentConfig.Get(DDAGentFakeintakeRetentionPeriod)
 }
 
 func (e *CommonEnvironment) Site() string {

@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // Params defines the parameters for a virtual machine.
@@ -18,6 +19,7 @@ import (
 //   - [WithName]
 //   - [WithHostID]
 //   - [WithTenancy]
+//   - [WithPulumiResourceOptions]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
@@ -30,13 +32,15 @@ type vmArgs struct {
 	tenancy         string
 	hostID          string
 
-	httpTokensRequired bool
+	httpTokensRequired    bool
+	pulumiResourceOptions []pulumi.ResourceOption
 }
 
 type VMOption = func(*vmArgs) error
 
 func buildArgs(options ...VMOption) (*vmArgs, error) {
 	vmArgs := &vmArgs{}
+	vmArgs.pulumiResourceOptions = []pulumi.ResourceOption{}
 	return common.ApplyOption(vmArgs, options)
 }
 
@@ -106,6 +110,13 @@ func WithHostID(hostID string) VMOption {
 func WithTenancy(tenancy string) VMOption {
 	return func(p *vmArgs) error {
 		p.tenancy = tenancy
+		return nil
+	}
+}
+
+func WithPulumiResourceOptions(options ...pulumi.ResourceOption) VMOption {
+	return func(p *vmArgs) error {
+		p.pulumiResourceOptions = options
 		return nil
 	}
 }

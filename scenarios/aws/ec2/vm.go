@@ -41,6 +41,8 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 
 	// Create the EC2 instance
 	return components.NewComponent(&e, e.Namer.ResourceName(name), func(c *remote.Host) error {
+		opts := []pulumi.ResourceOption{pulumi.Parent(c)}
+		opts = append(opts, vmArgs.pulumiResourceOptions...)
 		c.CloudProvider = pulumi.String(components.CloudProviderAWS).ToStringOutput()
 
 		instanceArgs := ec2.InstanceArgs{
@@ -67,7 +69,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 		}
 
 		// Create the EC2 instance
-		instance, err := ec2.NewInstance(e, name, instanceArgs, pulumi.Parent(c))
+		instance, err := ec2.NewInstance(e, name, instanceArgs, opts...)
 		if err != nil {
 			return err
 		}
@@ -105,7 +107,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 				MinLower:        pulumi.Int(1),
 				MinUpper:        pulumi.Int(1),
 				MinNumeric:      pulumi.Int(1),
-			}, pulumi.Parent(c), e.WithProviders(config.ProviderRandom))
+			}, utils.MergeOptions(opts, e.WithProviders(config.ProviderRandom))...)
 			if err != nil {
 				return err
 			}
@@ -113,7 +115,7 @@ func NewVM(e aws.Environment, name string, params ...VMOption) (*remote.Host, er
 				e.CommonNamer().ResourceName("reset-admin-password"),
 				&command.Args{
 					Create: pulumi.Sprintf("$Password = ConvertTo-SecureString -String '%s' -AsPlainText -Force; Get-LocalUser -Name 'Administrator' | Set-LocalUser -Password $Password", randomPassword.Result),
-				}, pulumi.Parent(c))
+				}, utils.MergeOptions(opts, e.WithProviders(config.ProviderRandom))...)
 			if err != nil {
 				return err
 			}

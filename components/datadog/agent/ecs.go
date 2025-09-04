@@ -144,10 +144,6 @@ func ecsLinuxAgentSingleContainerDefinition(e config.Env, apiKeySSMParamName pul
 				Name:  pulumi.StringPtr("DD_TELEMETRY_CHECKS"),
 				Value: pulumi.StringPtr("*"),
 			},
-			ecs.TaskDefinitionKeyValuePairArgs{
-				Name:  pulumi.StringPtr("DD_ECS_TASK_COLLECTION_ENABLED"),
-				Value: pulumi.StringPtr("true"),
-			},
 		}, ecsAgentAdditionalEndpointsEnv(params)...), ecsFakeintakeAdditionalEndpointsEnv(fakeintake)...), ecsAgentAdditionalEnvFromConfig(e)...),
 		Secrets: ecs.TaskDefinitionSecretArray{
 			ecs.TaskDefinitionSecretArgs{

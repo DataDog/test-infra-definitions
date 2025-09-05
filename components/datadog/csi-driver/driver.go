@@ -18,7 +18,7 @@ const (
 )
 
 func NewDatadogCSIDriver(e config.Env, kubeProvider *kubernetes.Provider, csiDriverTag string) error {
-	opts := []pulumi.ResourceOption{pulumi.Providers(kubeProvider)}
+	opts := []pulumi.ResourceOption{pulumi.Providers(kubeProvider), pulumi.DeletedWith(kubeProvider)}
 
 	// Create namespace if necessary
 	ns, err := corev1.NewNamespace(e.Ctx(), CSINamespace, &corev1.NamespaceArgs{

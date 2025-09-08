@@ -3,7 +3,6 @@ package ec2
 import (
 	"errors"
 	"fmt"
-	ospkg "os"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
@@ -82,6 +81,26 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 	return amiInfo, nil
 }
 
+// Will resolve the AMI for the target OS given the platforms.json file
+func resolvePinnedAMI(osInfo *os.Descriptor) (string, error) {
+	var arch string
+	switch osInfo.Architecture {
+	case os.AMD64Arch:
+		arch = "x86_64"
+	case os.ARM64Arch:
+		arch = "arm64"
+	default:
+		return "", fmt.Errorf("architecture %s is not supported for %s", osInfo.Architecture, osInfo.Flavor.String())
+	}
+
+	ami, err := aws.GetAMI(osInfo.Flavor.String(), arch, osInfo.Version)
+	if err != nil {
+		return "", err
+	}
+
+	return ami, nil
+}
+
 func resolveWindowsAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 	if osInfo.Architecture == os.ARM64Arch {
 		return "", errors.New("ARM64 is not supported for Windows")
@@ -94,98 +113,28 @@ func resolveWindowsAMI(e aws.Environment, osInfo *os.Descriptor) (string, error)
 }
 
 func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
-	var paramName string
-	switch osInfo.Version {
-	// TODO: "" case
-	// case "", os.AmazonLinuxECS2.Version:
-	// 	paramName = fmt.Sprintf("amzn2-ami-hvm-%s-gp2", osInfo.Architecture)
-	// case os.AmazonLinuxECS2023.Version:
-	// 	paramName = fmt.Sprintf("al2023-ami-kernel-default-%s", osInfo.Architecture)
-	case os.AmazonLinux2018.Version:
-		if osInfo.Architecture != os.AMD64Arch {
-			return "", fmt.Errorf("arch %s is not supported for Amazon Linux 2018", osInfo.Architecture)
-		}
-		return ec2.SearchAMI(e, "669783387624", "amzn-ami-2018.03.*-amazon-ecs-optimized", string(osInfo.Architecture))
-		// default:
-		// 	return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
+	if osInfo.Version == "" {
+		osInfo.Version = os.AmazonLinuxDefault.Version
 	}
 
-	fmt.Fprintf(ospkg.Stderr, "CELIAN: al2018 %s\n", os.AmazonLinux2018.String())
-
-	// ami, err := ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-amazon-linux-latest/%s", osInfo.Architecture))
-	// if err != nil {
-	// 	return "", err
-	// }
-	fmt.Fprintf(ospkg.Stderr, "CELIAN: Fetched AMI %s\n", ami)
-	return "", fmt.Errorf("not implemented %s", paramName)
-
-	// case "latest":
-	// 	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-amazon-linux-latest/%s", paramName))
-
-	// return resolveAMI(osInfo, paramName)
+	return resolvePinnedAMI(osInfo)
 }
 
-func resolveAMI(osInfo *os.Descriptor, fullVersion string) (string, error) {
-	// TODO: Move this top level
-	var arch string
-	switch osInfo.Architecture {
-	case os.AMD64Arch:
-		arch = "x86_64"
-	case os.ARM64Arch:
-		arch = "arm64"
-	default:
-		return "", fmt.Errorf("architecture %s is not supported for Amazon Linux", osInfo.Architecture)
-	}
-
-	fmt.Fprintf(ospkg.Stderr, "CELIAN: Getting AMI for %s %s %s\n", osInfo.Flavor.String(), arch, fullVersion)
-
-	ami, err := aws.GetAMI(osInfo.Flavor.String(), arch, fullVersion)
-	if err != nil {
-		return "", err
-	}
-
-	fmt.Fprintf(ospkg.Stderr, "CELIAN: Got AMI %s\n", ami)
-
-	// TODO
-	return "", fmt.Errorf("not implemented")
-
-	// return ami, nil
-}
-
+// TODO: Verify amis etc.
 func resolveAmazonLinuxECSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
-	var paramName string
-	switch osInfo.Version {
-	case "", os.AmazonLinuxECSDefault.Version:
-		paramName = "amazon-linux-2"
-	case os.AmazonLinuxECS2023.Version:
-		paramName = "amazon-linux-2023"
-	default:
-		return "", fmt.Errorf("unsupported Amazon Linux ECS version %s", osInfo.Version)
+	if osInfo.Version == "" {
+		osInfo.Version = os.AmazonLinuxECSDefault.Version
 	}
 
-	if osInfo.Architecture == os.ARM64Arch {
-		paramName += "/arm64"
-	}
-
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ecs/optimized-ami/%s/recommended/image_id", paramName))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 	if osInfo.Version == "" {
 		osInfo.Version = os.UbuntuDefault.Version
 	}
-	volumeType := "ebs-gp2"
 
-	paramArch := osInfo.Architecture
-	if paramArch == os.AMD64Arch {
-		// Override required as the architecture is x86_64 but the SSM parameter is amd64
-		paramArch = "amd64"
-	}
-	if osInfo.Version == "24.04" {
-		volumeType = "ebs-gp3"
-	}
-
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/canonical/ubuntu/server/%s/stable/current/%s/hvm/%s/ami-id", osInfo.Version, paramArch, volumeType))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveDebianAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -193,13 +142,7 @@ func resolveDebianAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.DebianDefault.Version
 	}
 
-	paramArch := osInfo.Architecture
-	if paramArch == os.AMD64Arch {
-		// Override required as the architecture is x86_64 but the SSM parameter is amd64
-		paramArch = "amd64"
-	}
-
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/debian/release/%s/latest/%s", osInfo.Version, paramArch))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveRedHatAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -207,9 +150,7 @@ func resolveRedHatAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.RedHatDefault.Version
 	}
 
-	// Use recommended name query filter by RedHat https://access.redhat.com/solutions/15356
-	redhatOwner := "309956199498"
-	return ec2.SearchAMI(e, redhatOwner, fmt.Sprintf("RHEL-%s*", osInfo.Version), string(osInfo.Architecture))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveSuseAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -217,16 +158,7 @@ func resolveSuseAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 		osInfo.Version = os.SuseDefault.Version
 	}
 
-	if osInfo.Version == "15-sp4" {
-		if osInfo.Architecture == os.AMD64Arch {
-			return "ami-067dfda331f8296b0", nil // Private copy of the AMI dd-agent-sles-15-x86_64
-		} else if osInfo.Architecture == os.ARM64Arch {
-			return "ami-0d446ba26bbe19573", nil // Private copy of the AMI dd-agent-sles-15-arm64
-		}
-		return "", fmt.Errorf("architecture %s is not supported for SUSE %s", osInfo.Architecture, osInfo.Version)
-	}
-
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/suse/sles/%s/%s/latest", osInfo.Version, osInfo.Architecture))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -238,7 +170,7 @@ func resolveFedoraAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.FedoraDefault.Version
 	}
 
-	return ec2.SearchAMI(e, "125523088429", fmt.Sprintf("Fedora-Cloud-Base*-%s-*", osInfo.Version), string(osInfo.Architecture))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -246,18 +178,7 @@ func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		osInfo.Version = os.CentOSDefault.Version
 	}
 
-	if osInfo.Architecture == os.ARM64Arch {
-		if osInfo.Version == "7" {
-			return "ami-0cb7a00afccf30559", nil
-		}
-		return "", fmt.Errorf("ARM64 is not supported for CentOS %s", osInfo.Version)
-	}
-
-	if osInfo.Version == "7" {
-		return "ami-036de472bb001ae9c", nil
-	}
-
-	return ec2.SearchAMI(e, "679593333241", fmt.Sprintf("CentOS-%s-*-*.x86_64*", osInfo.Version), string(osInfo.Architecture))
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveRockyLinuxAMI(_ aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -265,17 +186,9 @@ func resolveRockyLinuxAMI(_ aws.Environment, osInfo *os.Descriptor) (string, err
 		return "", fmt.Errorf("cannot set version for Rocky Linux")
 	}
 
-	var amiID string
-	switch osInfo.Architecture {
-	case os.AMD64Arch:
-		amiID = "ami-071db23a8a6271e2c"
-	case os.ARM64Arch:
-		amiID = "ami-0a22577ee769ab5b0"
-	default:
-		return "", fmt.Errorf("architecture %s is not supported for Rocky Linux", osInfo.Architecture)
-	}
+	osInfo.Version = "default"
 
-	return amiID, nil
+	return resolvePinnedAMI(osInfo)
 }
 
 func resolveMacosAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
@@ -283,5 +196,5 @@ func resolveMacosAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 		osInfo.Version = os.MacOSSonoma.Version
 	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ec2-macos/%s/%s_mac/latest/image_id", osInfo.Version, osInfo.Architecture))
+	return resolvePinnedAMI(osInfo)
 }

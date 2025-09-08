@@ -46,7 +46,7 @@
             "2-4-14": "ami-090230ed0c6b13c74",
             "2-5-10": "ami-09e51988f56677f44",
             "2022-5-15": "ami-0acc51c3357f26240",
-            "2023": "ami-0a515c154e76934f7",
+            "2023": "ami-0a515c154e76934f7"
         }
     },
     "amazon-linux-ecs": {
@@ -89,15 +89,18 @@
     "centos": {
         "x86_64": {
             "610": "ami-0506f01ccb6dddeda",
-            "79": "ami-036de472bb001ae9c"
+            "7": "ami-036de472bb001ae9c"
         },
         "arm64": {
-            "79": "ami-0cb7a00afccf30559"
+            "7": "ami-0cb7a00afccf30559"
         }
     },
     "rocky-linux": {
         "x86_64": {
-            "92": "ami-08f362c39d03a4eb5"
+            "default": "ami-071db23a8a6271e2c"
+        },
+        "arm64": {
+            "default": "ami-0a22577ee769ab5b0"
         }
     },
     "windows-server": {

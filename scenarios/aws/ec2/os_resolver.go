@@ -3,6 +3,7 @@ package ec2
 import (
 	"errors"
 	"fmt"
+	ospkg "os"
 
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
@@ -95,20 +96,60 @@ func resolveWindowsAMI(e aws.Environment, osInfo *os.Descriptor) (string, error)
 func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 	var paramName string
 	switch osInfo.Version {
-	case "", os.AmazonLinuxECS2.Version:
-		paramName = fmt.Sprintf("amzn2-ami-hvm-%s-gp2", osInfo.Architecture)
-	case os.AmazonLinuxECS2023.Version:
-		paramName = fmt.Sprintf("al2023-ami-kernel-default-%s", osInfo.Architecture)
+	// TODO: "" case
+	// case "", os.AmazonLinuxECS2.Version:
+	// 	paramName = fmt.Sprintf("amzn2-ami-hvm-%s-gp2", osInfo.Architecture)
+	// case os.AmazonLinuxECS2023.Version:
+	// 	paramName = fmt.Sprintf("al2023-ami-kernel-default-%s", osInfo.Architecture)
 	case os.AmazonLinux2018.Version:
 		if osInfo.Architecture != os.AMD64Arch {
 			return "", fmt.Errorf("arch %s is not supported for Amazon Linux 2018", osInfo.Architecture)
 		}
 		return ec2.SearchAMI(e, "669783387624", "amzn-ami-2018.03.*-amazon-ecs-optimized", string(osInfo.Architecture))
-	default:
-		return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
+		// default:
+		// 	return "", fmt.Errorf("unsupported Amazon Linux version %s", osInfo.Version)
 	}
 
-	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-amazon-linux-latest/%s", paramName))
+	fmt.Fprintf(ospkg.Stderr, "CELIAN: al2018 %s\n", os.AmazonLinux2018.String())
+
+	// ami, err := ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-amazon-linux-latest/%s", osInfo.Architecture))
+	// if err != nil {
+	// 	return "", err
+	// }
+	fmt.Fprintf(ospkg.Stderr, "CELIAN: Fetched AMI %s\n", ami)
+	return "", fmt.Errorf("not implemented %s", paramName)
+
+	// case "latest":
+	// 	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-amazon-linux-latest/%s", paramName))
+
+	// return resolveAMI(osInfo, paramName)
+}
+
+func resolveAMI(osInfo *os.Descriptor, fullVersion string) (string, error) {
+	// TODO: Move this top level
+	var arch string
+	switch osInfo.Architecture {
+	case os.AMD64Arch:
+		arch = "x86_64"
+	case os.ARM64Arch:
+		arch = "arm64"
+	default:
+		return "", fmt.Errorf("architecture %s is not supported for Amazon Linux", osInfo.Architecture)
+	}
+
+	fmt.Fprintf(ospkg.Stderr, "CELIAN: Getting AMI for %s %s %s\n", osInfo.Flavor.String(), arch, fullVersion)
+
+	ami, err := aws.GetAMI(osInfo.Flavor.String(), arch, fullVersion)
+	if err != nil {
+		return "", err
+	}
+
+	fmt.Fprintf(ospkg.Stderr, "CELIAN: Got AMI %s\n", ami)
+
+	// TODO
+	return "", fmt.Errorf("not implemented")
+
+	// return ami, nil
 }
 
 func resolveAmazonLinuxECSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

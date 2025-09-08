@@ -1,6 +1,7 @@
 package os
 
 // Implements commonly used descriptors for easier usage
+// See platforms.json for the AMIs used for each OS
 var (
 	UbuntuDefault = Ubuntu2204
 	Ubuntu2404    = NewDescriptor(Ubuntu, "24.04")
@@ -29,5 +30,5 @@ var (
 	Fedora40      = NewDescriptor(Fedora, "40")
 
 	CentOSDefault = CentOS7
-	CentOS7       = NewDescriptor(CentOS, "7")
+	CentOS7       = NewDescriptor(CentOS, "79")
 )

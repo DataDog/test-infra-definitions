@@ -120,7 +120,6 @@ func resolveAmazonLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, er
 	return resolvePinnedAMI(osInfo)
 }
 
-// TODO: Verify amis etc.
 func resolveAmazonLinuxECSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 	if osInfo.Version == "" {
 		osInfo.Version = os.AmazonLinuxECSDefault.Version

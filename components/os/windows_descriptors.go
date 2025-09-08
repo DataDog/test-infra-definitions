@@ -1,6 +1,7 @@
 package os
 
 // Implements commonly used descriptors for easier usage
+// See platforms.json for the AMIs used for each OS
 var (
 	WindowsDefault    = WindowsServer2025
 	WindowsServer2025 = NewDescriptor(WindowsServer, "2025")

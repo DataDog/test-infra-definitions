@@ -12,7 +12,7 @@ import (
 var platformsJSON []byte
 
 // map[os][arch][version] = ami (e.g. map[ubuntu][x86_64][22.04] = "ami-01234567890123456")
-var platformsJSONMap map[string]map[string]map[string]string = nil
+var platformsJSONMap map[string]map[string]map[string]string
 
 // Returns the parsed platforms.json map
 func GetPlatformsJSONMap() (map[string]map[string]map[string]string, error) {

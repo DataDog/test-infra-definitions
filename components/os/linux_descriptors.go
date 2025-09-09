@@ -30,5 +30,5 @@ var (
 	Fedora40      = NewDescriptor(Fedora, "40")
 
 	CentOSDefault = CentOS7
-	CentOS7       = NewDescriptor(CentOS, "7")
+	CentOS7       = NewDescriptor(CentOS, "79")
 )

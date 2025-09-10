@@ -16,7 +16,7 @@ var (
 	AmazonLinux2       = NewDescriptor(AmazonLinux, "2")
 	AmazonLinux2018    = NewDescriptor(AmazonLinux, "2018")
 
-	AmazonLinuxECSDefault = AmazonLinuxECS2023
+	AmazonLinuxECSDefault = AmazonLinuxECS2
 	AmazonLinuxECS2023    = NewDescriptor(AmazonLinuxECS, "2023")
 	AmazonLinuxECS2       = NewDescriptor(AmazonLinuxECS, "2")
 

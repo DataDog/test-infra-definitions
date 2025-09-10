@@ -7,9 +7,9 @@
             "12": "ami-0eef9d92ec044bc94"
         },
         "arm64": {
-            "10": "ami-0497a51e798361d65",
-            "11": "ami-05f3f532b93bba0b3",
-            "12": "ami-02aab8d5301cb8d68"
+            "10": "ami-0ce37c7cbd1cfc3e8",
+            "11": "ami-0c3f5b0b87f042da8",
+            "12": "ami-0505441d7e1514742"
         }
     },
     "ubuntu": {
@@ -31,7 +31,7 @@
             "22.04": "ami-0f1d4680f8b775120",
             "23.04": "ami-05fab5da2d7fe0b0b",
             "23.10": "ami-0dea732dd5f1da0a8",
-            "24.04": "ami-0a4db546d7da6dc37"
+            "24.04": "ami-026fccd88446aa0bf"
         }
     },
     "amazon-linux": {

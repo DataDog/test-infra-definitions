@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	e2eos "github.com/DataDog/test-infra-definitions/components/os"
 )
@@ -17,18 +18,17 @@ var platformsJSON []byte
 type platformsJSONMapType = map[string]map[string]map[string]string
 
 var platformsJSONMap platformsJSONMapType
+var platformsJSONMapOnce sync.Once
+var platformsJSONMapErr error
 
 // Returns the parsed platforms.json map
-func GetPlatformsJSONMap() (map[string]map[string]map[string]string, error) {
-	if platformsJSONMap == nil {
-		platformsJSONMap = make(map[string]map[string]map[string]string)
-		err := json.Unmarshal(platformsJSON, &platformsJSONMap)
-		if err != nil {
-			return nil, err
-		}
-	}
+func GetPlatformsJSONMap() (platformsJSONMapType, error) {
+	platformsJSONMapOnce.Do(func() {
+		platformsJSONMap = make(platformsJSONMapType)
+		platformsJSONMapErr = json.Unmarshal(platformsJSON, &platformsJSONMap)
+	})
 
-	return platformsJSONMap, nil
+	return platformsJSONMap, platformsJSONMapErr
 }
 
 func GetAMI(descriptor *e2eos.Descriptor) (string, error) {

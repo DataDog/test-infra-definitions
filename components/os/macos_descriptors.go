@@ -6,3 +6,7 @@ var (
 	MacOSDefault = MacOSSonoma
 	MacOSSonoma  = NewDescriptor(MacosOS, "sonoma")
 )
+
+var MacOSDescriptorsDefault = map[Flavor]Descriptor{
+	MacosOS: MacOSDefault,
+}

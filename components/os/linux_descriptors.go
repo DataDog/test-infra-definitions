@@ -32,3 +32,14 @@ var (
 	CentOSDefault = CentOS7
 	CentOS7       = NewDescriptor(CentOS, "79")
 )
+
+var LinuxDescriptorsDefault = map[Flavor]Descriptor{
+	Ubuntu:         UbuntuDefault,
+	AmazonLinux:    AmazonLinuxDefault,
+	AmazonLinuxECS: AmazonLinuxECSDefault,
+	Debian:         DebianDefault,
+	RedHat:         RedHatDefault,
+	Suse:           SuseDefault,
+	Fedora:         FedoraDefault,
+	CentOS:         CentOSDefault,
+}

@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+
+	e2eos "github.com/DataDog/test-infra-definitions/components/os"
 )
 
 // Handles AMIs for all OSes
@@ -12,7 +14,9 @@ import (
 var platformsJSON []byte
 
 // map[os][arch][version] = ami (e.g. map[ubuntu][x86_64][22.04] = "ami-01234567890123456")
-var platformsJSONMap map[string]map[string]map[string]string
+type platformsJSONMapType = map[string]map[string]map[string]string
+
+var platformsJSONMap platformsJSONMapType
 
 // Returns the parsed platforms.json map
 func GetPlatformsJSONMap() (map[string]map[string]map[string]string, error) {
@@ -27,21 +31,21 @@ func GetPlatformsJSONMap() (map[string]map[string]map[string]string, error) {
 	return platformsJSONMap, nil
 }
 
-func GetAMI(os string, arch string, version string) (string, error) {
+func GetAMI(descriptor *e2eos.Descriptor) (string, error) {
 	platformsJSONMap, err := GetPlatformsJSONMap()
 	if err != nil {
 		return "", err
 	}
 
-	if _, ok := platformsJSONMap[os]; !ok {
-		return "", fmt.Errorf("os '%s' not found in platforms.json", os)
+	if _, ok := platformsJSONMap[descriptor.Flavor.String()]; !ok {
+		return "", fmt.Errorf("os '%s' not found in platforms.json", descriptor.Flavor.String())
 	}
-	if _, ok := platformsJSONMap[os][arch]; !ok {
-		return "", fmt.Errorf("arch '%s' not found in platforms.json", arch)
+	if _, ok := platformsJSONMap[descriptor.Flavor.String()][string(descriptor.Architecture)]; !ok {
+		return "", fmt.Errorf("arch '%s' not found in platforms.json", descriptor.Architecture)
 	}
-	if _, ok := platformsJSONMap[os][arch][version]; !ok {
-		return "", fmt.Errorf("version '%s' not found in platforms.json", version)
+	if _, ok := platformsJSONMap[descriptor.Flavor.String()][string(descriptor.Architecture)][descriptor.Version]; !ok {
+		return "", fmt.Errorf("version '%s' not found in platforms.json", descriptor.Version)
 	}
 
-	return platformsJSONMap[os][arch][version], nil
+	return platformsJSONMap[descriptor.Flavor.String()][string(descriptor.Architecture)][descriptor.Version], nil
 }

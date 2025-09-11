@@ -61,7 +61,7 @@
             "2": "ami-07af7b838076acdcc"
         }
     },
-    "red-hat": {
+    "redhat": {
         "x86_64": {
             "9": "ami-01a52a1073599b7c8",
             "86": "ami-031eff1ae75bb87e4",

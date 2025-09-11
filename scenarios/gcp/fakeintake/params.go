@@ -7,6 +7,8 @@ type Params struct {
 	ImageURL        string
 	Memory          int
 	LoadBalancer    bool
+	StoreStype      string
+	RetentionPeriod string
 }
 
 type Option = func(*Params) error
@@ -50,6 +52,22 @@ func WithMemory(memory int) Option {
 func WithLoadBalancer() Option {
 	return func(p *Params) error {
 		p.LoadBalancer = true
+		return nil
+	}
+}
+
+// WithRetentionPeriod set the retention period for the fakeintake
+func WithRetentionPeriod(retentionPeriod string) Option {
+	return func(p *Params) error {
+		p.RetentionPeriod = retentionPeriod
+		return nil
+	}
+}
+
+// WithStoreType set the store type for the fakeintake
+func WithStoreType(storeType string) Option {
+	return func(p *Params) error {
+		p.StoreStype = storeType
 		return nil
 	}
 }

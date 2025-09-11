@@ -5,7 +5,7 @@ from invoke.tasks import task
 
 
 @task
-def fetch_latest_amis(ctx, merge=False):
+def fetch_latest_amis(ctx):
     """
     Will fetch the latest AMIs for the given platforms.
     This is based on resources/aws/platforms_params.json.
@@ -33,21 +33,8 @@ def fetch_latest_amis(ctx, merge=False):
                     error = True
                     print(f"ERROR: Failed to fetch AMI for {os} {arch} {version} (param: {param})")
 
-    if merge:
-        print('Updated platforms.json with new AMIs')
-        with open("resources/aws/platforms.json") as f:
-            current_amis = json.load(f)
-
-        for os, archs in new_amis.items():
-            for arch, versions in archs.items():
-                for version, ami in versions.items():
-                    if os in current_amis and arch in current_amis[os]:
-                        current_amis[os][arch][version] = ami
-
-        print(json.dumps(current_amis, indent=4))
-    else:
-        print('Fetched new AMIs:')
-        print(json.dumps(new_amis, indent=4))
+    print('Fetched new AMIs:')
+    print(json.dumps(new_amis, indent=4))
 
     if error:
         raise RuntimeError("Failed to fetch some AMIs")

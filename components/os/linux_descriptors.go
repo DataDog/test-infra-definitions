@@ -1,7 +1,7 @@
 package os
 
 // Implements commonly used descriptors for easier usage
-// See platforms.json for the AMIs used for each OS
+// See platforms.go for the AMIs used for each OS
 var (
 	UbuntuDefault = Ubuntu2204
 	Ubuntu2404    = NewDescriptor(Ubuntu, "24.04")

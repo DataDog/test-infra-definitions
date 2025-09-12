@@ -1,7 +1,6 @@
 package aws
 
 import (
-	_ "embed"
 	"fmt"
 
 	e2eos "github.com/DataDog/test-infra-definitions/components/os"

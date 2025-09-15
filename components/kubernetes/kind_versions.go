@@ -17,6 +17,7 @@ type KindConfig struct {
 	KindVersion      string
 	NodeImageVersion string
 	KubeVersion      string // Clean Kubernetes version for semantic parsing
+	UsePublicRegistry bool   // If true, pull from docker.io instead of internal mirror
 }
 
 // DockerHubTag represents a tag from Docker Hub API
@@ -139,10 +140,13 @@ func getKindVersionForKubernetes(kubeVersion *semver.Version) string {
 
 // getLatestKindVersion fetches the latest Kubernetes version from Docker Hub
 func getLatestKindVersion() (*KindConfig, error) {
+	fmt.Printf("CONTINT-4708: Starting dynamic resolution of 'latest' Kubernetes version\n")
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	// Fetch tags from Docker Hub API
-	resp, err := client.Get("https://hub.docker.com/v2/repositories/kindest/node/tags?page_size=100")
+	dockerHubURL := "https://hub.docker.com/v2/repositories/kindest/node/tags?page_size=100"
+	fmt.Printf("CONTINT-4708: Fetching Kubernetes versions from Docker Hub API: %s\n", dockerHubURL)
+	resp, err := client.Get(dockerHubURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch Docker Hub tags: %v", err)
 	}
@@ -156,6 +160,7 @@ func getLatestKindVersion() (*KindConfig, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&dockerResp); err != nil {
 		return nil, fmt.Errorf("failed to decode Docker Hub response: %v", err)
 	}
+	fmt.Printf("CONTINT-4708: Successfully fetched %d tags from Docker Hub\n", len(dockerResp.Results))
 
 	// Filter and sort versions - look for active tags
 	kubeVersionRegex := regexp.MustCompile(`^v(\d+\.\d+\.\d+)$`)
@@ -187,14 +192,18 @@ func getLatestKindVersion() (*KindConfig, error) {
 	sort.Sort(sort.Reverse(semver.Collection(versions)))
 	latestVersion := versions[0]
 	fullTag := tagToDigest[latestVersion.String()]
+	fmt.Printf("CONTINT-4708: Found %d valid Kubernetes versions, latest is: %s\n", len(versions), latestVersion.String())
 
 	// Dynamically determine the appropriate Kind version based on Kubernetes version
 	kindVersion := getKindVersionForKubernetes(latestVersion)
+	fmt.Printf("CONTINT-4708: Selected Kind version %s for Kubernetes %s\n", kindVersion, latestVersion.String())
+	fmt.Printf("CONTINT-4708: Final resolved config - KindVersion: %s, NodeImage: %s, UsePublicRegistry: true\n", kindVersion, fullTag)
 
 	return &KindConfig{
-		KindVersion:      kindVersion,
-		NodeImageVersion: fullTag,
-		KubeVersion:      latestVersion.String(), // Clean version for semantic parsing
+		KindVersion:       kindVersion,
+		NodeImageVersion:  fullTag,
+		KubeVersion:       latestVersion.String(), // Clean version for semantic parsing
+		UsePublicRegistry: true,                   // Latest versions must be pulled from Docker Hub
 	}, nil
 }
 

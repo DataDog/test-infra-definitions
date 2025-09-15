@@ -66,7 +66,16 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+		var nodeImage string
+		if kindVersionConfig.UsePublicRegistry {
+			// Use public Docker Hub for latest/dynamic versions not available in internal mirror
+			nodeImage = fmt.Sprintf("docker.io/%s:%s", kindNodeImageName, kindVersionConfig.NodeImageVersion)
+			env.Ctx().Log.Info(fmt.Sprintf("CONTINT-4708: Using PUBLIC registry for Kind node image: %s (KindVersion: %s, KubeVersion: %s)", nodeImage, kindVersionConfig.KindVersion, kindVersionConfig.KubeVersion), nil)
+		} else {
+			// Use internal mirror for cached/static versions
+			nodeImage = fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+			env.Ctx().Log.Info(fmt.Sprintf("CONTINT-4708: Using INTERNAL mirror for Kind node image: %s (KindVersion: %s, KubeVersion: %s)", nodeImage, kindVersionConfig.KindVersion, kindVersionConfig.KubeVersion), nil)
+		}
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{
@@ -129,7 +138,16 @@ func NewLocalKindCluster(env config.Env, name string, kubeVersion string, opts .
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+		var nodeImage string
+		if kindVersionConfig.UsePublicRegistry {
+			// Use public Docker Hub for latest/dynamic versions not available in internal mirror
+			nodeImage = fmt.Sprintf("docker.io/%s:%s", kindNodeImageName, kindVersionConfig.NodeImageVersion)
+			env.Ctx().Log.Info(fmt.Sprintf("CONTINT-4708: Using PUBLIC registry for Kind node image: %s (KindVersion: %s, KubeVersion: %s)", nodeImage, kindVersionConfig.KindVersion, kindVersionConfig.KubeVersion), nil)
+		} else {
+			// Use internal mirror for cached/static versions
+			nodeImage = fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+			env.Ctx().Log.Info(fmt.Sprintf("CONTINT-4708: Using INTERNAL mirror for Kind node image: %s (KindVersion: %s, KubeVersion: %s)", nodeImage, kindVersionConfig.KindVersion, kindVersionConfig.KubeVersion), nil)
+		}
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{
@@ -166,10 +184,12 @@ func InstallKindBinary(env config.Env, vm *remote.Host, kindVersion string, opts
 	if kindArch == os.AMD64Arch {
 		kindArch = "amd64"
 	}
+	kindBinaryURL := fmt.Sprintf("https://kind.sigs.k8s.io/dl/%s/kind-linux-%s", kindVersion, kindArch)
+	env.Ctx().Log.Info(fmt.Sprintf("CONTINT-4708: Installing Kind binary version %s for architecture %s from: %s", kindVersion, kindArch, kindBinaryURL), nil)
 	return vm.OS.Runner().Command(
 		env.CommonNamer().ResourceName("kind-install"),
 		&command.Args{
-			Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "https://kind.sigs.k8s.io/dl/%s/kind-linux-%s" && sudo install kind /usr/local/bin/kind`, kindVersion, kindArch),
+			Create: pulumi.Sprintf(`curl --retry 10 -fsSLo ./kind "%s" && sudo install kind /usr/local/bin/kind`, kindBinaryURL),
 		},
 		opts...,
 	)

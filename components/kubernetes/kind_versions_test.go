@@ -4,6 +4,7 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/Masterminds/semver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -46,12 +47,38 @@ func TestGetKindVersionConfig(t *testing.T) {
 func TestGetLatestKindVersion(t *testing.T) {
 	config, err := getLatestKindVersion()
 	require.NoError(t, err)
-	
+
 	// Should return a valid Kind version
 	assert.Regexp(t, regexp.MustCompile(`^v\d+\.\d+\.\d+$`), config.KindVersion)
-	
+
 	// Should return a Kubernetes version with SHA digest
 	assert.Regexp(t, regexp.MustCompile(`^v\d+\.\d+\.\d+@sha256:[a-f0-9]{64}$`), config.NodeImageVersion)
-	
+
 	t.Logf("Fetched latest: %s with Kind version: %s", config.NodeImageVersion, config.KindVersion)
+}
+
+func TestGetLatestKindVersionDynamic(t *testing.T) {
+	t.Skip("Skipping test that requires network access")
+
+	version, err := getLatestKindVersionDynamic()
+	assert.NoError(t, err)
+	assert.NotEmpty(t, version)
+	assert.Regexp(t, `^v\d+\.\d+\.\d+$`, version, "Version should match semver format with 'v' prefix")
+
+	t.Logf("Dynamic Kind version: %s", version)
+}
+
+func TestGetKindVersionForKubernetesDynamic(t *testing.T) {
+	t.Skip("Skipping test that requires network access")
+
+	// Create a test Kubernetes version
+	kubeVersion, err := semver.NewVersion("1.30.0")
+	require.NoError(t, err)
+
+	kindVersion, err := getKindVersionForKubernetesDynamic(kubeVersion)
+	assert.NoError(t, err)
+	assert.NotEmpty(t, kindVersion)
+	assert.Regexp(t, `^v\d+\.\d+\.\d+$`, kindVersion, "Kind version should match semver format with 'v' prefix")
+
+	t.Logf("Dynamic Kind version for k8s %s: %s", kubeVersion.String(), kindVersion)
 }

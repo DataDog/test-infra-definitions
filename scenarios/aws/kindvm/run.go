@@ -1,9 +1,6 @@
 package kindvm
 
 import (
-	"fmt"
-
-	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
@@ -33,16 +30,6 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-// kubernetesVersionOverride wraps an environment and overrides the KubernetesVersion method
-type kubernetesVersionOverride struct {
-	config.Env
-	overrideVersion string
-}
-
-func (k *kubernetesVersionOverride) KubernetesVersion() string {
-	return k.overrideVersion
-}
-
 func Run(ctx *pulumi.Context) error {
 	awsEnv, err := resAws.NewEnvironment(ctx)
 	if err != nil {
@@ -65,25 +52,7 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	// Resolve "latest" to actual version before creating cluster and for components
-	kubeVersion := awsEnv.KubernetesVersion()
-	var envForComponents config.Env = &awsEnv
-	if kubeVersion == "latest" {
-		kindConfig, err := localKubernetes.GetKindVersionConfig("latest")
-		if err != nil {
-			return fmt.Errorf("failed to resolve latest Kubernetes version: %v", err)
-		}
-		// Use the clean semantic version for components, not the full image tag
-		kubeVersion = kindConfig.KubeVersion
-		
-		// Create wrapper that returns resolved version for components that parse KubernetesVersion
-		envForComponents = &kubernetesVersionOverride{
-			Env:             &awsEnv,
-			overrideVersion: kubeVersion,
-		}
-	}
-	
-	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", kubeVersion, utils.PulumiDependsOn(installEcrCredsHelperCmd))
+	kindCluster, err := localKubernetes.NewKindCluster(&awsEnv, vm, "kind", awsEnv.KubernetesVersion(), utils.PulumiDependsOn(installEcrCredsHelperCmd))
 	if err != nil {
 		return err
 	}
@@ -237,11 +206,11 @@ spec:
 
 	// Deploy testing workload
 	if awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(envForComponents, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 
-		if _, err := redis.K8sAppDefinition(envForComponents, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
+		if _, err := redis.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-redis", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 

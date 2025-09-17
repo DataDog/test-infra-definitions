@@ -149,7 +149,7 @@ func getLatestKindVersionDynamic() (string, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("GitHub API returned status %d", resp.StatusCode)
+		return "", fmt.Errorf("gitHub API returned status %d", resp.StatusCode)
 	}
 
 	var releases []GitHubRelease
@@ -197,7 +197,7 @@ func getLatestKindVersionConfig() (*KindConfig, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("Docker Hub API returned status %d", resp.StatusCode)
+		return nil, fmt.Errorf("docker Hub API returned status %d", resp.StatusCode)
 	}
 
 	var dockerResp DockerHubResponse
@@ -234,7 +234,6 @@ func getLatestKindVersionConfig() (*KindConfig, error) {
 	sort.Sort(sort.Reverse(semver.Collection(versions)))
 	latestVersion := versions[0]
 	fullTag := tagToDigest[latestVersion.String()]
-	fmt.Printf("Found %d valid Kubernetes versions, latest is: %s\n", len(versions), latestVersion.String())
 
 	// Attempt to use latest kind version
 	kindVersion, err := getLatestKindVersionDynamic()

@@ -72,6 +72,14 @@ func Run(ctx *pulumi.Context) error {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 		}
 
+		if storeType := gcpEnv.AgentFakeintakeStoreType(); storeType != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+		}
+
+		if retentionPeriod := gcpEnv.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
+		}
+
 		if fakeIntake, err = fakeintake.NewVMInstance(gcpEnv, fakeIntakeOptions...); err != nil {
 			return err
 		}

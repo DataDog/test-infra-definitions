@@ -57,7 +57,7 @@ func NewECSFargateInstance(e aws.Environment, name string, option ...Option) (*f
 			namer.ResourceName("taskdef"),
 			pulumi.String("fakeintake-ecs"),
 			params.CPU, params.Memory,
-			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(params.ImageURL, apiKeyParam.Name, params.Memory-600, params.DDDevForwarding)},
+			map[string]awsxEcs.TaskDefinitionContainerDefinitionArgs{"fakeintake": *fargateLinuxContainerDefinition(apiKeyParam.Name, params)},
 			apiKeyParam.Name,
 			nil,
 			"public.ecr.aws/datadog/agent:latest",
@@ -213,22 +213,30 @@ func fargateSvcLB(e aws.Environment, namer namer.Namer, taskDef *awsxEcs.Fargate
 	return nil
 }
 
-func fargateLinuxContainerDefinition(imageURL string, apiKeySSMParamName pulumi.StringInput, GoMemLimitMiB int, dddevForwarding bool) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
+func fargateLinuxContainerDefinition(apiKeySSMParamName pulumi.StringInput, params *Params) *awsxEcs.TaskDefinitionContainerDefinitionArgs {
 	command := []string{}
-	if dddevForwarding {
+	if params.DDDevForwarding {
 		command = append(command, "--dddev-forward")
+	}
+
+	if params.StoreStype != "" {
+		command = append(command, "-store="+params.StoreStype)
+	}
+
+	if params.RetentionPeriod != "" {
+		command = append(command, "-retention-period="+params.RetentionPeriod)
 	}
 
 	return &awsxEcs.TaskDefinitionContainerDefinitionArgs{
 		Name:        pulumi.String(containerName),
-		Image:       pulumi.String(imageURL),
+		Image:       pulumi.String(params.ImageURL),
 		Essential:   pulumi.BoolPtr(true),
 		Command:     pulumi.ToStringArray(command),
 		MountPoints: awsxEcs.TaskDefinitionMountPointArray{},
 		Environment: awsxEcs.TaskDefinitionKeyValuePairArray{
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("GOMEMLIMIT"),
-				Value: pulumi.StringPtr(fmt.Sprintf("%dMiB", GoMemLimitMiB)),
+				Value: pulumi.StringPtr(fmt.Sprintf("%dMiB", params.Memory)),
 			},
 			awsxEcs.TaskDefinitionKeyValuePairArgs{
 				Name:  pulumi.StringPtr("STORAGE_DRIVER"),

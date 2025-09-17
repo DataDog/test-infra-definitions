@@ -137,12 +137,10 @@ type GitHubRelease struct {
 
 // getLatestKindVersionDynamic fetches the latest Kind version from GitHub releases API
 func getLatestKindVersionDynamic() (string, error) {
-	fmt.Printf("CONTINT-4708: Starting dynamic resolution of latest Kind version from GitHub\n")
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	// Fetch releases from GitHub API
 	githubURL := "https://api.github.com/repos/kubernetes-sigs/kind/releases"
-	fmt.Printf("CONTINT-4708: Fetching Kind releases from GitHub API: %s\n", githubURL)
 
 	resp, err := client.Get(githubURL)
 	if err != nil {
@@ -158,7 +156,6 @@ func getLatestKindVersionDynamic() (string, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
 		return "", fmt.Errorf("failed to decode GitHub response: %v", err)
 	}
-	fmt.Printf("CONTINT-4708: Successfully fetched %d releases from GitHub\n", len(releases))
 
 	// Find the latest non-draft, non-prerelease version
 	versionRegex := regexp.MustCompile(`^v\d+\.\d+\.\d+$`)
@@ -183,24 +180,16 @@ func getLatestKindVersionDynamic() (string, error) {
 	sort.Sort(sort.Reverse(semver.Collection(versions)))
 	latestVersion := versions[0]
 
-	fmt.Printf("CONTINT-4708: Found %d valid Kind versions, latest is: %s\n", len(versions), latestVersion.String())
+	fmt.Printf("Found %d valid Kind versions, latest is: %s\n", len(versions), latestVersion.String())
 	return "v" + latestVersion.String(), nil
 }
 
-// getKindVersionForKubernetesDynamic dynamically fetches the latest Kind version instead of using static mapping
-func getKindVersionForKubernetesDynamic(kubeVersion *semver.Version) (string, error) {
-	fmt.Printf("CONTINT-4708: Using dynamic Kind version resolution for Kubernetes %s\n", kubeVersion.String())
-	return getLatestKindVersionDynamic()
-}
-
 // getLatestKindVersion fetches the latest Kubernetes version from Docker Hub
-func getLatestKindVersion() (*KindConfig, error) {
-	fmt.Printf("CONTINT-4708: Starting dynamic resolution of 'latest' Kubernetes version\n")
+func getLatestKindVersionConfig() (*KindConfig, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 
 	// Fetch tags from Docker Hub API
 	dockerHubURL := "https://hub.docker.com/v2/repositories/kindest/node/tags?page_size=100"
-	fmt.Printf("CONTINT-4708: Fetching Kubernetes versions from Docker Hub API: %s\n", dockerHubURL)
 	resp, err := client.Get(dockerHubURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch Docker Hub tags: %v", err)
@@ -215,7 +204,6 @@ func getLatestKindVersion() (*KindConfig, error) {
 	if err := json.NewDecoder(resp.Body).Decode(&dockerResp); err != nil {
 		return nil, fmt.Errorf("failed to decode Docker Hub response: %v", err)
 	}
-	fmt.Printf("CONTINT-4708: Successfully fetched %d tags from Docker Hub\n", len(dockerResp.Results))
 
 	// Filter and sort versions - look for active tags
 	kubeVersionRegex := regexp.MustCompile(`^v(\d+\.\d+\.\d+)$`)
@@ -246,15 +234,14 @@ func getLatestKindVersion() (*KindConfig, error) {
 	sort.Sort(sort.Reverse(semver.Collection(versions)))
 	latestVersion := versions[0]
 	fullTag := tagToDigest[latestVersion.String()]
-	fmt.Printf("CONTINT-4708: Found %d valid Kubernetes versions, latest is: %s\n", len(versions), latestVersion.String())
+	fmt.Printf("Found %d valid Kubernetes versions, latest is: %s\n", len(versions), latestVersion.String())
 
 	// Attempt to use latest kind version
-	kindVersion, err := getKindVersionForKubernetesDynamic(latestVersion)
+	kindVersion, err := getLatestKindVersionDynamic()
 	if err != nil {
 		kindVersion = getKindVersionForKubernetes(latestVersion)
 	}
-	fmt.Printf("CONTINT-4708: Selected Kind version %s for Kubernetes %s\n", kindVersion, latestVersion.String())
-	fmt.Printf("CONTINT-4708: Final resolved config - KindVersion: %s, NodeImage: %s, UsePublicRegistry: true\n", kindVersion, fullTag)
+	fmt.Printf("Selected Kind version %s for Kubernetes %s\n", kindVersion, latestVersion.String())
 
 	return &KindConfig{
 		KindVersion:       kindVersion,
@@ -268,7 +255,7 @@ func getLatestKindVersion() (*KindConfig, error) {
 func GetKindVersionConfig(kubeVersion string) (*KindConfig, error) {
 	// Handle "latest" as a special case
 	if kubeVersion == "latest" {
-		return getLatestKindVersion()
+		return getLatestKindVersionConfig()
 	}
 
 	kubeSemVer, err := semver.NewVersion(kubeVersion)

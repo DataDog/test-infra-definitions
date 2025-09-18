@@ -28,8 +28,10 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	osDesc := os.DescriptorFromString("redhat:9", os.RedHat9)
-	vm, err := compute.NewVM(gcpEnv, "openshift",
-		compute.WithOS(osDesc))
+	vm, err := compute.NewVM(gcpEnv,  "openshift",
+		compute.WithOS(osDesc),
+		compute.WithInstancetype("n2-standard-8"),
+	)
 	if err != nil {
 		return err
 	}
@@ -168,7 +170,7 @@ clusterAgent:
 			return err
 		}
 
-		if _, err := cpustress.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
+		if _, err := cpustress.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
 		if _, err := tracegen.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {

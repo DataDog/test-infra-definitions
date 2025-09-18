@@ -7,6 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
 
+	awsEc2 "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/eks"
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
 	"github.com/pulumi/pulumi-eks/sdk/v3/go/eks"
@@ -58,6 +59,16 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 		)
 	}
 
+	lt, err := awsEc2.NewLaunchTemplate(e.Ctx(), "", &awsEc2.LaunchTemplateArgs{
+		MetadataOptions: &awsEc2.LaunchTemplateMetadataOptionsArgs{
+			HttpPutResponseHopLimit: pulumi.IntPtr(2),
+		},
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return eks.NewManagedNodeGroup(e.Ctx(), e.Namer.ResourceName(name), &eks.ManagedNodeGroupArgs{
 		AmiType:             pulumi.StringPtr(amiType),
 		Cluster:             cluster.Core,
@@ -76,5 +87,8 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 			SourceSecurityGroupIds: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 		},
 		Taints: taints,
+		LaunchTemplate: &awsEks.NodeGroupLaunchTemplateArgs{
+			Id: lt.ID(),
+		},
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderEKS))...)
 }

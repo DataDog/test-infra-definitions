@@ -231,7 +231,7 @@ spec:
 		}
 
 		// for tracegen we can't find the cgroup version as it depends on the underlying version of the kernel
-		if _, err := tracegen.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-tracegen"); err != nil {
+		if _, err := tracegen.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-tracegen", false); err != nil {
 			return err
 		}
 

@@ -147,7 +147,7 @@ func Run(ctx *pulumi.Context) error {
 				}
 			}
 
-			if _, err := tracegen.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-tracegen"); err != nil {
+			if _, err := tracegen.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-tracegen", false); err != nil {
 				return err
 			}
 

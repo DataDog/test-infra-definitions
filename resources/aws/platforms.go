@@ -25,7 +25,7 @@ var platforms = PlatformsType{
 		"arm64": PlatformsAMIsType{
 			"10": "ami-0497a51e798361d65",
 			"11": "ami-05f3f532b93bba0b3",
-			"12": "ami-02aab8d5301cb8d68",
+			"12": "ami-0f6dec0dab168c2f5",
 		},
 	},
 	"ubuntu": PlatformsArchsType{

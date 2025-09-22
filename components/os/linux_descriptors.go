@@ -4,9 +4,9 @@ package os
 // See platforms.go for the AMIs used for each OS
 var (
 	UbuntuDefault = Ubuntu2204
-	Ubuntu2404    = NewDescriptor(Ubuntu, "24.04")
-	Ubuntu2204    = NewDescriptor(Ubuntu, "22.04")
-	Ubuntu2004    = NewDescriptor(Ubuntu, "20.04")
+	Ubuntu2404    = NewDescriptor(Ubuntu, "24-04")
+	Ubuntu2204    = NewDescriptor(Ubuntu, "22-04")
+	Ubuntu2004    = NewDescriptor(Ubuntu, "20-04")
 
 	DebianDefault = Debian12
 	Debian12      = NewDescriptor(Debian, "12")
@@ -24,7 +24,7 @@ var (
 	RedHat9       = NewDescriptor(RedHat, "9")
 
 	SuseDefault = Suse15
-	Suse15      = NewDescriptor(Suse, "15-sp4")
+	Suse15      = NewDescriptor(Suse, "15-4")
 
 	FedoraDefault = Fedora40
 	Fedora40      = NewDescriptor(Fedora, "40")

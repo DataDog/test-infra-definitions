@@ -30,24 +30,24 @@ var platforms = PlatformsType{
 	},
 	"ubuntu": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"14.04": "ami-013d633d3b6cdb22c",
-			"16.04": "ami-0b0ea68c435eb488d",
-			"18.04": "ami-055744c75048d8296",
-			"20.04": "ami-0fb0b230890ccd1e6",
-			"22.04": "ami-090c309e8ced8ecc2",
-			"23.04": "ami-0bf964046a441a4ee",
-			"23.10": "ami-0949b45ef274e55a1",
-			"24.04": "ami-0360c520857e3138f",
+			"14-04": "ami-013d633d3b6cdb22c",
+			"16-04": "ami-0b0ea68c435eb488d",
+			"18-04": "ami-055744c75048d8296",
+			"20-04": "ami-0fb0b230890ccd1e6",
+			"22-04": "ami-090c309e8ced8ecc2",
+			"23-04": "ami-0bf964046a441a4ee",
+			"23-10": "ami-0949b45ef274e55a1",
+			"24-04": "ami-0360c520857e3138f",
 		},
 		"arm64": PlatformsAMIsType{
-			"18.04":   "ami-0fea31578248bcd6c",
-			"20.04":   "ami-0c7114fa3eac14de1",
-			"20.04.2": "ami-023f1e40b096c3ebc",
-			"21.04":   "ami-044f0ceee8e885e87",
-			"22.04":   "ami-09059bc76ad3db67f",
-			"23.04":   "ami-09b2701695676705d",
-			"23.10":   "ami-0dea732dd5f1da0a8",
-			"24.04":   "ami-026fccd88446aa0bf",
+			"18-04":   "ami-0fea31578248bcd6c",
+			"20-04":   "ami-0c7114fa3eac14de1",
+			"20-04-2": "ami-023f1e40b096c3ebc",
+			"21-04":   "ami-044f0ceee8e885e87",
+			"22-04":   "ami-09059bc76ad3db67f",
+			"23-04":   "ami-09b2701695676705d",
+			"23-10":   "ami-0dea732dd5f1da0a8",
+			"24-04":   "ami-026fccd88446aa0bf",
 		},
 	},
 	"amazon-linux": PlatformsArchsType{
@@ -91,10 +91,10 @@ var platforms = PlatformsType{
 	"suse": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
 			"12":     "ami-0b0597153739840c4",
-			"15-sp4": "ami-067dfda331f8296b0",
+			"15-4": "ami-067dfda331f8296b0",
 		},
 		"arm64": PlatformsAMIsType{
-			"15-sp4": "ami-0d446ba26bbe19573",
+			"15-4": "ami-0d446ba26bbe19573",
 		},
 	},
 	"fedora": PlatformsArchsType{

@@ -23,9 +23,9 @@ var platforms = PlatformsType{
 			"12": "ami-0eef9d92ec044bc94",
 		},
 		"arm64": PlatformsAMIsType{
-			"10": "ami-0ce37c7cbd1cfc3e8",
-			"11": "ami-0c3f5b0b87f042da8",
-			"12": "ami-0505441d7e1514742",
+			"10": "ami-0497a51e798361d65",
+			"11": "ami-05f3f532b93bba0b3",
+			"12": "ami-02aab8d5301cb8d68",
 		},
 	},
 	"ubuntu": PlatformsArchsType{

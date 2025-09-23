@@ -131,9 +131,12 @@ sudo docker run -d --name k6-loadtest \
   --network host \
   -e K6_STATSD_ENABLE_TAGS=true \
   -e K6_STATSD_ADDR="localhost:8125" \
-  -e K6_DISCARD_RESPONSE_BODIES=true \
+  -e K6_DISCARD_RESPONSE_BODIES=false \
+  -e REGISTRY_HOST="adel-reg.com" \
+  -e REPOSITORY="agent" \
+  -e IMAGE_TAG="7.70.0" \
   --memory 2g \
-  alidatadog/k6-loadtest:s3 run --out output-statsd /home/k6/script.js
+  alidatadog/k6-loadtest:registry run --out output-statsd /home/k6/script.js
 `, apiKey)
 				return base64.StdEncoding.EncodeToString([]byte(userData)), nil
 			}).(pulumi.StringInput),

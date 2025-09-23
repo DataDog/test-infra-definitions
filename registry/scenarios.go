@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/asg"
+	gcpaasg "github.com/DataDog/test-infra-definitions/scenarios/gcp/asg"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/gke"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/openshiftvm"
 
@@ -36,6 +37,7 @@ func Scenarios() ScenarioRegistry {
 		"az/vm":           computerun.VMRun,
 		"az/aks":          aks.Run,
 		"gcp/vm":          gcpcompute.VMRun,
+		"gcp/asg":         gcpaasg.Run,
 		"gcp/gke":         gke.Run,
 		"gcp/openshiftvm": openshiftvm.Run,
 		"localpodman/vm":  localpodmanrun.VMRun,

@@ -8,6 +8,8 @@ const downloadTime = new Trend('download_time');
 const redirectTime = new Trend('redirect_time');
 
 export const options = {
+    // Rely on per-request responseType instead of globally discarding bodies,
+    // so JSON parsing for digests still works where needed.
     stages: [
         // Use a single virtual user for a long duration to continuously download.
         { duration: '15m', target: 1 },
@@ -29,7 +31,8 @@ const TARGET_ARCH = __ENV.TARGET_ARCH || 'amd64';
 const TARGET_OS = __ENV.TARGET_OS || 'linux';
 
 function getJSON(url, headers = {}) {
-    const res = http.get(url, { headers });
+    // Force body capture only for JSON endpoints
+    const res = http.get(url, { headers, responseType: 'text' });
     let body = null;
     if (res && res.status === 200) {
         try {
@@ -61,7 +64,7 @@ export default function () {
     let totalDurationMs = 0;
 
     // 1) Ping the registry base endpoint
-    const baseRes = http.get(`https://${REGISTRY_HOST}/v2/`);
+    const baseRes = http.get(`https://${REGISTRY_HOST}/v2/`, { responseType: 'none' });
     totalDurationMs += baseRes && baseRes.timings ? baseRes.timings.duration : 0;
     check(baseRes, { 'GET /v2 returns 200': (r) => r.status === 200 });
 
@@ -121,7 +124,7 @@ function getFollowingRedirect(url) {
     let durationMs = 0;
     const maxRedirects = 5;
     while (attempts < maxRedirects) {
-        const r = http.get(current, { redirects: 0 });
+        const r = http.get(current, { redirects: 0, responseType: 'none' });
         if (r && r.timings) {
             durationMs += r.timings.duration;
         }
@@ -138,7 +141,7 @@ function getFollowingRedirect(url) {
         return { res: r, durationMs };
     }
     // if we exhausted redirects, return the last seen response
-    const fallback = http.get(current, { redirects: 0 });
+    const fallback = http.get(current, { redirects: 0, responseType: 'none' });
     if (fallback && fallback.timings) {
         durationMs += fallback.timings.duration;
     }

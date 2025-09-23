@@ -113,7 +113,7 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 }
 
 func warnOSNotUsingLatestAMI(e aws.Environment, osInfo *os.Descriptor) {
-	e.Ctx().Log.Warn(fmt.Sprintf("warning: %s is not using the latest AMI but a hardcoded one", osInfo.Flavor.String()), nil)
+	e.Ctx().Log.Warn(fmt.Sprintf("%s is not using the latest AMI but a hardcoded one", osInfo.Flavor.String()), nil)
 }
 
 func resolveWindowsAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {

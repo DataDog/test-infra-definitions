@@ -84,13 +84,13 @@ var platforms = PlatformsType{
 			"86-fips": "ami-0d0fb96b595c56e03",
 		},
 		"arm64": PlatformsAMIsType{
-			"9":  " ami-089b86d2f4d27cd98",
+			"9":  "ami-089b86d2f4d27cd98",
 			"86": "ami-0238411fb452f8275",
 		},
 	},
 	"suse": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"12":     "ami-0b0597153739840c4",
+			"12": 	"ami-0b0597153739840c4",
 			"15-4": "ami-067dfda331f8296b0",
 		},
 		"arm64": PlatformsAMIsType{

@@ -90,7 +90,7 @@ var platforms = PlatformsType{
 	},
 	"suse": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"12": 	"ami-0b0597153739840c4",
+			"12":   "ami-0b0597153739840c4",
 			"15-4": "ami-067dfda331f8296b0",
 		},
 		"arm64": PlatformsAMIsType{

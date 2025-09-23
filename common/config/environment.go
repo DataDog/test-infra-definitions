@@ -29,6 +29,7 @@ const (
 	DDInfraKubernetesVersion                = "kubernetesVersion"
 	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
 	DDInfraOSImageID                        = "osImageID"
+	DDInfraOSImageIDUseLatest               = "osImageIDUseLatest"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
@@ -210,6 +211,10 @@ func (e *CommonEnvironment) InfraOSDescriptor() string {
 
 func (e *CommonEnvironment) InfraOSImageID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSImageID, "")
+}
+
+func (e *CommonEnvironment) InfraOSImageIDUseLatest() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraOSImageIDUseLatest, false)
 }
 
 func (e *CommonEnvironment) KubernetesVersion() string {

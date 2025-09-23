@@ -39,11 +39,15 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 
-	vpaCrd, err := vpa.DeployCRD(&env, cluster.KubeProvider)
-	if err != nil {
-		return err
+	var dependsOnVPA pulumi.ResourceOption
+	if !env.GKEAutopilot() {
+		vpaCrd, err := vpa.DeployCRD(&env, cluster.KubeProvider)
+		if err != nil {
+			return err
+		}
+
+		dependsOnVPA = utils.PulumiDependsOn(vpaCrd)
 	}
-	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
 	var dependsOnDDAgent pulumi.ResourceOption
 

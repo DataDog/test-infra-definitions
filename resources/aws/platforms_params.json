@@ -13,20 +13,20 @@
     },
     "ubuntu": {
         "x86_64": {
-            "16.04": "/aws/service/canonical/ubuntu/server/16.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
-            "18.04": "/aws/service/canonical/ubuntu/server/18.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
-            "20.04": "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
-            "22.04": "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
-            "23.04": "/aws/service/canonical/ubuntu/server/23.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
-            "24.04": "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
+            "16-04": "/aws/service/canonical/ubuntu/server/16.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
+            "18-04": "/aws/service/canonical/ubuntu/server/18.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
+            "20-04": "/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
+            "22-04": "/aws/service/canonical/ubuntu/server/22.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
+            "23-04": "/aws/service/canonical/ubuntu/server/23.04/stable/current/amd64/hvm/ebs-gp2/ami-id",
+            "24-04": "/aws/service/canonical/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp3/ami-id"
         },
         "arm64": {
-            "18.04": "/aws/service/canonical/ubuntu/server/18.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
-            "20.04": "/aws/service/canonical/ubuntu/server/20.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
-            "21.04": "/aws/service/canonical/ubuntu/server/21.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
-            "22.04": "/aws/service/canonical/ubuntu/server/22.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
-            "23.04": "/aws/service/canonical/ubuntu/server/23.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
-            "24.04": "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id"
+            "18-04": "/aws/service/canonical/ubuntu/server/18.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
+            "20-04": "/aws/service/canonical/ubuntu/server/20.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
+            "21-04": "/aws/service/canonical/ubuntu/server/21.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
+            "22-04": "/aws/service/canonical/ubuntu/server/22.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
+            "23-04": "/aws/service/canonical/ubuntu/server/23.04/stable/current/arm64/hvm/ebs-gp2/ami-id",
+            "24-04": "/aws/service/canonical/ubuntu/server/24.04/stable/current/arm64/hvm/ebs-gp3/ami-id"
         }
     },
     "amazon-linux": {

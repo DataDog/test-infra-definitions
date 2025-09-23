@@ -77,12 +77,7 @@ func generateTracegenTcpSpec(namespace string) *appsv1.DeploymentArgs {
 	}
 }
 
-func generateTracegenUdsSpec(namespace string, saName pulumi.StringPtrInput) *appsv1.DeploymentArgs {
-	var serviceAccountName pulumi.StringPtrInput
-	if saName != nil {
-		serviceAccountName = saName
-	}
-
+func generateTracegenUdsSpec(namespace string, serviceAccountName pulumi.StringPtrInput) *appsv1.DeploymentArgs {
 	return &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("tracegen-uds"),

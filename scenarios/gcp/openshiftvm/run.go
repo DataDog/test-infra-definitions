@@ -179,7 +179,7 @@ clusterAgent:
 			return err
 		}
 
-		if _, err := dogstatsd.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, dependsOnDDAgent /* for admission */); err != nil {
+		if _, err := dogstatsd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, "/run/datadog/dsd.socket", true, dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

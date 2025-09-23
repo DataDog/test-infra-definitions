@@ -132,7 +132,7 @@ func Run(ctx *pulumi.Context) error {
 			}
 
 			// dogstatsd clients that report to the Agent
-			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
+			if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd", 8125, "/var/run/datadog/dsd.socket", false, dependsOnDDAgent /* for admission */); err != nil {
 				return err
 			}
 
@@ -142,7 +142,7 @@ func Run(ctx *pulumi.Context) error {
 
 			if awsEnv.DogstatsdDeploy() {
 				// dogstatsd clients that report to the dogstatsd standalone deployment
-				if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, dependsOnDDAgent /* for admission */); err != nil {
+				if _, err := dogstatsd.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-dogstatsd-standalone", dogstatsdstandalone.HostPort, dogstatsdstandalone.Socket, false, dependsOnDDAgent /* for admission */); err != nil {
 					return err
 				}
 			}

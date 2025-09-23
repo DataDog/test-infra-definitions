@@ -3,11 +3,11 @@ package os
 // Implements commonly used descriptors for easier usage
 // See platforms.go for the AMIs used for each OS
 var (
-	WindowsDefault    = WindowsServer2025
-	WindowsServer2025 = NewDescriptor(WindowsServer, "2025")
-	WindowsServer2022 = NewDescriptor(WindowsServer, "2022")
-	WindowsServer2019 = NewDescriptor(WindowsServer, "2019")
-	WindowsServer2016 = NewDescriptor(WindowsServer, "2016")
+	WindowsServerDefault = WindowsServer2025
+	WindowsServer2025    = NewDescriptor(WindowsServer, "2025")
+	WindowsServer2022    = NewDescriptor(WindowsServer, "2022")
+	WindowsServer2019    = NewDescriptor(WindowsServer, "2019")
+	WindowsServer2016    = NewDescriptor(WindowsServer, "2016")
 
 	WindowsClientDefault = WindowsClient1124H2
 	WindowsClient11      = WindowsClient1124H2
@@ -20,6 +20,6 @@ var (
 )
 
 var WindowsDescriptorsDefault = map[Flavor]Descriptor{
-	WindowsServer: WindowsDefault,
+	WindowsServer: WindowsServerDefault,
 	WindowsClient: WindowsClientDefault,
 }

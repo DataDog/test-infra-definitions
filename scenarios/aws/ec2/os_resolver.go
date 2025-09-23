@@ -121,7 +121,7 @@ func resolveWindowsAMI(e aws.Environment, osInfo *os.Descriptor) (string, error)
 		return "", errors.New("ARM64 is not supported for Windows")
 	}
 	if osInfo.Version == "" {
-		osInfo.Version = os.WindowsDefault.Version
+		osInfo.Version = os.WindowsServerDefault.Version
 	}
 
 	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-%s-English-Full-Base", osInfo.Version))

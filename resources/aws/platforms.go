@@ -94,7 +94,7 @@ var platforms = PlatformsType{
 			"15-4": "ami-067dfda331f8296b0",
 		},
 		"arm64": PlatformsAMIsType{
-			"15-4": "ami-0d446ba26bbe19573",
+			"15-4": "ami-08350d1d1649d8c05",
 		},
 	},
 	"fedora": PlatformsArchsType{

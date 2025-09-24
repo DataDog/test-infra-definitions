@@ -50,7 +50,7 @@ func WithOSArch(osDesc os.Descriptor, arch os.Architecture) VMOption {
 // WithNestedVirt sets if the VM allows nested virtualization
 // This is useful in case of openshift as it only runs on a VM.
 func WithNestedVirt(enabled bool) VMOption {
-	return func (p *vmArgs) error {
+	return func(p *vmArgs) error {
 		p.nestedVirt = enabled
 		return nil
 	}

@@ -17,12 +17,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func deployDeployment(e config.Env, name string, deploymentSpec *appsv1.DeploymentArgs, opts ...pulumi.ResourceOption) error {
-	_, err := appsv1.NewDeployment(e.Ctx(), name, deploymentSpec, opts...)
-	return err
-}
-
-func generateTracegenTcpSpec(namespace string) *appsv1.DeploymentArgs {
+func generateTracegenTCPSpec(namespace string) *appsv1.DeploymentArgs {
 	return &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("tracegen-tcp"),
@@ -205,7 +200,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		return nil, err
 	}
 
-	if err := deployDeployment(e, namespace+"/tracegen-tcp", generateTracegenTcpSpec(namespace), opts...); err != nil {
+	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/tracegen-tcp", generateTracegenTCPSpec(namespace), opts...); err != nil {
 		return nil, err
 	}
 

@@ -65,6 +65,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		Project: pulumi.StringPtr(env.envDefault.gcp.project),
 		Region:  pulumi.StringPtr(env.envDefault.gcp.region),
 		Zone:    pulumi.StringPtr(env.envDefault.gcp.zone),
+		DefaultLabels: env.ResourcesTags(),
 	})
 	if err != nil {
 		return Environment{}, err

@@ -2,6 +2,7 @@ package cpustress
 
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	ecsComp "github.com/DataDog/test-infra-definitions/components/ecs"
 	"github.com/DataDog/test-infra-definitions/resources/aws"
@@ -24,7 +25,7 @@ func FargateAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, apiK
 
 	stressContainer := &ecs.TaskDefinitionContainerDefinitionArgs{
 		Name:  pulumi.String("stress-ng"),
-		Image: pulumi.String(getStressNGImage()),
+		Image: pulumi.String("ghcr.io/datadog/apps-stress-ng:" + apps.Version),
 		DockerLabels: pulumi.StringMap{
 			"com.datadoghq.ad.tags": pulumi.String("[\"ecs_launch_type:fargate\"]"),
 		},

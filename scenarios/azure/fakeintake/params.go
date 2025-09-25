@@ -5,6 +5,8 @@ import "github.com/DataDog/test-infra-definitions/common"
 type Params struct {
 	DDDevForwarding bool
 	ImageURL        string
+	StoreStype      string
+	RetentionPeriod string
 }
 
 type Option = func(*Params) error
@@ -30,6 +32,22 @@ func WithImageURL(imageURL string) Option {
 func WithoutDDDevForwarding() Option {
 	return func(p *Params) error {
 		p.DDDevForwarding = false
+		return nil
+	}
+}
+
+// WithRetentionPeriod set the retention period for the fakeintake
+func WithRetentionPeriod(retentionPeriod string) Option {
+	return func(p *Params) error {
+		p.RetentionPeriod = retentionPeriod
+		return nil
+	}
+}
+
+// WithStoreType set the store type for the fakeintake
+func WithStoreType(storeType string) Option {
+	return func(p *Params) error {
+		p.StoreStype = storeType
 		return nil
 	}
 }

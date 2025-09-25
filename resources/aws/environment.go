@@ -37,6 +37,7 @@ const (
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 	DDInfraDefaultInternalDockerhubMirror  = "aws/defaultInternalDockerhubMirror"
+	DDInfraUseMacosCompatibleSubnets       = "aws/useMacosCompatibleSubnets"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -222,7 +223,13 @@ func (e *Environment) DefaultVPCID() string {
 }
 
 func (e *Environment) DefaultSubnets() []string {
-	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+	defaultSubnets := []string{}
+	for _, subnet := range e.envDefault.ddInfra.defaultSubnets {
+		if !e.UseMacosCompatibleSubnets() || subnet.MacOSCompatible {
+			defaultSubnets = append(defaultSubnets, subnet.ID)
+		}
+	}
+	return defaultSubnets
 }
 
 func (e *Environment) DefaultFakeintakeECSArns() []string {
@@ -278,6 +285,10 @@ func (e *Environment) DefaultInstanceStorageSize() int {
 // shutdown behavior can be 'terminate' or 'stop'
 func (e *Environment) DefaultShutdownBehavior() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
+}
+
+func (e *Environment) UseMacosCompatibleSubnets() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraUseMacosCompatibleSubnets, e.envDefault.ddInfra.useMacosCompatibleSubnets)
 }
 
 // ECS

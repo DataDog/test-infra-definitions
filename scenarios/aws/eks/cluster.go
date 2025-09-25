@@ -17,6 +17,7 @@ import (
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	"github.com/samber/lo"
 )
 
 func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Cluster, error) {
@@ -70,26 +71,39 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 		}
 
 		// Fargate Configuration
-		var fargateProfile pulumi.Input
+		var fargateProfileSelectors awsEks.FargateProfileSelectorArray
 		if fargateNamespace := e.EKSFargateNamespace(); fargateNamespace != "" {
-			fargateProfile = pulumi.Any(
-				eks.FargateProfile{
-					Selectors: []awsEks.FargateProfileSelector{
-						{
-							Namespace: fargateNamespace,
-						},
-					},
+			fargateProfileSelectors = awsEks.FargateProfileSelectorArray{
+				awsEks.FargateProfileSelectorArgs{
+					Namespace: pulumi.String(fargateNamespace),
 				},
-			)
+			}
 		}
 
 		// Create an EKS cluster with the default configuration.
 		cluster, err := eks.NewCluster(e.Ctx(), e.Namer.ResourceName("eks"), &eks.ClusterArgs{
-			Name:                         e.CommonNamer().DisplayName(100),
-			Version:                      pulumi.StringPtr(e.KubernetesVersion()),
-			EndpointPrivateAccess:        pulumi.BoolPtr(true),
-			EndpointPublicAccess:         pulumi.BoolPtr(false),
-			Fargate:                      fargateProfile,
+			Name:                  e.CommonNamer().DisplayName(100),
+			Version:               pulumi.StringPtr(e.KubernetesVersion()),
+			EndpointPrivateAccess: pulumi.BoolPtr(true),
+			EndpointPublicAccess:  pulumi.BoolPtr(false),
+			Fargate: eks.FargateProfileArgs{
+				Selectors: append(awsEks.FargateProfileSelectorArray{
+					// Put CoreDNS pods on Fargate because this addon needs to be deployed
+					// before the node groups are created.
+					awsEks.FargateProfileSelectorArgs{
+						Namespace: pulumi.String("kube-system"),
+					},
+					// Automatically schedule on Fargate pods on which the Fargate agent sidecar
+					// container injection is requested.
+					awsEks.FargateProfileSelectorArgs{
+						Labels: pulumi.StringMap{
+							"agent.datadoghq.com/sidecar": pulumi.String("fargate"),
+						},
+						Namespace: pulumi.String("*"),
+					},
+				}, fargateProfileSelectors...),
+				SubnetIds: pulumi.ToStringArray(lo.Map(e.EKSPODSubnets(), func(subnet aws.DDInfraEKSPodSubnets, _ int) string { return subnet.SubnetID })),
+			},
 			ClusterSecurityGroup:         clusterSG,
 			NodeAssociatePublicIpAddress: pulumi.BoolRef(false),
 			PrivateSubnetIds:             pulumi.ToStringArray(e.DefaultSubnets()),
@@ -172,7 +186,7 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 		// Create configuration for POD subnets if any
 		if podSubnets := e.EKSPODSubnets(); len(podSubnets) > 0 {
-			eniConfigs, err := localEks.NewENIConfigs(e, podSubnets, e.DefaultSecurityGroups(), pulumi.Provider(eksKubeProvider), pulumi.Parent(comp))
+			eniConfigs, err := localEks.NewENIConfigs(e, podSubnets, append(lo.Map(e.DefaultSecurityGroups(), func(sg string, _ int) pulumi.StringInput { return pulumi.String(sg) }), cluster.EksCluster.VpcConfig().ClusterSecurityGroupId().Elem()), pulumi.Provider(eksKubeProvider), pulumi.Parent(comp))
 			if err != nil {
 				return err
 			}
@@ -229,16 +243,30 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 		// Create managed node groups
 		if params.LinuxNodeGroup {
-			_, err := localEks.NewLinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
-			if err != nil {
-				return err
+			if params.UseAL2023Nodes {
+				_, err := localEks.NewAL2023LinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err := localEks.NewLinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
 		if params.LinuxARMNodeGroup {
-			_, err := localEks.NewLinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
-			if err != nil {
-				return err
+			if params.UseAL2023Nodes {
+				_, err := localEks.NewAL2023LinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err := localEks.NewLinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

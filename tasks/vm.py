@@ -188,24 +188,21 @@ def rdp_vm(
     """
     Open an RDP connection to a new virtual machine in a stack.
     """
-    try:
-        cfg = config.get_local_config(config_path)
-    except ValidationError as e:
-        raise Exit(f"Error in config {get_full_profile_path(config_path)}:{e}")
 
     if not stack_name:
         raise Exit("Please provide a stack name to connect to.")
 
-    out = _get_windows_password(ctx, cfg, stack_name, use_aws_vault=use_aws_vault, instance_id=instance_id, ip=ip)
+    out = tool.get_stack_json_outputs(ctx, stack_name)
     if not out:
-        raise Exit(
-            "No VM found in the stack, or no password available. Verify that keyPairName and publicKeyPath are an RSA key. run `inv setup.debug` for automated help."
-        )
-    for vm in out:
-        vm_ip = vm["resource"]["outputs"]["privateIp"]
+        raise Exit("No VM found in the stack.")
+
+    for vm_id, vm in out.items():
+        if "address" not in vm:
+            continue
+        vm_ip = vm["address"]
         password = vm["password"]
         tool.rdp(ctx, vm_ip)
-        print(f"Password for VM {vm['vm_id']} ({vm_ip}): {password}")
+        print(f"Password for VM {vm_id} ({vm_ip}): {password}")
         print("Username is Administrator, password has been copied to clipboard")
         pyperclip.copy(password)
 

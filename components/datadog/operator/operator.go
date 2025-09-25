@@ -21,6 +21,8 @@ func NewOperator(e config.Env, resourceName string, kubeProvider *kubernetes.Pro
 		release, err := NewHelmInstallation(e, HelmInstallationArgs{
 			KubeProvider:          kubeProvider,
 			Namespace:             params.Namespace,
+			ChartPath:             params.HelmChartPath,
+			RepoURL:               params.HelmRepoURL,
 			ValuesYAML:            params.HelmValues,
 			OperatorFullImagePath: params.OperatorFullImagePath,
 		}, pulumiResourceOptions...)

@@ -24,7 +24,11 @@ func VMRun(ctx *pulumi.Context) error {
 	}
 
 	osDesc := os.DescriptorFromString(env.InfraOSDescriptor(), os.AmazonLinuxECSDefault)
-	vm, err := NewVM(env, "vm", WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture))
+	args := []VMOption{WithAMI(env.InfraOSImageID(), osDesc, osDesc.Architecture)}
+	if env.InfraOSImageIDUseLatest() {
+		args = append(args, WithLatestAMI())
+	}
+	vm, err := NewVM(env, "vm", args...)
 	if err != nil {
 		return err
 	}
@@ -39,6 +43,14 @@ func VMRun(ctx *pulumi.Context) error {
 
 			if env.InfraShouldDeployFakeintakeWithLB() {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
+			if storeType := env.AgentFakeintakeStoreType(); storeType != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+			}
+
+			if retentionPeriod := env.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
 			}
 
 			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)
@@ -130,6 +142,14 @@ func VMRunWithDocker(ctx *pulumi.Context) error {
 
 			if env.InfraShouldDeployFakeintakeWithLB() {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithLoadBalancer())
+			}
+
+			if storeType := env.AgentFakeintakeStoreType(); storeType != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+			}
+
+			if retentionPeriod := env.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
 			}
 
 			fakeintake, err := fakeintake.NewECSFargateInstance(env, vm.Name(), fakeIntakeOptions...)

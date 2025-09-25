@@ -12,7 +12,7 @@ stages:
 
 build-runner-image:
   stage: build
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/ci-containers-project:v2.0.0
+  image: ${BUILD_STABLE_REGISTRY}/images/docker:27.3.1
   tags: ["arch:amd64"]
   variables:
     RELEASE_IMAGE: "false"
@@ -20,6 +20,9 @@ build-runner-image:
     - when: on_success
   before_script:
     - set +x
+    - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+    - unzip awscliv2.zip
+    - ./aws/install
     - export GITHUB_APP_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.github_app_id --with-decryption --query "Parameter.Value" --out text)
     - export GITHUB_INSTALLATION_ID=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.github_installation_id --with-decryption --query "Parameter.Value" --out text)
     - export GITHUB_PRIVATE_KEY=$(aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.github_private_key --with-decryption --query "Parameter.Value" --out text)
@@ -32,7 +35,7 @@ build-runner-image:
 
 build-pulumi-go-main:
   stage: build
-  image: registry.ddbuild.io/ci/datadog-agent-buildimages/deb_x64:v48815877-9bfad02c
+  image: ${BUILD_STABLE_REGISTRY}/ci/datadog-agent-buildimages/deb_x64:v68913450-a14377f4
   tags: ["arch:amd64"]
   rules:
     - when: on_success
@@ -56,6 +59,7 @@ integration-testing:
     - build-pulumi-go-main
   rules:
     - when: on_success
+  timeout: 90m
   before_script:
     # Setup GCP credentials https://cloud.google.com/docs/authentication/application-default-credentials#GAC
     - aws ssm get-parameter --region us-east-1 --name ci.test-infra-definitions.gcp_credentials --with-decryption --query "Parameter.Value" --out text > ~/gcp-credentials.json || exit $?
@@ -77,7 +81,7 @@ integration-testing:
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
     - pip install -r requirements.txt
-    - go install github.com/DataDog/orchestrion@v1.1.0
+    - go install github.com/DataDog/orchestrion@v1.4.0
     - orchestrion pin
     - export DD_CIVISIBILITY_ENABLED=true
     - export DD_CIVISIBILITY_AGENTLESS_ENABLED=true
@@ -99,7 +103,7 @@ integration-testing:
 
 release-runner-image:
   stage: release
-  image: 486234852809.dkr.ecr.us-east-1.amazonaws.com/docker:20.10.13
+  image: ${BUILD_STABLE_REGISTRY}/images/docker:27.3.1
   tags: ["arch:amd64"]
   script:
     - crane copy ${CI_REGISTRY_IMAGE_TEST}:${CI_COMMIT_SHORT_SHA} ${CI_REGISTRY_IMAGE}:${CI_COMMIT_SHA:0:12}
@@ -124,6 +128,7 @@ bump-version-on-datadog-agent:
         EXTRA_UPDATE_ARGS: "--is-dev-image"
   variables:
     EXTRA_UPDATE_ARGS: ""
+    PR_BRANCH: auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
   before_script:
     - set +x
     - export GITHUB_APP_USER_ID=153269286 # Can be found on https://api.github.com/users/agent-platform-auto-pr[bot]
@@ -140,13 +145,13 @@ bump-version-on-datadog-agent:
     - git config --global credential.helper '!f() { echo "username=x-access-token"; echo "password='${GITHUB_TOKEN}'"; }; f'
     - git clone https://github.com/DataDog/datadog-agent.git datadog-agent
     - pushd datadog-agent
-    - git checkout -b auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - git checkout -b $PR_BRANCH
+    - git push origin $PR_BRANCH # Create the reference to push the commit through API later
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
-    - inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
-    - inv -e tidy
+    - dda inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
+    - dda inv -e tidy
     - git add -u
-    - git commit -m "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
-    - git push -f origin auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA
+    - dda inv -e git.push-signed-commits --branch $PR_BRANCH --commit-message "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - popd
     - pip install -r requirements.txt
     - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA

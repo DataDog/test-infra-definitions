@@ -8,7 +8,6 @@ import (
 	"github.com/DataDog/datadog-agent/pkg/util/option"
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
 	perms "github.com/DataDog/test-infra-definitions/components/datadog/agentparams/filepermissions"
 	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -68,17 +67,18 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	defaultVersion := WithLatestNightly()
 	defaultFlavor := WithFlavor(DefaultFlavor)
 	if env.PipelineID() != "" {
+		fmt.Printf("Pipeline ID: %s\n", env.PipelineID())
 		defaultVersion = WithPipeline(env.PipelineID())
+	}
+	if env.AgentLocalPackage() != "" {
+		defaultVersion = WithLocalPackage(env.AgentLocalPackage())
 	}
 	if env.AgentVersion() != "" {
 		defaultVersion = WithVersion(env.AgentVersion())
 	}
+
 	if env.AgentFIPS() {
 		defaultFlavor = WithFlavor(FIPSFlavor)
-	}
-	fmt.Println("env.AgentLocalPackage(): ", env.AgentLocalPackage())
-	if env.AgentLocalPackage() != "" {
-		defaultFlavor = WithLocalPackage(env.AgentLocalPackage())
 	}
 
 	options = append([]Option{defaultFlavor}, options...)
@@ -283,6 +283,8 @@ network_devices.netflow.forwarder.logs_dd_url: %[1]s:%[2]d
 network_devices.netflow.forwarder.logs_no_ssl: true
 network_path.forwarder.logs_dd_url: %[1]s:%[2]d
 network_path.forwarder.logs_no_ssl: true
+synthetics.forwarder.logs_dd_url: %[1]s:%[2]d
+synthetics.forwarder.logs_no_ssl: true
 container_lifecycle.logs_dd_url: %[1]s:%[2]d
 container_lifecycle.logs_no_ssl: true
 container_image.logs_dd_url: %[1]s:%[2]d
@@ -291,6 +293,8 @@ sbom.logs_dd_url: %[1]s:%[2]d
 sbom.logs_no_ssl: true
 service_discovery.forwarder.logs_dd_url: %[1]s:%[2]d
 service_discovery.forwarder.logs_no_ssl: true
+software_inventory.forwarder.logs_dd_url: %[1]s:%[2]d
+software_inventory.forwarder.logs_no_ssl: true
 `, hostname, port, scheme)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil
@@ -318,7 +322,7 @@ func WithIntakeHostname(scheme string, hostname string) func(*Params) error {
 // This option is overwritten by `WithIntakeHostname`.
 func WithFakeintake(fakeintake *fakeintake.Fakeintake) func(*Params) error {
 	return func(p *Params) error {
-		p.ResourceOptions = append(p.ResourceOptions, utils.PulumiDependsOn(fakeintake))
+		p.ResourceOptions = append(p.ResourceOptions, pulumi.DependsOn([]pulumi.Resource{fakeintake}))
 		return withIntakeHostname(fakeintake.Scheme, fakeintake.Host, fakeintake.Port)(p)
 	}
 }

@@ -5,7 +5,7 @@ from invoke.collection import Collection
 import tasks.ci as ci
 import tasks.setup as setup
 import tasks.test as test
-from tasks import aws, azure, gcp, localpodman
+from tasks import aws, azure, gcp, localpodman, platforms
 from tasks.aks import create_aks, destroy_aks
 from tasks.deploy import check_s3_image_exists
 from tasks.docker import create_docker, destroy_docker
@@ -37,6 +37,7 @@ ns.add_task(get_vm_password)
 ns.add_task(rdp_vm)
 ns.add_task(retry_job)
 
+ns.add_collection(platforms, "platforms")
 ns.add_collection(aws.collection, "aws")
 ns.add_collection(azure.collection, "az")
 ns.add_collection(gcp.collection, "gcp")

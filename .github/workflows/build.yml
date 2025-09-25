@@ -6,14 +6,13 @@ permissions: {}
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       # Let's try to get more free space and avoid `System.IO.IOException: No space left on device` error
       - name: Free Disk Space (Ubuntu)
-        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be
+        uses: jlumbroso/free-disk-space@54081f138730dfa15788a46383842cd2f914a1be # v1.3.1
         with:
           tool-cache: false
           android: true
@@ -24,7 +23,7 @@ jobs:
           swap-storage: true
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
         with:
           go-version-file: go.mod
 
@@ -33,7 +32,7 @@ jobs:
 
       - name: Install orchestrion
         run: |
-          go install github.com/DataDog/orchestrion@v1.1.0
+          go install github.com/DataDog/orchestrion@v1.4.0
           orchestrion pin
 
       - name: Test

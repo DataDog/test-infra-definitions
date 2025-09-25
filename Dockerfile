@@ -3,12 +3,15 @@
 
 FROM public.ecr.aws/docker/library/python:3.12-slim-bullseye AS base
 
-ENV GO_VERSION=1.23.6
-ENV GO_SHA=9379441ea310de000f33a4dc767bd966e72ab2826270e038e78b2c53c2e7802d
+ENV GO_VERSION=1.24.6
+ENV GO_SHA=bbca37cc395c974ffa4893ee35819ad23ebb27426df87af92e93a9ec66ef8712
 ENV HELM_VERSION=3.12.3
 ENV HELM_SHA=1b2313cd198d45eab00cc37c38f6b1ca0a948ba279c29e322bdf426d406129b5
 ARG CI_UPLOADER_SHA=873976f0f8de1073235cf558ea12c7b922b28e1be22dc1553bf56162beebf09d
 ARG CI_UPLOADER_VERSION=2.30.1
+ARG DDA_VERSION=v0.25.0
+ARG CODECOV_VERSION=0.6.1
+ARG CODECOV_SHA=0c9b79119b0d8dbe7aaf460dc3bd7c3094ceda06e5ae32b0d11a8ff56e2cc5c5
 # Skip Pulumi update warning https://www.pulumi.com/docs/cli/environment-variables/
 ENV PULUMI_SKIP_UPDATE_CHECK=true
 # Always prevent installing dependencies dynamically
@@ -42,8 +45,7 @@ RUN apt-get update -y && \
   curl --retry 10 -fsSLo awscliv2.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && \
   unzip -q awscliv2.zip && \
   ./aws/install && \
-  rm -rf aws && \
-  rm awscliv2.zip && \
+  rm -rf aws awscliv2.zip && \
   # Add additional apt repos all at once
   echo "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"                                          | tee /etc/apt/sources.list.d/docker.list           && \
   echo "deb https://packages.cloud.google.com/apt cloud-sdk-$(lsb_release -cs) main"                                                  | tee /etc/apt/sources.list.d/google-cloud-sdk.list && \
@@ -69,6 +71,7 @@ RUN apt-get update -y && \
   echo "${CI_UPLOADER_SHA} /usr/local/bin/datadog-ci" | sha256sum --check && \
   chmod +x /usr/local/bin/datadog-ci && \
   # Clean up the lists work
+  apt-get clean && \
   rm -rf /var/lib/apt/lists/*
 
 # Install Go
@@ -78,8 +81,8 @@ RUN curl --retry 10 -fsSLo /tmp/go.tgz https://golang.org/dl/go${GO_VERSION}.lin
   rm /tmp/go.tgz && \
   export PATH="/usr/local/go/bin:$PATH" && \
   go version
-ENV GOPATH /go
-ENV PATH $GOPATH/bin:/usr/local/go/bin:$PATH
+ENV GOPATH=/go
+ENV PATH=$GOPATH/bin:/usr/local/go/bin:$PATH
 
 # Install Helm
 # Explicitly set env variables that helm reads to their defaults, so that subsequent calls to
@@ -125,13 +128,28 @@ RUN --mount=type=secret,id=github_token \
 
 # Install Agent requirements, required to run invoke tests task
 # Remove AWS-related deps as we already install AWS CLI v2
-RUN DDA_VERSION="$(curl -s https://raw.githubusercontent.com/DataDog/datadog-agent-buildimages/main/dda.env | awk -F= '/^DDA_VERSION=/ {print $2}')" && \
-  pip3 install "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
-  dda -v self dep sync -f legacy-build -f legacy-e2e -f legacy-test-infra-definitions && \
+RUN pip3 install --no-cache-dir "git+https://github.com/DataDog/datadog-agent-dev.git@${DDA_VERSION}" && \
+  dda -v self dep sync -f legacy-e2e -f legacy-github && \
+  # Disable update check as it is not needed in the CI and it can pollute the output when displaying changelog
+  dda config set update.mode off && \
+  # TODO: Remove once we have a new version of dda where the semver deps is in legacy_github
+  pip3 install semver==2.10.0 && \
   go install gotest.tools/gotestsum@latest
 
 # Install Orchestrion for native Go Test Visibility support
-RUN go install github.com/DataDog/orchestrion@v1.0.1
+RUN go install github.com/DataDog/orchestrion@v1.4.0
+
+# Install authanywhere for infra token management
+RUN curl -OL "binaries.ddbuild.io/dd-source/authanywhere/LATEST/authanywhere-linux-amd64" && \
+    mv authanywhere-linux-amd64 /bin/authanywhere && \
+    chmod +x /bin/authanywhere
+
+# Install Codecov
+RUN curl -Os https://uploader.codecov.io/v${CODECOV_VERSION}/linux/codecov && \
+  echo "${CODECOV_SHA} codecov" | sha256sum -c - && \
+  mv codecov /usr/local/bin/codecov && \
+  chmod +x /usr/local/bin/codecov
+
 
 RUN rm -rf /tmp/test-infra
 

@@ -12,7 +12,7 @@ import (
 func DeployCRD(e config.Env, kubeProvider *kubernetes.Provider, opts ...pulumi.ResourceOption) (*apiextensions.CustomResourceDefinition, error) {
 	opts = append(opts, pulumi.Providers(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
-	// This is the definition from https://github.com/kubernetes/autoscaler/blob/4d092e5f0afd519b082972c4656b3d52ae512b64/vertical-pod-autoscaler/deploy/vpa-v1-crd.yaml
+	// This is the definition from https://github.com/kubernetes/autoscaler/blob/6d1a1514af4406bb967ae6f50e9589f7d41f9af8/vertical-pod-autoscaler/deploy/vpa-v1-crd-gen.yaml
 	return apiextensions.NewCustomResourceDefinition(e.Ctx(), "vertical-pod-autoscaler", &apiextensions.CustomResourceDefinitionArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name: pulumi.String("verticalpodautoscalers.autoscaling.k8s.io"),
@@ -34,7 +34,7 @@ func DeployCRD(e config.Env, kubeProvider *kubernetes.Provider, opts ...pulumi.R
 				&apiextensions.CustomResourceDefinitionVersionArgs{
 					Name:    pulumi.String("v1beta2"),
 					Served:  pulumi.Bool(true),
-					Storage: pulumi.Bool(true),
+					Storage: pulumi.Bool(false),
 					Schema: &apiextensions.CustomResourceValidationArgs{
 						OpenAPIV3Schema: &apiextensions.JSONSchemaPropsArgs{
 							Type: pulumi.String("object"),
@@ -44,65 +44,87 @@ func DeployCRD(e config.Env, kubeProvider *kubernetes.Provider, opts ...pulumi.R
 									Properties: apiextensions.JSONSchemaPropsMap{
 										"targetRef": apiextensions.JSONSchemaPropsArgs{
 											Type: pulumi.String("object"),
+											Properties: apiextensions.JSONSchemaPropsMap{
+												"apiVersion": apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+												"kind":       apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+												"name":       apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+											},
+											Required: pulumi.StringArray{
+												pulumi.String("apiVersion"),
+												pulumi.String("kind"),
+												pulumi.String("name"),
+											},
 										},
 										"updatePolicy": apiextensions.JSONSchemaPropsArgs{
 											Type: pulumi.String("object"),
 											Properties: apiextensions.JSONSchemaPropsMap{
-												"minReplicas": apiextensions.JSONSchemaPropsArgs{
-													Type: pulumi.String("integer"),
-												},
-												"updateMode": apiextensions.JSONSchemaPropsArgs{
-													Type: pulumi.String("string"),
-												},
+												"updateMode": apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
 											},
 										},
 										"resourcePolicy": apiextensions.JSONSchemaPropsArgs{
 											Type: pulumi.String("object"),
-											Properties: apiextensions.JSONSchemaPropsMap{
-												"containerPolicies": apiextensions.JSONSchemaPropsArgs{
-													Type: pulumi.String("array"),
-													Items: &apiextensions.JSONSchemaPropsArgs{
-														Type: pulumi.String("object"),
-														Properties: apiextensions.JSONSchemaPropsMap{
-															"containerName": apiextensions.JSONSchemaPropsArgs{
-																Type: pulumi.String("string"),
-															},
-															"controlledValue": apiextensions.JSONSchemaPropsArgs{
-																Type: pulumi.String("string"),
-																Enum: pulumi.Array{
-																	pulumi.String("RequestsAndLimits"),
-																	pulumi.String("RequestsOnly"),
-																},
-															},
-															"mode": apiextensions.JSONSchemaPropsArgs{
-																Type: pulumi.String("string"),
-																Enum: pulumi.Array{
-																	pulumi.String("Auto"),
-																	pulumi.String("Off"),
-																},
-															},
-															"minAllowed": apiextensions.JSONSchemaPropsArgs{
-																Type: pulumi.String("object"),
-															},
-															"maxAllowed": apiextensions.JSONSchemaPropsArgs{
-																Type: pulumi.String("object"),
-															},
-															"controlledResources": apiextensions.JSONSchemaPropsArgs{
-																Type: pulumi.String("array"),
-																Items: &apiextensions.JSONSchemaPropsArgs{
-																	Type: pulumi.String("string"),
-																	Enum: pulumi.Array{
-																		pulumi.String("cpu"),
-																		pulumi.String("memory"),
-																	},
-																},
-															},
-														},
-													},
-												},
-											},
 										},
 									},
+									Required: pulumi.StringArray{pulumi.String("targetRef")},
+								},
+								"status": apiextensions.JSONSchemaPropsArgs{
+									Type: pulumi.String("object"),
+								},
+							},
+						},
+					},
+				},
+				&apiextensions.CustomResourceDefinitionVersionArgs{
+					Name:    pulumi.String("v1"),
+					Served:  pulumi.Bool(true),
+					Storage: pulumi.Bool(true),
+					AdditionalPrinterColumns: apiextensions.CustomResourceColumnDefinitionArray{
+						&apiextensions.CustomResourceColumnDefinitionArgs{
+							Name:        pulumi.String("Target"),
+							Type:        pulumi.String("string"),
+							JsonPath:    pulumi.String(".spec.targetRef.name"),
+							Description: pulumi.String("Name of the target resource"),
+						},
+						&apiextensions.CustomResourceColumnDefinitionArgs{
+							Name:     pulumi.String("Age"),
+							Type:     pulumi.String("date"),
+							JsonPath: pulumi.String(".metadata.creationTimestamp"),
+						},
+					},
+					Schema: &apiextensions.CustomResourceValidationArgs{
+						OpenAPIV3Schema: &apiextensions.JSONSchemaPropsArgs{
+							Type: pulumi.String("object"),
+							Properties: apiextensions.JSONSchemaPropsMap{
+								"spec": apiextensions.JSONSchemaPropsArgs{
+									Type: pulumi.String("object"),
+									Properties: apiextensions.JSONSchemaPropsMap{
+										"targetRef": apiextensions.JSONSchemaPropsArgs{
+											Type: pulumi.String("object"),
+											Properties: apiextensions.JSONSchemaPropsMap{
+												"apiVersion": apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+												"kind":       apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+												"name":       apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+											},
+											Required: pulumi.StringArray{
+												pulumi.String("apiVersion"),
+												pulumi.String("kind"),
+												pulumi.String("name"),
+											},
+										},
+										"updatePolicy": apiextensions.JSONSchemaPropsArgs{
+											Type: pulumi.String("object"),
+											Properties: apiextensions.JSONSchemaPropsMap{
+												"updateMode": apiextensions.JSONSchemaPropsArgs{Type: pulumi.String("string")},
+											},
+										},
+										"resourcePolicy": apiextensions.JSONSchemaPropsArgs{
+											Type: pulumi.String("object"),
+										},
+									},
+									Required: pulumi.StringArray{pulumi.String("targetRef")},
+								},
+								"status": apiextensions.JSONSchemaPropsArgs{
+									Type: pulumi.String("object"),
 								},
 							},
 						},

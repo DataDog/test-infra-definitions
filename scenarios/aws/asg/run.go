@@ -123,7 +123,7 @@ sudo docker run -d --name datadog-agent \
   -p 8125:8125/udp \
   -e DD_API_KEY='%s' \
   -e DD_SITE="datadoghq.com" \
-  -e DD_TAGS="ali-test:1" \
+  -e DD_TAGS="registry_host:adel-reg.com,location:%s,cloud_provider:aws" \
   -e DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true \
   -e DD_DOGSTATSD_METRICS_STATS_ENABLE=true \
   public.ecr.aws/datadog/agent:latest
@@ -137,7 +137,7 @@ sudo docker run -d --name k6-loadtest \
   -e IMAGE_TAG="7.70.0" \
   --memory 2g \
   alidatadog/k6-loadtest:registry run --out output-statsd /home/k6/script.js
-`, apiKey)
+`, apiKey, setup.region)
 				return base64.StdEncoding.EncodeToString([]byte(userData)), nil
 			}).(pulumi.StringInput),
 			AssociatePublicIp: true,

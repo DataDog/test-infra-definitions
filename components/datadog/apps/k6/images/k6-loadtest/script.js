@@ -12,7 +12,7 @@ export const options = {
     // so JSON parsing for digests still works where needed.
     stages: [
         // Use a single virtual user for a long duration to continuously download.
-        { duration: '15m', target: 1 },
+        { duration: '1h', target: 1 },
     ],
 };
 

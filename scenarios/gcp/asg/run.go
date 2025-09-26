@@ -13,36 +13,54 @@ import (
 )
 
 type zoneSetup struct {
-	zone        string
-	networkName string
-	subnetName  string
-	nodeCount   int
+	region    string
+	nodeCount int
 }
 
 var zones = []zoneSetup{
+	// US regions
 	{
-		zone:        "us-central1-a",
-		networkName: "NETWORK_NAME_PLACEHOLDER",
-		subnetName:  "SUBNET_NAME_PLACEHOLDER",
-		nodeCount:   2,
+		// On us-central1-a, the pull duraiton is estimated to
+		region:    "us-central1-a",
+		nodeCount: 1,
 	},
 	{
-		zone:        "us-east1-b",
-		networkName: "NETWORK_NAME_PLACEHOLDER",
-		subnetName:  "SUBNET_NAME_PLACEHOLDER",
-		nodeCount:   2,
+		region:    "us-east1-b",
+		nodeCount: 1,
 	},
 	{
-		zone:        "us-west1-b",
-		networkName: "NETWORK_NAME_PLACEHOLDER",
-		subnetName:  "SUBNET_NAME_PLACEHOLDER",
-		nodeCount:   2,
+		region:    "us-east4-a",
+		nodeCount: 1,
 	},
 	{
-		zone:        "europe-west1-b",
-		networkName: "NETWORK_NAME_PLACEHOLDER",
-		subnetName:  "SUBNET_NAME_PLACEHOLDER",
-		nodeCount:   2,
+		region:    "us-west1-a",
+		nodeCount: 1,
+	},
+	{
+		region:    "us-west2-a",
+		nodeCount: 1,
+	},
+	{
+		region:    "us-west3-a",
+		nodeCount: 1,
+	},
+	{
+		region:    "us-west4-a",
+		nodeCount: 1,
+	},
+	// Europe regions
+	{
+		region:    "europe-west1-b",
+		nodeCount: 1,
+	},
+	{
+		region:    "europe-west4-a",
+		nodeCount: 1,
+	},
+	// Asia Pacific region
+	{
+		region:    "asia-southeast1-a",
+		nodeCount: 1,
 	},
 }
 
@@ -57,13 +75,11 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	// Basic settings — adjust as needed
-	machineType := env.DefaultInstanceType()
-	image := "projects/ubuntu-os-cloud/global/images/family/ubuntu-2004-lts"
+	// Use x86_64 machine type for better regional availability
+	machineType := "e2-standard-2"
+	image := "projects/ubuntu-os-cloud/global/images/family/ubuntu-2204-lts"
 
 	provider := env.GetProvider(config.ProviderGCP)
-
-	// Create a firewall per distinct network to allow SSH to instances tagged with "asg-ssh"
-	createdFirewallNetworks := map[string]bool{}
 
 	// Prepare SSH metadata (public key) and startup script
 	sshPublicKey, err := utils.GetSSHPublicKey(env.DefaultPublicKeyPath())
@@ -73,30 +89,10 @@ func Run(ctx *pulumi.Context) error {
 
 	// For each configured zone, create the requested number of VMs
 	for _, setup := range zones {
-		// Create firewall for this network once
-		if !createdFirewallNetworks[setup.networkName] {
-			fwName := env.Namer.ResourceName(fmt.Sprintf("asg-ssh-allow-%s", strings.ReplaceAll(setup.networkName, "-", "")))
-			_, err = gcpcompute.NewFirewall(ctx, fwName, &gcpcompute.FirewallArgs{
-				Network: pulumi.String(setup.networkName),
-				Allows: gcpcompute.FirewallAllowArray{
-					&gcpcompute.FirewallAllowArgs{
-						Protocol: pulumi.String("tcp"),
-						Ports:    pulumi.ToStringArray([]string{"22"}),
-					},
-				},
-				Direction:    pulumi.String("INGRESS"),
-				SourceRanges: pulumi.ToStringArray([]string{"0.0.0.0/0"}),
-				TargetTags:   pulumi.ToStringArray([]string{"asg-ssh"}),
-			}, pulumi.Provider(provider))
-			if err != nil {
-				return err
-			}
-			createdFirewallNetworks[setup.networkName] = true
-		}
-
 		for i := 0; i < setup.nodeCount; i++ {
 			idx := i + 1
-			name := env.Namer.ResourceName(fmt.Sprintf("asg-vm-%s-%02d", strings.ReplaceAll(setup.zone, "-", ""), idx))
+			baseName := fmt.Sprintf("asg-vm-%s-%02d", strings.ReplaceAll(setup.region, "-", ""), idx)
+			resourceName := env.Namer.ResourceName(baseName)
 
 			// Startup script runs Docker, Datadog Agent, and k6 load test
 			// Use AgentAPIKey from the environment
@@ -115,7 +111,7 @@ docker run -d --name datadog-agent \
   -p 8125:8125/udp \
   -e DD_API_KEY='%s' \
   -e DD_SITE="datadoghq.com" \
-  -e DD_TAGS="ali-test:1" \
+  -e DD_TAGS="registry_host:adel-reg.com,location:%s,cloud_provider:gcp" \
   -e DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true \
   -e DD_DOGSTATSD_METRICS_STATS_ENABLE=true \
   public.ecr.aws/datadog/agent:latest
@@ -129,17 +125,17 @@ docker run -d --name k6-loadtest \
   -e IMAGE_TAG="7.70.0" \
   --memory 2g \
   alidatadog/k6-loadtest:registry run --out output-statsd /home/k6/script.js
-`, apiKey)
+`, apiKey, setup.region)
 				// Some distros require base64 for MetadataStartupScript; we keep raw via metadata key below.
 				return script, nil
 			}).(pulumi.StringOutput)
 
 			// Compose instance definition
 			// Allocate ephemeral public IP via AccessConfigs with empty NatIp
-			_, err := gcpcompute.NewInstance(ctx, name, &gcpcompute.InstanceArgs{
-				Name:        env.Namer.DisplayName(63, pulumi.String(name)),
+			_, err := gcpcompute.NewInstance(ctx, resourceName, &gcpcompute.InstanceArgs{
+				Name:        env.Namer.DisplayName(63, pulumi.String(baseName)),
 				MachineType: pulumi.String(machineType),
-				Zone:        pulumi.String(setup.zone),
+				Zone:        pulumi.String(pulumi.String(setup.region)),
 				BootDisk: &gcpcompute.InstanceBootDiskArgs{
 					InitializeParams: &gcpcompute.InstanceBootDiskInitializeParamsArgs{
 						Image: pulumi.String(image),
@@ -148,8 +144,8 @@ docker run -d --name k6-loadtest \
 				},
 				NetworkInterfaces: gcpcompute.InstanceNetworkInterfaceArray{
 					&gcpcompute.InstanceNetworkInterfaceArgs{
-						Network:    pulumi.String(setup.networkName),
-						Subnetwork: pulumi.String(setup.subnetName),
+						Network:    pulumi.String("default"),
+						Subnetwork: pulumi.String("default"),
 						AccessConfigs: gcpcompute.InstanceNetworkInterfaceAccessConfigArray{
 							&gcpcompute.InstanceNetworkInterfaceAccessConfigArgs{
 								NatIp: pulumi.String(""),
@@ -177,8 +173,8 @@ docker run -d --name k6-loadtest \
 			}
 		}
 
-		// Export a zone-specific SSH helper command
-		ctx.Export(fmt.Sprintf("ssh-command-%s", setup.zone), pulumi.Sprintf("gcloud compute instances list --filter='tags.items=asg-ssh AND zone:(%s)' --format='value(networkInterfaces[0].accessConfigs[0].natIp)' | xargs -L1 -I {} ssh -i %s gce@{}", setup.zone, env.DefaultPrivateKeyPath()))
+		// Export a region-scoped SSH helper command (any zone within the region)
+		ctx.Export(fmt.Sprintf("ssh-command-%s", setup.region), pulumi.Sprintf("gcloud compute instances list --filter='tags.items=asg-ssh AND zone:(%s-*)' --format='value(networkInterfaces[0].accessConfigs[0].natIp)' | xargs -L1 -I {} ssh -i %s gce@{}", setup.region, env.DefaultPrivateKeyPath()))
 	}
 
 	// Export a general note

@@ -1,7 +1,7 @@
 invoke==2.2.0
 termcolor==3.1.0
-pyyaml==6.0.2
 pyperclip==1.11.0
+pyyaml==6.0.3
 pydantic==2.11.4
 colorama>=0.4.6
 lxml==6.0.0

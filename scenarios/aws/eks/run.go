@@ -29,7 +29,6 @@ func Run(ctx *pulumi.Context) error {
 	}
 
 	clusterOptions := buildClusterOptionsFromConfigMap(awsEnv)
-	clusterOptions = append(clusterOptions, WithUseAL2023Nodes())
 
 	cluster, err := NewCluster(awsEnv, "eks", clusterOptions...)
 	if err != nil {

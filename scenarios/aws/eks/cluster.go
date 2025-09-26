@@ -33,7 +33,6 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 			Description: pulumi.StringPtr("EKS Cluster sg for stack: " + e.Ctx().Stack()),
 			Ingress: ec2.SecurityGroupIngressArray{
 				ec2.SecurityGroupIngressArgs{
-					CidrBlocks:     pulumi.ToStringArray(e.EKSAllowedInboundCIDRs()),
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
 					ToPort:         pulumi.Int(22),
@@ -41,7 +40,6 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 					Protocol:       pulumi.String("tcp"),
 				},
 				ec2.SecurityGroupIngressArgs{
-					CidrBlocks:     pulumi.ToStringArray(e.EKSAllowedInboundCIDRs()),
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
 					ToPort:         pulumi.Int(443),

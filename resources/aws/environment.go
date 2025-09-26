@@ -55,7 +55,6 @@ const (
 
 	// AWS EKS
 	DDInfraEKSPODSubnets                   = "aws/eks/podSubnets"
-	DDInfraEksAllowedInboundCIDRs          = "aws/eks/inboundCIDRBlocks"
 	DDInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
 	DDInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
 	DDInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
@@ -359,12 +358,6 @@ func (e *Environment) EKSPODSubnets() []DDInfraEKSPodSubnets {
 	var arr []DDInfraEKSPodSubnets
 	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEKSPODSubnets, arr, e.envDefault.ddInfra.eks.podSubnets)
 	return resObj.([]DDInfraEKSPodSubnets)
-}
-
-func (e *Environment) EKSAllowedInboundCIDRs() []string {
-	var arr []string
-	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEksAllowedInboundCIDRs, arr, e.envDefault.ddInfra.eks.allowedInboundCIDRs)
-	return resObj.([]string)
 }
 
 func (e *Environment) EKSAllowedInboundSecurityGroups() []string {

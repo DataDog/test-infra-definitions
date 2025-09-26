@@ -75,7 +75,7 @@ func NewVM(e azure.Environment, name string, params ...VMOption) (*remote.Host, 
 
 func defaultVMArgs(e azure.Environment, vmArgs *vmArgs) error {
 	if vmArgs.osInfo == nil {
-		vmArgs.osInfo = &os.WindowsDefault
+		vmArgs.osInfo = &os.WindowsServerDefault
 	}
 
 	if vmArgs.instanceType == "" {

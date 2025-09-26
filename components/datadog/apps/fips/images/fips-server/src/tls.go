@@ -46,15 +46,18 @@ var (
 	}
 
 	FipsCiphers = map[string]uint16{
-		// This list has been compiled based off the boring crypto supported
-		// ciphers listed here:
-		//    https://github.com/golang/go/blob/dev.boringcrypto.go1.18/src/crypto/tls/boring.go#L53-L61
+		// see: https://datadoghq.atlassian.net/wiki/spaces/SECENG/pages/2285633911/Cryptographic+security+recommendations#Transport-Layer-Security-Protocol
+		// TLS 1.2 supported
 		"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256":   tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
 		"TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384":   tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
 		"TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256": tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 		"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384": tls.TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
 		"TLS_RSA_WITH_AES_128_GCM_SHA256":         tls.TLS_RSA_WITH_AES_128_GCM_SHA256,
 		"TLS_RSA_WITH_AES_256_GCM_SHA384":         tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+
+		// TLS 1.3 supported
+		"TLS_AES_128_GCM_SHA256": tls.TLS_AES_128_GCM_SHA256,
+		"TLS_AES_256_GCM_SHA384": tls.TLS_AES_256_GCM_SHA384,
 	}
 )
 

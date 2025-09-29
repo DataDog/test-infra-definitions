@@ -131,6 +131,9 @@ var platforms = PlatformsType{
 		"arm64": PlatformsAMIsType{
 			"sonoma": "ami-0c582a76ed8159789",
 		},
+		"x86_64": PlatformsAMIsType{
+			"sonoma": "ami-0af4746d79fd670cd",
+		},
 	},
 }
 

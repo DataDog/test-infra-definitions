@@ -275,7 +275,7 @@ func agentQADefault() environmentDefault {
 				},
 				allowedInboundSecurityGroups: []string{"sg-05e9573fcc582f22c", "sg-070023ab71cadf760"},
 				allowedInboundPrefixList:     []string{"pl-0a698837099ae16f4"},
-				// allowedInboundManagedPrefixListNames: []string{"vpn-services-commercial-appgate"},
+				allowedInboundManagedPrefixListNames: []string{"vpn-services-commercial-appgate"},
 				fargateNamespace:           "",
 				linuxNodeGroup:             true,
 				linuxARMNodeGroup:          true,

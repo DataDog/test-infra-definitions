@@ -28,20 +28,33 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 	return components.NewComponent(&e, name, func(comp *kubecomp.Cluster) error {
 		// Create Cluster SG
+		prefixLists := make([]string, 0, len(e.EKSAllowedInboundManagedPrefixListNames()))
+		for _, plName := range e.EKSAllowedInboundManagedPrefixListNames() {
+			pl, err := ec2.LookupManagedPrefixList(e.Ctx(), &ec2.LookupManagedPrefixListArgs{
+				Name: &plName,
+			}, e.WithProvider(config.ProviderAWS))
+			if err != nil {
+				return err
+			}
+			if pl != nil {
+				prefixLists = append(prefixLists, pl.Id)
+			}
+		}
+
 		clusterSG, err := ec2.NewSecurityGroup(e.Ctx(), e.Namer.ResourceName("eks-sg"), &ec2.SecurityGroupArgs{
 			NamePrefix:  e.CommonNamer().DisplayName(255, pulumi.String("eks-sg")),
 			Description: pulumi.StringPtr("EKS Cluster sg for stack: " + e.Ctx().Stack()),
 			Ingress: ec2.SecurityGroupIngressArray{
 				ec2.SecurityGroupIngressArgs{
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
-					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
+					PrefixListIds:  pulumi.ToStringArray(append(e.EKSAllowedInboundPrefixLists(), prefixLists...)),
 					ToPort:         pulumi.Int(22),
 					FromPort:       pulumi.Int(22),
 					Protocol:       pulumi.String("tcp"),
 				},
 				ec2.SecurityGroupIngressArgs{
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
-					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
+					PrefixListIds:  pulumi.ToStringArray(append(e.EKSAllowedInboundPrefixLists(), prefixLists...)),
 					ToPort:         pulumi.Int(443),
 					FromPort:       pulumi.Int(443),
 					Protocol:       pulumi.String("tcp"),

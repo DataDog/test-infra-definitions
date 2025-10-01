@@ -1,7 +1,6 @@
 package eks
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -63,41 +62,6 @@ func NewWindowsNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsI
 }
 
 func newLinuxLaunchTemplate(e aws.Environment, name string, opts ...pulumi.ResourceOption) (*awsEc2.LaunchTemplate, error) {
-	nodeGroupInstanceSG, err := awsEc2.NewSecurityGroup(e.Ctx(), e.Namer.ResourceName(name+"-security-group"),
-		&awsEc2.SecurityGroupArgs{
-			Description: pulumi.String("Security group for all nodes in the nodeGroup to allow SSH access"),
-			VpcId:       pulumi.StringPtr(e.DefaultVPCID()),
-			Ingress: awsEc2.SecurityGroupIngressArray{
-				&awsEc2.SecurityGroupIngressArgs{
-					CidrBlocks:     pulumi.ToStringArray(e.EKSAllowedInboundCIDRs()),
-					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
-					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
-					ToPort:         pulumi.Int(22),
-					FromPort:       pulumi.Int(22),
-					Protocol:       pulumi.String("tcp"),
-				},
-			},
-			// Egress to internet, both IPV4 and IPV6
-			Egress: awsEc2.SecurityGroupEgressArray{
-				&awsEc2.SecurityGroupEgressArgs{
-					Protocol:   pulumi.String("-1"),
-					FromPort:   pulumi.Int(0),
-					ToPort:     pulumi.Int(0),
-					CidrBlocks: pulumi.StringArray{pulumi.String("0.0.0.0/0")},
-				},
-				&awsEc2.SecurityGroupEgressArgs{
-					Protocol:       pulumi.String("-1"),
-					FromPort:       pulumi.Int(0),
-					ToPort:         pulumi.Int(0),
-					Ipv6CidrBlocks: pulumi.StringArray{pulumi.String("::/0")},
-				},
-			},
-		}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderEKS))...)
-
-	if err != nil {
-		return nil, fmt.Errorf("error creating SSH access security group: %v", err)
-	}
-
 	return awsEc2.NewLaunchTemplate(e.Ctx(), name, &awsEc2.LaunchTemplateArgs{
 		UpdateDefaultVersion: pulumi.BoolPtr(true),
 		KeyName:              pulumi.String(e.DefaultKeyPairName()),
@@ -117,8 +81,7 @@ func newLinuxLaunchTemplate(e aws.Environment, name string, opts ...pulumi.Resou
 		},
 		// Attach the SSH access Security Group created above, as well as the default security groups.
 		// This is done to replicate what EKS does behind the scenes when you don't specify a launch template
-		VpcSecurityGroupIds: append(pulumi.StringArray{nodeGroupInstanceSG.ID()},
-			pulumi.ToStringArray(e.DefaultSecurityGroups())...),
+		VpcSecurityGroupIds: pulumi.ToStringArray(e.DefaultSecurityGroups()),
 	}, utils.MergeOptions(opts, e.WithProviders(config.ProviderAWS, config.ProviderEKS))...)
 }
 

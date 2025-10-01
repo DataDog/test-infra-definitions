@@ -202,7 +202,7 @@ func agentSandboxDefault() environmentDefault {
 						SubnetID: "subnet-0ba7fbd4fed03bbdd",
 					},
 				},
-				allowedInboundSecurityGroups:         []string{"sg-038231b976eb13d44", "sg-0d82a3ae7646ca5f4"},
+				allowedInboundSecurityGroups:         []string{"sg-038231b976eb13d44"},
 				allowedInboundManagedPrefixListNames: []string{"vpn-services-commercial-appgate"},
 				fargateNamespace:                     "",
 				linuxNodeGroup:                       true,

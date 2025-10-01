@@ -1,12 +1,6 @@
 package eks
 
 import (
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components"
-	kubecomp "github.com/DataDog/test-infra-definitions/components/kubernetes"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
-	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/eks"
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
@@ -18,6 +12,13 @@ import (
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/samber/lo"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components"
+	kubecomp "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
+	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 )
 
 func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Cluster, error) {
@@ -46,7 +47,6 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 			Description: pulumi.StringPtr("EKS Cluster sg for stack: " + e.Ctx().Stack()),
 			Ingress: ec2.SecurityGroupIngressArray{
 				ec2.SecurityGroupIngressArgs{
-					CidrBlocks:     pulumi.ToStringArray(e.EKSAllowedInboundCIDRs()),
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 					PrefixListIds:  pulumi.ToStringArray(append(e.EKSAllowedInboundPrefixLists(), prefixLists...)),
 					ToPort:         pulumi.Int(22),
@@ -54,7 +54,6 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 					Protocol:       pulumi.String("tcp"),
 				},
 				ec2.SecurityGroupIngressArgs{
-					CidrBlocks:     pulumi.ToStringArray(e.EKSAllowedInboundCIDRs()),
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
 					PrefixListIds:  pulumi.ToStringArray(append(e.EKSAllowedInboundPrefixLists(), prefixLists...)),
 					ToPort:         pulumi.Int(443),

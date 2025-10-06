@@ -138,7 +138,7 @@ func generateTracegenUdsSpec(namespace string, serviceAccountName pulumi.StringP
 	}
 }
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, withServiceAccount bool, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
@@ -159,44 +159,39 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	var serviceAccountName pulumi.StringInput
-
-	if withServiceAccount {
-		serviceAccountName = pulumi.String("tracegen-uds-sa")
-
-		// openshift requires a non-default service account tighted to the privileged scc
-		if _, err := corev1.NewServiceAccount(e.Ctx(), e.CommonNamer().ResourceName("tracegen-uds-sa"), &corev1.ServiceAccountArgs{
-			Metadata: &metav1.ObjectMetaArgs{
-				Name:      serviceAccountName,
-				Namespace: pulumi.String("workload-tracegen"),
-			},
-		}, opts...); err != nil {
-			return nil, err
-		}
-
-		// create a clusterRoleBinding to bind the new service account with the existing privileged scc
-		if _, err := rbacv1.NewClusterRoleBinding(e.Ctx(), e.CommonNamer().ResourceName("tracegen-uds-scc-binding"), &rbacv1.ClusterRoleBindingArgs{
-			Metadata: &metav1.ObjectMetaArgs{
-				Name: pulumi.String("tracegen-scc-binding"),
-			},
-			RoleRef: &rbacv1.RoleRefArgs{
-				ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
-				Kind:     pulumi.String("ClusterRole"),
-				Name:     pulumi.String("system:openshift:scc:privileged"),
-			},
-			Subjects: rbacv1.SubjectArray{
-				rbacv1.SubjectArgs{
-					Kind:      pulumi.String("ServiceAccount"),
-					Name:      serviceAccountName,
-					Namespace: pulumi.String("workload-tracegen"),
-				},
-			},
-		}, opts...); err != nil {
-			return nil, err
-		}
+	// openshift requires a non-default service account tighted to the privileged scc
+	sa, err := corev1.NewServiceAccount(e.Ctx(), e.CommonNamer().ResourceName("tracegen-uds-sa"), &corev1.ServiceAccountArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.StringPtr("tracegen-uds-sa"),
+			Namespace: pulumi.StringPtr("workload-tracegen"),
+		},
+	}, opts...)
+	if err != nil {
+		return nil, err
 	}
 
-	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/tracegen-uds", generateTracegenUdsSpec(namespace, serviceAccountName), opts...); err != nil {
+	// create a clusterRoleBinding to bind the new service account with the existing privileged scc
+	if _, err := rbacv1.NewRoleBinding(e.Ctx(), e.CommonNamer().ResourceName("tracegen-uds-scc-binding"), &rbacv1.RoleBindingArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name: pulumi.String("tracegen-scc-binding"),
+		},
+		RoleRef: &rbacv1.RoleRefArgs{
+			ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
+			Kind:     pulumi.String("ClusterRole"),
+			Name:     pulumi.String("system:openshift:scc:hostaccess"),
+		},
+		Subjects: rbacv1.SubjectArray{
+			rbacv1.SubjectArgs{
+				Kind:      pulumi.String("ServiceAccount"),
+				Name:      sa.Metadata.Name().Elem(),
+				Namespace: pulumi.String("workload-tracegen"),
+			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/tracegen-uds", generateTracegenUdsSpec(namespace, sa.Metadata.Name().Elem()), opts...); err != nil {
 		return nil, err
 	}
 

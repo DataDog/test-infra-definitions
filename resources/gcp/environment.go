@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
-	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	pulumiConfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 const (
@@ -51,6 +53,10 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	}
 	env.CommonEnvironment = &commonEnv
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), gcpNamerNamespace))
+
+	if scenario := pulumiConfig.Get(ctx, "scenario"); strings.Contains(scenario, "openshift") {
+		env.envDefault.ddInfra.openshift.nestedVirtualization = true
+	}
 
 	// TODO: Remove this when we find a better way to automatically log in
 	logIn(ctx)

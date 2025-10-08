@@ -292,19 +292,19 @@ func K8sRolloutAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 			Replicas: pulumi.Int(2),
 			Selector: &metav1.LabelSelectorArgs{
 				MatchLabels: pulumi.StringMap{
-					"app": pulumi.String("nginx-rollout"),
+					"app": pulumi.String("nginx"),
 				},
 			},
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
 					Labels: pulumi.StringMap{
-						"app": pulumi.String("nginx-rollout"),
+						"app": pulumi.String("nginx"),
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
 					Containers: &corev1.ContainerArray{
 						&corev1.ContainerArgs{
-							Name:  pulumi.String("nginx-rollout"),
+							Name:  pulumi.String("nginx"),
 							Image: pulumi.String("nginx:latest"),
 							Ports: &corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{

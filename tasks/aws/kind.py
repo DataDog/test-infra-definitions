@@ -20,6 +20,7 @@ scenario_name = "aws/kind"
         "config_path": doc.config_path,
         "install_agent": doc.install_agent,
         "install_agent_with_operator": doc.install_agent_with_operator,
+        "install_argo_rollout": doc.install_argorollout,
         "agent_version": doc.container_agent_version,
         "stack_name": doc.stack_name,
         "architecture": aws_doc.architecture,
@@ -38,6 +39,7 @@ def create_kind(
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
     install_agent_with_operator: Optional[bool] = None,
+    install_argo_rollout: Optional[bool] = None,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
@@ -57,6 +59,7 @@ def create_kind(
         "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
         "ddinfra:aws/defaultInstanceType": "t3.xlarge",
         "ddagent:deployWithOperator": bool(install_agent_with_operator),
+        "ddagent:deployArgoRollout": bool(install_argo_rollout),
     }
 
     full_stack_name = deploy(

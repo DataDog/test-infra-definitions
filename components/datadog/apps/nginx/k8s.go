@@ -5,6 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx/k8s"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/argorollouts"
 	"github.com/Masterminds/semver"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apiextensions"
@@ -279,45 +280,7 @@ func K8sRolloutAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
-	nginxManifest := kubernetes.UntypedArgs{
-		"spec": pulumi.Map{
-			"replicas": pulumi.Int(2),
-			"strategy": pulumi.Map{
-				"canary": pulumi.Map{},
-			},
-			"selector": pulumi.Map{
-				"matchLabels": pulumi.StringMap{
-					"app": pulumi.String("nginx-rollout"),
-				},
-			},
-			"template": pulumi.Map{
-				"metadata": pulumi.Map{
-					"labels": pulumi.StringMap{
-						"app": pulumi.String("nginx-rollout"),
-					},
-				},
-				"spec": pulumi.Map{
-					"containers": pulumi.MapArray{
-						pulumi.Map{
-							"name":  pulumi.String("nginx-rollout"),
-							"image": pulumi.String("nginx:latest"),
-							"ports": pulumi.MapArray{
-								pulumi.Map{
-									"name":          pulumi.String("http"),
-									"containerPort": pulumi.Int(80),
-									"protocol":      pulumi.String("TCP"),
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	_, err = apiextensions.NewCustomResource(e.Ctx(), namespace+"/nginx", &apiextensions.CustomResourceArgs{
-		ApiVersion: pulumi.String("argoproj.io/v1alpha1"),
-		Kind:       pulumi.String("Rollout"),
+	err = argorollouts.RolloutFromDeployment(e.Ctx(), namespace+"/nginx", &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("nginx-rollout"),
 			Namespace: pulumi.String(namespace),
@@ -325,7 +288,36 @@ func K8sRolloutAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 				"app": pulumi.String("nginx-rollout"),
 			},
 		},
-		OtherFields: nginxManifest,
+		Spec: &appsv1.DeploymentSpecArgs{
+			Replicas: pulumi.Int(2),
+			Selector: &metav1.LabelSelectorArgs{
+				MatchLabels: pulumi.StringMap{
+					"app": pulumi.String("nginx-rollout"),
+				},
+			},
+			Template: &corev1.PodTemplateSpecArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Labels: pulumi.StringMap{
+						"app": pulumi.String("nginx-rollout"),
+					},
+				},
+				Spec: &corev1.PodSpecArgs{
+					Containers: &corev1.ContainerArray{
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("nginx-rollout"),
+							Image: pulumi.String("nginx:latest"),
+							Ports: &corev1.ContainerPortArray{
+								&corev1.ContainerPortArgs{
+									Name:          pulumi.String("http"),
+									ContainerPort: pulumi.Int(80),
+									Protocol:      pulumi.String("TCP"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
 	}, opts...)
 	if err != nil {
 		return nil, err

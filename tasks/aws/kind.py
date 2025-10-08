@@ -39,7 +39,7 @@ def create_kind(
     stack_name: Optional[str] = None,
     install_agent: Optional[bool] = True,
     install_agent_with_operator: Optional[bool] = None,
-    install_argo_rollout: Optional[bool] = False,
+    install_argorollout: Optional[bool] = False,
     agent_version: Optional[str] = None,
     architecture: Optional[str] = None,
     use_fakeintake: Optional[bool] = False,
@@ -59,7 +59,7 @@ def create_kind(
         "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
         "ddinfra:aws/defaultInstanceType": "t3.xlarge",
         "ddagent:deployWithOperator": bool(install_agent_with_operator),
-        "ddagent:deployArgoRollout": install_argo_rollout,
+        "ddagent:deployArgoRollout": install_argorollout,
     }
 
     full_stack_name = deploy(

@@ -5,7 +5,6 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx/k8s"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
-
 	"github.com/Masterminds/semver"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apiextensions"
@@ -252,6 +251,80 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	}
 
 	if _, err := appsv1.NewDeployment(e.Ctx(), namespace+"/nginx-query", nginxQueryManifest, opts...); err != nil {
+		return nil, err
+	}
+
+	return k8sComponent, nil
+}
+
+// K8sRolloutAppDefinition only creates a rollout workload for a Kubernetes application.
+func K8sRolloutAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
+
+	k8sComponent := &componentskube.Workload{}
+	if err := e.Ctx().RegisterComponentResource("dd:apps", namespace+"/nginx", k8sComponent, opts...); err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, pulumi.Parent(k8sComponent))
+
+	ns, err := corev1.NewNamespace(e.Ctx(), namespace, &corev1.NamespaceArgs{
+		Metadata: metav1.ObjectMetaArgs{
+			Name: pulumi.String(namespace),
+		},
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	opts = append(opts, utils.PulumiDependsOn(ns))
+
+	nginxManifest := kubernetes.UntypedArgs{
+		"spec": pulumi.Map{
+			"replicas": pulumi.Int(2),
+			"selector": pulumi.Map{
+				"matchLabels": pulumi.StringMap{
+					"app": pulumi.String("nginx-rollout"),
+				},
+			},
+			"template": pulumi.Map{
+				"metadata": pulumi.Map{
+					"labels": pulumi.StringMap{
+						"app": pulumi.String("nginx-rollout"),
+					},
+				},
+				"spec": pulumi.Map{
+					"containers": pulumi.MapArray{
+						pulumi.Map{
+							"name":  pulumi.String("nginx-rollout"),
+							"image": pulumi.String("nginx:latest"),
+							"ports": pulumi.MapArray{
+								pulumi.Map{
+									"name":          pulumi.String("http"),
+									"containerPort": pulumi.Int(80),
+									"protocol":      pulumi.String("TCP"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	_, err = apiextensions.NewCustomResource(e.Ctx(), namespace+"/nginx", &apiextensions.CustomResourceArgs{
+		ApiVersion: pulumi.String("argoproj.io/v1alpha1"),
+		Kind:       pulumi.String("Rollout"),
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("nginx-rollout"),
+			Namespace: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"app": pulumi.String("nginx-rollout"),
+			},
+		},
+		OtherFields: nginxManifest,
+	}, opts...)
+	if err != nil {
 		return nil, err
 	}
 

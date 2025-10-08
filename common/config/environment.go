@@ -38,6 +38,7 @@ const (
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
 	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
+	DDAgentDeployArgoRolloutName         = "deployArgoRollout"
 	DDAgentVersionParamName              = "version"
 	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
@@ -274,6 +275,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
+}
+
+func (e *CommonEnvironment) AgentDeployArgoRollout() bool {
+	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployArgoRolloutName, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {

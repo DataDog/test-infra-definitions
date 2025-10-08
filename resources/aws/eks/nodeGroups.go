@@ -26,7 +26,7 @@ const (
 
 func NewAL2023LinuxNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
 	name := "linux"
-	lt, err := newLinuxLaunchTemplate(e, name+"-launch-template", opts...)
+	lt, err := newAL2023LaunchTemplate(e, name+"-launch-template", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -36,7 +36,7 @@ func NewAL2023LinuxNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *
 
 func NewAL2023LinuxARMNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
 	name := "linux-arm"
-	lt, err := newLinuxLaunchTemplate(e, name+"-launch-template", opts...)
+	lt, err := newAL2023LaunchTemplate(e, name+"-launch-template", opts...)
 
 	if err != nil {
 		return nil, err
@@ -61,7 +61,7 @@ func NewWindowsNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsI
 	return newManagedNodeGroup(e, "windows", cluster, nodeRole, windowsAmiType, e.DefaultInstanceType(), nil, opts...)
 }
 
-func newLinuxLaunchTemplate(e aws.Environment, name string, opts ...pulumi.ResourceOption) (*awsEc2.LaunchTemplate, error) {
+func newAL2023LaunchTemplate(e aws.Environment, name string, opts ...pulumi.ResourceOption) (*awsEc2.LaunchTemplate, error) {
 	prefixLists := make([]string, 0, len(e.EKSAllowedInboundManagedPrefixListNames()))
 	for _, plName := range e.EKSAllowedInboundManagedPrefixListNames() {
 		pl, err := awsEc2.LookupManagedPrefixList(e.Ctx(), &awsEc2.LookupManagedPrefixListArgs{
@@ -100,6 +100,13 @@ func newLinuxLaunchTemplate(e aws.Environment, name string, opts ...pulumi.Resou
 		},
 		BlockDeviceMappings: awsEc2.LaunchTemplateBlockDeviceMappingArray{
 			&awsEc2.LaunchTemplateBlockDeviceMappingArgs{
+				/*
+					aws ssm get-parameter --name /aws/service/eks/optimized-ami/1.30/amazon-linux-2023/x86_64/standard/recommended/image_id --query "Parameter.Value" --output text
+					ami-0cd798eab7ada4d4d
+
+					 aws ec2 describe-images --image-ids ami-0cd798eab7ada4d4d   --query 'Images[0].RootDeviceName'
+					"/dev/xvda"
+				*/
 				DeviceName: pulumi.String("/dev/xvda"),
 				Ebs: &awsEc2.LaunchTemplateBlockDeviceMappingEbsArgs{
 					VolumeSize:          pulumi.Int(80),

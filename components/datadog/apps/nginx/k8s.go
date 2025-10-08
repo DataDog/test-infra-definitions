@@ -282,6 +282,9 @@ func K8sRolloutAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 	nginxManifest := kubernetes.UntypedArgs{
 		"spec": pulumi.Map{
 			"replicas": pulumi.Int(2),
+			"strategy": pulumi.Map{
+				"canary": pulumi.Map{},
+			},
 			"selector": pulumi.Map{
 				"matchLabels": pulumi.StringMap{
 					"app": pulumi.String("nginx-rollout"),

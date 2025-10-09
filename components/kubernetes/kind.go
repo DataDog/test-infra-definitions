@@ -3,6 +3,7 @@ package kubernetes
 import (
 	_ "embed"
 	"fmt"
+	"log"
 	"regexp"
 	"strings"
 
@@ -48,9 +49,16 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 		}
 		opts = utils.MergeOptions(opts, utils.PulumiDependsOn(dockerManager, curlCommand))
 
+		/*
+			We'll first try to resolve the kind version and node image from our static map, if we can't find
+			it (ex. 1.34 not in our map yet), we'll continue because we have the ability to pull down arbitrary
+			versions from the mirror. It's assumed that the cluster creation will fail if we can't find the version.
+		*/
 		kindVersionConfig, err := GetKindVersionConfig(kubeVersion)
 		if err != nil {
-			return err
+			log.Printf("[WARN] Could not find the version %s in our static map, falling back to the versions provided. Kind version: %s, node image version: %s", kubeVersion, kindVersionConfig.KindVersion, kindVersionConfig.NodeImageVersion)
+			kindVersionConfig.NodeImageVersion = kubeVersion
+			kindVersionConfig.KindVersion = env.KindVersion()
 		}
 
 		kindInstall, err := InstallKindBinary(env, vm, kindVersionConfig.KindVersion, opts...)
@@ -66,7 +74,16 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 			return err
 		}
 
-		nodeImage := fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+		// The internal mirror should be able to pull arbitrary kubernetes images with just the tag. ex 1.34, the sha
+		// shouldn't be necessary. We also support the user supplying the url (incase we want to host kubernetes rc
+		// candidates in some registry, etc)
+		var nodeImage string
+		if env.KubeNodeUrl() != "" {
+			nodeImage = env.KubeNodeUrl()
+		} else {
+			nodeImage = fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
+		}
+		log.Printf("[INFO] Resolved node image url: %s", nodeImage)
 		createCluster, err := runner.Command(
 			commonEnvironment.CommonNamer().ResourceName("kind-create-cluster"),
 			&command.Args{

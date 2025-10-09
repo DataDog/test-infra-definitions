@@ -79,7 +79,7 @@ var platforms = PlatformsType{
 	},
 	"redhat": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"9":       "ami-01a52a1073599b7c8",
+			"9":       "ami-0c878dd49ca800252",
 			"86":      "ami-031eff1ae75bb87e4",
 			"86-fips": "ami-0d0fb96b595c56e03",
 		},

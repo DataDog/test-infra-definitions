@@ -28,7 +28,7 @@ const (
 	DDInfraEnvironment                      = "env"
 	DDInfraKubernetesVersion                = "kubernetesVersion"
 	DDInfraKindVersion                      = "kindVersion"
-	DDInfraKindNodeURL                      = "kindNodeUrl"
+	DDInfraKubeNodeURL                      = "kubeNodeUrl"
 	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
 	DDInfraOSImageID                        = "osImageID"
 	DDInfraOSImageIDUseLatest               = "osImageIDUseLatest"
@@ -109,7 +109,7 @@ type Env interface {
 	InfraOSDescriptor() string
 	InfraOSImageID() string
 	KubernetesVersion() string
-	KubeNodeUrl() string
+	KubeNodeURL() string
 	KindVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
@@ -232,7 +232,7 @@ func (e *CommonEnvironment) KindVersion() string {
 }
 
 func (e *CommonEnvironment) KubeNodeURL() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraKindNodeURL, "")
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubeNodeURL, "")
 }
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {

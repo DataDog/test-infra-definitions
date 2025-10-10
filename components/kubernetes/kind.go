@@ -78,8 +78,8 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 		// shouldn't be necessary. We also support the user supplying the url (incase we want to host kubernetes rc
 		// candidates in some registry, etc)
 		var nodeImage string
-		if env.KubeNodeUrl() != "" {
-			nodeImage = env.KubeNodeUrl()
+		if env.KubeNodeURL() != "" {
+			nodeImage = env.KubeNodeURL()
 		} else {
 			nodeImage = fmt.Sprintf("%s/%s:%s", env.InternalDockerhubMirror(), kindNodeImageName, kindVersionConfig.NodeImageVersion)
 		}

@@ -76,12 +76,13 @@ func Run(ctx *pulumi.Context) error {
 	}
 	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
+	var argoRollout *argorollouts.HelmComponent
 	if awsEnv.AgentDeployArgoRollout() {
 		argoParams, err := argorollouts.NewParams()
 		if err != nil {
 			return err
 		}
-		_, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, pulumi.Provider(kindKubeProvider))
+		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, pulumi.Provider(kindKubeProvider))
 		if err != nil {
 			return err
 		}
@@ -267,7 +268,7 @@ spec:
 		}
 
 		if awsEnv.AgentDeployArgoRollout() {
-			if _, err := nginx.K8sRolloutAppDefinition(&awsEnv, kindKubeProvider, "workload-argo-rollout-nginx", dependsOnDDAgent); err != nil {
+			if _, err := nginx.K8sRolloutAppDefinition(&awsEnv, kindKubeProvider, "workload-argo-rollout-nginx", utils.PulumiDependsOn(argoRollout)); err != nil {
 				return err
 			}
 		}

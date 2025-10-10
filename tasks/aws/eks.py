@@ -68,7 +68,7 @@ def create_eks(
         "ddinfra:aws/eks/linuxNodeGroup": str(linux_node_group),
         "ddinfra:aws/eks/windowsNodeGroup": windows_node_group,
         "ddagent:localChartPath": local_chart_path,
-        "ddagent:deployArgoRollout": install_argorollout,
+        "ddtestworkload:deployArgoRollout": install_argorollout,
     }
 
     # Override the instance type if specified

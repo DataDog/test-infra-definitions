@@ -59,7 +59,7 @@ def create_kind(
         "ddinfra:deployFakeintakeWithLoadBalancer": use_loadBalancer,
         "ddinfra:aws/defaultInstanceType": "t3.xlarge",
         "ddagent:deployWithOperator": bool(install_agent_with_operator),
-        "ddagent:deployArgoRollout": install_argorollout,
+        "ddtestworkload:deployArgoRollout": install_argorollout,
     }
 
     full_stack_name = deploy(

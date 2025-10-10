@@ -28,7 +28,7 @@ const (
 	DDInfraEnvironment                      = "env"
 	DDInfraKubernetesVersion                = "kubernetesVersion"
 	DDInfraKindVersion                      = "kindVersion"
-	DDInfraKindNodeUrl                      = "kindNodeUrl"
+	DDInfraKindNodeURL                      = "kindNodeUrl"
 	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
 	DDInfraOSImageID                        = "osImageID"
 	DDInfraOSImageIDUseLatest               = "osImageIDUseLatest"
@@ -231,8 +231,8 @@ func (e *CommonEnvironment) KindVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraKindVersion, "v0.30.0")
 }
 
-func (e *CommonEnvironment) KubeNodeUrl() string {
-	return e.GetStringWithDefault(e.InfraConfig, DDInfraKindNodeUrl, "")
+func (e *CommonEnvironment) KubeNodeURL() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKindNodeURL, "")
 }
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {

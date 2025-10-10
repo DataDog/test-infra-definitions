@@ -38,7 +38,6 @@ const (
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
 	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
-	DDAgentDeployArgoRolloutName         = "deployArgoRollout"
 	DDAgentVersionParamName              = "version"
 	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
@@ -72,7 +71,8 @@ const (
 	DDUpdaterParamName = "deploy"
 
 	// Testing workload namerNamespace
-	DDTestingWorkloadDeployParamName = "deploy"
+	DDTestingWorkloadDeployParamName   = "deploy"
+	DDTestingWorkloadDeployArgoRollout = "deployArgoRollout"
 
 	// Dogstatsd namespace
 	DDDogstatsdDeployParamName        = "deploy"
@@ -278,7 +278,7 @@ func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 }
 
 func (e *CommonEnvironment) AgentDeployArgoRollout() bool {
-	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployArgoRolloutName, false)
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployArgoRollout, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {

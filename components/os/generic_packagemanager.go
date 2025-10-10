@@ -12,8 +12,8 @@ import (
 
 var (
 	// packageNameTranslate translate a package name for the given package manager, if need be.
-	packageNameTranslate = map[string]map[string]string{
-		"apt": {
+	packageNameTranslate = map[PackageManagerType]map[string]string{
+		Apt: {
 			"docker": "docker.io",
 		},
 	}
@@ -21,7 +21,7 @@ var (
 
 type GenericPackageManager struct {
 	namer           namer.Namer
-	name            string
+	name            PackageManagerType
 	updateDBCommand command.Command
 	runner          command.Runner
 	opts            []pulumi.ResourceOption
@@ -33,14 +33,14 @@ type GenericPackageManager struct {
 
 func NewGenericPackageManager(
 	runner command.Runner,
-	name string,
+	name PackageManagerType,
 	installCmd string,
 	updateCmd string,
 	uninstallCmd string,
 	env pulumi.StringMap,
 ) *GenericPackageManager {
 	packageManager := &GenericPackageManager{
-		namer:        namer.NewNamer(runner.Environment().Ctx(), name),
+		namer:        namer.NewNamer(runner.Environment().Ctx(), name.String()),
 		name:         name,
 		runner:       runner,
 		installCmd:   installCmd,

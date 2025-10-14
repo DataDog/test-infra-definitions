@@ -109,7 +109,7 @@ type Env interface {
 	KubernetesVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
-	ResourcesTags() pulumi.StringMap
+	ResourcesTags() pulumi.StringMapInput
 	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
@@ -254,7 +254,7 @@ func EnvVariableResourceTags() map[string]string {
 	return tags
 }
 
-func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMapInput {
 	tags := pulumi.StringMap{}
 
 	// default tags

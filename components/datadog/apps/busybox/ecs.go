@@ -15,13 +15,13 @@ func EcsAppDefinition(e aws.Environment, clusterArn pulumi.StringInput, opts ...
 	opts = append(opts, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 
 	ecsComponent := &ecsComp.Workload{}
-	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("grp"), ecsComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:apps", namer.ResourceName("noop"), ecsComponent, opts...); err != nil {
 		return nil, err
 	}
 
 	opts = append(opts, pulumi.Parent(ecsComponent))
 
-	if _, err := ecs.NewEC2Service(e.Ctx(), namer.ResourceName("busybox"), &ecs.EC2ServiceArgs{
+	if _, err := ecs.NewEC2Service(e.Ctx(), namer.ResourceName("noop"), &ecs.EC2ServiceArgs{
 		Name:                 e.CommonNamer().DisplayName(255, pulumi.String("busybox"), pulumi.String("ec2")),
 		Cluster:              clusterArn,
 		DesiredCount:         pulumi.IntPtr(1),

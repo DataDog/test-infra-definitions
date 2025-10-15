@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/aspnetsample"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/busybox"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
@@ -89,6 +90,10 @@ func Run(ctx *pulumi.Context) error {
 		}
 
 		if _, err := cpustress.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
+			return err
+		}
+
+		if _, err := busybox.EcsAppDefinition(awsEnv, cluster.ClusterArn); err != nil {
 			return err
 		}
 

@@ -1,16 +1,37 @@
 package gke
 
 import (
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/resources/gcp"
 	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp/container"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+const (
+	MaxGkeClusterNameLen = 40 // MAX_GKE_CLUSTER_NAME_LEN: from google-cloud-console: "Cluster names must start with a lowercase letter followed by up to 39 lowercase letters"
+)
+
 func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.ResourceOption) (*container.Cluster, pulumi.StringOutput, error) {
 	opts = append(opts, e.WithProviders(config.ProviderGCP))
 
+	clusterName := e.Namer.DisplayName(MaxGkeClusterNameLen)
+	clusterName = clusterName.ToStringOutput().ApplyT(func(v string) string {
+		return strings.ToLower(strings.ReplaceAll(v, "_", "-"))
+	}).(pulumi.StringOutput)
+
+	clusterLabels := e.ResourcesTags()
+	clusterLabels = clusterLabels.ToStringMapOutput().ApplyT(func(labels map[string]string) map[string]string {
+		for k, v := range labels {
+			labels[k] = strings.ReplaceAll(strings.ToLower(v), ".", "-")
+		}
+
+		return labels
+	}).(pulumi.StringMapOutput)
+
 	cluster, err := container.NewCluster(e.Ctx(), e.Namer.ResourceName(name), &container.ClusterArgs{
+		Name:               clusterName,
 		Network:            pulumi.String(e.DefaultNetworkName()),
 		Subnetwork:         pulumi.String(e.DefaultSubnet()),
 		InitialNodeCount:   pulumi.Int(1),
@@ -46,6 +67,7 @@ func NewCluster(e gcp.Environment, name string, autopilot bool, opts ...pulumi.R
 				pulumi.String("https://www.googleapis.com/auth/monitoring"),
 			},
 		},
+		ResourceLabels: clusterLabels,
 	}, opts...)
 	if err != nil {
 		return nil, pulumi.StringOutput{}, err

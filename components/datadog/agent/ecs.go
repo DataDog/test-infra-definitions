@@ -268,6 +268,10 @@ func ecsFakeintakeAdditionalEndpointsEnv(fakeintake *fakeintake.Fakeintake) []ec
 			Name:  pulumi.StringPtr("DD_LOGS_CONFIG_USE_HTTP"),
 			Value: pulumi.StringPtr("true"),
 		},
+		ecs.TaskDefinitionKeyValuePairArgs{
+			Name:  pulumi.StringPtr("DD_CONTAINER_EXCLUDE"),
+			Value: pulumi.StringPtr("name:busybox, image:busybox"),
+		},
 	}
 }
 

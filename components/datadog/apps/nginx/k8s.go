@@ -3,6 +3,7 @@ package nginx
 import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx/k8s"
 	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/DataDog/test-infra-definitions/components/kubernetes/argorollouts"
@@ -305,7 +306,7 @@ func K8sRolloutAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, na
 					Containers: &corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("nginx"),
-							Image: pulumi.String("nginx:latest"),
+							Image: pulumi.String("ghcr.io/datadog/apps-nginx-server:" + apps.Version),
 							Ports: &corev1.ContainerPortArray{
 								&corev1.ContainerPortArgs{
 									Name:          pulumi.String("http"),

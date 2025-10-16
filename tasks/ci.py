@@ -37,7 +37,7 @@ Here is the full changelog between the two commits: https://github.com/DataDog/t
         head=branch,
         base="main",
     )
-    new_pr.add_to_labels("qa/no-code-change", "changelog/no-changelog", "automatic/test-infra-bump")
+    new_pr.add_to_labels("qa/no-code-change", "changelog/no-changelog", "automatic/test-infra-bump", "backport/6.53.x")
 
     print(f"PR created: {new_pr.html_url}")
 

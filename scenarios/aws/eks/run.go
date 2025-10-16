@@ -15,6 +15,7 @@ import (
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/argorollouts"
 	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	resourcesAws "github.com/DataDog/test-infra-definitions/resources/aws"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/fakeintake"
@@ -46,6 +47,18 @@ func Run(ctx *pulumi.Context) error {
 	}
 	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
 
+	var argoRollout *argorollouts.HelmComponent
+	if awsEnv.AgentDeployArgoRollout() {
+		argoParams, err := argorollouts.NewParams()
+		if err != nil {
+			return err
+		}
+		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, pulumi.Provider(cluster.KubeProvider))
+		if err != nil {
+			return err
+		}
+	}
+
 	if awsEnv.InitOnly() {
 		return nil
 	}
@@ -67,6 +80,14 @@ func Run(ctx *pulumi.Context) error {
 
 			if awsEnv.AgentUseDualShipping() {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+			}
+
+			if storeType := awsEnv.AgentFakeintakeStoreType(); storeType != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+			}
+
+			if retentionPeriod := awsEnv.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
 			}
 
 			if fakeIntake, err = fakeintake.NewECSFargateInstance(awsEnv, "ecs", fakeIntakeOptions...); err != nil {
@@ -161,6 +182,12 @@ func Run(ctx *pulumi.Context) error {
 
 			if _, err := etcd.K8sAppDefinition(&awsEnv, cluster.KubeProvider); err != nil {
 				return err
+			}
+
+			if awsEnv.AgentDeployArgoRollout() {
+				if _, err := nginx.K8sRolloutAppDefinition(&awsEnv, cluster.KubeProvider, "workload-argo-rollout-nginx", utils.PulumiDependsOn(argoRollout)); err != nil {
+					return err
+				}
 			}
 		}
 	}

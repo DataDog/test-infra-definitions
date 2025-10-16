@@ -29,7 +29,10 @@ func Run(ctx *pulumi.Context) error {
 
 	osDesc := os.DescriptorFromString("redhat:9", os.RedHat9)
 	vm, err := compute.NewVM(gcpEnv, "openshift",
-		compute.WithOS(osDesc))
+		compute.WithOS(osDesc),
+		compute.WithInstancetype("n2-standard-8"),
+		compute.WithNestedVirt(true),
+	)
 	if err != nil {
 		return err
 	}
@@ -70,6 +73,14 @@ func Run(ctx *pulumi.Context) error {
 		}
 		if gcpEnv.AgentUseDualShipping() {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
+		}
+
+		if storeType := gcpEnv.AgentFakeintakeStoreType(); storeType != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+		}
+
+		if retentionPeriod := gcpEnv.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
 		}
 
 		if fakeIntake, err = fakeintake.NewVMInstance(gcpEnv, fakeIntakeOptions...); err != nil {
@@ -168,13 +179,15 @@ clusterAgent:
 			return err
 		}
 
-		if _, err := cpustress.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
+		if _, err := cpustress.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
 			return err
 		}
-		if _, err := tracegen.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
+
+		if _, err := tracegen.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
 			return err
 		}
-		if _, err := dogstatsd.K8sAppDefinitionOpenShift(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, dependsOnDDAgent /* for admission */); err != nil {
+
+		if _, err := dogstatsd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, "/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

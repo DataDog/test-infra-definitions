@@ -46,7 +46,7 @@ func resolveWindowsURN(_ azure.Environment, osInfo os.Descriptor) (string, error
 		return "", errors.New("ARM64 is not supported for Windows")
 	}
 	if osInfo.Version == "" {
-		osInfo.Version = os.WindowsDefault.Version
+		osInfo.Version = os.WindowsServerDefault.Version
 	}
 
 	if osInfo.Version == "2016" || osInfo.Version == "2019" {
@@ -62,7 +62,7 @@ func resolveWindowsClientURN(_ azure.Environment, osInfo os.Descriptor) (string,
 		return "", errors.New("ARM64 is not supported for Windows")
 	}
 	if osInfo.Version == "" {
-		osInfo.Version = os.WindowsDefault.Version
+		osInfo.Version = os.WindowsServerDefault.Version
 	}
 
 	return fmt.Sprintf("MicrosoftWindowsDesktop:%s:latest", osInfo.Version), nil

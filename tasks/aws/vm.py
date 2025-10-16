@@ -49,6 +49,7 @@ remote_hostname = "aws-vm"
         "agent_flavor": doc.agent_flavor,
         "agent_config_path": doc.agent_config_path,
         "local_package": doc.local_package,
+        "latest_ami": doc.latest_ami,
     }
 )
 def create_vm(
@@ -74,6 +75,7 @@ def create_vm(
     agent_flavor: Optional[str] = None,
     agent_config_path: Optional[str] = None,
     local_package: Optional[str] = None,
+    latest_ami: Optional[bool] = False,
 ) -> None:
     """
     Create a new virtual machine on aws.
@@ -89,6 +91,8 @@ def create_vm(
 
     if ami_id is not None:
         extra_flags["ddinfra:osImageID"] = ami_id
+    if latest_ami is not None:
+        extra_flags["ddinfra:osImageIDUseLatest"] = latest_ami
 
     if use_fakeintake and not install_agent:
         print(

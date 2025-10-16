@@ -50,7 +50,6 @@ def deploy(
         raise Exit(f"Error in config {get_full_profile_path(config_path)}") from e
 
     flags["scenario"] = scenario_name
-    flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
     flags["ddagent:flavor"] = agent_flavor
     flags["ddagent:fakeintake"] = use_fakeintake
@@ -60,6 +59,8 @@ def deploy(
     flags["ddagent:extraEnvVars"] = agent_env
     flags["ddagent:helmConfig"] = helm_config
     flags["ddagent:localPackage"] = local_package
+
+    flags["ddagent:pipeline_id"] = "" if pipeline_id is None else pipeline_id
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
@@ -108,6 +109,8 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
         # Windows
         "deploy_windows_testing-a7": f"dd-agent-mstesting/pipelines/A7/{pipeline_id}",
         "deploy_windows_testing-a6": f"dd-agent-mstesting/pipelines/A6/{pipeline_id}",
+        # macOS
+        "deploy_dmg_testing-a7_x64": f"dd-agent-macostesting/ci/datadog-agent/pipeline-{pipeline_id}",
     }
 
     bucket_path = deploy_job_to_s3[deploy_job]
@@ -159,7 +162,7 @@ def _deploy(
 
     # Building run func parameters
     for key, value in flags.items():
-        if value is not None and value != "":
+        if value is not None:
             up_flags += f' -c "{key}={value}"'
 
     should_log = debug or log_level is not None or log_to_stderr

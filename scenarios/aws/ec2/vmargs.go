@@ -4,6 +4,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/os"
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
 // Params defines the parameters for a virtual machine.
@@ -11,28 +12,37 @@ import (
 //
 // The available options are:
 //   - [WithOS]
-//   - [WithImageName]
+//   - [WithAMI]
+//   - [WithLatestAMI]
 //   - [WithArch]
 //   - [WithInstanceType]
 //   - [WithUserData]
 //   - [WithName]
+//   - [WithHostID]
+//   - [WithTenancy]
+//   - [WithPulumiResourceOptions]
 //
 // [Functional options pattern]: https://dave.cheney.net/2014/10/17/functional-options-for-friendly-apis
 
 type vmArgs struct {
 	osInfo          *os.Descriptor
 	ami             string
+	useLatestAMI    bool
 	userData        string
 	instanceType    string
 	instanceProfile string
+	tenancy         string
+	hostID          string
 
-	httpTokensRequired bool
+	httpTokensRequired    bool
+	pulumiResourceOptions []pulumi.ResourceOption
 }
 
 type VMOption = func(*vmArgs) error
 
 func buildArgs(options ...VMOption) (*vmArgs, error) {
 	vmArgs := &vmArgs{}
+	vmArgs.pulumiResourceOptions = []pulumi.ResourceOption{}
 	return common.ApplyOption(vmArgs, options)
 }
 
@@ -56,6 +66,14 @@ func WithAMI(ami string, osDesc os.Descriptor, arch os.Architecture) VMOption {
 	return func(p *vmArgs) error {
 		p.osInfo = utils.Pointer(osDesc.WithArch(arch))
 		p.ami = ami
+		return nil
+	}
+}
+
+// WithLatestAMI sets the latest AMI for the OS and architecture.
+func WithLatestAMI() VMOption {
+	return func(p *vmArgs) error {
+		p.useLatestAMI = true
 		return nil
 	}
 }
@@ -86,6 +104,29 @@ func WithInstanceProfile(instanceProfile string) VMOption {
 func WithIMDSv1Disable() VMOption {
 	return func(p *vmArgs) error {
 		p.httpTokensRequired = true
+		return nil
+	}
+}
+
+// WithHostId sets the dedicated host ID for the instance
+func WithHostID(hostID string) VMOption {
+	return func(p *vmArgs) error {
+		p.hostID = hostID
+		return nil
+	}
+}
+
+// WithTenancy sets the tenancy for the instance
+func WithTenancy(tenancy string) VMOption {
+	return func(p *vmArgs) error {
+		p.tenancy = tenancy
+		return nil
+	}
+}
+
+func WithPulumiResourceOptions(options ...pulumi.ResourceOption) VMOption {
+	return func(p *vmArgs) error {
+		p.pulumiResourceOptions = options
 		return nil
 	}
 }

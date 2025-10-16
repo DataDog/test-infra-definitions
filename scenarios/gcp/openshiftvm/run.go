@@ -3,9 +3,11 @@ package openshiftvm
 import (
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
-	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/redis"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	fakeintakeComp "github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	"github.com/DataDog/test-infra-definitions/components/kubernetes"
@@ -27,7 +29,10 @@ func Run(ctx *pulumi.Context) error {
 
 	osDesc := os.DescriptorFromString("redhat:9", os.RedHat9)
 	vm, err := compute.NewVM(gcpEnv, "openshift",
-		compute.WithOS(osDesc))
+		compute.WithOS(osDesc),
+		compute.WithInstancetype("n2-standard-8"),
+		compute.WithNestedVirt(true),
+	)
 	if err != nil {
 		return err
 	}
@@ -70,6 +75,14 @@ func Run(ctx *pulumi.Context) error {
 			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 		}
 
+		if storeType := gcpEnv.AgentFakeintakeStoreType(); storeType != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+		}
+
+		if retentionPeriod := gcpEnv.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+			fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
+		}
+
 		if fakeIntake, err = fakeintake.NewVMInstance(gcpEnv, fakeIntakeOptions...); err != nil {
 			return err
 		}
@@ -87,6 +100,10 @@ func Run(ctx *pulumi.Context) error {
 datadog:
   kubelet:
     tlsVerify: false
+  # https://docs.datadoghq.com/containers/troubleshooting/admission-controller/?tab=helm#openshift
+  apm:
+    portEnabled: true
+    socketEnabled: false
 agents:
   enabled: true
   tolerations:
@@ -162,7 +179,15 @@ clusterAgent:
 			return err
 		}
 
-		if _, err := mutatedbyadmissioncontroller.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-mutated", "workload-mutated-lib-injection", dependsOnDDAgent /* for admission */); err != nil {
+		if _, err := cpustress.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-cpustress"); err != nil {
+			return err
+		}
+
+		if _, err := tracegen.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-tracegen"); err != nil {
+			return err
+		}
+
+		if _, err := dogstatsd.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "workload-dogstatsd", 8125, "/run/datadog/dsd.socket", dependsOnDDAgent /* for admission */); err != nil {
 			return err
 		}
 	}

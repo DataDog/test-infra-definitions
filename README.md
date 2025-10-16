@@ -60,6 +60,9 @@ To get the list of available tasks
 
 Run any `-h` on any of the available tasks for more information
 
+## MacOS support
+
+The `aws.create-vm` task should allow you to spin up a MacOS instance using `-o macos` flag. Note that spinning such an instance is expensive because it requires a dedicated host. When you have one running please reuse it instead of creating new instances every time you need it. The cleaner will automatically get rid of the dedicated hosts.
 ## Troubleshooting
 
 ### Environment and configuration
@@ -178,5 +181,5 @@ pulumi up -c scenario=gcp/gke -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/de
 
 ```
 # You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
-pulumi up -c scenario=gcp/openshiftvm -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/openshift/pullSecretPath=<your_pull_secret_path -c ddinfra:gcp/enableNestedVirtualization=true -c ddinfra:gcp/defaultInstanceType=n2-standard-8 -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddagent:apiKey=$DD_API_KEY  -c ddagent:appKey=$DD_APP_KEY -c ddtestworkload:deploy=false -s <your_name>-openshift
+pulumi up -c scenario=gcp/openshiftvm -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/openshift/pullSecretPath=<your_pull_secret_path -c ddinfra:gcp/enableNestedVirtualization=true -c ddinfra:gcp/defaultInstanceType=n2-standard-8 -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddagent:apiKey=$DD_API_KEY  -c ddagent:appKey=$DD_APP_KEY -s <your_name>-openshift
 ```

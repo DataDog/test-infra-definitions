@@ -1,6 +1,7 @@
 repos:
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.55.2
+    # Sync with the version in .github/workflows/lint.yml
+    rev: v1.64.8
     hooks:
       - id: golangci-lint
   - repo: local

@@ -45,10 +45,10 @@ $ErrorActionPreference = 'Stop';
 	return am.host.OS.Runner().Command("install-agent", &command.Args{Create: pulumi.Sprintf(cmd, env.AgentAPIKey())}, opts...)
 }
 
-func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
+func (am *agentWindowsManager) getInstallCommand(version agentparams.PackageVersion, apiKey pulumi.StringInput, additionalInstallParameters []string) (pulumi.StringOutput, error) {
 	url, err := getAgentURL(version)
 	if err != nil {
-		return "", err
+		return pulumi.Sprintf(""), err
 	}
 
 	cmd := ""
@@ -73,11 +73,11 @@ for ($i=0; $i -lt 3; $i++) {
 `, url, localFilename)
 	installPackageCommandStr, err := am.getInstallPackageCommand(localFilename, version, additionalInstallParameters)
 	if err != nil {
-		return "", err
+		return pulumi.Sprintf(""), err
 	}
 	cmd += installPackageCommandStr
 
-	return cmd, nil
+	return pulumi.Sprintf(cmd, apiKey), nil
 }
 
 func (am *agentWindowsManager) getInstallPackageCommand(filePath string, version agentparams.PackageVersion, additionalInstallParameters []string) (string, error) {
@@ -143,6 +143,24 @@ while ($tries -lt 5) {
 	}
 
 	return am.host.OS.Runner().Command(cmdName, cmdArgs, opts...)
+}
+
+func (am *agentWindowsManager) ensureAgentUninstalled(version agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error) {
+	uninstallCmd := `
+$productCode = (@(Get-ChildItem -Path "HKLM:SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" -Recurse) | Where {$_.GetValue("DisplayName") -like "Datadog Agent" }).PSChildName
+if (!$productCode) {
+    Write-Host "No Datadog Agent installation found to uninstall"
+    exit 0
+}
+start-process msiexec -Wait -ArgumentList ('/log', 'C:\uninst.log', '/q', '/x', "$productCode", 'REBOOT=ReallySuppress')
+`
+	return am.host.OS.Runner().Command("uninstall-agent", &command.Args{Create: pulumi.String(uninstallCmd), Update: nil, Triggers: pulumi.Array{
+		pulumi.String(version.Major),
+		pulumi.String(version.Minor),
+		pulumi.String(version.PipelineID),
+		pulumi.String(version.Flavor),
+		pulumi.String(version.Channel),
+	}}, opts...)
 }
 
 func getAgentURL(version agentparams.PackageVersion) (string, error) {

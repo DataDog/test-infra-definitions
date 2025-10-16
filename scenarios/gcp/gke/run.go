@@ -12,6 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/tracegen"
 	dogstatsdstandalone "github.com/DataDog/test-infra-definitions/components/datadog/dogstatsd-standalone"
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	"github.com/DataDog/test-infra-definitions/resources/gcp"
 	"github.com/DataDog/test-infra-definitions/scenarios/gcp/fakeintake"
 
@@ -36,6 +37,16 @@ func Run(ctx *pulumi.Context) error {
 	err = cluster.Export(ctx, nil)
 	if err != nil {
 		return err
+	}
+
+	var dependsOnVPA pulumi.ResourceOption
+	if !env.GKEAutopilot() {
+		vpaCrd, err := vpa.DeployCRD(&env, cluster.KubeProvider)
+		if err != nil {
+			return err
+		}
+
+		dependsOnVPA = utils.PulumiDependsOn(vpaCrd)
 	}
 
 	var dependsOnDDAgent pulumi.ResourceOption
@@ -65,6 +76,14 @@ func Run(ctx *pulumi.Context) error {
 				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithoutDDDevForwarding())
 			}
 
+			if storeType := env.AgentFakeintakeStoreType(); storeType != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithStoreType(storeType))
+			}
+
+			if retentionPeriod := env.AgentFakeintakeRetentionPeriod(); retentionPeriod != "" {
+				fakeIntakeOptions = append(fakeIntakeOptions, fakeintake.WithRetentionPeriod(retentionPeriod))
+			}
+
 			fakeintake, err := fakeintake.NewVMInstance(env, fakeIntakeOptions...)
 			if err != nil {
 				return err
@@ -91,7 +110,7 @@ func Run(ctx *pulumi.Context) error {
 	// Deploy testing workload
 	if env.TestingWorkloadDeploy() {
 
-		if _, err := nginx.K8sAppDefinition(&env, cluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */); err != nil {
+		if _, err := nginx.K8sAppDefinition(&env, cluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 

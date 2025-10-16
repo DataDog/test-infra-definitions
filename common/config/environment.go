@@ -29,6 +29,7 @@ const (
 	DDInfraKubernetesVersion                = "kubernetesVersion"
 	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
 	DDInfraOSImageID                        = "osImageID"
+	DDInfraOSImageIDUseLatest               = "osImageIDUseLatest"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
@@ -56,6 +57,8 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentDualShipping                  = "dualshipping"
+	DDAgentFakeintakeStoreType           = "fakeintakeStoreType"
+	DDAGentFakeintakeRetentionPeriod     = "fakeintakeRetentionPeriod"
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
@@ -68,7 +71,8 @@ const (
 	DDUpdaterParamName = "deploy"
 
 	// Testing workload namerNamespace
-	DDTestingWorkloadDeployParamName = "deploy"
+	DDTestingWorkloadDeployParamName   = "deploy"
+	DDTestingWorkloadDeployArgoRollout = "deployArgoRollout"
 
 	// Dogstatsd namespace
 	DDDogstatsdDeployParamName        = "deploy"
@@ -106,7 +110,7 @@ type Env interface {
 	KubernetesVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
-	ResourcesTags() pulumi.StringMap
+	ResourcesTags() pulumi.StringMapInput
 	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
@@ -212,6 +216,10 @@ func (e *CommonEnvironment) InfraOSImageID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSImageID, "")
 }
 
+func (e *CommonEnvironment) InfraOSImageIDUseLatest() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraOSImageIDUseLatest, false)
+}
+
 func (e *CommonEnvironment) KubernetesVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.32")
 }
@@ -247,7 +255,7 @@ func EnvVariableResourceTags() map[string]string {
 	return tags
 }
 
-func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMapInput {
 	tags := pulumi.StringMap{}
 
 	// default tags
@@ -267,6 +275,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
+}
+
+func (e *CommonEnvironment) AgentDeployArgoRollout() bool {
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployArgoRollout, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {
@@ -339,6 +351,14 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) AgentUseDualShipping() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDualShipping, false)
+}
+
+func (e *CommonEnvironment) AgentFakeintakeStoreType() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentFakeintakeStoreType, "memory")
+}
+
+func (e *CommonEnvironment) AgentFakeintakeRetentionPeriod() string {
+	return e.AgentConfig.Get(DDAGentFakeintakeRetentionPeriod)
 }
 
 func (e *CommonEnvironment) Site() string {

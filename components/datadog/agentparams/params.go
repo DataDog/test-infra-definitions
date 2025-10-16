@@ -67,6 +67,7 @@ func NewParams(env config.Env, options ...Option) (*Params, error) {
 	defaultVersion := WithLatestNightly()
 	defaultFlavor := WithFlavor(DefaultFlavor)
 	if env.PipelineID() != "" {
+		fmt.Printf("Pipeline ID: %s\n", env.PipelineID())
 		defaultVersion = WithPipeline(env.PipelineID())
 	}
 	if env.AgentLocalPackage() != "" {
@@ -282,6 +283,8 @@ network_devices.netflow.forwarder.logs_dd_url: %[1]s:%[2]d
 network_devices.netflow.forwarder.logs_no_ssl: true
 network_path.forwarder.logs_dd_url: %[1]s:%[2]d
 network_path.forwarder.logs_no_ssl: true
+synthetics.forwarder.logs_dd_url: %[1]s:%[2]d
+synthetics.forwarder.logs_no_ssl: true
 container_lifecycle.logs_dd_url: %[1]s:%[2]d
 container_lifecycle.logs_no_ssl: true
 container_image.logs_dd_url: %[1]s:%[2]d
@@ -290,6 +293,8 @@ sbom.logs_dd_url: %[1]s:%[2]d
 sbom.logs_no_ssl: true
 service_discovery.forwarder.logs_dd_url: %[1]s:%[2]d
 service_discovery.forwarder.logs_no_ssl: true
+software_inventory.forwarder.logs_dd_url: %[1]s:%[2]d
+software_inventory.forwarder.logs_no_ssl: true
 `, hostname, port, scheme)
 		p.ExtraAgentConfig = append(p.ExtraAgentConfig, extraConfig)
 		return nil

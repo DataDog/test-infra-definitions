@@ -16,6 +16,20 @@ type amiInformation struct {
 	readyFunc   command.ReadyFunc
 }
 
+var defaultUsers = map[os.Flavor]string{
+	os.WindowsServer:  "Administrator",
+	os.Ubuntu:         "ubuntu",
+	os.AmazonLinux:    "ec2-user",
+	os.AmazonLinuxECS: "ec2-user",
+	os.Debian:         "admin",
+	os.RedHat:         "ec2-user",
+	os.Suse:           "ec2-user",
+	os.Fedora:         "fedora",
+	os.CentOS:         "centos",
+	os.RockyLinux:     "cloud-user",
+	os.MacosOS:        "ec2-user",
+}
+
 type amiResolverFunc func(aws.Environment, *os.Descriptor) (string, error)
 
 var amiResolvers = map[os.Flavor]amiResolverFunc{
@@ -29,19 +43,22 @@ var amiResolvers = map[os.Flavor]amiResolverFunc{
 	os.Fedora:         resolveFedoraAMI,
 	os.CentOS:         resolveCentOSAMI,
 	os.RockyLinux:     resolveRockyLinuxAMI,
+	os.MacosOS:        resolveMacosAMI,
 }
 
-var defaultUsers = map[os.Flavor]string{
-	os.WindowsServer:  "Administrator",
-	os.Ubuntu:         "ubuntu",
-	os.AmazonLinux:    "ec2-user",
-	os.AmazonLinuxECS: "ec2-user",
-	os.Debian:         "admin",
-	os.RedHat:         "ec2-user",
-	os.Suse:           "ec2-user",
-	os.Fedora:         "fedora",
-	os.CentOS:         "centos",
-	os.RockyLinux:     "cloud-user",
+// Returns the default version for the given flavor
+func getDefaultVersion(flavor os.Flavor) (string, error) {
+	if version, ok := os.LinuxDescriptorsDefault[flavor]; ok {
+		return version.Version, nil
+	}
+	if version, ok := os.WindowsDescriptorsDefault[flavor]; ok {
+		return version.Version, nil
+	}
+	if version, ok := os.MacOSDescriptorsDefault[flavor]; ok {
+		return version.Version, nil
+	}
+
+	return "", fmt.Errorf("no default version found for flavor %s, this flavor should be added to the default descriptors", flavor)
 }
 
 // resolveOS returns the AMI ID for the given OS.
@@ -51,9 +68,25 @@ var defaultUsers = map[os.Flavor]string{
 func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 	if vmArgs.ami == "" {
 		var err error
-		vmArgs.ami, err = amiResolvers[vmArgs.osInfo.Flavor](e, vmArgs.osInfo)
-		if err != nil {
-			return nil, err
+
+		// If no AMI set and latest AMI is requested, resolve the AMI
+		if vmArgs.osInfo.Version == "" && vmArgs.useLatestAMI {
+			vmArgs.ami, err = amiResolvers[vmArgs.osInfo.Flavor](e, vmArgs.osInfo)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			// If the version is not set, use the default version of this flavor
+			if vmArgs.osInfo.Version == "" {
+				vmArgs.osInfo.Version, err = getDefaultVersion(vmArgs.osInfo.Flavor)
+				if err != nil {
+					return nil, err
+				}
+			}
+			vmArgs.ami, err = aws.GetAMI(vmArgs.osInfo)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	fmt.Printf("Using AMI %s\n for stack %s\n", vmArgs.ami, e.Ctx().Stack())
@@ -79,12 +112,16 @@ func resolveOS(e aws.Environment, vmArgs *vmArgs) (*amiInformation, error) {
 	return amiInfo, nil
 }
 
+func warnOSNotUsingLatestAMI(e aws.Environment, osInfo *os.Descriptor) {
+	e.Ctx().Log.Warn(fmt.Sprintf("%s is not using the latest AMI but a hardcoded one", osInfo.Flavor.String()), nil)
+}
+
 func resolveWindowsAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 	if osInfo.Architecture == os.ARM64Arch {
 		return "", errors.New("ARM64 is not supported for Windows")
 	}
 	if osInfo.Version == "" {
-		osInfo.Version = os.WindowsDefault.Version
+		osInfo.Version = os.WindowsServerDefault.Version
 	}
 
 	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ami-windows-latest/Windows_Server-%s-English-Full-Base", osInfo.Version))
@@ -138,7 +175,7 @@ func resolveUbuntuAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 		// Override required as the architecture is x86_64 but the SSM parameter is amd64
 		paramArch = "amd64"
 	}
-	if osInfo.Version == "24.04" {
+	if osInfo.Version == "24-04" {
 		volumeType = "ebs-gp3"
 	}
 
@@ -174,11 +211,12 @@ func resolveSuseAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
 		osInfo.Version = os.SuseDefault.Version
 	}
 
-	if osInfo.Version == "15-sp4" {
+	if osInfo.Version == "15-4" {
+		warnOSNotUsingLatestAMI(e, osInfo)
 		if osInfo.Architecture == os.AMD64Arch {
 			return "ami-067dfda331f8296b0", nil // Private copy of the AMI dd-agent-sles-15-x86_64
 		} else if osInfo.Architecture == os.ARM64Arch {
-			return "ami-0d446ba26bbe19573", nil // Private copy of the AMI dd-agent-sles-15-arm64
+			return "ami-08350d1d1649d8c05", nil
 		}
 		return "", fmt.Errorf("architecture %s is not supported for SUSE %s", osInfo.Architecture, osInfo.Version)
 	}
@@ -205,19 +243,23 @@ func resolveCentOSAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) 
 
 	if osInfo.Architecture == os.ARM64Arch {
 		if osInfo.Version == "7" {
+			warnOSNotUsingLatestAMI(e, osInfo)
 			return "ami-0cb7a00afccf30559", nil
 		}
 		return "", fmt.Errorf("ARM64 is not supported for CentOS %s", osInfo.Version)
 	}
 
 	if osInfo.Version == "7" {
+		warnOSNotUsingLatestAMI(e, osInfo)
 		return "ami-036de472bb001ae9c", nil
 	}
 
 	return ec2.SearchAMI(e, "679593333241", fmt.Sprintf("CentOS-%s-*-*.x86_64*", osInfo.Version), string(osInfo.Architecture))
 }
 
-func resolveRockyLinuxAMI(_ aws.Environment, osInfo *os.Descriptor) (string, error) {
+func resolveRockyLinuxAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
+	warnOSNotUsingLatestAMI(e, osInfo)
+
 	if osInfo.Version != "" {
 		return "", fmt.Errorf("cannot set version for Rocky Linux")
 	}
@@ -233,4 +275,12 @@ func resolveRockyLinuxAMI(_ aws.Environment, osInfo *os.Descriptor) (string, err
 	}
 
 	return amiID, nil
+}
+
+func resolveMacosAMI(e aws.Environment, osInfo *os.Descriptor) (string, error) {
+	if osInfo.Version == "" {
+		osInfo.Version = os.MacOSSonoma.Version
+	}
+
+	return ec2.GetAMIFromSSM(e, fmt.Sprintf("/aws/service/ec2-macos/%s/%s_mac/latest/image_id", osInfo.Version, osInfo.Architecture))
 }

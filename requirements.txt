@@ -6,6 +6,6 @@ pydantic==2.11.4
 colorama>=0.4.6
 lxml==6.0.0
 python-gitlab==6.1.0
-PyGithub==2.6.1
+PyGithub==2.8.1
 boto3>=1.28.0
-pyright==1.1.403
+pyright==1.1.405

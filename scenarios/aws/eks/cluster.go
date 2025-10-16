@@ -1,12 +1,6 @@
 package eks
 
 import (
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components"
-	kubecomp "github.com/DataDog/test-infra-definitions/components/kubernetes"
-	"github.com/DataDog/test-infra-definitions/resources/aws"
-	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 	"github.com/pulumi/pulumi-aws/sdk/v6/go/aws/ec2"
 	awsEks "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/eks"
 	awsIam "github.com/pulumi/pulumi-aws/sdk/v6/go/aws/iam"
@@ -18,6 +12,13 @@ import (
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"github.com/samber/lo"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components"
+	kubecomp "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/resources/aws"
+	localEks "github.com/DataDog/test-infra-definitions/resources/aws/eks"
 )
 
 func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Cluster, error) {
@@ -28,20 +29,33 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 	return components.NewComponent(&e, name, func(comp *kubecomp.Cluster) error {
 		// Create Cluster SG
+		prefixLists := make([]string, 0, len(e.EKSAllowedInboundManagedPrefixListNames()))
+		for _, plName := range e.EKSAllowedInboundManagedPrefixListNames() {
+			pl, err := ec2.LookupManagedPrefixList(e.Ctx(), &ec2.LookupManagedPrefixListArgs{
+				Name: &plName,
+			}, e.WithProvider(config.ProviderAWS))
+			if err != nil {
+				return err
+			}
+			if pl != nil {
+				prefixLists = append(prefixLists, pl.Id)
+			}
+		}
+
 		clusterSG, err := ec2.NewSecurityGroup(e.Ctx(), e.Namer.ResourceName("eks-sg"), &ec2.SecurityGroupArgs{
 			NamePrefix:  e.CommonNamer().DisplayName(255, pulumi.String("eks-sg")),
 			Description: pulumi.StringPtr("EKS Cluster sg for stack: " + e.Ctx().Stack()),
 			Ingress: ec2.SecurityGroupIngressArray{
 				ec2.SecurityGroupIngressArgs{
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
-					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
+					PrefixListIds:  pulumi.ToStringArray(append(e.EKSAllowedInboundPrefixLists(), prefixLists...)),
 					ToPort:         pulumi.Int(22),
 					FromPort:       pulumi.Int(22),
 					Protocol:       pulumi.String("tcp"),
 				},
 				ec2.SecurityGroupIngressArgs{
 					SecurityGroups: pulumi.ToStringArray(e.EKSAllowedInboundSecurityGroups()),
-					PrefixListIds:  pulumi.ToStringArray(e.EKSAllowedInboundPrefixLists()),
+					PrefixListIds:  pulumi.ToStringArray(append(e.EKSAllowedInboundPrefixLists(), prefixLists...)),
 					ToPort:         pulumi.Int(443),
 					FromPort:       pulumi.Int(443),
 					Protocol:       pulumi.String("tcp"),
@@ -243,16 +257,30 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 		// Create managed node groups
 		if params.LinuxNodeGroup {
-			_, err := localEks.NewLinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
-			if err != nil {
-				return err
+			if params.UseAL2023Nodes {
+				_, err := localEks.NewAL2023LinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err := localEks.NewLinuxNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
 			}
 		}
 
 		if params.LinuxARMNodeGroup {
-			_, err := localEks.NewLinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
-			if err != nil {
-				return err
+			if params.UseAL2023Nodes {
+				_, err := localEks.NewAL2023LinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
+			} else {
+				_, err := localEks.NewLinuxARMNodeGroup(e, cluster, linuxNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+				if err != nil {
+					return err
+				}
 			}
 		}
 

@@ -73,8 +73,9 @@ func readMicroVMSSHKey(instance *Instance, depends []pulumi.Resource) (pulumi.St
 }
 
 func setupSSHAllowEnv(runner command.Runner, depends []pulumi.Resource) ([]pulumi.Resource, error) {
+	allowedEnvVars := []string{"DD_API_KEY", "CI_COMMIT_SHA"}
 	args := command.Args{
-		Create: pulumi.Sprintf("echo -e 'AcceptEnv DD_API_KEY\n' | sudo tee -a /etc/ssh/sshd_config"),
+		Create: pulumi.Sprintf("echo -e 'AcceptEnv %s\n' | sudo tee -a /etc/ssh/sshd_config", strings.Join(allowedEnvVars, " ")),
 	}
 	done, err := runner.Command("allow-ssh-env", &args, pulumi.DependsOn(depends))
 	if err != nil {

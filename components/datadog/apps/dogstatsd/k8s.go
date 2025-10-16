@@ -12,6 +12,7 @@ import (
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
+	rbacv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
@@ -36,6 +37,88 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
+	// openshift requires a non-default service account tighted to the privileged scc
+	sa, err := corev1.NewServiceAccount(e.Ctx(), fmt.Sprintf("dogstatsd-uds-sa-%d", statsdPort), &corev1.ServiceAccountArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.StringPtr("dogstatsd-uds-sa"),
+			Namespace: pulumi.StringPtr(namespace),
+		},
+	}, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	// create a clusterRoleBinding to bind the new service account with the existing privileged scc
+	if _, err := rbacv1.NewRoleBinding(e.Ctx(), fmt.Sprintf("dogstatsd-uds-scc-binding-%d", statsdPort), &rbacv1.RoleBindingArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("dogstatsd-scc-binding"),
+			Namespace: pulumi.StringPtr(namespace),
+		},
+		RoleRef: &rbacv1.RoleRefArgs{
+			ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
+			Kind:     pulumi.String("ClusterRole"),
+			Name:     pulumi.String("system:openshift:scc:hostaccess"),
+		},
+		Subjects: rbacv1.SubjectArray{
+			rbacv1.SubjectArgs{
+				Kind:      pulumi.String("ServiceAccount"),
+				Name:      sa.Metadata.Name().Elem(),
+				Namespace: pulumi.String(namespace),
+			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-uds-with-csi-%d", statsdPort), &appsv1.DeploymentArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("dogstatsd-uds-with-csi"),
+			Namespace: pulumi.String(namespace),
+			Labels: pulumi.StringMap{
+				"app": pulumi.String("dogstatsd-uds-with-csi"),
+			},
+		},
+		Spec: &appsv1.DeploymentSpecArgs{
+			Replicas: pulumi.Int(1),
+			Selector: &metav1.LabelSelectorArgs{
+				MatchLabels: pulumi.StringMap{
+					"app": pulumi.String("dogstatsd-uds-with-csi"),
+				},
+			},
+			Template: &corev1.PodTemplateSpecArgs{
+				Metadata: &metav1.ObjectMetaArgs{
+					Labels: pulumi.StringMap{
+						"admission.datadoghq.com/config.mode": pulumi.String("csi"),
+						"app":                                 pulumi.String("dogstatsd-uds-with-csi"),
+						"admission.datadoghq.com/enabled":     pulumi.String("true"),
+					},
+				},
+				Spec: &corev1.PodSpecArgs{
+					ServiceAccountName: sa.Metadata.Name().Elem(),
+					Containers: corev1.ContainerArray{
+						&corev1.ContainerArgs{
+							Name:  pulumi.String("dogstatsd"),
+							Image: pulumi.String("ghcr.io/datadog/apps-dogstatsd:" + apps.Version),
+
+							Resources: &corev1.ResourceRequirementsArgs{
+								Limits: pulumi.StringMap{
+									"cpu":    pulumi.String("100m"),
+									"memory": pulumi.String("32Mi"),
+								},
+								Requests: pulumi.StringMap{
+									"cpu":    pulumi.String("10m"),
+									"memory": pulumi.String("32Mi"),
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, opts...); err != nil {
+		return nil, err
+	}
+
 	if _, err := appsv1.NewDeployment(e.Ctx(), fmt.Sprintf("dogstatsd-uds-%d", statsdPort), &appsv1.DeploymentArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-uds"),
@@ -58,6 +141,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 					},
 				},
 				Spec: &corev1.PodSpecArgs{
+					ServiceAccountName: sa.Metadata.Name().Elem(),
 					Containers: corev1.ContainerArray{
 						&corev1.ContainerArgs{
 							Name:  pulumi.String("dogstatsd"),

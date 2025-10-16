@@ -34,6 +34,14 @@ func NewVMInstance(e azure.Environment, option ...Option) (*fakeintake.Fakeintak
 			cmdArgs = append(cmdArgs, "--dddev-forward")
 		}
 
+		if params.RetentionPeriod != "" {
+			cmdArgs = append(cmdArgs, "-retention-period="+params.RetentionPeriod)
+		}
+
+		if params.StoreStype != "" {
+			cmdArgs = append(cmdArgs, "-store="+params.StoreStype)
+		}
+
 		_, err = vm.OS.Runner().Command("docker_run_fakeintake", &command.Args{
 			Create: pulumi.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 -e DD_API_KEY=%s %s %s", e.AgentAPIKey(), params.ImageURL, cmdArgs),
 			Delete: pulumi.String("docker stop fakeintake"),

@@ -68,6 +68,10 @@
             <xsl:apply-templates select="@*|node()" />
         </xsl:copy>
     </xsl:template>
+    
+    <xsl:template match="disk/driver">
+      {diskDriver}
+    </xsl:template>
 
     <xsl:template
         match="/domain/devices/interface[@type='network']/mac/@address | /domain/devices/interface[@type='user']/mac/@address">

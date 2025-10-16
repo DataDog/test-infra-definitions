@@ -1,6 +1,8 @@
 package gke
 
 import (
+	_ "embed"
+
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
@@ -10,8 +12,12 @@ import (
 	"github.com/DataDog/test-infra-definitions/resources/gcp/gke"
 
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/yaml"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
+
+//go:embed workloadallowlist.yaml
+var autopilotAllowListYAML string
 
 type Params struct {
 	autopilot bool
@@ -55,6 +61,16 @@ func NewGKECluster(env gcp.Environment, opts ...Option) (*kubeComp.Cluster, erro
 			return err
 		}
 		comp.KubeProvider = gkeKubeProvider
+
+		// Apply allowlist if autopilot is enabled
+		if params.autopilot {
+			_, err = yaml.NewConfigGroup(env.Ctx(), env.Namer.ResourceName("autopilot-allowlist"), &yaml.ConfigGroupArgs{
+				YAML: []string{autopilotAllowListYAML},
+			}, pulumi.Provider(gkeKubeProvider), env.WithProviders(config.ProviderGCP))
+			if err != nil {
+				return err
+			}
+		}
 
 		return nil
 	})

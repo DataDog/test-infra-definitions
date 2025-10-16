@@ -119,7 +119,7 @@ def _install_pulumi(ctx: Context):
 
 # Check if gke-gcloud-auth-plugin is installed and install it if not
 def _install_gcloud_auth_plugin(ctx):
-    res = ctx.run("gcloud components list --format=json --filter 'name: gke-gcloud-auth-plugin'", hide=True)
+    res = ctx.run('gcloud components list --format=json --filter "name: gke-gcloud-auth-plugin"', hide=True)
     installed_component = json.loads(res.stdout)
     if installed_component[0]["state"]["name"] == "Installed":
         print("✅ gke-gcloud-auth-plugin is already installed")
@@ -327,6 +327,23 @@ def setup_gcp_config(config: Config):
     default_account = ask(f"🔑 Default account to use, default [{config.configParams.gcp.account}]: ")
     if default_account:
         config.configParams.gcp.account = default_account
+
+    # openShift pull secret path
+    if config.configParams.gcp.pullSecretPath is None:
+        config.configParams.gcp.pullSecretPath = ""
+    default_pull_secret_path = config.configParams.gcp.pullSecretPath
+    while True:
+        config.configParams.gcp.pullSecretPath = default_pull_secret_path
+        pull_secret_path = ask("🔑 Path to your OpenShift pull secret file (optional, can be set later): ")
+        if not pull_secret_path:
+            # empty to skip
+            config.configParams.gcp.pullSecretPath = ""
+            break
+
+        config.configParams.gcp.pullSecretPath = pull_secret_path
+        if os.path.isfile(config.configParams.gcp.pullSecretPath):
+            break
+        warn(f"{config.configParams.gcp.pullSecretPath} is not a valid file")
 
 
 def setupAgentConfig(config):

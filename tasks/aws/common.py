@@ -22,6 +22,7 @@ def get_os_families() -> List[str]:
         "fedora",
         "centos",
         "rockylinux",
+        "macos",
     ]
 
 
@@ -37,6 +38,7 @@ def get_package_for_os(os: str) -> str:
         "fedora": "rpm",
         "centos": "rpm",
         "rockylinux": "rpm",
+        "macos": "dmg",
     }
 
     return package_map[os]
@@ -64,7 +66,7 @@ def get_deploy_job(os: str, arch: Union[str, None], agent_version: Union[str, No
         assert arch == 'x64', f'Invalid architecure {arch} for Windows'
     elif os == 'suse':
         suffix = f'_{arch}-{v}'
-    elif pkg in ('deb', 'rpm'):
+    elif pkg in ('deb', 'rpm', 'dmg'):
         suffix = f'-{v}_{arch}'
     else:
         raise RuntimeError(f'Cannot deduce deploy job from {os}::{arch}')

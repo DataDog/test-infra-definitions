@@ -2,12 +2,15 @@ package operatorparams
 
 import (
 	"fmt"
-
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+)
+
+const (
+	DatadogHelmRepo = "https://helm.datadoghq.com"
 )
 
 type Params struct {
@@ -17,6 +20,10 @@ type Params struct {
 	Namespace string
 	// HelmValues is the Helm values to use for the operator installation.
 	HelmValues pulumi.AssetOrArchiveArray
+	// HelmRepoURL is the Helm repo URL to use for the operator installation.
+	HelmRepoURL string
+	// HelmChartPath is the Helm chart path to use for the operator installation.
+	HelmChartPath string
 	// PulumiResourceOptions is a list of resources to depend on.
 	PulumiResourceOptions []pulumi.ResourceOption
 }
@@ -25,11 +32,18 @@ type Option = func(*Params) error
 
 func NewParams(e config.Env, options ...Option) (*Params, error) {
 	version := &Params{
-		Namespace: "datadog",
+		Namespace:     "datadog",
+		HelmRepoURL:   DatadogHelmRepo,
+		HelmChartPath: "datadog-operator",
 	}
 
 	if e.PipelineID() != "" && e.CommitSHA() != "" {
 		options = append(options, WithOperatorFullImagePath(utils.BuildDockerImagePath(fmt.Sprintf("%s/operator", e.InternalRegistry()), fmt.Sprintf("%s-%s", e.PipelineID(), e.CommitSHA()))))
+	}
+
+	if e.OperatorLocalChartPath() != "" {
+		options = append(options, WithHelmChartPath(e.OperatorLocalChartPath()))
+		options = append(options, WithHelmRepoURL(""))
 	}
 
 	return common.ApplyOption(version, options)
@@ -58,6 +72,22 @@ func WithOperatorFullImagePath(path string) func(*Params) error {
 func WithHelmValues(values string) func(*Params) error {
 	return func(p *Params) error {
 		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(values))
+		return nil
+	}
+}
+
+// WithHelmRepoURL specifies the remote Helm repo URL to use for the datadog-operator installation.
+func WithHelmRepoURL(repoURL string) func(*Params) error {
+	return func(p *Params) error {
+		p.HelmRepoURL = repoURL
+		return nil
+	}
+}
+
+// WithHelmChartPath specifies the remote chart name or local chart path to use for the datadog-operator installation.
+func WithHelmChartPath(chartPath string) func(*Params) error {
+	return func(p *Params) error {
+		p.HelmChartPath = chartPath
 		return nil
 	}
 }

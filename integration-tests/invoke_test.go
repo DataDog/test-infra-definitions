@@ -61,6 +61,11 @@ func TestInvokes(t *testing.T) {
 		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
 	})
 
+	t.Run("gcp.create-vm", func(t *testing.T) {
+		t.Parallel()
+		testGcpInvokeVM(t, tmpConfigFile, *workingDir)
+	})
+
 	t.Run("aws.invoke-docker-vm", func(t *testing.T) {
 		t.Parallel()
 		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
@@ -115,6 +120,25 @@ func testAwsInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string
 	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
 }
 
+func testGcpInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+
+	stackName := fmt.Sprintf("gcp-invoke-vm-%s", os.Getenv("CI_JOB_ID"))
+	stackName = sanitizeStackName(stackName)
+
+	t.Log("creating vm")
+	createCmd := exec.Command("invoke", "gcp.create-vm", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--no-add-known-host")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating vm: %s", string(createOutput))
+
+	t.Log("destroying vm")
+	destroyCmd := exec.Command("invoke", "gcp.destroy-vm", "--no-clean-known-hosts", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying stack: %s", string(destroyOutput))
+}
+
 func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()
 	stackName := fmt.Sprintf("invoke-docker-vm-%s", os.Getenv("CI_JOB_ID"))
@@ -133,7 +157,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory str
 	stdErr.Reset()
 
 	t.Log("destroying vm with docker")
-	destroyCmd := exec.Command("invoke", "destroy-docker", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "aws.destroy-docker", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyCmd.Stdout = &stdOut
 	destroyCmd.Stderr = &stdErr
@@ -150,13 +174,13 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	stackName := strings.Join(stackParts, "-")
 	stackName = sanitizeStackName(stackName)
 	t.Log("creating kind cluster")
-	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd := exec.Command("invoke", "aws.create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer", "--install-argorollout")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "aws.destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
@@ -176,7 +200,7 @@ func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory
 	assert.NoError(t, err, "Error found creating kind cluster: %s; %s", string(createOutput), err)
 
 	t.Log("destroying kind cluster with operator")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "aws.destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))

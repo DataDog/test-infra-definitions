@@ -49,6 +49,7 @@ remote_hostname = "aws-vm"
         "agent_flavor": doc.agent_flavor,
         "agent_config_path": doc.agent_config_path,
         "local_package": doc.local_package,
+        "latest_ami": doc.latest_ami,
     }
 )
 def create_vm(
@@ -74,19 +75,24 @@ def create_vm(
     agent_flavor: Optional[str] = None,
     agent_config_path: Optional[str] = None,
     local_package: Optional[str] = None,
+    latest_ami: Optional[bool] = False,
 ) -> None:
     """
     Create a new virtual machine on aws.
     """
 
     extra_flags = {}
+    if os_family == "macos":
+        extra_flags["ddinfra:aws/useMacosCompatibleSubnets"] = True
     os_family, os_arch = _get_os_information(ctx, os_family, architecture, ami_id)
-    deploy_job = None if no_verify else get_deploy_job(os_family, os_arch, agent_version)
+    deploy_job = None if no_verify or not pipeline_id else get_deploy_job(os_family, os_arch, agent_version)
     extra_flags["ddinfra:osDescriptor"] = f"{os_family}:{os_version if os_version else ''}:{os_arch}"
     extra_flags["ddinfra:deployFakeintakeWithLoadBalancer"] = use_loadBalancer
 
     if ami_id is not None:
         extra_flags["ddinfra:osImageID"] = ami_id
+    if latest_ami is not None:
+        extra_flags["ddinfra:osImageIDUseLatest"] = latest_ami
 
     if use_fakeintake and not install_agent:
         print(

@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/pulumi/pulumi-libvirt/sdk/go/libvirt"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -13,6 +14,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/DataDog/test-infra-definitions/common/utils"
+	microvmConfig "github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/config"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/microvms/resources"
 	"github.com/DataDog/test-infra-definitions/scenarios/aws/microVMs/vmconfig"
 )
@@ -21,6 +23,8 @@ const (
 	dhcpEntriesTemplate = "<host mac='%s' name='%s' ip='%s'/>"
 	sharedFSMountPoint  = "/opt/kernel-version-testing"
 	maxDomainIDLength   = 64
+	gdbPortRangeStart   = 4321
+	gdbPortRangeEnd     = 4421
 )
 
 func getNextVMIP(ip *net.IP) net.IP {
@@ -41,6 +45,7 @@ type Domain struct {
 	lvDomain    *libvirt.Domain
 	tag         string
 	vmset       vmconfig.VMSet
+	gdbPort     int
 }
 
 func generateDomainIdentifier(vcpu, memory int, vmsetTags, tag, arch string) string {
@@ -101,7 +106,7 @@ func getCPUTuneXML(vmcpus, hostCPUSet, cpuCount int) (string, int) {
 	return fmt.Sprintf("<cputune>%s</cputune>", strings.Join(vcpuMap, "\n")), hostCPUSet
 }
 
-func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
+func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory, gdbPort int, kernel vmconfig.Kernel, cputune string) (*Domain, error) {
 	var err error
 
 	domain := new(Domain)
@@ -146,28 +151,36 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 		hostOS = "linux" // Remote VMs are always on Linux hosts
 	}
 
+	qemuArgs := make(map[string]pulumi.StringInput)
+	if gdbPort != 0 {
+		qemuArgs["-gdb"] = pulumi.Sprintf("tcp:127.0.0.1:%d", gdbPort)
+		domain.gdbPort = gdbPort
+	}
+
+	var driver string
 	if hostOS == "linux" {
 		hypervisor = "kvm"
+		driver = "<driver name=\"qemu\" type=\"qcow2\" io=\"io_uring\"/>"
 	} else if hostOS == "darwin" {
 		hypervisor = "hvf"
 		// We have to use QEMU network devices because libvirt does not support the macOS
 		// network devices.
 		netID := libvirtResourceName(domainName, "netdev")
-		qemuArgs := map[string]pulumi.StringInput{
-			"-netdev": pulumi.Sprintf("vmnet-shared,id=%s", netID),
-			// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI
-			// device and that information can be used by udev to rename the device, instead of having eth0.
-			// This makes the naming consistent across different execution environments and avoids
-			// problems (for example, DHCP is configured for interfaces starting with en*, so
-			// if we had eth0 we wouldn't have a network connection)
-			// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
-			"-device": pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac),
-		}
 
-		for k, v := range qemuArgs {
-			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
-			commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
-		}
+		qemuArgs["-netdev"] = pulumi.Sprintf("vmnet-shared,id=%s", netID)
+		// Important: use virtio-net-pci instead of virtio-net-device so that the guest has a PCI
+		// device and that information can be used by udev to rename the device, instead of having eth0.
+		// This makes the naming consistent across different execution environments and avoids
+		// problems (for example, DHCP is configured for interfaces starting with en*, so
+		// if we had eth0 we wouldn't have a network connection)
+		// Also, configure the PCI address as 17 so that we don't have conflicts with other libvirt controlled devices
+		qemuArgs["-device"] = pulumi.Sprintf("virtio-net-pci,netdev=%s,mac=%s,addr=17", netID, domain.mac)
+		driver = "<driver name=\"qemu\" type=\"qcow2\"/>"
+	}
+
+	for k, v := range qemuArgs {
+		commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, k)
+		commandLine = pulumi.Sprintf("%s\n<arg value='%s' />", commandLine, v)
 	}
 
 	domain.RecipeLibvirtDomainArgs.Xls = rc.GetDomainXLS(
@@ -181,6 +194,7 @@ func newDomainConfiguration(e config.Env, set *vmconfig.VMSet, vcpu, memory int,
 			resources.CPUTune:       pulumi.String(cputune),
 			resources.Hypervisor:    pulumi.String(hypervisor),
 			resources.CommandLine:   commandLine,
+			resources.DiskDriver:    pulumi.String(driver),
 		},
 	)
 	domain.RecipeLibvirtDomainArgs.Machine = set.Machine
@@ -222,15 +236,54 @@ func getVolumeDiskTarget(isRootVolume bool, lastDisk string) string {
 	return fmt.Sprintf("/dev/vd%c", rune(int(lastDisk[len(lastDisk)-1])+1))
 }
 
+// isPortFree checks if a given TCP port on localhost in free
+func isPortFree(port int) bool {
+	address := fmt.Sprintf("127.0.0.1:%d", port)
+	conn, err := net.DialTimeout("tcp", address, 1*time.Second)
+	if err != nil {
+		// If there's an error connecting, we assume the port is free
+		return true
+	}
+
+	conn.Close()
+	// If connection was successful, port is in use
+	return false
+}
+
 func GenerateDomainConfigurationsForVMSet(e config.Env, providerFn LibvirtProviderFn, depends []pulumi.Resource, set *vmconfig.VMSet, fs *LibvirtFilesystem, cpuSetStart int) ([]*Domain, int, error) {
 	var domains []*Domain
 	var cpuTuneXML string
+
+	commonEnv, err := config.NewCommonEnvironment(e.Ctx())
+	if err != nil {
+		return nil, 0, err
+	}
+	m := microvmConfig.NewMicroVMConfig(commonEnv)
+	setupGDB := m.GetBoolWithDefault(m.MicroVMConfig, microvmConfig.DDMicroVMSetupGDB, false) && set.Arch == LocalVMSet
+	gdbPort := gdbPortRangeStart
 
 	for _, vcpu := range set.VCpu {
 		for _, memory := range set.Memory {
 			for _, kernel := range set.Kernels {
 				cpuTuneXML, cpuSetStart = getCPUTuneXML(vcpu, cpuSetStart, set.VMHost.AvailableCPUs)
-				domain, err := newDomainConfiguration(e, set, vcpu, memory, kernel, cpuTuneXML)
+
+				domainPort := 0
+				if setupGDB {
+					for port := gdbPort; port < gdbPortRangeEnd; port++ {
+						if isPortFree(port) {
+							domainPort = port
+							break
+						}
+					}
+
+					if domainPort == 0 {
+						return nil, 0, fmt.Errorf("could not find free port in range [%d,%d] for gdb server", gdbPortRangeStart, gdbPortRangeEnd)
+					}
+
+					gdbPort = domainPort + 1 // evaluate another port in the next iteration
+				}
+
+				domain, err := newDomainConfiguration(e, set, vcpu, memory, domainPort, kernel, cpuTuneXML)
 				if err != nil {
 					return []*Domain{}, 0, err
 				}

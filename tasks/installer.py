@@ -37,6 +37,6 @@ def destroy_installer_lab(
 ):
     print('This command is deprecated, please use `aws.destroy-installer-lab` instead')
     print("Running `aws.destroy-installer-lab`...")
-    from tasks.aws.installer import create_installer_lab as create_installer_lab_aws
+    from tasks.aws.installer import destroy_installer_lab as destroy_installer_lab_aws
 
-    create_installer_lab_aws(ctx)
+    destroy_installer_lab_aws(ctx)

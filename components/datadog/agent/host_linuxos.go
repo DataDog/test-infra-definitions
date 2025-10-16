@@ -25,19 +25,21 @@ func (am *agentLinuxManager) directInstallCommand(_ config.Env, packagePath stri
 	return am.targetOS.PackageManager().Ensure("./"+packagePath, nil, "", os.AllowUnsignedPackages(true), os.WithPulumiResourceOptions(opts...))
 }
 
-func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, _ []string) (string, error) {
+func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersion, apiKey pulumi.StringInput, _ []string) (pulumi.StringOutput, error) {
 	var commandLine string
 	testEnvVars := []string{}
 
 	if version.PipelineID != "" {
-		testEnvVars = append(testEnvVars, "TESTING_APT_URL=apttesting.datad0g.com")
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_APT_URL=apttesting.datad0g.com/datadog-agent/pipeline-%v-a%v", version.PipelineID, version.Major))
 		// apt testing repo
 		// TESTING_APT_REPO_VERSION="pipeline-xxxxx-a7 7"
-		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="pipeline-%[1]v-a%[2]v-%[3]s %[2]v"`, version.PipelineID, version.Major, am.targetOS.Descriptor().Architecture))
+		testEnvVars = append(testEnvVars, fmt.Sprintf(`TESTING_APT_REPO_VERSION="stable-%[1]s %[2]v"`, am.targetOS.Descriptor().Architecture, version.Major))
 		testEnvVars = append(testEnvVars, "TESTING_YUM_URL=yumtesting.datad0g.com")
 		// yum testing repo
 		// TESTING_YUM_VERSION_PATH="testing/pipeline-xxxxx-a7/7"
 		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_YUM_VERSION_PATH=testing/pipeline-%[1]v-a%[2]v/%[2]v", version.PipelineID, version.Major))
+		// target testing keys
+		testEnvVars = append(testEnvVars, fmt.Sprintf("TESTING_KEYS_URL=apttesting.datad0g.com/test-keys"))
 	} else {
 		testEnvVars = append(testEnvVars, fmt.Sprintf("DD_AGENT_MAJOR_VERSION=%v", version.Major))
 
@@ -57,10 +59,11 @@ func (am *agentLinuxManager) getInstallCommand(version agentparams.PackageVersio
 
 	commandLine = strings.Join(testEnvVars, " ")
 
-	return fmt.Sprintf(
+	commandLine = fmt.Sprintf(
 		`for i in 1 2 3 4 5; do curl -fsSL https://s3.amazonaws.com/dd-agent/scripts/%v -o install-script.sh && break || sleep $((2**$i)); done &&  for i in 1 2 3; do DD_API_KEY=%%s %v DD_INSTALL_ONLY=true bash install-script.sh  && exit 0 || sleep $((2**$i)); done; exit 1`,
 		fmt.Sprintf("install_script_agent%s.sh", version.Major),
-		commandLine), nil
+		commandLine)
+	return pulumi.Sprintf(commandLine, apiKey), nil
 }
 
 func (am *agentLinuxManager) getAgentConfigFolder() string {
@@ -69,4 +72,23 @@ func (am *agentLinuxManager) getAgentConfigFolder() string {
 
 func (am *agentLinuxManager) restartAgentServices(transform command.Transformer, opts ...pulumi.ResourceOption) (command.Command, error) {
 	return am.targetOS.ServiceManger().EnsureRestarted("datadog-agent", transform, opts...)
+}
+
+func (am *agentLinuxManager) ensureAgentUninstalled(version agentparams.PackageVersion, opts ...pulumi.ResourceOption) (command.Command, error) {
+	uninstallCmd, err := am.targetOS.PackageManager().EnsureUninstalled(version.Flavor, func(name string, cmdArgs command.RunnerCommandArgs) (string, command.RunnerCommandArgs) {
+		args := *cmdArgs.Arguments()
+		args.Triggers = pulumi.Array{
+			pulumi.String(version.Major),
+			pulumi.String(version.Minor),
+			pulumi.String(version.PipelineID),
+			pulumi.String(version.Flavor),
+			pulumi.String(version.Channel),
+		}
+		args.Update = nil
+		return name, &args
+	}, version.Flavor, os.WithPulumiResourceOptions(opts...))
+	if err != nil {
+		return nil, err
+	}
+	return uninstallCmd, nil
 }

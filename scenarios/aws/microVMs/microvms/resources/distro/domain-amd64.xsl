@@ -38,6 +38,10 @@
       </xsl:copy>
   </xsl:template>
 
+  <xsl:template match="disk/driver">
+    {diskDriver}
+  </xsl:template>
+
   <xsl:template match="/domain/devices/interface[@type='network']/mac/@address">
       <xsl:attribute name="address">
       <xsl:value-of select="'{mac}'" />
@@ -65,6 +69,9 @@
   <xsl:template match="domain/devices/video" />
 
   <xsl:template match="/domain/devices">
+    <commandline xmlns="http://libvirt.org/schemas/domain/qemu/1.0">
+      {commandLine}
+    </commandline>
     <xsl:copy>
       <xsl:apply-templates select="node()|@*" />
       <xsl:element name="memballoon">

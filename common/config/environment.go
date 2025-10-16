@@ -29,6 +29,7 @@ const (
 	DDInfraKubernetesVersion                = "kubernetesVersion"
 	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
 	DDInfraOSImageID                        = "osImageID"
+	DDInfraOSImageIDUseLatest               = "osImageIDUseLatest"
 	DDInfraDeployFakeintakeWithLoadBalancer = "deployFakeintakeWithLoadBalancer"
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
@@ -41,12 +42,14 @@ const (
 	DDAgentFlavorParamName               = "flavor"
 	DDAgentPipelineID                    = "pipeline_id"
 	DDAgentLocalPackage                  = "localPackage"
+	DDAgentLocalChartPath                = "localChartPath"
 	DDAgentCommitSHA                     = "commit_sha"
 	DDAgentFullImagePathParamName        = "fullImagePath"
 	DDClusterAgentVersionParamName       = "clusterAgentVersion"
 	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
 	DDOperatorVersionParamName           = "operatorVersion"
 	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
+	DDOperatorLocalChartPath             = "localChartPath"
 	DDImagePullRegistryParamName         = "imagePullRegistry"
 	DDImagePullUsernameParamName         = "imagePullUsername"
 	DDImagePullPasswordParamName         = "imagePullPassword"
@@ -54,6 +57,8 @@ const (
 	DDAgentAPPKeyParamName               = "appKey"
 	DDAgentFakeintake                    = "fakeintake"
 	DDAgentDualShipping                  = "dualshipping"
+	DDAgentFakeintakeStoreType           = "fakeintakeStoreType"
+	DDAGentFakeintakeRetentionPeriod     = "fakeintakeRetentionPeriod"
 	DDAgentSite                          = "site"
 	DDAgentMajorVersion                  = "majorVersion"
 	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
@@ -66,7 +71,8 @@ const (
 	DDUpdaterParamName = "deploy"
 
 	// Testing workload namerNamespace
-	DDTestingWorkloadDeployParamName = "deploy"
+	DDTestingWorkloadDeployParamName   = "deploy"
+	DDTestingWorkloadDeployArgoRollout = "deployArgoRollout"
 
 	// Dogstatsd namespace
 	DDDogstatsdDeployParamName        = "deploy"
@@ -104,13 +110,14 @@ type Env interface {
 	KubernetesVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
-	ResourcesTags() pulumi.StringMap
+	ResourcesTags() pulumi.StringMapInput
 	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
 	AgentVersion() string
 	AgentFIPS() bool
 	AgentLocalPackage() string
+	AgentLocalChartPath() string
 	PipelineID() string
 	CommitSHA() string
 	ClusterAgentVersion() string
@@ -118,6 +125,7 @@ type Env interface {
 	ClusterAgentFullImagePath() string
 	OperatorFullImagePath() string
 	OperatorVersion() string
+	OperatorLocalChartPath() string
 	ImagePullRegistry() string
 	ImagePullUsername() string
 	ImagePullPassword() pulumi.StringOutput
@@ -208,6 +216,10 @@ func (e *CommonEnvironment) InfraOSImageID() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraOSImageID, "")
 }
 
+func (e *CommonEnvironment) InfraOSImageIDUseLatest() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraOSImageIDUseLatest, false)
+}
+
 func (e *CommonEnvironment) KubernetesVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.32")
 }
@@ -243,7 +255,7 @@ func EnvVariableResourceTags() map[string]string {
 	return tags
 }
 
-func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMapInput {
 	tags := pulumi.StringMap{}
 
 	// default tags
@@ -265,6 +277,10 @@ func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
 }
 
+func (e *CommonEnvironment) AgentDeployArgoRollout() bool {
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployArgoRollout, false)
+}
+
 func (e *CommonEnvironment) AgentVersion() string {
 	return e.AgentConfig.Get(DDAgentVersionParamName)
 }
@@ -275,6 +291,9 @@ func (e *CommonEnvironment) AgentFlavor() string {
 
 func (e *CommonEnvironment) AgentLocalPackage() string {
 	return e.AgentConfig.Get(DDAgentLocalPackage)
+}
+func (e *CommonEnvironment) AgentLocalChartPath() string {
+	return e.AgentConfig.Get(DDAgentLocalChartPath)
 }
 func (e *CommonEnvironment) PipelineID() string {
 	return e.AgentConfig.Get(DDAgentPipelineID)
@@ -303,7 +322,9 @@ func (e *CommonEnvironment) OperatorVersion() string {
 func (e *CommonEnvironment) OperatorFullImagePath() string {
 	return e.OperatorConfig.Get(DDOperatorFullImagePathParamName)
 }
-
+func (e *CommonEnvironment) OperatorLocalChartPath() string {
+	return e.OperatorConfig.Get(DDOperatorLocalChartPath)
+}
 func (e *CommonEnvironment) ImagePullRegistry() string {
 	return e.AgentConfig.Get(DDImagePullRegistryParamName)
 }
@@ -330,6 +351,14 @@ func (e *CommonEnvironment) AgentUseFakeintake() bool {
 
 func (e *CommonEnvironment) AgentUseDualShipping() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDualShipping, false)
+}
+
+func (e *CommonEnvironment) AgentFakeintakeStoreType() string {
+	return e.GetStringWithDefault(e.AgentConfig, DDAgentFakeintakeStoreType, "memory")
+}
+
+func (e *CommonEnvironment) AgentFakeintakeRetentionPeriod() string {
+	return e.AgentConfig.Get(DDAGentFakeintakeRetentionPeriod)
 }
 
 func (e *CommonEnvironment) Site() string {

@@ -8,7 +8,7 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
-func NewLinuxInstance(e gcp.Environment, name string, imageName string, instanceType string, opts ...pulumi.ResourceOption) (*compute.Instance, error) {
+func NewLinuxInstance(e gcp.Environment, name string, imageName string, instanceType string, nestedVirt bool, opts ...pulumi.ResourceOption) (*compute.Instance, error) {
 
 	sshPublicKey, err := utils.GetSSHPublicKey(e.DefaultPublicKeyPath())
 	if err != nil {
@@ -18,7 +18,9 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 		NetworkInterfaces: compute.InstanceNetworkInterfaceArray{
 			&compute.InstanceNetworkInterfaceArgs{
 				AccessConfigs: compute.InstanceNetworkInterfaceAccessConfigArray{
-					nil,
+					&compute.InstanceNetworkInterfaceAccessConfigArgs{
+						NatIp: pulumi.String(""),
+					},
 				},
 				Network:    pulumi.String(e.DefaultNetworkName()),
 				Subnetwork: pulumi.String(e.DefaultSubnet()),
@@ -26,6 +28,9 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 		},
 		Name:        e.Namer.DisplayName(63, pulumi.String(name)),
 		MachineType: pulumi.String(instanceType),
+		AdvancedMachineFeatures: &compute.InstanceAdvancedMachineFeaturesArgs{
+			EnableNestedVirtualization: pulumi.BoolPtr(nestedVirt),
+		},
 		Tags: pulumi.StringArray{
 			pulumi.String("appgate-gateway"),
 			pulumi.String("nat-us-central1"),
@@ -36,6 +41,7 @@ func NewLinuxInstance(e gcp.Environment, name string, imageName string, instance
 				Labels: pulumi.StringMap{
 					"my_label": pulumi.String("value"),
 				},
+				Size: pulumi.Int(100),
 			},
 		},
 		Metadata: pulumi.StringMap{

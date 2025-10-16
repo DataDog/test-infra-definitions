@@ -58,6 +58,7 @@ func main() {
 	testDuration := flag.Duration("testtime", 0, "Amount of time to run the test. A value of '0' means the test will continue indefinitely.")
 	additionalSpanTagsFlat := flag.String("addspantags", "", "Comma separated list of additional tags to add to each span.")
 	additionalSpanTags = make(map[string]string)
+	waitDuration := flag.Duration("waittime", 0, "Amount of time to wait before the test actually starts producing data. Allows core-agent to detect new process and resolve container tags")
 	flag.Parse()
 
 	var err error
@@ -81,6 +82,12 @@ func main() {
 	}
 	if v, ok := os.LookupEnv("TRACEGEN_ADDSPANTAGS"); ok {
 		*additionalSpanTagsFlat = v
+	}
+	if v, ok := os.LookupEnv("TRACEGEN_WAITTIME"); ok {
+		*waitDuration, err = time.ParseDuration(v)
+		if err != nil {
+			panic(fmt.Sprintf("Invalid TRACEGEN_WAITTIME=%v: %v", v, err))
+		}
 	}
 
 	if *additionalSpanTagsFlat != "" {
@@ -117,6 +124,11 @@ func main() {
 
 	tracer.Start()
 	defer tracer.Stop()
+
+	if *waitDuration > 0 {
+		fmt.Printf("Sleeping %s before tracegen starts\n", waitDuration)
+		time.Sleep(*waitDuration)
+	}
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)

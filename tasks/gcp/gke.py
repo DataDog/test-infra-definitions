@@ -23,6 +23,7 @@ scenario_name = "gcp/gke"
         "stack_name": doc.stack_name,
         "agent_flavor": doc.agent_flavor,
         "helm_config": doc.helm_config,
+        "local_chart_path": doc.local_chart_path,
     }
 )
 def create_gke(
@@ -41,6 +42,7 @@ def create_gke(
     use_autopilot: Optional[bool] = False,
     agent_flavor: Optional[str] = None,
     helm_config: Optional[str] = None,
+    local_chart_path: Optional[str] = None,
 ) -> None:
     """
     Create a new GKE environment.
@@ -55,6 +57,7 @@ def create_gke(
         "ddinfra:env": f"gcp/{account if account else cfg.get_gcp().account}",
         "ddinfra:gcp/defaultPublicKeyPath": cfg.get_gcp().publicKeyPath,
         "ddinfra:gcp/gke/enableAutopilot": use_autopilot,
+        "ddagent:localChartPath": local_chart_path,
     }
 
     full_stack_name = deploy(

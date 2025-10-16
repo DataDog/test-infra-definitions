@@ -8,7 +8,8 @@ To run scripts and code in this repository, you will need:
 
 - [Go](https://golang.org/doc/install) 1.22 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
 - Python 3.9+ along with development libraries for tooling.
-- `account-admin` role on AWS `agent-sandbox` account. Ensure it by running
+- `account-admin` role on AWS `agent-sandbox` account. Ensure it by running `aws-vault login sso-agent-sandbox-account-admin`
+- [dda](https://datadoghq.dev/datadog-agent/setup/#tooling) installed on your laptop
 
   ```bash
   aws-vault login sso-agent-sandbox-account-admin
@@ -33,7 +34,7 @@ cd ~/dd && git clone git@github.com:DataDog/test-infra-definitions.git
 2. Install Python dependencies
 
 ```bash
-cd ~/dd/test-infra-definitions && pip3 install --requirement requirements.txt
+cd ~/dd/test-infra-definitions && dda -v self dep sync -f legacy-e2e -f legacy-github
 ```
 
 3. Add a PULUMI_CONFIG_PASSPHRASE to your Terminal rc file. Create a random password using 1Password and store it there
@@ -45,45 +46,38 @@ export PULUMI_CONFIG_PASSPHRASE=<random password stored in 1Password>
 4. Run and follow the setup script
 
 ```bash
-inv setup
+dda inv setup
 ```
 
 ### Create an environment for manual tests
 
-Invoke tasks help deploying most common environments - VMs, Docker, ECS, EKS. Run `inv -l` to learn more.
+Invoke tasks help deploying most common environments - VMs, Docker, ECS, EKS. Run `dda inv -l` to learn more.
 
+To get the list of available tasks
 ```bash
-❯ inv -l
-Available tasks:
-
-  check-s3-image-exists                                     Verify if an image exists in the s3 repository to create a vm
-  retry-job                                                 Retry gitlab pipeline job
-  aws.create-docker                                         Create a docker environment.
-  aws.create-ecs                                            Create a new ECS environment.
-  aws.create-eks                                            Create a new EKS environment. It lasts around 20 minutes.
-  aws.create-installer-lab
-  aws.create-kind                                           Create a kind environment.
-  aws.create-vm                                             Create a new virtual machine on aws.
-  aws.destroy-docker                                        Destroy an environment created by invoke aws.create-docker.
-  aws.destroy-ecs                                           Destroy a ECS environment created with invoke aws.create-ecs.
-  aws.destroy-eks                                           Destroy a EKS environment created with invoke aws.create-eks.
-  aws.destroy-installer-lab
-  aws.destroy-kind                                          Destroy an environment created by invoke aws.create-kind.
-  aws.destroy-vm                                            Destroy a new virtual machine on aws.
-  az.create-aks                                             Create a new AKS environment. It lasts around 5 minutes.
-  az.create-vm                                              Create a new virtual machine on azure.
-  az.destroy-aks                                            Destroy a AKS environment created with invoke az.create-aks.
-  az.destroy-vm                                             Destroy a new virtual machine on azure.
-  ci.create-bump-pr-and-close-stale-ones-on-datadog-agent
-  gcp.create-vm                                             Create a new virtual machine on GCP.
-  gcp.destroy-vm                                            Destroy a virtual machine environment created with invoke gcp.create-vm.
-  setup.debug                                               Debug E2E and test-infra-definitions required tools and configuration
-  setup.debug-keys                                          Debug E2E and test-infra-definitions SSH keys
-  setup.setup (setup)                                       Setup a local environment, interactively by default
-  test.check-xslt                                           Checks the XSLT transformations in the scenarios/aws/microVMs/microvms/resources path
+❯ dda inv -l
 ```
 
 Run any `-h` on any of the available tasks for more information
+
+## MacOS support
+
+The `aws.create-vm` task should allow you to spin up a MacOS instance using `-o macos` flag. Note that spinning such an instance is expensive because it requires a dedicated host. When you have one running please reuse it instead of creating new instances every time you need it. The cleaner will automatically get rid of the dedicated hosts.
+## Troubleshooting
+
+### Environment and configuration
+
+The `setup.debug` invoke task will check for common mistakes such as key unavailable in configured AWS region, ssh-agent not running, invalid key format, and more.
+
+```
+aws-vault exec sso-agent-sandbox-account-admin -- dda inv setup.debug
+aws-vault exec sso-agent-sandbox-account-admin -- dda inv setup --debug --no-interactive
+```
+
+
+## Interact with Pulumi
+
+Note: For most of the users interacting with Pulumi directly should not be required, you should be able to rely exclusively on the available tasks.
 
 ### Pulumi: Stack & Storage
 
@@ -169,13 +163,23 @@ pulumi up -c scenario=aws/ecs -c ddinfra:aws/defaultKeyPairName=<your_exisiting_
 pulumi up -c scenario=aws/eks -c ddinfra:aws/defaultKeyPairName=<your_exisiting_aws_keypair_name> -c ddinfra:env=aws/agent-sandbox -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-eks
 ```
 
-## Troubleshooting
+## Quick start: Create a GKE Standard + Agent (Helm) or a GKE Autopilot + Agent (Helm)
+**Prerequisites:**
+- Install the GKE authentication plugin: `gcloud components install gke-gcloud-auth-plugin`
+- Add the plugin to your PATH: `export PATH="/opt/homebrew/share/google-cloud-sdk/bin:$PATH"`
+- Authenticate with GCP: `gcloud auth application-default login`
+```
+# You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
+# GKE Standard
+pulumi up -c scenario=gcp/gke -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-gke
 
-### Environment and configuration
+# GKE Autopilot
+pulumi up -c scenario=gcp/gke -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddinfra:gcp/gke/enableAutopilot=true -c ddagent:apiKey=$DD_API_KEY -c ddagent:appKey=$DD_APP_KEY -s <your_name>-gke-autopilot
+```
 
-The `setup.debug` invoke task will check for common mistakes such as key unavailable in configured AWS region, ssh-agent not running, invalid key format, and more.
+## Quick start: Create an OpenShift Cluster + Agent (Helm) on an OpenShift Cluster
 
 ```
-aws-vault exec sso-agent-sandbox-account-admin -- inv setup.debug
-aws-vault exec sso-agent-sandbox-account-admin -- inv setup --debug --no-interactive
+# You need to have a DD APIKey AND APPKey in variable DD_API_KEY / DD_APP_KEY
+pulumi up -c scenario=gcp/openshiftvm -c ddinfra:env=gcp/agent-sandbox -c ddinfra:gcp/openshift/pullSecretPath=<your_pull_secret_path -c ddinfra:gcp/enableNestedVirtualization=true -c ddinfra:gcp/defaultInstanceType=n2-standard-8 -c ddinfra:gcp/defaultPublicKeyPath=$HOME/.ssh/id_ed25519.pub -c ddagent:apiKey=$DD_API_KEY  -c ddagent:appKey=$DD_APP_KEY -s <your_name>-openshift
 ```

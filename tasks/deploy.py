@@ -50,7 +50,6 @@ def deploy(
         raise Exit(f"Error in config {get_full_profile_path(config_path)}") from e
 
     flags["scenario"] = scenario_name
-    flags["ddagent:pipeline_id"] = pipeline_id
     flags["ddagent:version"] = agent_version
     flags["ddagent:flavor"] = agent_flavor
     flags["ddagent:fakeintake"] = use_fakeintake
@@ -60,6 +59,8 @@ def deploy(
     flags["ddagent:extraEnvVars"] = agent_env
     flags["ddagent:helmConfig"] = helm_config
     flags["ddagent:localPackage"] = local_package
+
+    flags["ddagent:pipeline_id"] = "" if pipeline_id is None else pipeline_id
 
     if install_agent:
         flags["ddagent:apiKey"] = _get_api_key(cfg)
@@ -91,10 +92,10 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
     # Job to s3 directory mapping
     deploy_job_to_s3 = {
         # Deb
-        "deploy_deb_testing-a7_x64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a7-x86_64/7/binary-x86_64",
-        "deploy_deb_testing-a7_arm64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a7-arm64/7/binary-arm64",
-        "deploy_deb_testing-a6_x64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a6-x86_64/6/binary-x86_64",
-        "deploy_deb_testing-a6_arm64": f"apttesting.datad0g.com/dists/pipeline-{pipeline_id}-a6-arm64/6/binary-arm64",
+        "deploy_deb_testing-a7_x64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a7/dists/stable-x86_64/7/binary-amd64",
+        "deploy_deb_testing-a7_arm64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a7/dists/stable-arm64/7/binary-arm64",
+        "deploy_deb_testing-a6_x64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a6/dists/stable-x86_64/6/binary-amd64",
+        "deploy_deb_testing-a6_arm64": f"apttesting.datad0g.com/datadog-agent/pipeline-{pipeline_id}-a6/dists/stable-arm64/6/binary-arm64",
         # Rpm
         "deploy_rpm_testing-a7_x64": f"yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/x86_64",
         "deploy_rpm_testing-a7_arm64": f"yumtesting.datad0g.com/testing/pipeline-{pipeline_id}-a7/7/aarch64",
@@ -108,6 +109,8 @@ def check_s3_image_exists(_, pipeline_id: str, deploy_job: str):
         # Windows
         "deploy_windows_testing-a7": f"dd-agent-mstesting/pipelines/A7/{pipeline_id}",
         "deploy_windows_testing-a6": f"dd-agent-mstesting/pipelines/A6/{pipeline_id}",
+        # macOS
+        "deploy_dmg_testing-a7_x64": f"dd-agent-macostesting/ci/datadog-agent/pipeline-{pipeline_id}",
     }
 
     bucket_path = deploy_job_to_s3[deploy_job]
@@ -159,8 +162,8 @@ def _deploy(
 
     # Building run func parameters
     for key, value in flags.items():
-        if value is not None and value != "":
-            up_flags += f" -c {key}={value}"
+        if value is not None:
+            up_flags += f' -c "{key}={value}"'
 
     should_log = debug or log_level is not None or log_to_stderr
     if log_level is None:

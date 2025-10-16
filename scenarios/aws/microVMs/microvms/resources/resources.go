@@ -28,6 +28,7 @@ const (
 	CPUTune       = "cputune"
 	Hypervisor    = "hypervisor"
 	CommandLine   = "commandLine"
+	DiskDriver    = "diskDriver"
 )
 
 const (

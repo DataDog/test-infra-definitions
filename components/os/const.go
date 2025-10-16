@@ -15,9 +15,9 @@ const (
 func ArchitectureFromString(archStr string) Architecture {
 	archStr = strings.ToLower(archStr)
 	switch archStr {
-	case "x86_64", "amd64", "": // Default architecture is AMD64
+	case "x86_64", "amd64", "", "x86_64_mac": // Default architecture is AMD64
 		return AMD64Arch
-	case "arm64", "aarch64":
+	case "arm64", "aarch64", "arm64_mac":
 		return ARM64Arch
 	default:
 		panic(fmt.Sprintf("unknown architecture: %s", archStr))
@@ -52,6 +52,7 @@ const (
 
 	// Windows
 	WindowsServer Flavor = 500
+	WindowsClient Flavor = 501
 
 	// MacOS
 	MacosOS Flavor = 1000
@@ -80,6 +81,8 @@ func FlavorFromString(flavorStr string) Flavor {
 		return RockyLinux
 	case "windows", "windows-server":
 		return WindowsServer
+	case "windows-client":
+		return WindowsClient
 	case "macos":
 		return MacosOS
 	default:
@@ -122,6 +125,8 @@ func (f Flavor) String() string {
 		return "rocky-linux"
 	case WindowsServer:
 		return "windows-server"
+	case WindowsClient:
+		return "windows-client"
 	case MacosOS:
 		return "macos"
 	case Unknown:

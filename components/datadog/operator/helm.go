@@ -1,20 +1,15 @@
 package operator
 
 import (
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/resources/helm"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	kubeHelm "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	"gopkg.in/yaml.v3"
-
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/resources/helm"
-)
-
-const (
-	DatadogHelmRepo = "https://helm.datadoghq.com"
 )
 
 // HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
@@ -27,6 +22,10 @@ type HelmInstallationArgs struct {
 	ValuesYAML pulumi.AssetOrArchiveArray
 	// OperatorFullImagePath is used to specify the full image path for the agent
 	OperatorFullImagePath string
+	// ChartPath is the chart name or local chart path.
+	ChartPath string
+	// RepoURL is the Helm repository URL to use for the remote operator installation.
+	RepoURL string
 }
 
 type HelmComponent struct {
@@ -105,8 +104,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	valuesYAML = append(valuesYAML, args.ValuesYAML...)
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
-		RepoURL:     DatadogHelmRepo,
-		ChartName:   "datadog-operator",
+		RepoURL:     args.RepoURL,
+		ChartName:   args.ChartPath,
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,

@@ -14,7 +14,7 @@ import (
 
 func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*agent.KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *agent.KubernetesAgent) error {
-		params, err := kubernetesagentparams.NewParams(options...)
+		params, err := kubernetesagentparams.NewParams(e, options...)
 		if err != nil {
 			return err
 		}
@@ -26,6 +26,8 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 			KubeProvider:                   kubeProvider,
 			DeployWindows:                  params.DeployWindows,
 			Namespace:                      params.Namespace,
+			ChartPath:                      params.HelmChartPath,
+			RepoURL:                        params.HelmRepoURL,
 			ValuesYAML:                     params.HelmValues,
 			Fakeintake:                     params.FakeIntake,
 			AgentFullImagePath:             params.AgentFullImagePath,

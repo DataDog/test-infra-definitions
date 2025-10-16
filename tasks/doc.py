@@ -4,6 +4,7 @@ install_agent: str = f"Install the Agent (default {tool.get_default_agent_instal
 install_agent_with_operator: str = (
     f"Install the Agent with Operator (default {tool.get_default_agent_with_operator_install()})."
 )
+install_argorollout: str = "Install argo rollout (default False)"
 install_installer: str = "Install the Installer (default False)."
 install_workload: str = f"Install test workload (default {tool.get_default_workload_install()})."
 pipeline_id: str = (
@@ -37,3 +38,6 @@ agent_config_path: str = "Agent config to merge with default config from a file 
 agent_env: str = "Extra environment variables to run the agent with, the format is `VAR1=val1,VAR2=val2`"
 helm_config: str = "Path to a custom helm config file that will be merged with the default one"
 local_package: str = "Path to a local package to install, it can be either a folder or a file. If a folder is targetted we automatically take the first file with the correct extension depending on the targetted OS"
+pull_secret_path: str = "Path to the OpenShift pull secret file (required for OpenShift cluster creation)."
+local_chart_path: str = "Path to a local helm chart to install the Datadog Agent."
+latest_ami: str = "Use the latest AMI for the OS and architecture (default False)."

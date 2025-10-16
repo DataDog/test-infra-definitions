@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"strings"
 
-	config "github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
 	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+	pulumiConfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )
 
 const (
@@ -26,6 +28,8 @@ const (
 	DDInfraDefaultZoneNameParamName        = "gcp/defaultZone"
 	DDInfraDefautVMServiceAccountParamName = "gcp/defaultVMServiceAccount"
 	DDInfraGKEEnableAutopilot              = "gcp/gke/enableAutopilot"
+	DDInfraOpenShiftPullSecretPath         = "gcp/openshift/pullSecretPath"
+	DDInfraEnableNestedVirtualization      = "gcp/enableNestedVirtualization"
 )
 
 type Environment struct {
@@ -50,6 +54,10 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 	env.CommonEnvironment = &commonEnv
 	env.envDefault = getEnvironmentDefault(config.FindEnvironmentName(commonEnv.InfraEnvironmentNames(), gcpNamerNamespace))
 
+	if scenario := pulumiConfig.Get(ctx, "scenario"); strings.Contains(scenario, "openshift") {
+		env.envDefault.ddInfra.openshift.nestedVirtualization = true
+	}
+
 	// TODO: Remove this when we find a better way to automatically log in
 	logIn(ctx)
 
@@ -57,6 +65,7 @@ func NewEnvironment(ctx *pulumi.Context) (Environment, error) {
 		Project: pulumi.StringPtr(env.envDefault.gcp.project),
 		Region:  pulumi.StringPtr(env.envDefault.gcp.region),
 		Zone:    pulumi.StringPtr(env.envDefault.gcp.zone),
+		DefaultLabels: env.ResourcesTags(),
 	})
 	if err != nil {
 		return Environment{}, err
@@ -108,7 +117,7 @@ func logIn(ctx *pulumi.Context) {
 // Cross Cloud Provider config
 
 func (e *Environment) InternalRegistry() string {
-	return "none"
+	return "us-central1-docker.pkg.dev/datadog-agent-qa/agent-qa"
 }
 
 func (e *Environment) InternalDockerhubMirror() string {
@@ -169,4 +178,14 @@ func (e *Environment) Region() string {
 // Zone returns the default zone for the GCP environment
 func (e *Environment) Zone() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultZoneNameParamName, e.envDefault.gcp.zone)
+}
+
+// OpenShiftPullSecretPath returns the path to the OpenShift pull secret file
+func (e *Environment) OpenShiftPullSecretPath() string {
+	return e.InfraConfig.Get(DDInfraOpenShiftPullSecretPath)
+}
+
+// EnableNestedVirtualization returns whether to enable nested virtualization
+func (e *Environment) EnableNestedVirtualization() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraEnableNestedVirtualization, e.envDefault.ddInfra.openshift.nestedVirtualization)
 }

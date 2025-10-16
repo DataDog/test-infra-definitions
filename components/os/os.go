@@ -15,6 +15,7 @@ type PackageManager interface {
 	// checkBinary is a binary that should be checked before running the install command, if it is not empty it will first run the `command -v checkBinary` command and if it fails it will run the installCmd,
 	// if it succeeds we consider the package is already installed
 	Ensure(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error)
+	EnsureUninstalled(packageRef string, transform command.Transformer, checkBinary string, opts ...PackageManagerOption) (command.Command, error)
 }
 
 func AllowUnsignedPackages(allow bool) PackageManagerOption {

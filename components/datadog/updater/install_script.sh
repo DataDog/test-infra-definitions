@@ -16,8 +16,8 @@ DD_INSTALLER_REGISTRY_URL_AGENT_PACKAGE="669783387624.dkr.ecr.us-east-1.amazonaw
 DD_INSTALLER_REGISTRY_AUTH_AGENT_PACKAGE="ecr" \
 DD_INSTALLER_DEFAULT_PKG_VERSION_DATADOG_AGENT="pipeline-${DD_PIPELINE_ID}" \
 TESTING_KEYS_URL="keys.datadoghq.com" \
-TESTING_APT_URL="apttesting.datad0g.com" \
-TESTING_APT_REPO_VERSION="pipeline-${DD_PIPELINE_ID}-a7-$(uname -m | sed 's/aarch64/arm64/; s/amd64/x86_64/') 7" \
+TESTING_APT_URL="apttesting.datad0g.com/datadog-agent/pipeline-${DD_PIPELINE_ID}-a7" \
+TESTING_APT_REPO_VERSION="stable-$(uname -m | sed 's/aarch64/arm64/; s/amd64/x86_64/') 7" \
 TESTING_YUM_URL="yumtesting.datad0g.com" \
 TESTING_YUM_VERSION_PATH="testing/pipeline-${DD_PIPELINE_ID}-a7/7" \
 bash -c "$(curl -L https://install.datadoghq.com/scripts/install_script_agent7.sh)"

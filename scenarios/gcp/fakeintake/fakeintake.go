@@ -1,6 +1,8 @@
 package fakeintake
 
 import (
+	"strings"
+
 	"github.com/DataDog/test-infra-definitions/common/utils"
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
@@ -33,8 +35,16 @@ func NewVMInstance(e gcp.Environment, option ...Option) (*fakeintake.Fakeintake,
 			cmdArgs = append(cmdArgs, "--dddev-forward")
 		}
 
+		if params.RetentionPeriod != "" {
+			cmdArgs = append(cmdArgs, "-retention-period="+params.RetentionPeriod)
+		}
+
+		if params.StoreStype != "" {
+			cmdArgs = append(cmdArgs, "-store="+params.StoreStype)
+		}
+
 		_, err = vm.OS.Runner().Command("docker_run_fakeintake", &command.Args{
-			Create: pulumi.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 -e DD_API_KEY=%s %s %s", e.AgentAPIKey(), params.ImageURL, cmdArgs),
+			Create: pulumi.Sprintf("docker run --restart unless-stopped --name fakeintake -d -p 80:80 -e DD_API_KEY=%s %s %s", e.AgentAPIKey(), params.ImageURL, strings.Join(cmdArgs, " ")),
 			Delete: pulumi.String("docker stop fakeintake"),
 		}, utils.PulumiDependsOn(manager), pulumi.DeleteBeforeReplace(true))
 		if err != nil {

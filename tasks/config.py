@@ -48,6 +48,7 @@ You should consider moving to the agent-sandbox account. Please follow https://d
         class GCP(BaseModel, extra=Extra.forbid):
             _DEFAULT_ACCOUNT = "agent-sandbox"
             publicKeyPath: Optional[str] = None
+            pullSecretPath: Optional[str] = None
             account: Optional[str] = _DEFAULT_ACCOUNT
 
         gcp: Optional[GCP] = None

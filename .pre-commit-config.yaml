@@ -1,26 +1,27 @@
 repos:
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.55.2
+    # Sync with the version in .github/workflows/lint.yml
+    rev: v1.64.8
     hooks:
-    - id: golangci-lint
+      - id: golangci-lint
   - repo: local
     hooks:
-    - id: pyright
-      name: pyright
-      entry: pyright
-      language: system  # Use local install for pyright, else we cannot import the requirements and we get errors on external libraries
-      'types_or': [python, pyi]
-      require_serial: true
-      additional_dependencies: []
-      minimum_pre_commit_version: '2.9.2'
+      - id: pyright
+        name: pyright
+        entry: pyright
+        language: system # Use local install for pyright, else we cannot import the requirements and we get errors on external libraries
+        "types_or": [python, pyi]
+        require_serial: true
+        additional_dependencies: []
+        minimum_pre_commit_version: "2.9.2"
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.3.5
+    rev: v0.12.2
     hooks:
       - id: ruff
-        args: [ --fix ]
+        args: [--fix]
       - id: ruff-format
   - repo: https://github.com/jendrikseipp/vulture
-    rev: 'v2.3'
+    rev: "v2.3"
     hooks:
       - id: vulture
   - repo: local
@@ -31,3 +32,10 @@ repos:
         files: .*\.go$
         language: system
         pass_filenames: false
+      - id: protected-branches
+        name: protected-branches
+        description: checks that the commit isn't created on a protected branch
+        entry: "inv ci.check-protected-branch"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit, pre-push]

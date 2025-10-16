@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	DatadogHelmRepo = "https://helm.datadoghq.com"
+	HelmVersion = "3.135.4"
 )
 
 // HelmInstallationArgs is the set of arguments for creating a new HelmInstallation component
@@ -32,6 +32,10 @@ type HelmInstallationArgs struct {
 	KubeProvider *kubernetes.Provider
 	// Namespace is the namespace in which to install the agent
 	Namespace string
+	// ChartPath is the chart name or local chart path.
+	ChartPath string
+	// RepoURL is the Helm repository URL to use for the remote chart installation.
+	RepoURL string
 	// ValuesYAML is used to provide installation-specific values
 	ValuesYAML pulumi.AssetOrArchiveArray
 	// Fakeintake is used to configure the agent to send data to a fake intake
@@ -152,7 +156,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	if args.GKEAutopilot {
 		values = buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result)
 	} else {
-		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll, e.TestingWorkloadDeploy())
+		values = buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag, randomClusterAgentToken.Result, !args.DisableLogsContainerCollectAll, e.TestingWorkloadDeploy(), args.FIPS)
 	}
 	values.configureImagePullSecret(imgPullSecret)
 	values.configureFakeintake(e, args.Fakeintake, args.DualShipping)
@@ -177,11 +181,12 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	}
 
 	linux, err := helm.NewInstallation(e, helm.InstallArgs{
-		RepoURL:     DatadogHelmRepo,
-		ChartName:   "datadog",
+		RepoURL:     args.RepoURL,
+		ChartName:   args.ChartPath,
 		InstallName: linuxInstallName,
 		Namespace:   args.Namespace,
 		ValuesYAML:  valuesYAML,
+		Version:     pulumi.String(HelmVersion),
 	}, opts...)
 	if err != nil {
 		return nil, err
@@ -207,8 +212,8 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 		windowsInstallName := baseName + "-windows"
 		windows, err := helm.NewInstallation(e, helm.InstallArgs{
-			RepoURL:     DatadogHelmRepo,
-			ChartName:   "datadog",
+			RepoURL:     args.RepoURL,
+			ChartName:   args.ChartPath,
 			InstallName: windowsInstallName,
 			Namespace:   args.Namespace,
 			ValuesYAML:  windowsValuesYAML,
@@ -235,8 +240,12 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 
 type HelmValues pulumi.Map
 
-func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool) HelmValues {
+func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentImagePath, clusterAgentImageTag string, clusterAgentToken pulumi.StringInput, logsContainerCollectAll bool, testingWorkloadsEnabled bool, isFIPS bool) HelmValues {
 	var containerRegistry, imageName string
+	isAutoscaling := true
+	if isFIPS {
+		isAutoscaling = false
+	}
 	if strings.Contains(agentImagePath, "/") {
 		agentImageElem := strings.Split(agentImagePath, "/")
 		containerRegistry = strings.Join(agentImageElem[:len(agentImageElem)-1], "/")
@@ -247,9 +256,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 	}
 	helmValues := HelmValues{
 		"datadog": pulumi.Map{
-			"apiKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-			"appKeyExistingSecret": pulumi.String(baseName + "-datadog-credentials"),
-			"checksCardinality":    pulumi.String("high"),
+			"apiKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
+			"appKeyExistingSecret":   pulumi.String(baseName + "-datadog-credentials"),
+			"leaderElectionResource": pulumi.String(""),
+			"checksCardinality":      pulumi.String("high"),
 			"namespaceLabelsAsTags": pulumi.Map{
 				"related_team": pulumi.String("team"),
 			},
@@ -297,6 +307,40 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"helmCheck": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
+			"kubeStateMetricsCore": pulumi.Map{
+				"enabled":                pulumi.Bool(true),
+				"collectVpaMetrics":      pulumi.Bool(true),
+				"useClusterCheckRunners": pulumi.Bool(true),
+				"collectCrMetrics": pulumi.MapArray{
+					pulumi.Map{
+						"groupVersionKind": pulumi.StringMap{
+							"group":   pulumi.String("datadoghq.com"),
+							"kind":    pulumi.String("DatadogMetric"),
+							"version": pulumi.String("v1alpha1"),
+						},
+						"commonLabels": pulumi.StringMap{
+							"cr_type": pulumi.String("ddm"),
+						},
+						"labelsFromPath": pulumi.StringArrayMap{
+							"ddm_namespace": pulumi.ToStringArray([]string{"metadata", "namespace"}),
+							"ddm_name":      pulumi.ToStringArray([]string{"metadata", "name"}),
+						},
+						"metrics": pulumi.MapArray{
+							pulumi.Map{
+								"name": pulumi.String("ddm_value"),
+								"help": pulumi.String("DatadogMetric value"),
+								"each": pulumi.Map{
+									"type": pulumi.String("gauge"),
+									"gauge": pulumi.StringArrayMap{
+										"path": pulumi.ToStringArray([]string{"status", "currentValue"}),
+									},
+								},
+							},
+						},
+					},
+				},
+				"tags": pulumi.ToStringArray([]string{"kube_instance_tag:static"}),
+			},
 			"prometheusScrape": pulumi.Map{
 				"enabled": pulumi.Bool(true),
 			},
@@ -313,19 +357,19 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			// https://github.com/DataDog/datadog-agent/blob/34922393ce47261da9835d7bf62fb5e090e5fa55/test/fakeintake/server/server.go#L81
 			// So, we need `container_image` and `sbom` checks to resubmit their payloads more frequently than that.
 			"confd": pulumi.StringMap{
-				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+				"container_image.yaml": pulumi.String(utils.JSONMustMarshal(map[string]any{
 					"ad_identifiers": []string{"_container_image"},
-					"init_config":    map[string]interface{}{},
-					"instances": []map[string]interface{}{
+					"init_config":    map[string]any{},
+					"instances": []map[string]any{
 						{
 							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
 					},
 				})),
-				"sbom.yaml": pulumi.String(utils.JSONMustMarshal(map[string]interface{}{
+				"sbom.yaml": pulumi.String(utils.JSONMustMarshal(map[string]any{
 					"ad_identifiers": []string{"_sbom"},
-					"init_config":    map[string]interface{}{},
-					"instances": []map[string]interface{}{
+					"init_config":    map[string]any{},
+					"instances": []map[string]any{
 						{
 							"periodic_refresh_seconds": 300, // To have at least one refresh per test
 						},
@@ -346,6 +390,12 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"value": pulumi.String("*"),
 				},
 			},
+			"autoscaling": pulumi.Map{
+				"workload": pulumi.Map{
+					// Autoscaling is not possible for FIPS as it requires remote-config and this is not available in FIPS agent.
+					"enabled": pulumi.Bool(isAutoscaling),
+				},
+			},
 		},
 		"agents": pulumi.Map{
 			"image": pulumi.Map{
@@ -356,10 +406,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 			"priorityClassCreate": pulumi.Bool(true),
 			"podAnnotations": pulumi.StringMap{
 				"ad.datadoghq.com/agent.checks": pulumi.String(utils.JSONMustMarshal(
-					map[string]interface{}{
-						"openmetrics": map[string]interface{}{
-							"init_config": map[string]interface{}{},
-							"instances": []map[string]interface{}{
+					map[string]any{
+						"openmetrics": map[string]any{
+							"init_config": map[string]any{},
+							"instances": []map[string]any{
 								{
 									"openmetrics_endpoint": "http://localhost:6000/telemetry",
 									"namespace":            "datadog.agent",
@@ -429,6 +479,7 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				"tag":           pulumi.String(clusterAgentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
 			},
+			"replicas": pulumi.Int(2),
 			"metricsProvider": pulumi.Map{
 				"enabled":           pulumi.Bool(true),
 				"useDatadogMetrics": pulumi.Bool(true),
@@ -458,86 +509,16 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 					"name":  pulumi.String("DD_EC2_METADATA_TIMEOUT"),
 					"value": pulumi.String("5000"), // Unit is ms
 				},
-				// This option is disabled by default and not exposed in the
+				// These options are disabled by default and not exposed in the
 				// Helm chart yet, so we need to set the env.
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AUTO_INSTRUMENTATION_INJECT_AUTO_DETECTED_LIBRARIES"),
 					"value": pulumi.String("true"),
 				},
-			},
-			"confd": pulumi.StringMap{
-				"kubernetes_state_core.yaml": pulumi.String(utils.YAMLMustMarshal(map[string]interface{}{
-					"init_config": nil,
-					"instances": []map[string]interface{}{
-						{
-							"collectors": []string{
-								"apiservices",
-								"secrets",
-								"configmaps",
-								"customresourcedefinitions",
-								"nodes",
-								"pods",
-								"services",
-								"resourcequotas",
-								"replicationcontrollers",
-								"limitranges",
-								"persistentvolumeclaims",
-								"persistentvolumes",
-								"namespaces",
-								"endpoints",
-								"daemonsets",
-								"deployments",
-								"replicasets",
-								"statefulsets",
-								"cronjobs",
-								"jobs",
-								"horizontalpodautoscalers",
-								"poddisruptionbudgets",
-								"storageclasses",
-								"volumeattachments",
-								"ingresses",
-								"verticalpodautoscalers",
-							},
-							"labels_as_tags":      map[string]interface{}{},
-							"annotations_as_tags": map[string]interface{}{},
-							"custom_resource": map[string]interface{}{
-								"spec": map[string]interface{}{
-									"resources": []map[string]interface{}{
-										{
-											"groupVersionKind": map[string]interface{}{
-												"group":   "datadoghq.com",
-												"kind":    "DatadogMetric",
-												"version": "v1alpha1",
-											},
-											"commonLabels": map[string]interface{}{
-												"cr_type": "ddm",
-											},
-											"labelsFromPath": map[string]interface{}{
-												"ddm_namespace": []string{"metadata", "namespace"},
-												"ddm_name":      []string{"metadata", "name"},
-											},
-											"metrics": []map[string]interface{}{
-												{
-													"name": "ddm_value",
-													"help": "DatadogMetric value",
-													"each": map[string]interface{}{
-														"type": "gauge",
-														"gauge": map[string]interface{}{
-															"path": []string{"status", "currentValue"},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-							"tags": []string{
-								"kube_instance_tag:static",
-							},
-						},
-					},
-				})),
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_ADMISSION_CONTROLLER_AGENT_SIDECAR_KUBELET_API_LOGGING_ENABLED"),
+					"value": pulumi.String("true"),
+				},
 			},
 		},
 		"clusterChecksRunner": pulumi.Map{
@@ -551,6 +532,13 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 				pulumi.StringMap{
 					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
 					"value": pulumi.String("true"),
+				},
+				// namespace labels as tags are removed here ƒrom the cluster check runner to
+				// be able to test that it can get the namespace labels from the cluster tagger
+				// via the remote tagger
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_KUBERNETES_NAMESPACE_LABELS_AS_TAGS"),
+					"value": pulumi.JSONMarshal(map[string]interface{}{}),
 				},
 			},
 			"resources": pulumi.StringMapMap{
@@ -626,6 +614,30 @@ func buildLinuxHelmValuesAutopilot(baseName, agentImagePath, agentImageTag, clus
 				"doNotCheckTag": pulumi.Bool(true),
 			},
 		},
+		"clusterChecksRunner": pulumi.Map{
+			"enabled": pulumi.Bool(false),
+			"image": pulumi.Map{
+				"repository":    pulumi.String(agentImagePath),
+				"tag":           pulumi.String(agentImageTag),
+				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"env": pulumi.StringMapArray{
+				pulumi.StringMap{
+					"name":  pulumi.String("DD_CLC_RUNNER_REMOTE_TAGGER_ENABLED"),
+					"value": pulumi.String("true"),
+				},
+			},
+			"resources": pulumi.StringMapMap{
+				"requests": pulumi.StringMap{
+					"cpu":    pulumi.String("20m"),
+					"memory": pulumi.String("300Mi"),
+				},
+				"limits": pulumi.StringMap{
+					"cpu":    pulumi.String("200m"),
+					"memory": pulumi.String("400Mi"),
+				},
+			},
+		},
 	}
 }
 
@@ -660,6 +672,9 @@ func buildWindowsHelmValues(baseName string, agentImagePath, agentImageTag, _, _
 				"repository":    pulumi.String(agentImagePath),
 				"tag":           pulumi.String(agentImageTag),
 				"doNotCheckTag": pulumi.Bool(true),
+			},
+			"nodeSelector": pulumi.Map{
+				"kubernetes.io/arch": pulumi.String("amd64"),
 			},
 		},
 		// Make the Windows node agents target the Linux cluster agent
@@ -826,7 +841,7 @@ func (values HelmValues) configureFakeintake(e config.Env, fakeintake *fakeintak
 }
 
 func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
-	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]interface{}) (pulumi.Asset, error) {
+	return pulumi.Map(values).ToMapOutput().ApplyT(func(v map[string]any) (pulumi.Asset, error) {
 		yamlValues, err := yaml.Marshal(v)
 		if err != nil {
 			return nil, err
@@ -839,22 +854,22 @@ func (values HelmValues) toYAMLPulumiAssetOutput() pulumi.AssetOutput {
 func buildOTelConfigWithFakeintake(otelConfig string, fakeintake *fakeintake.Fakeintake) pulumi.AssetOutput {
 
 	return fakeintake.URL.ApplyT(func(url string) (pulumi.Asset, error) {
-		defaultConfig := map[string]interface{}{
-			"exporters": map[string]interface{}{
-				"datadog": map[string]interface{}{
-					"metrics": map[string]interface{}{
+		defaultConfig := map[string]any{
+			"exporters": map[string]any{
+				"datadog": map[string]any{
+					"metrics": map[string]any{
 						"endpoint": url,
 					},
-					"traces": map[string]interface{}{
+					"traces": map[string]any{
 						"endpoint": url,
 					},
-					"logs": map[string]interface{}{
+					"logs": map[string]any{
 						"endpoint": url,
 					},
 				},
 			},
 		}
-		config := map[string]interface{}{}
+		config := map[string]any{}
 		if err := yaml.Unmarshal([]byte(otelConfig), &config); err != nil {
 			return nil, err
 		}

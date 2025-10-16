@@ -14,7 +14,7 @@ import (
 // GetPackagePath retrieve the name of the package that should be installed.
 // It will return the path to the package that should be installed for the given flavor and agent flavor.
 // If the package is not found, it will return an error.
-// If multiple packages are found, it will return the first one and print a warning.
+// If multiple packages are found, it will fail.
 // Args:
 //   - localPath: either a path to a folder or a path to a file
 //     if a folder is provided, it should have a structure similar to what the agent CI exposes.
@@ -26,11 +26,12 @@ import (
 //   - flavor: the flavor of the host
 //   - agentFlavor: the flavor of the agent
 //   - arch: the architecture of the host
+//   - pipelineID: the ID of the pipeline, if empty will be ignored, mainly used to avoid an issue with the Windows Runners, can be removed once CIEXE-143 is fixed
 //
 // Returns:
 // - the path to the package that should be installed
 // - an error if the package is not found or if there are multiple packages
-func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, arch tifos.Architecture) (string, error) {
+func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, arch tifos.Architecture, pipelineID string) (string, error) {
 	var wantedExt string
 	var subFolder string
 	switch flavor {
@@ -56,8 +57,16 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 	packagePath := localPath
 	matches := []string{}
 	if pathInfo.IsDir() {
-		packagePath = path.Join(packagePath, subFolder)
-		packagePath = path.Join(packagePath, "pkg")
+		packagePath = path.Join(packagePath, subFolder, "pkg")
+
+		// On Windows, if a dedicated pipeline-identified folder is available, use that
+		if flavor == tifos.WindowsServer {
+			packagePathWithPipelineID := path.Join(packagePath, "pipeline-"+pipelineID)
+			if info, err := os.Stat(packagePathWithPipelineID); err == nil && info.IsDir() {
+				packagePath = packagePathWithPipelineID
+			}
+		}
+
 		entries, err := os.ReadDir(packagePath)
 		if err != nil {
 			return "", err
@@ -89,6 +98,16 @@ func GetPackagePath(localPath string, flavor tifos.Flavor, agentFlavor string, a
 						continue
 					}
 				} else if !strings.Contains(entry.Name(), archStr) {
+					continue
+				}
+			}
+
+			// If we're on Windows, we need to check if the pipeline ID is in the package name, this is a workaround to avoid an issue with the Windows Runners
+			// where other pipelines packages can pollute the artifacts
+			if flavor == tifos.WindowsServer && pipelineID != "" {
+
+				// If the package name contains "pipeline." and the pipeline ID is not in the name, skip it
+				if strings.Contains(entry.Name(), "pipeline.") && !strings.Contains(entry.Name(), pipelineID) {
 					continue
 				}
 			}

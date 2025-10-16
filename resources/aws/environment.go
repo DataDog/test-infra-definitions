@@ -37,6 +37,7 @@ const (
 	DDInfraDefaultShutdownBehavior         = "aws/defaultShutdownBehavior"
 	DDInfraDefaultInternalRegistry         = "aws/defaultInternalRegistry"
 	DDInfraDefaultInternalDockerhubMirror  = "aws/defaultInternalDockerhubMirror"
+	DDInfraUseMacosCompatibleSubnets       = "aws/useMacosCompatibleSubnets"
 
 	// AWS ECS
 	DDInfraEcsExecKMSKeyID                  = "aws/ecs/execKMSKeyID"
@@ -53,16 +54,17 @@ const (
 	DDInfraEcsWindowsLTSCNodeGroup          = "aws/ecs/windowsLTSCNodeGroup"
 
 	// AWS EKS
-	DDInfraEKSPODSubnets                   = "aws/eks/podSubnets"
-	DDInfraEksAllowedInboundSecurityGroups = "aws/eks/inboundSecurityGroups"
-	DDInfraEksAllowedInboundPrefixList     = "aws/eks/inboundPrefixLists"
-	DDInfraEksFargateNamespace             = "aws/eks/fargateNamespace"
-	DDInfraEksLinuxNodeGroup               = "aws/eks/linuxNodeGroup"
-	DDInfraEksLinuxARMNodeGroup            = "aws/eks/linuxARMNodeGroup"
-	DDInfraEksLinuxBottlerocketNodeGroup   = "aws/eks/linuxBottlerocketNodeGroup"
-	DDInfraEksWindowsNodeGroup             = "aws/eks/windowsNodeGroup"
-	DDInfraEksAccountAdminSSORole          = "aws/eks/accountAdminSSORole"
-	DDInfraEksReadOnlySSORole              = "aws/eks/readOnlySSORole"
+	DDInfraEKSPODSubnets                           = "aws/eks/podSubnets"
+	DDInfraEksAllowedInboundSecurityGroups         = "aws/eks/inboundSecurityGroups"
+	DDInfraEksAllowedInboundPrefixList             = "aws/eks/inboundPrefixLists"
+	DDInfraEksAllowedInboundManagedPrefixListNames = "aws/eks/inboundManagedPrefixListNames"
+	DDInfraEksFargateNamespace                     = "aws/eks/fargateNamespace"
+	DDInfraEksLinuxNodeGroup                       = "aws/eks/linuxNodeGroup"
+	DDInfraEksLinuxARMNodeGroup                    = "aws/eks/linuxARMNodeGroup"
+	DDInfraEksLinuxBottlerocketNodeGroup           = "aws/eks/linuxBottlerocketNodeGroup"
+	DDInfraEksWindowsNodeGroup                     = "aws/eks/windowsNodeGroup"
+	DDInfraEksAccountAdminSSORole                  = "aws/eks/accountAdminSSORole"
+	DDInfraEksReadOnlySSORole                      = "aws/eks/readOnlySSORole"
 )
 
 type Environment struct {
@@ -222,7 +224,13 @@ func (e *Environment) DefaultVPCID() string {
 }
 
 func (e *Environment) DefaultSubnets() []string {
-	return e.GetStringListWithDefault(e.InfraConfig, DDInfraDefaultSubnetsParamName, e.envDefault.ddInfra.defaultSubnets)
+	defaultSubnets := []string{}
+	for _, subnet := range e.envDefault.ddInfra.defaultSubnets {
+		if !e.UseMacosCompatibleSubnets() || subnet.MacOSCompatible {
+			defaultSubnets = append(defaultSubnets, subnet.ID)
+		}
+	}
+	return defaultSubnets
 }
 
 func (e *Environment) DefaultFakeintakeECSArns() []string {
@@ -278,6 +286,10 @@ func (e *Environment) DefaultInstanceStorageSize() int {
 // shutdown behavior can be 'terminate' or 'stop'
 func (e *Environment) DefaultShutdownBehavior() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraDefaultShutdownBehavior, e.envDefault.ddInfra.defaultShutdownBehavior)
+}
+
+func (e *Environment) UseMacosCompatibleSubnets() bool {
+	return e.GetBoolWithDefault(e.InfraConfig, DDInfraUseMacosCompatibleSubnets, e.envDefault.ddInfra.useMacosCompatibleSubnets)
 }
 
 // ECS
@@ -358,6 +370,12 @@ func (e *Environment) EKSAllowedInboundSecurityGroups() []string {
 func (e *Environment) EKSAllowedInboundPrefixLists() []string {
 	var arr []string
 	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEksAllowedInboundPrefixList, arr, e.envDefault.ddInfra.eks.allowedInboundPrefixList)
+	return resObj.([]string)
+}
+
+func (e *Environment) EKSAllowedInboundManagedPrefixListNames() []string {
+	var arr []string
+	resObj := e.GetObjectWithDefault(e.InfraConfig, DDInfraEksAllowedInboundManagedPrefixListNames, arr, e.envDefault.ddInfra.eks.allowedInboundManagedPrefixListNames)
 	return resObj.([]string)
 }
 

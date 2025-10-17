@@ -32,7 +32,7 @@ require (
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
 	github.com/pulumi/pulumi/sdk/v3 v3.190.0
 	github.com/pulumiverse/pulumi-time/sdk v0.1.0
-	github.com/samber/lo v1.47.0
+	github.com/samber/lo v1.52.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
 	gopkg.in/yaml.v3 v3.0.1

@@ -434,6 +434,10 @@ func buildLinuxHelmValues(baseName, agentImagePath, agentImageTag, clusterAgentI
 							"name":  pulumi.String("DD_LANGUAGE_DETECTION_REPORTING_REFRESH_PERIOD"),
 							"value": pulumi.String("1m"),
 						},
+						pulumi.StringMap{
+							"name":  pulumi.String("DD_CONTAINER_EXCLUDE"),
+							"value": pulumi.String("name:busybox, image:busybox"),
+						},
 					},
 					"resources": pulumi.StringMapMap{
 						"requests": pulumi.StringMap{

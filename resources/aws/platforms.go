@@ -14,32 +14,33 @@ type PlatformsArchsType = map[string]PlatformsAMIsType
 type PlatformsType = map[string]PlatformsArchsType
 
 // All the OS descriptors / AMIs correspondance
+// NOTE: Please read this documentation to update these AMIs: https://datadoghq.atlassian.net/wiki/x/04B8TgE
 var platforms = PlatformsType{
 	"amazon-linux": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
 			"2-4-14":    "ami-038b3df3312ddf25d",
 			"2-5-10":    "ami-06a0cd9728546d178",
+			"2":         "ami-09f3869f369570aea",
 			"2022-5-15": "ami-0f0f00c2d082c52ae",
 			"2023":      "ami-0f4a4fa5d1c6e0704",
 			"2018":      "ami-07541a4f680f1ba8e",
-			"2":         "ami-0023921b4fcd5382b",
 		},
 		"arm64": PlatformsAMIsType{
 			"2-4-14":    "ami-090230ed0c6b13c74",
 			"2-5-10":    "ami-09e51988f56677f44",
+			"2":         "ami-032ef643b17e7d307",
 			"2022-5-15": "ami-0acc51c3357f26240",
 			"2023":      "ami-0505d2a2a44257d17",
-			"2":         "ami-00aae26e31bb072a2",
 		},
 	},
 	"amazon-linux-ecs": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
 			"2023": "ami-0307e11f511d976b0",
-			"2":    "ami-0293ff221e87260aa",
+			"2":    "ami-00ca58aa4e961c973",
 		},
 		"arm64": PlatformsAMIsType{
 			"2023": "ami-0729b1e535f19c7b8",
-			"2":    "ami-07af7b838076acdcc",
+			"2":    "ami-0033bec731b87c602",
 		},
 	},
 	"debian": PlatformsArchsType{
@@ -73,22 +74,22 @@ var platforms = PlatformsType{
 		},
 	},
 	"macos": PlatformsArchsType{
-		"arm64": PlatformsAMIsType{
-			"sonoma": "ami-0c582a76ed8159789",
-		},
 		"x86_64": PlatformsAMIsType{
-			"sonoma": "ami-0af4746d79fd670cd",
+			"sonoma": "ami-023abfbd427744a75",
+		},
+		"arm64": PlatformsAMIsType{
+			"sonoma": "ami-0e76a72aa5d6effe8",
 		},
 	},
 	"redhat": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"9":       "ami-0c878dd49ca800252",
 			"86":      "ami-00064b50696aa0436",
 			"86-fips": "ami-0d0fb96b595c56e03",
+			"9":       "ami-028e9c68b36a04979",
 		},
 		"arm64": PlatformsAMIsType{
-			"9":  "ami-089b86d2f4d27cd98",
 			"86": "ami-0d4438fbccc652f68",
+			"9":  "ami-02a1ba80018705af3",
 		},
 	},
 	"rocky-linux": PlatformsArchsType{
@@ -98,7 +99,7 @@ var platforms = PlatformsType{
 	},
 	"suse": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"12":   "ami-0b0597153739840c4",
+			"12":   "ami-095d0932653cdb09b",
 			"15-4": "ami-025731bf74aa12ed6",
 		},
 		"arm64": PlatformsAMIsType{
@@ -129,10 +130,10 @@ var platforms = PlatformsType{
 	},
 	"windows-server": PlatformsArchsType{
 		"x86_64": PlatformsAMIsType{
-			"2025": "ami-0efee5160a1079475",
-			"2022": "ami-028dc1123403bd543",
-			"2019": "ami-043cf96255cd85b98",
-			"2016": "ami-0fe657c1315199148",
+			"2016": "ami-067445cefec7d6dc2",
+			"2019": "ami-099d25416e4c6b6d0",
+			"2022": "ami-0a1d318bc20fe9080",
+			"2025": "ami-0a9e84d3e59a24b71",
 		},
 	},
 }

@@ -10,8 +10,18 @@ import (
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 )
 
+var (
+	// packageNameTranslate translate a package name for the given package manager, if need be.
+	packageNameTranslate = map[PackageManagerType]map[string]string{
+		Apt: {
+			"docker": "docker.io",
+		},
+	}
+)
+
 type GenericPackageManager struct {
 	namer           namer.Namer
+	name            PackageManagerType
 	updateDBCommand command.Command
 	runner          command.Runner
 	opts            []pulumi.ResourceOption
@@ -23,14 +33,15 @@ type GenericPackageManager struct {
 
 func NewGenericPackageManager(
 	runner command.Runner,
-	name string,
+	name PackageManagerType,
 	installCmd string,
 	updateCmd string,
 	uninstallCmd string,
 	env pulumi.StringMap,
 ) *GenericPackageManager {
 	packageManager := &GenericPackageManager{
-		namer:        namer.NewNamer(runner.Environment().Ctx(), name),
+		namer:        namer.NewNamer(runner.Environment().Ctx(), name.String()),
+		name:         name,
 		runner:       runner,
 		installCmd:   installCmd,
 		updateCmd:    updateCmd,
@@ -92,6 +103,11 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform command.Tran
 
 		pulumiOpts = append(pulumiOpts, utils.PulumiDependsOn(updateDB))
 	}
+
+	if dedicatedPackageRef, exists := packageNameTranslate[m.name][packageRef]; exists {
+		packageRef = dedicatedPackageRef
+	}
+
 	var cmdStr string
 	if checkBinary != "" {
 		cmdStr = fmt.Sprintf("bash -c 'command -v %s || %s %s'", checkBinary, m.installCmd, packageRef)

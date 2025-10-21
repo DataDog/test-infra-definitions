@@ -97,9 +97,11 @@ func NewKindClusterWithConfig(env config.Env, vm *remote.Host, name string, kube
 			return err
 		}
 
-		// The internal mirror should be able to pull arbitrary kubernetes images but the sha is required
-		//with the tag. We also support the user supplying the url (in case we want to host kubernetes rc
-		// candidates in some registry, etc)
+		/*
+			The internal mirror should be able to pull arbitrary kubernetes images but the sha is required
+			with the tag. We also support the user supplying the url (in case we want to host
+			kubernetes rc candidates in some registry, etc)
+		*/
 		var nodeImage string
 		if env.KubeNodeURL() != "" {
 			nodeImage = env.KubeNodeURL()

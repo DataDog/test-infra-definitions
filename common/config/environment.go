@@ -73,7 +73,8 @@ const (
 	DDUpdaterParamName = "deploy"
 
 	// Testing workload namerNamespace
-	DDTestingWorkloadDeployParamName = "deploy"
+	DDTestingWorkloadDeployParamName   = "deploy"
+	DDTestingWorkloadDeployArgoRollout = "deployArgoRollout"
 
 	// Dogstatsd namespace
 	DDDogstatsdDeployParamName        = "deploy"
@@ -113,7 +114,7 @@ type Env interface {
 	KindVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
-	ResourcesTags() pulumi.StringMap
+	ResourcesTags() pulumi.StringMapInput
 	AgentExtraEnvVars() map[string]string
 
 	AgentDeploy() bool
@@ -266,7 +267,7 @@ func EnvVariableResourceTags() map[string]string {
 	return tags
 }
 
-func (e *CommonEnvironment) ResourcesTags() pulumi.StringMap {
+func (e *CommonEnvironment) ResourcesTags() pulumi.StringMapInput {
 	tags := pulumi.StringMap{}
 
 	// default tags
@@ -286,6 +287,10 @@ func (e *CommonEnvironment) AgentDeploy() bool {
 
 func (e *CommonEnvironment) AgentDeployWithOperator() bool {
 	return e.GetBoolWithDefault(e.AgentConfig, DDAgentDeployWithOperatorParamName, false)
+}
+
+func (e *CommonEnvironment) AgentDeployArgoRollout() bool {
+	return e.GetBoolWithDefault(e.TestingWorkloadConfig, DDTestingWorkloadDeployArgoRollout, false)
 }
 
 func (e *CommonEnvironment) AgentVersion() string {

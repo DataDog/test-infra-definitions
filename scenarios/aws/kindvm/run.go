@@ -18,8 +18,8 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 	"github.com/DataDog/test-infra-definitions/components/datadog/operator"
 	"github.com/DataDog/test-infra-definitions/components/datadog/operatorparams"
-
 	localKubernetes "github.com/DataDog/test-infra-definitions/components/kubernetes"
+	"github.com/DataDog/test-infra-definitions/components/kubernetes/argorollouts"
 	"github.com/DataDog/test-infra-definitions/components/kubernetes/vpa"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	resAws "github.com/DataDog/test-infra-definitions/resources/aws"
@@ -75,6 +75,18 @@ func Run(ctx *pulumi.Context) error {
 		return err
 	}
 	dependsOnVPA := utils.PulumiDependsOn(vpaCrd)
+
+	var argoRollout *argorollouts.HelmComponent
+	if awsEnv.AgentDeployArgoRollout() {
+		argoParams, err := argorollouts.NewParams()
+		if err != nil {
+			return err
+		}
+		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, pulumi.Provider(kindKubeProvider))
+		if err != nil {
+			return err
+		}
+	}
 
 	var fakeIntake *fakeintakeComp.Fakeintake
 	if awsEnv.AgentUseFakeintake() {
@@ -213,7 +225,7 @@ spec:
 	}
 
 	// Deploy testing workload
-	if awsEnv.TestingWorkloadDeploy() {
+	if !awsEnv.AgentDeployWithOperator() && awsEnv.TestingWorkloadDeploy() {
 		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
@@ -253,6 +265,12 @@ spec:
 
 		if _, err := etcd.K8sAppDefinition(&awsEnv, kindKubeProvider); err != nil {
 			return err
+		}
+
+		if awsEnv.AgentDeployArgoRollout() {
+			if _, err := nginx.K8sRolloutAppDefinition(&awsEnv, kindKubeProvider, "workload-argo-rollout-nginx", utils.PulumiDependsOn(argoRollout)); err != nil {
+				return err
+			}
 		}
 	}
 

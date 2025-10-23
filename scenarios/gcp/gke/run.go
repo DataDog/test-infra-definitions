@@ -94,7 +94,7 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithFakeintake(fakeintake))
 		}
 
-		k8sAgentComponent, err := helm.NewKubernetesAgent(&env, env.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
+		k8sAgentComponent, err := helm.NewKubernetesAgent(&env, "dda", env.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
 
 		if err != nil {
 			return err

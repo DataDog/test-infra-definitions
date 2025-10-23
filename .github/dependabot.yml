@@ -102,3 +102,13 @@ updates:
     directory: /components/datadog/apps/cws/images/cws-centos7
     schedule:
       interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/churn/images/churn
+    schedule:
+      interval: daily
+
+  - package-ecosystem: gomod
+    directory: /components/datadog/apps/churn/images/churn
+    schedule:
+      interval: daily

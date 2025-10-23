@@ -80,6 +80,11 @@ func TestInvokes(t *testing.T) {
 		t.Parallel()
 		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
 	})
+
+	t.Run("aws.invoke-benchmarkeks", func(t *testing.T) {
+		t.Parallel()
+		testInvokeBenchmarkEKS(t, tmpConfigFile, *workingDir)
+	})
 }
 
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
@@ -184,6 +189,27 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
+}
+
+func testInvokeBenchmarkEKS(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+	stackParts := []string{"invoke", "benchmarkeks"}
+	if os.Getenv("CI") == "true" {
+		stackParts = append(stackParts, os.Getenv("CI_JOB_ID"))
+	}
+	stackName := strings.Join(stackParts, "-")
+	stackName = sanitizeStackName(stackName)
+	t.Log("creating benchmark EKS cluster")
+	createCmd := exec.Command("invoke", "aws.create-benchmarkeks", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating benchmark EKS cluster: %s", string(createOutput))
+
+	t.Log("destroying benchmark EKS cluster")
+	destroyCmd := exec.Command("invoke", "aws.destroy-benchmarkeks", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying benchmark EKS cluster: %s", string(destroyOutput))
 }
 
 func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory string) {

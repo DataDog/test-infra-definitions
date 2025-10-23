@@ -1,0 +1,49 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workload-sleepers
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: sleeper-{{i}}
+  namespace: workload-sleepers
+  annotations:
+    churn.datadoghq.com/instances: "10"
+    churn.datadoghq.com/lifetime: 1m
+spec:
+  selector:
+    matchLabels:
+      app: sleeper-{{i}}
+  template:
+    metadata:
+      labels:
+        app: sleeper-{{i}}
+    spec:
+      containers:
+        - name: sleeper-a
+          image: busybox
+          command:
+            - sleep
+            - infinity
+        - name: sleeper-b
+          image: busybox
+          command:
+            - sleep
+            - infinity
+        - name: sleeper-c
+          image: busybox
+          command:
+            - sleep
+            - infinity
+      nodeSelector:
+        node-role.kubernetes.io/node-agent: node-agent
+      tolerations:
+        - key: agent
+          operator: Equal
+          value: node-agent
+          effect: NoSchedule
+        - key: variant
+          operator: Exists
+          effect: NoSchedule

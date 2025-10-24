@@ -3,12 +3,13 @@ package compute
 import (
 	"fmt"
 
+	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
 	"github.com/DataDog/test-infra-definitions/components"
 	"github.com/DataDog/test-infra-definitions/components/command"
 	"github.com/DataDog/test-infra-definitions/components/os"
 	"github.com/DataDog/test-infra-definitions/components/remote"
 	"github.com/DataDog/test-infra-definitions/resources/gcp/compute"
-	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 
 	"github.com/DataDog/test-infra-definitions/resources/gcp"
 )
@@ -40,6 +41,8 @@ func NewVM(e gcp.Environment, name string, option ...VMOption) (*remote.Host, er
 			"gce",
 			remote.WithPrivateKeyPath(e.DefaultPrivateKeyPath()),
 			remote.WithPrivateKeyPassword(e.DefaultPrivateKeyPassword()),
+			remote.WithDialErrorLimit(e.InfraDialErrorLimit()),
+			remote.WithPerDialTimeoutSeconds(e.InfraPerDialTimeoutSeconds()),
 		)
 		if err != nil {
 			return err

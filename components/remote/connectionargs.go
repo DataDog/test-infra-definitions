@@ -1,8 +1,9 @@
 package remote
 
 import (
-	"github.com/DataDog/test-infra-definitions/common"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/common"
 )
 
 type connectionArgs struct {
@@ -10,19 +11,23 @@ type connectionArgs struct {
 	user string
 
 	// ==== Optional ====
-	privateKeyPath     string
-	privateKeyPassword string
-	sshAgentPath       string
-	port               int
+	privateKeyPath        string
+	privateKeyPassword    string
+	sshAgentPath          string
+	port                  int
+	dialErrorLimit        int
+	perDialTimeoutSeconds int
 }
 
 type ConnectionOption = func(*connectionArgs) error
 
 func buildConnectionArgs(host pulumi.StringInput, user string, options ...ConnectionOption) (*connectionArgs, error) {
 	args := &connectionArgs{
-		host: host,
-		user: user,
-		port: 22,
+		host:                  host,
+		user:                  user,
+		port:                  22,
+		dialErrorLimit:        100,
+		perDialTimeoutSeconds: 5,
 	}
 	return common.ApplyOption(args, options)
 }
@@ -55,6 +60,26 @@ func WithSSHAgentPath(path string) ConnectionOption {
 func WithPort(port int) ConnectionOption {
 	return func(args *connectionArgs) error {
 		args.port = port
+		return nil
+	}
+}
+
+// WithDialErrorLimit [optional] sets the maximum dial attempts for the connection. Defaults to 100.
+func WithDialErrorLimit(limit int) ConnectionOption {
+	return func(args *connectionArgs) error {
+		if limit > 0 {
+			args.dialErrorLimit = limit
+		}
+		return nil
+	}
+}
+
+// WithPerDialTimeoutSeconds [optional] sets the per dial timeout in seconds for the connection. Defaults to 5.
+func WithPerDialTimeoutSeconds(seconds int) ConnectionOption {
+	return func(args *connectionArgs) error {
+		if seconds > 0 {
+			args.perDialTimeoutSeconds = seconds
+		}
 		return nil
 	}
 }

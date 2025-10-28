@@ -36,6 +36,8 @@ const (
 	DDInfraExtraResourcesTags               = "extraResourcesTags"
 	DDInfraSSHUser                          = "sshUser"
 	DDInfraInitOnly                         = "initOnly"
+	DDInfraDialErrorLimit                   = "dialErrorLimit"
+	DDInfraPerDialTimeoutSeconds            = "perDialTimeoutSeconds"
 
 	// Agent Namespace
 	DDAgentDeployParamName               = "deploy"
@@ -254,6 +256,14 @@ func (e *CommonEnvironment) ExtraResourcesTags() map[string]string {
 
 func (e *CommonEnvironment) InfraSSHUser() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraSSHUser, "")
+}
+
+func (e *CommonEnvironment) InfraDialErrorLimit() int {
+	return e.GetIntWithDefault(e.InfraConfig, DDInfraDialErrorLimit, 0)
+}
+
+func (e *CommonEnvironment) InfraPerDialTimeoutSeconds() int {
+	return e.GetIntWithDefault(e.InfraConfig, DDInfraPerDialTimeoutSeconds, 0)
 }
 
 func EnvVariableResourceTags() map[string]string {

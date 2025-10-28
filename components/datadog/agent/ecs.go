@@ -19,6 +19,8 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 		return nil, err
 	}
 
+	containers := ecsLinuxAgentSingleContainerDefinition(&e, apiKeySSMParamName, fakeintake, params)
+
 	return ecs.NewEC2Service(e.Ctx(), e.Namer.ResourceName(name), &ecs.EC2ServiceArgs{
 		Name:               e.CommonNamer().DisplayName(255, pulumi.String(name)),
 		Cluster:            clusterArn,
@@ -31,9 +33,7 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 		},
 		EnableExecuteCommand: pulumi.BoolPtr(true),
 		TaskDefinitionArgs: &ecs.EC2ServiceTaskDefinitionArgs{
-			Containers: map[string]ecs.TaskDefinitionContainerDefinitionArgs{
-				"datadog-agent": ecsLinuxAgentSingleContainerDefinition(&e, apiKeySSMParamName, fakeintake, params),
-			},
+			Containers: containers,
 			ExecutionRole: &awsx.DefaultRoleWithPolicyArgs{
 				RoleArn: pulumi.StringPtr(e.ECSTaskExecutionRole()),
 			},
@@ -68,18 +68,75 @@ func ECSLinuxDaemonDefinition(e aws.Environment, name string, apiKeySSMParamName
 					HostPath: pulumi.StringPtr("/sys/kernel/debug"),
 					Name:     pulumi.String("debug"),
 				},
+				classicECS.TaskDefinitionVolumeArgs{
+					Name: pulumi.String("agent-config"),
+				},
+				classicECS.TaskDefinitionVolumeArgs{
+					Name: pulumi.String("agent-tmp"),
+				},
+				classicECS.TaskDefinitionVolumeArgs{
+					Name: pulumi.String("agent-log"),
+				},
 			},
 		},
 	}, e.WithProviders(config.ProviderAWS, config.ProviderAWSX))
 }
 
-func ecsLinuxAgentSingleContainerDefinition(e config.Env, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, params *ecsagentparams.Params) ecs.TaskDefinitionContainerDefinitionArgs {
-	return ecs.TaskDefinitionContainerDefinitionArgs{
-		Cpu:       pulumi.IntPtr(200),
-		Memory:    pulumi.IntPtr(512),
-		Name:      pulumi.String("datadog-agent"),
-		Image:     pulumi.String(dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false, false, false)),
-		Essential: pulumi.BoolPtr(true),
+func ecsLinuxAgentSingleContainerDefinition(e config.Env, apiKeySSMParamName pulumi.StringInput, fakeintake *fakeintake.Fakeintake, params *ecsagentparams.Params) map[string]ecs.TaskDefinitionContainerDefinitionArgs {
+	image := dockerAgentFullImagePath(e, "public.ecr.aws/datadog/agent", "", false, false, false)
+	initVolume := ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:                    pulumi.IntPtr(0),
+		Memory:                 pulumi.IntPtr(128),
+		Name:                   pulumi.String("init-volume"),
+		Image:                  pulumi.String(image),
+		Essential:              pulumi.BoolPtr(false),
+		ReadonlyRootFilesystem: pulumi.BoolPtr(true),
+		Command:                pulumi.StringArray{pulumi.String("sh"), pulumi.String("-c"), pulumi.String("cp -vnR /etc/datadog-agent/* /agent-config/")},
+		MountPoints: ecs.TaskDefinitionMountPointArray{
+			ecs.TaskDefinitionMountPointArgs{
+
+				ContainerPath: pulumi.StringPtr("/agent-config"),
+				SourceVolume:  pulumi.StringPtr("agent-config"),
+			},
+		},
+	}
+
+	initConfig := ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:                    pulumi.IntPtr(0),
+		Memory:                 pulumi.IntPtr(128),
+		Name:                   pulumi.String("init-config"),
+		Image:                  pulumi.String(image),
+		Essential:              pulumi.BoolPtr(false),
+		ReadonlyRootFilesystem: pulumi.BoolPtr(true),
+		Command:                pulumi.StringArray{pulumi.String("sh"), pulumi.String("-c"), pulumi.String("for script in $(find /etc/cont-init.d/ -type f -name '*.sh' | sort) ; do bash $script ; done")},
+		MountPoints: ecs.TaskDefinitionMountPointArray{
+			ecs.TaskDefinitionMountPointArgs{
+
+				ContainerPath: pulumi.StringPtr("/etc/datadog-agent"),
+				SourceVolume:  pulumi.StringPtr("agent-config"),
+			},
+		},
+		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
+			ecs.TaskDefinitionContainerDependencyArgs{
+				ContainerName: pulumi.String("init-volume"),
+				Condition:     pulumi.String("SUCCESS"),
+			},
+		},
+	}
+
+	agentContainer := ecs.TaskDefinitionContainerDefinitionArgs{
+		Cpu:                    pulumi.IntPtr(200),
+		Memory:                 pulumi.IntPtr(512),
+		Name:                   pulumi.String("datadog-agent"),
+		Image:                  pulumi.String(image),
+		Essential:              pulumi.BoolPtr(true),
+		ReadonlyRootFilesystem: pulumi.BoolPtr(true),
+		DependsOn: ecs.TaskDefinitionContainerDependencyArray{
+			ecs.TaskDefinitionContainerDependencyArgs{
+				ContainerName: pulumi.String("init-config"),
+				Condition:     pulumi.String("SUCCESS"),
+			},
+		},
 		LinuxParameters: ecs.TaskDefinitionLinuxParametersArgs{
 			Capabilities: ecs.TaskDefinitionKernelCapabilitiesArgs{
 				Add: pulumi.ToStringArray([]string{"SYS_ADMIN", "SYS_RESOURCE", "SYS_PTRACE", "NET_ADMIN", "NET_BROADCAST", "NET_RAW", "IPC_LOCK", "CHOWN"}),
@@ -182,6 +239,19 @@ func ecsLinuxAgentSingleContainerDefinition(e config.Env, apiKeySSMParamName pul
 				SourceVolume:  pulumi.StringPtr("debug"),
 				ReadOnly:      pulumi.BoolPtr(false),
 			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/etc/datadog-agent"),
+				SourceVolume:  pulumi.StringPtr("agent-config"),
+				ReadOnly:      pulumi.BoolPtr(false),
+			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/tmp"),
+				SourceVolume:  pulumi.StringPtr("agent-tmp"),
+			},
+			ecs.TaskDefinitionMountPointArgs{
+				ContainerPath: pulumi.StringPtr("/var/log/datadog"),
+				SourceVolume:  pulumi.StringPtr("agent-log"),
+			},
 		},
 		HealthCheck: &ecs.TaskDefinitionHealthCheckArgs{
 			Retries:     pulumi.IntPtr(2),
@@ -220,6 +290,11 @@ func ecsLinuxAgentSingleContainerDefinition(e config.Env, apiKeySSMParamName pul
 				},
 			)),
 		},
+	}
+	return map[string]ecs.TaskDefinitionContainerDefinitionArgs{
+		"init-volume":   initVolume,
+		"init-config":   initConfig,
+		"datadog-agent": agentContainer,
 	}
 }
 

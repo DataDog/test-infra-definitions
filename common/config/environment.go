@@ -27,6 +27,8 @@ const (
 	// Infra namespace
 	DDInfraEnvironment                      = "env"
 	DDInfraKubernetesVersion                = "kubernetesVersion"
+	DDInfraKindVersion                      = "kindVersion"
+	DDInfraKubeNodeURL                      = "kubeNodeUrl"
 	DDInfraOSDescriptor                     = "osDescriptor" // osDescriptor is expected in the format: <osFamily>:<osVersion>:<osArch>, see components/os/descriptor.go
 	DDInfraOSImageID                        = "osImageID"
 	DDInfraOSImageIDUseLatest               = "osImageIDUseLatest"
@@ -110,6 +112,8 @@ type Env interface {
 	InfraOSDescriptor() string
 	InfraOSImageID() string
 	KubernetesVersion() string
+	KubeNodeURL() string
+	KindVersion() string
 	DefaultResourceTags() map[string]string
 	ExtraResourcesTags() map[string]string
 	ResourcesTags() pulumi.StringMapInput
@@ -224,6 +228,14 @@ func (e *CommonEnvironment) InfraOSImageIDUseLatest() bool {
 
 func (e *CommonEnvironment) KubernetesVersion() string {
 	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubernetesVersion, "1.32")
+}
+
+func (e *CommonEnvironment) KindVersion() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKindVersion, "v0.30.0")
+}
+
+func (e *CommonEnvironment) KubeNodeURL() string {
+	return e.GetStringWithDefault(e.InfraConfig, DDInfraKubeNodeURL, "")
 }
 
 func (e *CommonEnvironment) DefaultResourceTags() map[string]string {

@@ -18,7 +18,7 @@ func NewHelmInstallation(e config.Env, params *Params, kubernetesProvider *kuber
 		return nil, err
 	}
 
-	opts = append(opts, pulumi.Parent(helmComponent), pulumi.DeletedWith(kubernetesProvider))
+	opts = append(opts, pulumi.Parent(helmComponent), pulumi.DeletedWith(kubernetesProvider), pulumi.Provider(kubernetesProvider))
 
 	helmValues := pulumi.Map{}
 	if params.HelmValues != nil {

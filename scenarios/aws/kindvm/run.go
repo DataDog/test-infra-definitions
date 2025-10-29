@@ -82,7 +82,7 @@ func Run(ctx *pulumi.Context) error {
 		if err != nil {
 			return err
 		}
-		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, pulumi.Provider(kindKubeProvider))
+		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, kindKubeProvider)
 		if err != nil {
 			return err
 		}

@@ -1,6 +1,7 @@
 package argorollouts
 
 import (
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -11,13 +12,13 @@ import (
 
 type HelmValues pulumi.Map
 
-func NewHelmInstallation(e config.Env, params *Params, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, params *Params, kubernetesProvider *kubernetes.Provider, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	helmComponent := &HelmComponent{}
 	if err := e.Ctx().RegisterComponentResource("dd:argorollouts", "argorollouts", helmComponent, opts...); err != nil {
 		return nil, err
 	}
 
-	opts = append(opts, pulumi.Parent(helmComponent))
+	opts = append(opts, pulumi.Parent(helmComponent), pulumi.DeletedWith(kubernetesProvider))
 
 	helmValues := pulumi.Map{}
 	if params.HelmValues != nil {

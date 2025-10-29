@@ -11,14 +11,15 @@ import (
 )
 
 type GenericPackageManager struct {
-	namer           namer.Namer
-	updateDBCommand command.Command
-	runner          command.Runner
-	opts            []pulumi.ResourceOption
-	installCmd      string
-	updateCmd       string
-	uninstallCmd    string
-	env             pulumi.StringMap
+	namer              namer.Namer
+	updateDBCommand    command.Command
+	runner             command.Runner
+	opts               []pulumi.ResourceOption
+	installCmd         string
+	updateCmd          string
+	uninstallCmd       string
+	env                pulumi.StringMap
+	packageNameMapping map[string]string
 }
 
 func NewGenericPackageManager(
@@ -28,14 +29,16 @@ func NewGenericPackageManager(
 	updateCmd string,
 	uninstallCmd string,
 	env pulumi.StringMap,
+	pacakgeNameMapping map[string]string,
 ) *GenericPackageManager {
 	packageManager := &GenericPackageManager{
-		namer:        namer.NewNamer(runner.Environment().Ctx(), name),
-		runner:       runner,
-		installCmd:   installCmd,
-		updateCmd:    updateCmd,
-		uninstallCmd: uninstallCmd,
-		env:          env,
+		namer:              namer.NewNamer(runner.Environment().Ctx(), name),
+		runner:             runner,
+		installCmd:         installCmd,
+		updateCmd:          updateCmd,
+		uninstallCmd:       uninstallCmd,
+		env:                env,
+		packageNameMapping: pacakgeNameMapping,
 	}
 
 	return packageManager
@@ -92,6 +95,11 @@ func (m *GenericPackageManager) Ensure(packageRef string, transform command.Tran
 
 		pulumiOpts = append(pulumiOpts, utils.PulumiDependsOn(updateDB))
 	}
+
+	if dedicatedPackageRef, exists := m.packageNameMapping[packageRef]; exists {
+		packageRef = dedicatedPackageRef
+	}
+
 	var cmdStr string
 	if checkBinary != "" {
 		cmdStr = fmt.Sprintf("bash -c 'command -v %s || %s %s'", checkBinary, m.installCmd, packageRef)

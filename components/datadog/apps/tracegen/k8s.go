@@ -173,7 +173,8 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	// create a clusterRoleBinding to bind the new service account with the existing privileged scc
 	if _, err := rbacv1.NewRoleBinding(e.Ctx(), e.CommonNamer().ResourceName("tracegen-uds-scc-binding"), &rbacv1.RoleBindingArgs{
 		Metadata: &metav1.ObjectMetaArgs{
-			Name: pulumi.String("tracegen-scc-binding"),
+			Name:      pulumi.String("tracegen-scc-binding"),
+			Namespace: pulumi.String("workload-tracegen"),
 		},
 		RoleRef: &rbacv1.RoleRefArgs{
 			ApiGroup: pulumi.String("rbac.authorization.k8s.io"),

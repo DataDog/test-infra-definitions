@@ -12,7 +12,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/kubernetesagentparams"
 )
 
-func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*agent.KubernetesAgent, error) {
+func NewKubernetesAgent(e config.Env, baseName string, resourceName string, kubeProvider *kubernetes.Provider, options ...kubernetesagentparams.Option) (*agent.KubernetesAgent, error) {
 	return components.NewComponent(e, resourceName, func(comp *agent.KubernetesAgent) error {
 		params, err := kubernetesagentparams.NewParams(e, options...)
 		if err != nil {
@@ -22,24 +22,26 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 
 		pulumiResourceOptions := append(params.PulumiResourceOptions, pulumi.Parent(comp))
 
-		helmComponent, err := agent.NewHelmInstallation(e, agent.HelmInstallationArgs{
-			KubeProvider:                   kubeProvider,
-			DeployWindows:                  params.DeployWindows,
-			Namespace:                      params.Namespace,
-			ChartPath:                      params.HelmChartPath,
-			RepoURL:                        params.HelmRepoURL,
-			ValuesYAML:                     params.HelmValues,
-			Fakeintake:                     params.FakeIntake,
-			AgentFullImagePath:             params.AgentFullImagePath,
-			ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
-			DualShipping:                   params.DualShipping,
-			DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
-			OTelAgent:                      params.OTelAgent,
-			OTelConfig:                     params.OTelConfig,
-			GKEAutopilot:                   params.GKEAutopilot,
-			FIPS:                           params.FIPS,
-			JMX:                            params.JMX,
-		}, pulumiResourceOptions...)
+		helmComponent, err := agent.NewHelmInstallation(e,
+			baseName,
+			agent.HelmInstallationArgs{
+				KubeProvider:                   kubeProvider,
+				DeployWindows:                  params.DeployWindows,
+				Namespace:                      params.Namespace,
+				ChartPath:                      params.HelmChartPath,
+				RepoURL:                        params.HelmRepoURL,
+				ValuesYAML:                     params.HelmValues,
+				Fakeintake:                     params.FakeIntake,
+				AgentFullImagePath:             params.AgentFullImagePath,
+				ClusterAgentFullImagePath:      params.ClusterAgentFullImagePath,
+				DualShipping:                   params.DualShipping,
+				DisableLogsContainerCollectAll: params.DisableLogsContainerCollectAll,
+				OTelAgent:                      params.OTelAgent,
+				OTelConfig:                     params.OTelConfig,
+				GKEAutopilot:                   params.GKEAutopilot,
+				FIPS:                           params.FIPS,
+				JMX:                            params.JMX,
+			}, pulumiResourceOptions...)
 		if err != nil {
 			return err
 		}
@@ -50,7 +52,7 @@ func NewKubernetesAgent(e config.Env, resourceName string, kubeProvider *kuberne
 		appVersion := helmComponent.LinuxHelmReleaseStatus.AppVersion().Elem()
 		version := helmComponent.LinuxHelmReleaseStatus.Version().Elem()
 
-		baseName := "dda-" + platform
+		baseName = baseName + "-" + platform
 
 		comp.LinuxNodeAgent, err = componentskube.NewKubernetesObjRef(e, baseName+"-nodeAgent", params.Namespace, "Pod", appVersion, version, map[string]string{
 			"app": baseName + "-datadog",

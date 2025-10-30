@@ -117,7 +117,7 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())
 		}
 
-		k8sAgentComponent, err = helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
+		k8sAgentComponent, err = helm.NewKubernetesAgent(&awsEnv, "dda", awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
 
 		if err != nil {
 			return err

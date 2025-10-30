@@ -40,36 +40,44 @@ const (
 	DDInfraPerDialTimeoutSeconds            = "perDialTimeoutSeconds"
 
 	// Agent Namespace
-	DDAgentDeployParamName               = "deploy"
-	DDAgentDeployWithOperatorParamName   = "deployWithOperator"
-	DDAgentVersionParamName              = "version"
-	DDAgentFlavorParamName               = "flavor"
-	DDAgentPipelineID                    = "pipeline_id"
-	DDAgentLocalPackage                  = "localPackage"
-	DDAgentLocalChartPath                = "localChartPath"
-	DDAgentCommitSHA                     = "commit_sha"
-	DDAgentFullImagePathParamName        = "fullImagePath"
-	DDClusterAgentVersionParamName       = "clusterAgentVersion"
-	DDClusterAgentFullImagePathParamName = "clusterAgentFullImagePath"
-	DDOperatorVersionParamName           = "operatorVersion"
-	DDOperatorFullImagePathParamName     = "operatorFullImagePath"
-	DDOperatorLocalChartPath             = "localChartPath"
-	DDImagePullRegistryParamName         = "imagePullRegistry"
-	DDImagePullUsernameParamName         = "imagePullUsername"
-	DDImagePullPasswordParamName         = "imagePullPassword"
-	DDAgentAPIKeyParamName               = "apiKey"
-	DDAgentAPPKeyParamName               = "appKey"
-	DDAgentFakeintake                    = "fakeintake"
-	DDAgentDualShipping                  = "dualshipping"
-	DDAgentFakeintakeStoreType           = "fakeintakeStoreType"
-	DDAGentFakeintakeRetentionPeriod     = "fakeintakeRetentionPeriod"
-	DDAgentSite                          = "site"
-	DDAgentMajorVersion                  = "majorVersion"
-	DDAgentExtraEnvVars                  = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
-	DDAgentJMX                           = "jmx"
-	DDAgentFIPS                          = "fips"
-	DDAgentConfigPathParamName           = "configPath"
-	DDAgentHelmConfig                    = "helmConfig"
+	DDAgentDeployParamName                         = "deploy"
+	DDAgentDeployWithOperatorParamName             = "deployWithOperator"
+	DDAgentVersionParamName                        = "version"
+	DDAgentFlavorParamName                         = "flavor"
+	DDAgentPipelineID                              = "pipeline_id"
+	DDAgentLocalPackage                            = "localPackage"
+	DDAgentLocalChartPath                          = "localChartPath"
+	DDAgentCommitSHA                               = "commit_sha"
+	DDAgentFullImagePathParamName                  = "fullImagePath"
+	DDClusterAgentVersionParamName                 = "clusterAgentVersion"
+	DDClusterAgentFullImagePathParamName           = "clusterAgentFullImagePath"
+	DDAgentBaselineVersionParamName                = "baselineVersion"
+	DDAgentBaselineFullImagePathParamName          = "baselineFullImagePath"
+	DDClusterAgentBaselineVersionParamName         = "baselineClusterAgentVersion"
+	DDClusterAgentBaselineFullImagePathParamName   = "baselineClusterAgentFullImagePath"
+	DDAgentComparisonVersionParamName              = "comparisonVersion"
+	DDAgentComparisonFullImagePathParamName        = "comparisonFullImagePath"
+	DDClusterAgentComparisonVersionParamName       = "comparisonClusterAgentVersion"
+	DDClusterAgentComparisonFullImagePathParamName = "comparisonClusterAgentFullImagePath"
+	DDOperatorVersionParamName                     = "operatorVersion"
+	DDOperatorFullImagePathParamName               = "operatorFullImagePath"
+	DDOperatorLocalChartPath                       = "localChartPath"
+	DDImagePullRegistryParamName                   = "imagePullRegistry"
+	DDImagePullUsernameParamName                   = "imagePullUsername"
+	DDImagePullPasswordParamName                   = "imagePullPassword"
+	DDAgentAPIKeyParamName                         = "apiKey"
+	DDAgentAPPKeyParamName                         = "appKey"
+	DDAgentFakeintake                              = "fakeintake"
+	DDAgentDualShipping                            = "dualshipping"
+	DDAgentFakeintakeStoreType                     = "fakeintakeStoreType"
+	DDAGentFakeintakeRetentionPeriod               = "fakeintakeRetentionPeriod"
+	DDAgentSite                                    = "site"
+	DDAgentMajorVersion                            = "majorVersion"
+	DDAgentExtraEnvVars                            = "extraEnvVars" // extraEnvVars is expected in the format: <key1>=<value1>,<key2>=<value2>,...
+	DDAgentJMX                                     = "jmx"
+	DDAgentFIPS                                    = "fips"
+	DDAgentConfigPathParamName                     = "configPath"
+	DDAgentHelmConfig                              = "helmConfig"
 
 	// Updater Namespace
 	DDUpdaterParamName = "deploy"
@@ -129,6 +137,15 @@ type Env interface {
 	ClusterAgentVersion() string
 	AgentFullImagePath() string
 	ClusterAgentFullImagePath() string
+	// Benchmarkeks specific methods
+	AgentBaselineVersion() string
+	AgentBaselineFullImagePath() string
+	ClusterAgentBaselineVersion() string
+	ClusterAgentBaselineFullImagePath() string
+	AgentComparisonVersion() string
+	AgentComparisonFullImagePath() string
+	ClusterAgentComparisonVersion() string
+	ClusterAgentComparisonFullImagePath() string
 	OperatorFullImagePath() string
 	OperatorVersion() string
 	OperatorLocalChartPath() string
@@ -335,6 +352,40 @@ func (e *CommonEnvironment) AgentFullImagePath() string {
 
 func (e *CommonEnvironment) ClusterAgentFullImagePath() string {
 	return e.AgentConfig.Get(DDClusterAgentFullImagePathParamName)
+}
+
+// Benchmarkeks specific methods for baseline variant
+func (e *CommonEnvironment) AgentBaselineVersion() string {
+	return e.AgentConfig.Get(DDAgentBaselineVersionParamName)
+}
+
+func (e *CommonEnvironment) AgentBaselineFullImagePath() string {
+	return e.AgentConfig.Get(DDAgentBaselineFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) ClusterAgentBaselineVersion() string {
+	return e.AgentConfig.Get(DDClusterAgentBaselineVersionParamName)
+}
+
+func (e *CommonEnvironment) ClusterAgentBaselineFullImagePath() string {
+	return e.AgentConfig.Get(DDClusterAgentBaselineFullImagePathParamName)
+}
+
+// Benchmarkeks specific methods for comparison variant
+func (e *CommonEnvironment) AgentComparisonVersion() string {
+	return e.AgentConfig.Get(DDAgentComparisonVersionParamName)
+}
+
+func (e *CommonEnvironment) AgentComparisonFullImagePath() string {
+	return e.AgentConfig.Get(DDAgentComparisonFullImagePathParamName)
+}
+
+func (e *CommonEnvironment) ClusterAgentComparisonVersion() string {
+	return e.AgentConfig.Get(DDClusterAgentComparisonVersionParamName)
+}
+
+func (e *CommonEnvironment) ClusterAgentComparisonFullImagePath() string {
+	return e.AgentConfig.Get(DDClusterAgentComparisonFullImagePathParamName)
 }
 
 func (e *CommonEnvironment) OperatorVersion() string {

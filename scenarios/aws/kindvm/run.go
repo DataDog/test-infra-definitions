@@ -5,6 +5,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agent/helm"
 	"github.com/DataDog/test-infra-definitions/components/datadog/agentwithoperatorparams"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/busybox"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/etcd"
@@ -235,6 +236,10 @@ spec:
 		}
 
 		if _, err := cpustress.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-cpustress"); err != nil {
+			return err
+		}
+
+		if _, err := busybox.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-busybox"); err != nil {
 			return err
 		}
 

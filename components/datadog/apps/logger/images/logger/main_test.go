@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -12,6 +14,20 @@ import (
 	"testing"
 	"time"
 )
+
+func TestImFlaky(t *testing.T) {
+	fmt.Println("I'm flaky!")
+	if rand.Int32()%2 == 0 {
+		fmt.Println("I fail")
+		t.Fail()
+	} else {
+		fmt.Println("I dont fail")
+	}
+}
+
+func TestImOk(t *testing.T) {
+	fmt.Println("OK")
+}
 
 func TestPostHandler(t *testing.T) {
 

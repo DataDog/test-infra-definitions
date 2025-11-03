@@ -23,7 +23,7 @@ var platforms = PlatformsType{
 			"2":         "ami-09f3869f369570aea",
 			"2022-5-15": "ami-0f0f00c2d082c52ae",
 			"2023":      "ami-0f4a4fa5d1c6e0704",
-			"2018":      "ami-07541a4f680f1ba8e",
+			"2018":      "ami-0cabc8cbc2098cbb8",
 		},
 		"arm64": PlatformsAMIsType{
 			"2-4-14":    "ami-090230ed0c6b13c74",

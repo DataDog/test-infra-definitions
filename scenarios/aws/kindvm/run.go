@@ -219,14 +219,14 @@ spec:
 
 	// Deploy standalone dogstatsd
 	if awsEnv.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, kindKubeProvider, "dogstatsd-standalone", fakeIntake, false, kindClusterName); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, kindKubeProvider, "dogstatsd-standalone", "/var/run/containerd/containerd.sock", fakeIntake, false, kindClusterName); err != nil {
 			return err
 		}
 	}
 
 	// Deploy testing workload
 	if !awsEnv.AgentDeployWithOperator() && awsEnv.TestingWorkloadDeploy() {
-		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
+		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", 80, "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}
 

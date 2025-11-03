@@ -25,7 +25,7 @@ const HostPort = 8128
 const Socket = "/run/datadog/dsd-standalone.socket"
 const criSocket = "/run/containerd/containerd.sock"
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, hostCriSocketPath string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}
@@ -172,6 +172,16 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 							},
 							VolumeMounts: &corev1.VolumeMountArray{
 								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("hostvar"),
+									MountPath: pulumi.String("/host/var"),
+									ReadOnly:  pulumi.BoolPtr(true),
+								},
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("hostrun"),
+									MountPath: pulumi.String("/host/run"),
+									ReadOnly:  pulumi.BoolPtr(true),
+								},
+								&corev1.VolumeMountArgs{
 									Name:      pulumi.String("procdir"),
 									MountPath: pulumi.String("/host/proc"),
 									ReadOnly:  pulumi.BoolPtr(true),
@@ -190,10 +200,27 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 									MountPath: pulumi.String(criSocket),
 									ReadOnly:  pulumi.BoolPtr(true),
 								},
+								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("logdir"),
+									MountPath: pulumi.String("/var/log/datadog"),
+									ReadOnly:  pulumi.BoolPtr(false),
+								},
 							},
 						},
 					},
 					Volumes: corev1.VolumeArray{
+						&corev1.VolumeArgs{
+							Name: pulumi.String("hostvar"),
+							HostPath: &corev1.HostPathVolumeSourceArgs{
+								Path: pulumi.String("/var"),
+							},
+						},
+						&corev1.VolumeArgs{
+							Name: pulumi.String("hostrun"),
+							HostPath: &corev1.HostPathVolumeSourceArgs{
+								Path: pulumi.String("/run"),
+							},
+						},
 						&corev1.VolumeArgs{
 							Name: pulumi.String("procdir"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
@@ -218,6 +245,10 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 								Path: pulumi.String(criSocket),
 								Type: pulumi.String("Socket"),
 							},
+						},
+						&corev1.VolumeArgs{
+							Name:     pulumi.String("logdir"),
+							EmptyDir: &corev1.EmptyDirVolumeSourceArgs{},
 						},
 					},
 					PriorityClassName: pulumi.String("dogstatsd-standalone"),
@@ -289,6 +320,25 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 		},
 	}
 
+	sccRoleBindingArgs := v1.RoleBindingArgs{
+		Metadata: &metav1.ObjectMetaArgs{
+			Name:      pulumi.String("dogstatsd-standalone-scc-binding"),
+			Namespace: pulumi.String(namespace),
+		},
+		RoleRef: v1.RoleRefArgs{
+			ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
+			Kind:     pulumi.String("ClusterRole"),
+			Name:     pulumi.String("system:openshift:scc:privileged"),
+		},
+		Subjects: v1.SubjectArray{
+			&v1.SubjectArgs{
+				Kind:      pulumi.String("ServiceAccount"),
+				Name:      pulumi.String("dogstatsd-standalone"),
+				Namespace: pulumi.String(namespace),
+			},
+		},
+	}
+
 	if _, err := corev1.NewServiceAccount(e.Ctx(), "dogstatsd-standalone", &serviceAccountArgs, opts...); err != nil {
 		return nil, err
 	}
@@ -298,6 +348,10 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	}
 
 	if _, err := v1.NewClusterRoleBinding(e.Ctx(), "dogstatsd-standalone", &clusterRoleBindingArgs, opts...); err != nil {
+		return nil, err
+	}
+
+	if _, err := v1.NewRoleBinding(e.Ctx(), "dogstatsd-standalone-scc-binding", &sccRoleBindingArgs, opts...); err != nil {
 		return nil, err
 	}
 

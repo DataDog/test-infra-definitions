@@ -129,14 +129,14 @@ func Run(ctx *pulumi.Context) error {
 
 		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "dogstatsd-standalone", fakeIntake, true, ""); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "dogstatsd-standalone", "/var/run/containerd/containerd.sock", fakeIntake, true, ""); err != nil {
 				return err
 			}
 		}
 
 		// Deploy testing workload
 		if awsEnv.TestingWorkloadDeploy() {
-			if _, err := nginx.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
+			if _, err := nginx.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "workload-nginx", 80, "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 				return err
 			}
 

@@ -21,8 +21,8 @@ import (
 var workingDir = flag.String("workingDir", "", "run tests in the specified directory, relative to the root of the repository. Defaults to the root of the repository.")
 
 func TestImFlaky(t *testing.T) {
-	fmt.Println("I'm flaky!")
-	if rand.Int32()%2 == 0 {
+	fmt.Println("I'm (less) flaky!")
+	if rand.Int32()%8 == 0 {
 		fmt.Println("I fail")
 		t.Fail()
 	} else {

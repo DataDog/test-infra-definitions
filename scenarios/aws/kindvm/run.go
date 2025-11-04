@@ -82,7 +82,7 @@ func Run(ctx *pulumi.Context) error {
 		if err != nil {
 			return err
 		}
-		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, pulumi.Provider(kindKubeProvider))
+		argoRollout, err = argorollouts.NewHelmInstallation(&awsEnv, argoParams, kindKubeProvider)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ spec:
 	}
 
 	// Deploy testing workload
-	if awsEnv.TestingWorkloadDeploy() {
+	if !awsEnv.AgentDeployWithOperator() && awsEnv.TestingWorkloadDeploy() {
 		if _, err := nginx.K8sAppDefinition(&awsEnv, kindKubeProvider, "workload-nginx", "", true, dependsOnDDAgent /* for DDM */, dependsOnVPA); err != nil {
 			return err
 		}

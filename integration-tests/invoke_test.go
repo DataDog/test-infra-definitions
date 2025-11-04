@@ -76,11 +76,10 @@ func TestInvokes(t *testing.T) {
 		testInvokeKind(t, tmpConfigFile, *workingDir)
 	})
 
-	// TODO(ACIX-1078): Fix the flaky test and re-enable it
-	// t.Run("invoke-kind-operator", func(t *testing.T) {
-	// 	t.Parallel()
-	// 	testInvokeKindOperator(t, tmpConfigFile, *workingDir)
-	// })
+	t.Run("invoke-kind-operator", func(t *testing.T) {
+		t.Parallel()
+		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
+	})
 }
 
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
@@ -158,7 +157,7 @@ func testInvokeDockerVM(t *testing.T, tmpConfigFile string, workingDirectory str
 	stdErr.Reset()
 
 	t.Log("destroying vm with docker")
-	destroyCmd := exec.Command("invoke", "destroy-docker", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "aws.destroy-docker", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyCmd.Stdout = &stdOut
 	destroyCmd.Stderr = &stdErr
@@ -175,37 +174,37 @@ func testInvokeKind(t *testing.T, tmpConfigFile string, workingDirectory string)
 	stackName := strings.Join(stackParts, "-")
 	stackName = sanitizeStackName(stackName)
 	t.Log("creating kind cluster")
-	createCmd := exec.Command("invoke", "create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer", "--install-argorollout")
+	createCmd := exec.Command("invoke", "aws.create-kind", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer", "--install-argorollout")
 	createCmd.Dir = workingDirectory
 	createOutput, err := createCmd.Output()
 	assert.NoError(t, err, "Error found creating kind cluster: %s", string(createOutput))
 
 	t.Log("destroying kind cluster")
-	destroyCmd := exec.Command("invoke", "destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd := exec.Command("invoke", "aws.destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
 	destroyCmd.Dir = workingDirectory
 	destroyOutput, err := destroyCmd.Output()
 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
 }
 
-// func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory string) {
-// 	t.Helper()
-// 	stackName := "invoke-kind-with-operator"
-// 	if os.Getenv("CI") == "true" {
-// 		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_JOB_ID"))
-// 	}
-// 	stackName = sanitizeStackName(stackName)
-// 	t.Log("creating kind cluster with operator")
-// 	createCmd := exec.Command("invoke", "aws.create-kind", "--install-agent-with-operator", "true", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
-// 	createCmd.Dir = workingDirectory
-// 	createOutput, err := createCmd.Output()
-// 	assert.NoError(t, err, "Error found creating kind cluster: %s; %s", string(createOutput), err)
+func testInvokeKindOperator(t *testing.T, tmpConfigFile string, workingDirectory string) {
+	t.Helper()
+	stackName := "invoke-kind-with-operator"
+	if os.Getenv("CI") == "true" {
+		stackName = fmt.Sprintf("%s-%s", stackName, os.Getenv("CI_JOB_ID"))
+	}
+	stackName = sanitizeStackName(stackName)
+	t.Log("creating kind cluster with operator")
+	createCmd := exec.Command("invoke", "aws.create-kind", "--install-agent-with-operator", "true", "--no-interactive", "--stack-name", stackName, "--config-path", tmpConfigFile, "--use-fakeintake", "--use-loadBalancer")
+	createCmd.Dir = workingDirectory
+	createOutput, err := createCmd.Output()
+	assert.NoError(t, err, "Error found creating kind cluster: %s; %s", string(createOutput), err)
 
-// 	t.Log("destroying kind cluster with operator")
-// 	destroyCmd := exec.Command("invoke", "destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
-// 	destroyCmd.Dir = workingDirectory
-// 	destroyOutput, err := destroyCmd.Output()
-// 	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
-// }
+	t.Log("destroying kind cluster with operator")
+	destroyCmd := exec.Command("invoke", "aws.destroy-kind", "--stack-name", stackName, "--config-path", tmpConfigFile)
+	destroyCmd.Dir = workingDirectory
+	destroyOutput, err := destroyCmd.Output()
+	require.NoError(t, err, "Error found destroying kind cluster: %s", string(destroyOutput))
+}
 
 //go:embed testfixture/config.yaml
 var testInfraTestConfig string

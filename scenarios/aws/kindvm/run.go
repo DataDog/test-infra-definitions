@@ -148,7 +148,7 @@ agents:
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
-		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
+		k8sAgentComponent, err := helm.NewKubernetesAgent(&awsEnv, "dda", awsEnv.Namer.ResourceName("datadog-agent"), kindKubeProvider, k8sAgentOptions...)
 
 		if err != nil {
 			return err

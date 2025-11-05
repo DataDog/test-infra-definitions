@@ -74,20 +74,19 @@ type HelmComponent struct {
 	ClusterAgentToken pulumi.StringOutput
 }
 
-func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
+func NewHelmInstallation(e config.Env, baseName string, args HelmInstallationArgs, opts ...pulumi.ResourceOption) (*HelmComponent, error) {
 	apiKey := e.AgentAPIKey()
 	appKey := e.AgentAPPKey()
-	baseName := "dda"
 	opts = append(opts, pulumi.Providers(args.KubeProvider), e.WithProviders(config.ProviderRandom), pulumi.DeletedWith(args.KubeProvider))
 
 	helmComponent := &HelmComponent{}
-	if err := e.Ctx().RegisterComponentResource("dd:agent", "dda", helmComponent, opts...); err != nil {
+	if err := e.Ctx().RegisterComponentResource("dd:agent", e.CommonNamer().ResourceName(baseName), helmComponent, opts...); err != nil {
 		return nil, err
 	}
 	opts = append(opts, pulumi.Parent(helmComponent))
 
 	// Create fixed cluster agent token
-	randomClusterAgentToken, err := random.NewRandomString(e.Ctx(), "datadog-cluster-agent-token", &random.RandomStringArgs{
+	randomClusterAgentToken, err := random.NewRandomString(e.Ctx(), e.CommonNamer().ResourceName(baseName, "cluster", "agent", "token"), &random.RandomStringArgs{
 		Lower:   pulumi.Bool(true),
 		Upper:   pulumi.Bool(true),
 		Length:  pulumi.Int(32),
@@ -112,7 +111,7 @@ func NewHelmInstallation(e config.Env, args HelmInstallationArgs, opts ...pulumi
 	opts = append(opts, utils.PulumiDependsOn(ns))
 
 	// Create secret if necessary
-	secret, err := corev1.NewSecret(e.Ctx(), "datadog-credentials", &corev1.SecretArgs{
+	secret, err := corev1.NewSecret(e.Ctx(), e.CommonNamer().ResourceName(baseName, "credentials"), &corev1.SecretArgs{
 		Metadata: metav1.ObjectMetaArgs{
 			Namespace: ns.Metadata.Name(),
 			Name:      pulumi.Sprintf("%s-datadog-credentials", baseName),

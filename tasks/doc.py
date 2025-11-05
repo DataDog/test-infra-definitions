@@ -41,3 +41,13 @@ local_package: str = "Path to a local package to install, it can be either a fol
 pull_secret_path: str = "Path to the OpenShift pull secret file (required for OpenShift cluster creation)."
 local_chart_path: str = "Path to a local helm chart to install the Datadog Agent."
 latest_ami: str = "Use the latest AMI for the OS and architecture (default False)."
+
+# Benchmark EKS specific parameters
+baseline_version: str = "Agent version for the baseline variant (e.g., 7.55.0)"
+baseline_full_image_path: str = "Full Docker image path for the baseline agent"
+baseline_cluster_agent_version: str = "Cluster agent version for the baseline variant"
+baseline_cluster_agent_full_image_path: str = "Full Docker image path for the baseline cluster agent"
+comparison_version: str = "Agent version for the comparison variant (e.g., 7.56.0)"
+comparison_full_image_path: str = "Full Docker image path for the comparison agent"
+comparison_cluster_agent_version: str = "Cluster agent version for the comparison variant"
+comparison_cluster_agent_full_image_path: str = "Full Docker image path for the comparison cluster agent"

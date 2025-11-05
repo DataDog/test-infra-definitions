@@ -155,7 +155,7 @@ clusterAgent:
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDualShipping())
 		}
 
-		k8sAgentComponent, err := helm.NewKubernetesAgent(&gcpEnv, gcpEnv.Namer.ResourceName("datadog-agent"), openshiftKubeProvider, k8sAgentOptions...)
+		k8sAgentComponent, err := helm.NewKubernetesAgent(&gcpEnv, "dda", gcpEnv.Namer.ResourceName("datadog-agent"), openshiftKubeProvider, k8sAgentOptions...)
 
 		if err != nil {
 			return err

@@ -102,3 +102,8 @@ updates:
     directory: /components/datadog/apps/cws/images/cws-centos7
     schedule:
       interval: daily
+
+  - package-ecosystem: docker
+    directory: /components/datadog/apps/etcd/images/alpine
+    schedule:
+      interval: daily

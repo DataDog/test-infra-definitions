@@ -176,6 +176,11 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 									ReadOnly:  pulumi.BoolPtr(true),
 								},
 								&corev1.VolumeMountArgs{
+									Name:      pulumi.String("hostrun"),
+									MountPath: pulumi.String("/host/run"),
+									ReadOnly:  pulumi.BoolPtr(true),
+								},
+								&corev1.VolumeMountArgs{
 									Name:      pulumi.String("procdir"),
 									MountPath: pulumi.String("/host/proc"),
 									ReadOnly:  pulumi.BoolPtr(true),
@@ -189,11 +194,6 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 									Name:      pulumi.String("dsdsocket"),
 									MountPath: pulumi.String("/var/run/datadog"),
 								},
-								&corev1.VolumeMountArgs{
-									Name:      pulumi.String("runtimesocket"),
-									MountPath: pulumi.String("/host/var/run/containerd/containerd.sock"),
-									ReadOnly:  pulumi.BoolPtr(true),
-								},
 							},
 						},
 					},
@@ -202,6 +202,12 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 							Name: pulumi.String("hostvar"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
 								Path: pulumi.String("/var"),
+							},
+						},
+						&corev1.VolumeArgs{
+							Name: pulumi.String("hostrun"),
+							HostPath: &corev1.HostPathVolumeSourceArgs{
+								Path: pulumi.String("/run"),
 							},
 						},
 						&corev1.VolumeArgs{
@@ -220,13 +226,6 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 							Name: pulumi.String("dsdsocket"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
 								Path: pulumi.String("/var/run/datadog/"),
-							},
-						},
-						&corev1.VolumeArgs{
-							Name: pulumi.String("runtimesocket"),
-							HostPath: &corev1.HostPathVolumeSourceArgs{
-								Path: pulumi.String("/var/run/containerd/containerd.sock"),
-								Type: pulumi.String("Socket"),
 							},
 						},
 					},

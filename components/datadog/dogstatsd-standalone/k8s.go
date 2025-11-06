@@ -3,10 +3,6 @@ package dogstatsdstandalone
 import (
 	"strconv"
 
-	"github.com/DataDog/test-infra-definitions/common/config"
-	"github.com/DataDog/test-infra-definitions/common/utils"
-	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
-	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
@@ -14,6 +10,11 @@ import (
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
 	schedulingv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/scheduling/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
+
+	"github.com/DataDog/test-infra-definitions/common/config"
+	"github.com/DataDog/test-infra-definitions/common/utils"
+	"github.com/DataDog/test-infra-definitions/components/datadog/fakeintake"
+	componentskube "github.com/DataDog/test-infra-definitions/components/kubernetes"
 )
 
 // HostPort defines the port used by the dogstatsd standalone deployment. The
@@ -190,9 +191,10 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 									MountPath: pulumi.String("/var/run/datadog"),
 								},
 								&corev1.VolumeMountArgs{
-									Name:      pulumi.String("runtimesocket"),
-									MountPath: pulumi.String("/host/var/run/containerd/containerd.sock"),
-									ReadOnly:  pulumi.BoolPtr(true),
+									Name:             pulumi.String("runtimesocket"),
+									MountPath:        pulumi.String("/host/var/run"),
+									ReadOnly:         pulumi.BoolPtr(true),
+									MountPropagation: pulumi.String("None"),
 								},
 							},
 						},
@@ -225,8 +227,8 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 						&corev1.VolumeArgs{
 							Name: pulumi.String("runtimesocket"),
 							HostPath: &corev1.HostPathVolumeSourceArgs{
-								Path: pulumi.String("/var/run/containerd/containerd.sock"),
-								Type: pulumi.String("Socket"),
+								Path: pulumi.String("/var/run"),
+								Type: pulumi.String(""),
 							},
 						},
 					},

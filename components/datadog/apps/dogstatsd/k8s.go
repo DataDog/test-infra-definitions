@@ -52,7 +52,7 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 	if _, err := rbacv1.NewRoleBinding(e.Ctx(), fmt.Sprintf("dogstatsd-uds-scc-binding-%d", statsdPort), &rbacv1.RoleBindingArgs{
 		Metadata: &metav1.ObjectMetaArgs{
 			Name:      pulumi.String("dogstatsd-scc-binding"),
-			Namespace: pulumi.StringPtr(namespace),
+			Namespace: pulumi.String(namespace),
 		},
 		RoleRef: &rbacv1.RoleRefArgs{
 			ApiGroup: pulumi.String("rbac.authorization.k8s.io"),
@@ -87,6 +87,9 @@ func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace
 			},
 			Template: &corev1.PodTemplateSpecArgs{
 				Metadata: &metav1.ObjectMetaArgs{
+					Annotations: pulumi.StringMap{
+						"openshift.io/required-scc": pulumi.String("hostaccess"),
+					},
 					Labels: pulumi.StringMap{
 						"admission.datadoghq.com/config.mode": pulumi.String("csi"),
 						"app":                                 pulumi.String("dogstatsd-uds-with-csi"),

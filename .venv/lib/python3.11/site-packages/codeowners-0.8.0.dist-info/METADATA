@@ -1,0 +1,84 @@
+Metadata-Version: 2.1
+Name: codeowners
+Version: 0.8.0
+Summary: Codeowners parser for Python
+Home-page: https://github.com/sbdchd/codeowners
+License: MIT
+Keywords: codeowners,git,github
+Author: Steve Dignam
+Author-email: steve@dignam.xyz
+Requires-Python: >=3.7,<4.0
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.7
+Classifier: Programming Language :: Python :: 3.8
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Requires-Dist: typing_extensions (>=3.7)
+Project-URL: Repository, https://github.com/sbdchd/codeowners
+Description-Content-Type: text/markdown
+
+# codeowners [![CircleCI](https://circleci.com/gh/sbdchd/codeowners.svg?style=svg)](https://circleci.com/gh/sbdchd/codeowners) [![pypi](https://img.shields.io/pypi/v/codeowners.svg)](https://pypi.org/project/codeowners/)
+
+> Python codeowners parser based on [softprops's Rust
+> library](https://crates.io/crates/codeowners) and [hmarr's Go
+> library](https://github.com/hmarr/codeowners/).
+
+## Why?
+
+To allow Python users to parse [codeowners
+files](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/about-code-owners#codeowners-syntax)
+in Python.
+
+## Install
+
+```shell
+pip install codeowners
+```
+
+## Usage
+
+```python
+from codeowners import CodeOwners
+
+example_file = """\
+# owners for js files
+*.js    @ghost
+# python
+*.py user@example.com
+# misc
+/build/logs/ @dmin
+docs/*  docs@example.com
+"""
+
+owners = CodeOwners(example_file)
+assert owners.of("test.js") ==  [('USERNAME', '@ghost')]
+```
+
+## Dev
+
+```shell
+poetry install
+
+s/test
+
+s/lint
+```
+
+## Releasing a New Version
+
+```shell
+# bump version in pyproject.toml
+
+# update CHANGELOG.md
+
+# commit release commit to GitHub
+
+# build and publish
+poetry publish --build
+
+# create a release in the GitHub UI
+```
+

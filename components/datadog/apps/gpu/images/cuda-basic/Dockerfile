@@ -1,5 +1,5 @@
-ARG CUDA_VERSION=12.6.2
-ARG BASE_DISTRO=ubuntu24.04
+ARG CUDA_VERSION=12.4.1
+ARG BASE_DISTRO=ubuntu22.04
 
 # Multi-stage image, first we build the CUDA image with the -devel image
 FROM nvidia/cuda:${CUDA_VERSION}-devel-${BASE_DISTRO} AS builder

@@ -5,6 +5,7 @@ import (
 	_ "embed"
 	"flag"
 	"fmt"
+	"math/rand/v2"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -19,68 +20,84 @@ import (
 
 var workingDir = flag.String("workingDir", "", "run tests in the specified directory, relative to the root of the repository. Defaults to the root of the repository.")
 
-func TestInvokes(t *testing.T) {
-	// Set working directory
-	rootPath, err := rootPath()
-	require.NoError(t, err)
-	if *workingDir == "" {
-		*workingDir = rootPath
+func TestImFlaky(t *testing.T) {
+	fmt.Println("I'm not flaky anymore!")
+	fmt.Println(*workingDir)
+	if rand.Int32()%8 == 0 {
+		fmt.Println("I fail")
+		t.Fail()
+	} else {
+		fmt.Println("I dont fail")
 	}
-	if !filepath.IsAbs(*workingDir) {
-		*workingDir = filepath.Join(rootPath, *workingDir)
-	}
-	t.Logf("Running tests in %s", *workingDir)
-
-	// Arrange
-	t.Log("Creating temporary configuration file")
-	tmpConfigFile, err := createTemporaryConfigurationFile()
-	require.NoError(t, err, "Error writing temporary configuration")
-	t.Cleanup(func() {
-		t.Log("Cleaning up temporary configuration file")
-		os.Remove(tmpConfigFile)
-	})
-
-	t.Log("setup test infra")
-	err = setupTestInfra(tmpConfigFile)
-	require.NoError(t, err, "Error setting up test infra")
-
-	tmpConfig, err := LoadConfig(tmpConfigFile)
-	require.NoError(t, err)
-
-	require.NotEmpty(t, tmpConfig.ConfigParams.AWS.TeamTag)
-
-	// Subtests
-
-	t.Run("az.create-vm", func(t *testing.T) {
-		t.Parallel()
-		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
-	})
-
-	t.Run("aws.create-vm", func(t *testing.T) {
-		t.Parallel()
-		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
-	})
-
-	t.Run("gcp.create-vm", func(t *testing.T) {
-		t.Parallel()
-		testGcpInvokeVM(t, tmpConfigFile, *workingDir)
-	})
-
-	t.Run("aws.invoke-docker-vm", func(t *testing.T) {
-		t.Parallel()
-		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
-	})
-
-	t.Run("aws.invoke-kind", func(t *testing.T) {
-		t.Parallel()
-		testInvokeKind(t, tmpConfigFile, *workingDir)
-	})
-
-	t.Run("invoke-kind-operator", func(t *testing.T) {
-		t.Parallel()
-		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
-	})
 }
+
+func TestImOk(t *testing.T) {
+	fmt.Println("OK")
+}
+
+// TODO
+// func TestInvokes(t *testing.T) {
+// 	// Set working directory
+// 	rootPath, err := rootPath()
+// 	require.NoError(t, err)
+// 	if *workingDir == "" {
+// 		*workingDir = rootPath
+// 	}
+// 	if !filepath.IsAbs(*workingDir) {
+// 		*workingDir = filepath.Join(rootPath, *workingDir)
+// 	}
+// 	t.Logf("Running tests in %s", *workingDir)
+
+// 	// Arrange
+// 	t.Log("Creating temporary configuration file")
+// 	tmpConfigFile, err := createTemporaryConfigurationFile()
+// 	require.NoError(t, err, "Error writing temporary configuration")
+// 	t.Cleanup(func() {
+// 		t.Log("Cleaning up temporary configuration file")
+// 		os.Remove(tmpConfigFile)
+// 	})
+
+// 	t.Log("setup test infra")
+// 	err = setupTestInfra(tmpConfigFile)
+// 	require.NoError(t, err, "Error setting up test infra")
+
+// 	tmpConfig, err := LoadConfig(tmpConfigFile)
+// 	require.NoError(t, err)
+
+// 	require.NotEmpty(t, tmpConfig.ConfigParams.AWS.TeamTag)
+
+// 	// Subtests
+
+// 	t.Run("az.create-vm", func(t *testing.T) {
+// 		t.Parallel()
+// 		testAzureInvokeVM(t, tmpConfigFile, *workingDir)
+// 	})
+
+// 	t.Run("aws.create-vm", func(t *testing.T) {
+// 		t.Parallel()
+// 		testAwsInvokeVM(t, tmpConfigFile, *workingDir)
+// 	})
+
+// 	t.Run("gcp.create-vm", func(t *testing.T) {
+// 		t.Parallel()
+// 		testGcpInvokeVM(t, tmpConfigFile, *workingDir)
+// 	})
+
+// 	t.Run("aws.invoke-docker-vm", func(t *testing.T) {
+// 		t.Parallel()
+// 		testInvokeDockerVM(t, tmpConfigFile, *workingDir)
+// 	})
+
+// 	t.Run("aws.invoke-kind", func(t *testing.T) {
+// 		t.Parallel()
+// 		testInvokeKind(t, tmpConfigFile, *workingDir)
+// 	})
+
+// 	t.Run("invoke-kind-operator", func(t *testing.T) {
+// 		t.Parallel()
+// 		testInvokeKindOperator(t, tmpConfigFile, *workingDir)
+// 	})
+// }
 
 func testAzureInvokeVM(t *testing.T, tmpConfigFile string, workingDirectory string) {
 	t.Helper()

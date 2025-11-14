@@ -225,7 +225,7 @@ func initNvkindCluster(env config.Env, vm *remote.Host, name string, clusterOpts
 				// For the create command, delete the cluster if the creation
 				// fails. And if the delete succeeds, still have && false to
 				// ensure that the command returns an exit error anways
-				Create:   pulumi.Sprintf("nvkind cluster create --name %s --config-template %s --config-values %s || (%s && false)", kindClusterName, nvkindTemplatePath, nvkindValuesPath, deleteClusterCmd),
+				Create: pulumi.Sprintf("nvkind cluster create --name %s --config-template %s --config-values %s || (%s && false)", kindClusterName, nvkindTemplatePath, nvkindValuesPath, deleteClusterCmd),
 				// On the other hand, do not fail the delete command if nvkind
 				// delete fails, as it can happen if the cluster hasn't been
 				// created or nvkind deleted it because of an error (nvkind is

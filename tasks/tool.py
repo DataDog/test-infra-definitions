@@ -25,7 +25,7 @@ if is_windows():
         just_fix_windows_console()
     except ImportError:
         print(
-            "colorama is not up to date, terminal colors may not work properly. Please run 'pip install -r requirements.txt' to fix this."
+            "colorama is not up to date, terminal colors may not work properly. Please run 'dda self dep sync' to fix this."
         )
 
 

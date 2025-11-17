@@ -80,7 +80,6 @@ integration-testing:
     - eval $(ssh-agent -s)
     - chmod 400 $E2E_PRIVATE_KEY_PATH
     - ssh-add $E2E_PRIVATE_KEY_PATH
-    - pip install -r requirements.txt
     - go install github.com/DataDog/orchestrion@v1.4.0
     - orchestrion pin
     - export DD_CIVISIBILITY_ENABLED=true
@@ -153,5 +152,4 @@ bump-version-on-datadog-agent:
     - git add -u
     - dda inv -e git.push-signed-commits --branch $PR_BRANCH --commit-message "[test-infra-definitions][automated] Bump test-infra-definitions to $CI_COMMIT_SHORT_SHA"
     - popd
-    - pip install -r requirements.txt
-    - inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA
+    - dda inv ci.create-bump-pr-and-close-stale-ones-on-datadog-agent --branch auto-bump/bump-test-infra-$CI_COMMIT_SHORT_SHA --new-commit-sha $CI_COMMIT_SHA --old-commit-sha $PREVIOUS_SHA

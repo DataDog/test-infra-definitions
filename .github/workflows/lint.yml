@@ -39,26 +39,18 @@ jobs:
           install-mode: "goinstall"
       - name: Check tidy
         run: go mod tidy && git diff-files --exit-code go.mod go.sum
-  lint-python-type:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - name: Install Python requirements
-        run: pip3 install -r requirements.txt
-      - name: Install pyright
-        run: pip3 install pyright
-      - name: Run pyright
-        run: pyright tasks
   lint-python:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-      - name: Install lint python requirements
-        run: pip3 install ruff vulture
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Install dda
+        uses: DataDog/datadog-agent-dev@00e4a423088309efce1d5ba6b8c5366eef648710
+        with:
+          version: v0.30.2
+          features: legacy-test-infra-definitions
+
       - name: Run linters
         run: |
-          ruff format --check tasks
-          ruff check tasks
-          vulture --ignore-decorators @task --ignore-names 'test_*,Test*' tasks
+          dda validate python

@@ -23,9 +23,8 @@ const HostPort = 8128
 // Socket defines the socket exposed by the dogstatsd standalone deployment.
 // It's not the default to avoid conflict with the agent.
 const Socket = "/run/datadog/dsd-standalone.socket"
-const criSocket = "/run/containerd/containerd.sock"
 
-func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, hostCriSocketPath string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
+func K8sAppDefinition(e config.Env, kubeProvider *kubernetes.Provider, namespace string, criSocket string, fakeIntake *fakeintake.Fakeintake, kubeletTLSVerify bool, clusterName string, opts ...pulumi.ResourceOption) (*componentskube.Workload, error) {
 	opts = append(opts, pulumi.Provider(kubeProvider), pulumi.Parent(kubeProvider), pulumi.DeletedWith(kubeProvider))
 
 	k8sComponent := &componentskube.Workload{}

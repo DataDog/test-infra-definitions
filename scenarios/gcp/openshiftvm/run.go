@@ -205,7 +205,7 @@ clusterAgent:
 
 		if gcpEnv.DogstatsdDeploy() {
 			// Standalone dogstatsd
-			if _, err := dogstatsdstandalone.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "dogstatsd-standalone", "/var/run/crio/crio.sock", fakeIntake, true, ""); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(&gcpEnv, openshiftKubeProvider, "dogstatsd-standalone", "/run/crio/crio.sock", fakeIntake, true, ""); err != nil {
 				return err
 			}
 

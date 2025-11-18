@@ -129,7 +129,7 @@ func Run(ctx *pulumi.Context) error {
 
 		dependsOnDDAgent = utils.PulumiDependsOn(k8sAgentComponent)
 		if awsEnv.DogstatsdDeploy() {
-			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "dogstatsd-standalone", "/var/run/containerd/containerd.sock", fakeIntake, true, ""); err != nil {
+			if _, err := dogstatsdstandalone.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "dogstatsd-standalone", "/run/containerd/containerd.sock", fakeIntake, true, ""); err != nil {
 				return err
 			}
 		}

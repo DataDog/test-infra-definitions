@@ -111,7 +111,7 @@ providers:
 
 	// Deploy standalone dogstatsd
 	if env.DogstatsdDeploy() {
-		if _, err := dogstatsdstandalone.K8sAppDefinition(&env, aksCluster.KubeProvider, "dogstatsd-standalone", "/var/run/containerd/containerd.sock", nil, true, ""); err != nil {
+		if _, err := dogstatsdstandalone.K8sAppDefinition(&env, aksCluster.KubeProvider, "dogstatsd-standalone", "/run/containerd/containerd.sock", nil, true, ""); err != nil {
 			return err
 		}
 	}

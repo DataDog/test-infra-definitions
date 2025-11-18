@@ -87,6 +87,7 @@ integration-testing:
     - export DD_ENV=ci
     - export DD_API_KEY=$(vault kv get -field=api_key kv/k8s/gitlab-runner/test-infra-definitions/dd-token)
     - export GOFLAGS="${GOFLAGS} '-toolexec=orchestrion toolexec'"
+    - dda self dep sync -f legacy-test-infra-definitions
   script:
     - |
       if [ ! -f ./dist/main ]; then
@@ -147,6 +148,7 @@ bump-version-on-datadog-agent:
     - git checkout -b $PR_BRANCH
     - git push origin $PR_BRANCH # Create the reference to push the commit through API later
     - export PREVIOUS_SHA=$(cat .gitlab/common/test_infra_version.yml | grep 'TEST_INFRA_DEFINITIONS_BUILDIMAGES:' | awk -F " " '{print $NF}')
+    - dda self dep sync -f legacy-test-infra-definitions
     - dda inv -e buildimages.update-test-infra-definitions --commit-sha $CI_COMMIT_SHA $EXTRA_UPDATE_ARGS
     - dda inv -e tidy
     - git add -u

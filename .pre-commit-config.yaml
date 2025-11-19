@@ -6,26 +6,25 @@ repos:
       - id: golangci-lint
   - repo: local
     hooks:
-      - id: pyright
-        name: pyright
-        entry: pyright
-        language: system # Use local install for pyright, else we cannot import the requirements and we get errors on external libraries
-        "types_or": [python, pyi]
+      - id: validate-python-fix
+        name: validate-python-fix
+        language: system
+        entry: dda validate python
+        args: [--fix]
         require_serial: true
         additional_dependencies: []
+        types_or: [python, pyi]
         minimum_pre_commit_version: "2.9.2"
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.2
-    hooks:
-      - id: ruff
-        args: [--fix]
-      - id: ruff-format
-  - repo: https://github.com/jendrikseipp/vulture
-    rev: "v2.3"
-    hooks:
-      - id: vulture
   - repo: local
     hooks:
+      - id: validate-python
+        name: validate-python
+        entry: dda validate python
+        language: system # Use local install for pyright, else we cannot import the requirements and we get errors on external libraries
+        require_serial: true
+        additional_dependencies: []
+        types_or: [python, pyi]
+        minimum_pre_commit_version: "2.9.2"
       - id: go-tidy
         name: go-tidy
         entry: go mod tidy

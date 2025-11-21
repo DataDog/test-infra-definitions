@@ -182,7 +182,7 @@ func NewCommonEnvironment(ctx *pulumi.Context) (CommonEnvironment, error) {
 	if err != nil {
 		return env, err
 	}
-	env.username = strings.ReplaceAll(user.Username, "\\", "/")
+	env.username = strings.ReplaceAll(strings.ReplaceAll(user.Username, "\\", "/"), ".", "-")
 
 	ctx.Log.Debug(fmt.Sprintf("user name: %s", env.username), nil)
 	ctx.Log.Debug(fmt.Sprintf("resource tags: %v", env.DefaultResourceTags()), nil)

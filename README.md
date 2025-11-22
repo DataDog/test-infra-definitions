@@ -8,12 +8,11 @@ To run scripts and code in this repository, you will need:
 
 - [Go](https://golang.org/doc/install) 1.22 or later. You'll also need to set your `$GOPATH` and have `$GOPATH/bin` in your path.
 - Python 3.9+ along with development libraries for tooling.
-- `account-admin` role on AWS `agent-sandbox` account. Ensure it by running `aws-vault login sso-agent-sandbox-account-admin`
-- [dda](https://datadoghq.dev/datadog-agent/setup/#tooling) installed on your laptop
-
+- `account-admin` role on AWS `agent-sandbox` account. Ensure it by running:
   ```bash
   aws-vault login sso-agent-sandbox-account-admin
   ```
+- [dda](https://datadoghq.dev/datadog-agent/setup/#tooling) installed on your laptop
 
 This guide is tested on **MacOS**.
 
@@ -55,7 +54,7 @@ Invoke tasks help deploying most common environments - VMs, Docker, ECS, EKS. Ru
 
 To get the list of available tasks
 ```bash
-❯ dda inv -l
+dda inv -l
 ```
 
 Run any `-h` on any of the available tasks for more information

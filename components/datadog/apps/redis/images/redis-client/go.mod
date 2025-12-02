@@ -2,7 +2,7 @@ module redis-query
 
 go 1.24
 
-require github.com/redis/go-redis/v9 v9.14.0
+require github.com/redis/go-redis/v9 v9.17.2
 
 require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

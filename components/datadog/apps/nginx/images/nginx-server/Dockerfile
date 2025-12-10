@@ -1,4 +1,4 @@
-FROM nginx:1.29.2-alpine-slim
+FROM nginx:1.29.4-alpine-slim
 
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY index.html /etc/nginx/html/index.html

@@ -16,12 +16,12 @@ require (
 	github.com/google/gofuzz v1.2.0
 	github.com/pulumi/pulumi-aws/sdk/v6 v6.66.2
 	github.com/pulumi/pulumi-awsx/sdk/v2 v2.19.0
-	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.81.0
-	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.81.0
-	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.81.0
-	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.81.0
-	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.81.0
-	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.81.0
+	github.com/pulumi/pulumi-azure-native-sdk/authorization/v2 v2.92.0
+	github.com/pulumi/pulumi-azure-native-sdk/compute/v2 v2.92.0
+	github.com/pulumi/pulumi-azure-native-sdk/containerservice/v2 v2.92.0
+	github.com/pulumi/pulumi-azure-native-sdk/managedidentity/v2 v2.92.0
+	github.com/pulumi/pulumi-azure-native-sdk/network/v2 v2.92.0
+	github.com/pulumi/pulumi-azure-native-sdk/v2 v2.92.0
 	github.com/pulumi/pulumi-command/sdk v1.0.1
 	github.com/pulumi/pulumi-docker/sdk/v4 v4.9.0
 	github.com/pulumi/pulumi-eks/sdk/v3 v3.7.0
@@ -30,7 +30,7 @@ require (
 	github.com/pulumi/pulumi-libvirt/sdk v0.5.4
 	github.com/pulumi/pulumi-random/sdk/v4 v4.18.4
 	github.com/pulumi/pulumi-tls/sdk/v4 v4.11.1
-	github.com/pulumi/pulumi/sdk/v3 v3.190.0
+	github.com/pulumi/pulumi/sdk/v3 v3.210.0
 	github.com/pulumiverse/pulumi-time/sdk v0.1.0
 	github.com/samber/lo v1.47.0
 	github.com/stretchr/testify v1.10.0
@@ -39,7 +39,6 @@ require (
 )
 
 require (
-	github.com/BurntSushi/toml v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.6.1 // indirect
 	github.com/ProtonMail/go-crypto v1.1.3 // indirect
 	github.com/aead/chacha20 v0.0.0-20180709150244-8b13a72661da // indirect
@@ -108,7 +107,6 @@ require (
 	github.com/pulumi/esc v0.17.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
-	github.com/sabhiram/go-gitignore v0.0.0-20210923224102-525f6e181f06 // indirect
 	github.com/santhosh-tekuri/jsonschema/v5 v5.3.1 // indirect
 	github.com/sergi/go-diff v1.3.2-0.20230802210424-5b0b94c5c0d3 // indirect
 	github.com/skeema/knownhosts v1.3.0 // indirect
@@ -121,14 +119,14 @@ require (
 	github.com/xanzy/ssh-agent v0.3.3 // indirect
 	github.com/zclconf/go-cty v1.14.4 // indirect
 	go.uber.org/atomic v1.11.0 // indirect
-	golang.org/x/crypto v0.39.0 // indirect
-	golang.org/x/mod v0.25.0 // indirect
-	golang.org/x/net v0.40.0 // indirect
-	golang.org/x/sync v0.15.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/term v0.32.0 // indirect
-	golang.org/x/text v0.26.0 // indirect
-	golang.org/x/tools v0.33.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
+	golang.org/x/net v0.47.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/term v0.37.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/grpc v1.71.1 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect

@@ -20,6 +20,7 @@ const (
 	amazonLinux2ARM64AmiType    = "AL2_ARM_64"
 	amazonLinux2023AMD64AmiType = "AL2023_x86_64_STANDARD"
 	amazonLinux2023ARM64AmiType = "AL2023_ARM_64_STANDARD"
+	amazonLinux2GPUAmiType      = "AL2_x86_64_GPU"
 	bottlerocketAmiType         = "BOTTLEROCKET_x86_64"
 	windowsAmiType              = "WINDOWS_CORE_2022_x86_64"
 )
@@ -59,6 +60,17 @@ func NewBottlerocketNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole 
 
 func NewWindowsNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
 	return newManagedNodeGroup(e, "windows", cluster, nodeRole, windowsAmiType, e.DefaultInstanceType(), nil, opts...)
+}
+
+// NewGPULinuxNodeGroup creates a managed node group with GPU-enabled AMI (Amazon Linux 2 with NVIDIA drivers).
+// Use this for GPU workloads that require NVIDIA GPUs (e.g., g4dn, g5, p3, p4d instance types).
+// The GPU AMI includes pre-installed NVIDIA drivers, so only the NVIDIA device plugin is needed.
+// Nodes are labeled with "accelerator=nvidia-gpu" for easy identification and workload scheduling.
+func NewGPULinuxNodeGroup(e aws.Environment, cluster *eks.Cluster, nodeRole *awsIam.Role, instanceType string, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
+	labels := map[string]string{
+		"accelerator": "nvidia-gpu",
+	}
+	return newManagedNodeGroupWithLabels(e, "gpu-linux", cluster, nodeRole, amazonLinux2GPUAmiType, instanceType, nil, labels, opts...)
 }
 
 func newAL2023LaunchTemplate(e aws.Environment, name string, opts ...pulumi.ResourceOption) (*awsEc2.LaunchTemplate, error) {
@@ -123,6 +135,10 @@ func newAL2023LaunchTemplate(e aws.Environment, name string, opts ...pulumi.Reso
 }
 
 func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string, launchTemplate *awsEc2.LaunchTemplate, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
+	return newManagedNodeGroupWithLabels(e, name, cluster, nodeRole, amiType, instanceType, launchTemplate, nil, opts...)
+}
+
+func newManagedNodeGroupWithLabels(e aws.Environment, name string, cluster *eks.Cluster, nodeRole *awsIam.Role, amiType, instanceType string, launchTemplate *awsEc2.LaunchTemplate, labels map[string]string, opts ...pulumi.ResourceOption) (*eks.ManagedNodeGroup, error) {
 	taints := awsEks.NodeGroupTaintArray{}
 	if strings.Contains(amiType, "WINDOWS") {
 		taints = append(taints,
@@ -148,6 +164,11 @@ func newManagedNodeGroup(e aws.Environment, name string, cluster *eks.Cluster, n
 		},
 		NodeRole: nodeRole,
 		Taints:   taints,
+	}
+
+	// Add Kubernetes node labels if provided
+	if len(labels) > 0 {
+		args.Labels = pulumi.ToStringMap(labels)
 	}
 
 	if launchTemplate != nil {

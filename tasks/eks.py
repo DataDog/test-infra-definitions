@@ -20,6 +20,8 @@ from . import doc
         "linux_arm_node_group": doc.linux_arm_node_group,
         "bottlerocket_node_group": doc.bottlerocket_node_group,
         "windows_node_group": doc.windows_node_group,
+        "gpu_node_group": "Create a GPU-enabled node group with NVIDIA GPUs",
+        "gpu_instance_type": "GPU instance type (e.g., 'g4dn.xlarge')",
         "instance_type": aws_doc.instance_type,
     }
 )
@@ -36,6 +38,8 @@ def create_eks(
     linux_arm_node_group: bool = False,
     bottlerocket_node_group: bool = True,
     windows_node_group: bool = False,
+    gpu_node_group: bool = False,
+    gpu_instance_type: Optional[str] = None,
     instance_type: Optional[str] = None,
 ):
     print('This command is deprecated, please use `aws.create-eks` instead')
@@ -44,18 +48,20 @@ def create_eks(
 
     create_eks_aws(
         ctx,
-        config_path,
-        debug,
-        stack_name,
-        install_agent,
-        install_workload,
-        install_argorollout,
-        agent_version,
-        linux_node_group,
-        linux_arm_node_group,
-        bottlerocket_node_group,
-        windows_node_group,
-        instance_type,
+        config_path=config_path,
+        debug=debug,
+        stack_name=stack_name,
+        install_agent=install_agent,
+        install_workload=install_workload,
+        install_argorollout=install_argorollout,
+        agent_version=agent_version,
+        linux_node_group=linux_node_group,
+        linux_arm_node_group=linux_arm_node_group,
+        bottlerocket_node_group=bottlerocket_node_group,
+        windows_node_group=windows_node_group,
+        gpu_node_group=gpu_node_group,
+        gpu_instance_type=gpu_instance_type,
+        instance_type=instance_type,
     )
 
 

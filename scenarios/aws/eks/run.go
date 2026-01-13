@@ -7,6 +7,7 @@ import (
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/cpustress"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/dogstatsd"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/etcd"
+	"github.com/DataDog/test-infra-definitions/components/datadog/apps/gpu"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/mutatedbyadmissioncontroller"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/nginx"
 	"github.com/DataDog/test-infra-definitions/components/datadog/apps/prometheus"
@@ -117,6 +118,10 @@ func Run(ctx *pulumi.Context) error {
 			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithDeployWindows())
 		}
 
+		if awsEnv.EKSGPUNodeGroup() {
+			k8sAgentOptions = append(k8sAgentOptions, kubernetesagentparams.WithGPUMonitoring())
+		}
+
 		k8sAgentComponent, err = helm.NewKubernetesAgent(&awsEnv, awsEnv.Namer.ResourceName("datadog-agent"), cluster.KubeProvider, k8sAgentOptions...)
 
 		if err != nil {
@@ -186,6 +191,13 @@ func Run(ctx *pulumi.Context) error {
 
 			if awsEnv.AgentDeployArgoRollout() {
 				if _, err := nginx.K8sRolloutAppDefinition(&awsEnv, cluster.KubeProvider, "workload-argo-rollout-nginx", utils.PulumiDependsOn(argoRollout)); err != nil {
+					return err
+				}
+			}
+
+			// Deploy GPU workload if GPU node group is enabled
+			if awsEnv.EKSGPUNodeGroup() {
+				if _, err := gpu.K8sAppDefinition(&awsEnv, cluster.KubeProvider, "gpu-workload"); err != nil {
 					return err
 				}
 			}

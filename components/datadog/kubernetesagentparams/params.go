@@ -237,6 +237,21 @@ func WithGKEAutopilot() func(*Params) error {
 	}
 }
 
+// WithGPUMonitoring enables GPU monitoring in the agent.
+// runtimeClassName is set to empty string because EKS doesn't have the "nvidia" RuntimeClass by default.
+func WithGPUMonitoring() func(*Params) error {
+	return func(p *Params) error {
+		gpuMonitoringValues := `
+datadog:
+  gpuMonitoring:
+    enabled: true
+    runtimeClassName: ""
+`
+		p.HelmValues = append(p.HelmValues, pulumi.NewStringAsset(gpuMonitoringValues))
+		return nil
+	}
+}
+
 func WithTags(tags []string) func(*Params) error {
 	return func(p *Params) error {
 		tagsYAML, err := yaml.Marshal(tags)

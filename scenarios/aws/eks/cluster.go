@@ -8,6 +8,7 @@ import (
 	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes"
 	appsv1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/apps/v1"
 	corev1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/core/v1"
+	"github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/helm/v3"
 	metav1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/meta/v1"
 	v1 "github.com/pulumi/pulumi-kubernetes/sdk/v4/go/kubernetes/rbac/v1"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
@@ -312,6 +313,73 @@ func NewCluster(e aws.Environment, name string, opts ...Option) (*kubecomp.Clust
 
 			nodeDeps = append(nodeDeps, winCNIPatch)
 			_, err = localEks.NewWindowsNodeGroup(e, cluster, windowsNodeRole, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+			if err != nil {
+				return err
+			}
+		}
+
+		if params.GPUNodeGroup {
+			gpuNodeGroup, err := localEks.NewGPULinuxNodeGroup(e, cluster, linuxNodeRole, params.GPUInstanceType, utils.PulumiDependsOn(nodeDeps...), pulumi.Parent(comp))
+			if err != nil {
+				return err
+			}
+
+			// Install NVIDIA device plugin to expose GPUs to Kubernetes
+			// The EKS GPU AMI already has NVIDIA drivers pre-installed, so we only need the device plugin
+			// Configure deviceListStrategy: envvar to set NVIDIA_VISIBLE_DEVICES env var in container specs
+			// This enables GPU-to-container mapping for Datadog GPU monitoring
+			_, err = helm.NewRelease(e.Ctx(), e.Namer.ResourceName("nvidia-device-plugin"), &helm.ReleaseArgs{
+				RepositoryOpts: helm.RepositoryOptsArgs{
+					Repo: pulumi.String("https://nvidia.github.io/k8s-device-plugin"),
+				},
+				Chart:           pulumi.String("nvidia-device-plugin"),
+				Namespace:       pulumi.String("kube-system"),
+				Version:         pulumi.String("0.17.0"),
+				CreateNamespace: pulumi.Bool(false),
+				Values: pulumi.Map{
+					// Configure device plugin:
+					// - failOnInitError: false - Don't crash on non-GPU nodes
+					// - deviceListStrategy: envvar (default) - Sets NVIDIA_VISIBLE_DEVICES env var
+					//   in container specs, enabling GPU-to-container mapping for Datadog GPU monitoring
+					// Note: deviceListStrategy: envvar is the default, but we set it explicitly
+					// to be self-documenting and ensure compatibility
+					"config": pulumi.Map{
+						"default": pulumi.String("eks-gpu-config"),
+						"map": pulumi.Map{
+							"eks-gpu-config": pulumi.String(`version: v1
+flags:
+  failOnInitError: false
+  plugin:
+    deviceListStrategy:
+      - envvar
+`),
+						},
+					},
+					// Override default affinity to use our custom label instead of NFD labels
+					// The default chart requires NFD (Node Feature Discovery) labels like
+					// nvidia.com/gpu.present or feature.node.kubernetes.io/pci-10de.present
+					// We use accelerator=nvidia-gpu which is set by our GPU node group
+					"affinity": pulumi.Map{
+						"nodeAffinity": pulumi.Map{
+							"requiredDuringSchedulingIgnoredDuringExecution": pulumi.Map{
+								"nodeSelectorTerms": pulumi.Array{
+									pulumi.Map{
+										"matchExpressions": pulumi.Array{
+											pulumi.Map{
+												"key":      pulumi.String("accelerator"),
+												"operator": pulumi.String("In"),
+												"values": pulumi.Array{
+													pulumi.String("nvidia-gpu"),
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			}, pulumi.Provider(eksKubeProvider), utils.PulumiDependsOn(gpuNodeGroup), pulumi.Parent(comp))
 			if err != nil {
 				return err
 			}

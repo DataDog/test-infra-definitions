@@ -1,8 +1,6 @@
 module tracegen
 
-go 1.22.0
-
-toolchain go1.23.4
+go 1.25.7
 
 require (
 	golang.org/x/time v0.6.0

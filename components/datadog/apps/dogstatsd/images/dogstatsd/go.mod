@@ -1,6 +1,6 @@
 module dogstatsd
 
-go 1.24
+go 1.25.7
 
 require github.com/DataDog/datadog-go/v5 v5.8.1
 

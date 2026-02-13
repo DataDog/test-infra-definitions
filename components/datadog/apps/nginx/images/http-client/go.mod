@@ -1,3 +1,3 @@
 module nginx-query
 
-go 1.24
+go 1.25.7

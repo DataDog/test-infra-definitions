@@ -35,7 +35,7 @@ build-runner-image:
 
 build-pulumi-go-main:
   stage: build
-  image: ${BUILD_STABLE_REGISTRY}/ci/datadog-agent-buildimages/deb_x64:v68913450-a14377f4
+  image: ${BUILD_STABLE_REGISTRY}/ci/datadog-agent-buildimages/deb_x64:v102144341-64dad9f8
   tags: ["arch:amd64"]
   rules:
     - when: on_success

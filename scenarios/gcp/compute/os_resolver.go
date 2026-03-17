@@ -19,7 +19,7 @@ func resolveUbuntuImage(_ gcp.Environment, osInfo os.Descriptor) (string, error)
 
 	switch osInfo.Version {
 	case os.Ubuntu2204.Version:
-		return "ubuntu-2204-jammy-v20240904", nil
+		return "ubuntu-2204-jammy-v20260313", nil
 	default:
 		return "", nil
 	}

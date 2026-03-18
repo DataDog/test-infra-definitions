@@ -59,6 +59,7 @@ func NewGKECluster(env gcp.Environment, opts ...Option) (*kubeComp.Cluster, erro
 		gkeKubeProvider, err := kubernetes.NewProvider(env.Ctx(), env.Namer.ResourceName("k8s-provider"), &kubernetes.ProviderArgs{
 			EnableServerSideApply: pulumi.BoolPtr(true),
 			Kubeconfig:            utils.KubeConfigYAMLToJSON(kubeConfig),
+			ClusterIdentifier:     cluster.Name,
 		}, env.WithProviders(config.ProviderGCP))
 		if err != nil {
 			return err

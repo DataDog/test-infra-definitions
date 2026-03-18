@@ -23,7 +23,8 @@ var autopilotAllowListYAML string
 var workloadCSIAllowListYAML string
 
 type Params struct {
-	autopilot bool
+	autopilot                bool
+	skipWorkloadAllowlist bool
 }
 
 type Option = func(*Params) error
@@ -36,6 +37,17 @@ func NewParams(options ...Option) (*Params, error) {
 func WithAutopilot() Option {
 	return func(params *Params) error {
 		params.autopilot = true
+		return nil
+	}
+}
+
+// WithoutWorkloadAllowlist skips creating WorkloadAllowlist resources via
+// Pulumi. Use this when the helm chart's AllowlistSynchronizer handles
+// allowlist creation, avoiding Pulumi provider replacement cascade issues
+// during stack updates (pulumi/pulumi#14650).
+func WithoutWorkloadAllowlist() Option {
+	return func(params *Params) error {
+		params.skipWorkloadAllowlist = true
 		return nil
 	}
 }
@@ -66,8 +78,8 @@ func NewGKECluster(env gcp.Environment, opts ...Option) (*kubeComp.Cluster, erro
 		}
 		comp.KubeProvider = gkeKubeProvider
 
-		// Apply allowlist if autopilot is enabled
-		if params.autopilot {
+		// Apply allowlist if autopilot is enabled and not skipped
+		if params.autopilot && !params.skipWorkloadAllowlist {
 			_, err = yaml.NewConfigGroup(env.Ctx(), env.Namer.ResourceName("autopilot-allowlist"), &yaml.ConfigGroupArgs{
 				YAML: []string{autopilotAllowListYAML, workloadCSIAllowListYAML},
 			}, pulumi.Provider(gkeKubeProvider), env.WithProviders(config.ProviderGCP))

@@ -2,6 +2,8 @@ module github.com/DataDog/test-infra-definitions
 
 go 1.24.9
 
+toolchain go1.26.1
+
 require (
 	dario.cat/mergo v1.0.1
 	github.com/DataDog/datadog-agent/pkg/util/option v0.67.0

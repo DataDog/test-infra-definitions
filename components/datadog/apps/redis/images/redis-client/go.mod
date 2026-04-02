@@ -2,6 +2,8 @@ module redis-query
 
 go 1.24
 
+toolchain go1.26.1
+
 require github.com/redis/go-redis/v9 v9.14.0
 
 require (

@@ -8,7 +8,7 @@ import (
 
 	"github.com/DataDog/test-infra-definitions/common/config"
 	"github.com/DataDog/test-infra-definitions/common/namer"
-	"github.com/pulumi/pulumi-gcp/sdk/v7/go/gcp"
+	"github.com/pulumi/pulumi-gcp/sdk/v9/go/gcp"
 	"github.com/pulumi/pulumi/sdk/v3/go/pulumi"
 	pulumiConfig "github.com/pulumi/pulumi/sdk/v3/go/pulumi/config"
 )

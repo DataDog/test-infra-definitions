@@ -7,6 +7,9 @@ permissions: {}
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # required to exchange OIDC token for Datadog API key via dd-sts
+      contents: read # required for actions/checkout
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
@@ -35,10 +38,16 @@ jobs:
           go install github.com/DataDog/orchestrion@v1.4.0
           orchestrion pin
 
+      - name: Get Datadog credentials
+        id: dd-sts
+        uses: DataDog/dd-sts-action@2e8187910199bd93129520183c093e19aa585c75 # v1.0.0
+        with:
+          policy: test-infra-definitions.github.ci-visibility.push
+
       - name: Test
         run: orchestrion go test -v $(go list ./... | grep -v /integration-tests) # We do not run integration-tests here because they require more tooling (Pulumi, invoke, ..). They will be run in a dedicated job
         env:
           DD_CIVISIBILITY_ENABLED: true
           DD_CIVISIBILITY_AGENTLESS_ENABLED: true
           DD_ENV: ci
-          DD_API_KEY: ${{ secrets.DATADOG_API_KEY }}
+          DD_API_KEY: ${{ steps.dd-sts.outputs.api_key }}

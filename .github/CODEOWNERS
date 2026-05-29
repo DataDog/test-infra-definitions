@@ -12,8 +12,8 @@
 *                                       @DataDog/agent-e2e-testing
 /scenarios/aws/microVMs/                @DataDog/ebpf-platform
 /scenarios/aws/installer/               @DataDog/fleet
-/components/datadog/apps/jmxfetch       @DataDog/agent-metrics-logs
-/components/datadog/apps/logger         @DataDog/agent-metrics-logs
+/components/datadog/apps/jmxfetch       @DataDog/agent-metric-pipelines
+/components/datadog/apps/logger         @DataDog/agent-log-pipelines
 /components/datadog/apps/tracegen       @DataDog/agent-apm
 /components/datadog/apps/cws            @DataDog/agent-security
 /components/datadog/apps/fips           @DataDog/agent-runtimes

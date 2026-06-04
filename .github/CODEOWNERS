@@ -9,13 +9,11 @@
 # Rules are matched bottom-to-top, so one team can own subdirectories
 # and another the rest of the directory.
 
-*                                       @DataDog/agent-e2e-testing
-/scenarios/aws/microVMs/                @DataDog/ebpf-platform
-/scenarios/aws/installer/               @DataDog/fleet
-/components/datadog/apps/jmxfetch       @DataDog/agent-metrics-logs
-/components/datadog/apps/logger         @DataDog/agent-metrics-logs
-/components/datadog/apps/tracegen       @DataDog/agent-apm
-/components/datadog/apps/cws            @DataDog/agent-security
-/components/datadog/apps/fips           @DataDog/agent-runtimes
-/components/datadog/apps/otel           @DataDog/opentelemetry
-/components/datadog/apps/gpu            @DataDog/ebpf-platform
+*                                       @DataDog/agent-devx
+apps/jmxfetch       @DataDog/agent-metrics-logs
+apps/logger         @DataDog/agent-metrics-logs
+apps/tracegen       @DataDog/agent-apm
+apps/cws            @DataDog/agent-security
+apps/fips           @DataDog/agent-runtimes
+apps/otel           @DataDog/opentelemetry
+apps/gpu            @DataDog/ebpf-platform

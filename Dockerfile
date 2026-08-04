@@ -104,9 +104,7 @@ RUN curl --retry 10 -fsSLo /tmp/helm.tgz https://get.helm.sh/helm-v${HELM_VERSIO
 ARG PULUMI_VERSION
 
 # Install the Pulumi SDK, including the CLI and language runtimes.
-RUN --mount=type=secret,id=github_token \
-  export GITHUB_TOKEN=$(cat /run/secrets/github_token) && \
-  curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
+RUN curl --retry 10 -fsSL https://get.pulumi.com/ | bash -s -- --version $PULUMI_VERSION && \
   mv ~/.pulumi/bin/* /usr/bin
 
 # Install Pulumi plugins

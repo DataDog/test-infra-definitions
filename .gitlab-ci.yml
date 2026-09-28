@@ -32,18 +32,11 @@ stages:
   - container_publish
 
 variables:
-  # CI images, referenced exactly like in the datadog-agent repository
-  # (.gitlab/deploy/container_build/docker_linux.yml). The CI_IMAGE_* values
-  # are normally provided by CI variables (as in datadog-agent); the ones
-  # below are only fallbacks, as YAML-defined variables have the lowest
-  # precedence in GitLab and are overridden by project/group CI variables.
   CI_IMAGE_DOCKER_X64_SUFFIX: ""
   CI_IMAGE_DOCKER_ARM64_SUFFIX: ""
   CI_IMAGE_DOCKER_X64: v107034079-0ba6ff53
   CI_IMAGE_DOCKER_ARM64: v107034079-0ba6ff53
-  # Image containing the dd-pkg tool (public-images repository)
   DD_PKG_IMAGE: registry.ddbuild.io/agent-delivery/dd-pkg@sha256:316a4ad7eba06e7db4c2ddc490d7ee61bd10a95c6c89bbf97c41ceec4b003701
-  # Internal CI registry where the per-arch images are staged before publishing
   SRC_REGISTRY: registry.ddbuild.io/ci/test-infra-definitions
   PUBLIC_IMAGES_PUBLISH_TIMEOUT: "1800"
 

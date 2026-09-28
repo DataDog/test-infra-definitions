@@ -1,32 +1,3 @@
----
-# GitLab CI pipeline publishing the test-infra-definitions app images
-# (apps/*/images/*) to the agent-qa ECR registry
-# (669783387624.dkr.ecr.us-east-1.amazonaws.com).
-#
-# This is the GitLab counterpart of .github/workflows/docker-publish.yml, which
-# publishes the same images to ghcr.io and is kept unchanged. Both pipelines
-# build linux/amd64 + linux/arm64 images with the same tags and the same
-# org.opencontainers.image.* labels:
-#
-#   - push to the default branch: <branch> and latest
-#     (e.g. apps-dogstatsd:main, apps-dogstatsd:latest)
-#   - push of a vX.Y.Z tag:      vX.Y.Z and latest
-#     (e.g. apps-dogstatsd:v0.0.7, apps-dogstatsd:latest)
-#   - an extra immutable <pipeline id>-<short sha> tag is added for
-#     traceability, following the agent-qa image conventions.
-#
-# The publishing itself is done through the `dd-pkg` tool from the
-# public-images repository, like for the Agent images (see
-# datadog-agent/.gitlab/.pre/common/container_publish_job_templates.yml and
-# datadog-agent/.gitlab/deploy/dev_container_deploy/e2e.yml):
-#   1. each image is built per architecture and pushed to the internal CI
-#      registry (registry.ddbuild.io/ci/test-infra-definitions),
-#   2. the arch images are merged into a multi-arch manifest and pushed to
-#      agent-qa with `dd-pkg publish-image`.
-#
-# NOTE: the destination ECR repositories (apps-<image>, redis, ...) must exist
-# in the agent-qa account before the first push.
-
 stages:
   - container_build
   - container_publish
@@ -34,24 +5,15 @@ stages:
 variables:
   CI_IMAGE_DOCKER_X64_SUFFIX: ""
   CI_IMAGE_DOCKER_ARM64_SUFFIX: ""
-  CI_IMAGE_DOCKER_X64: v107034079-0ba6ff53
-  CI_IMAGE_DOCKER_ARM64: v107034079-0ba6ff53
+  CI_IMAGE_DOCKER_X64: v140122430-fb04a759
+  CI_IMAGE_DOCKER_ARM64: v140122430-fb04a759
   DD_PKG_IMAGE: registry.ddbuild.io/agent-delivery/dd-pkg@sha256:316a4ad7eba06e7db4c2ddc490d7ee61bd10a95c6c89bbf97c41ceec4b003701
   SRC_REGISTRY: registry.ddbuild.io/ci/test-infra-definitions
   PUBLIC_IMAGES_PUBLISH_TIMEOUT: "1800"
 
 workflow:
   rules:
-    # Don't run for merge requests: the GitHub workflow already builds PRs
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: never
-    # Test tags (ci-test-*): used to try the full pipeline from a branch
-    # without touching `latest`. They deliberately don't match the v*.*.*
-    # glob of the GitHub workflow, so nothing is published to ghcr.io.
-    - if: "$CI_COMMIT_TAG =~ /^ci-test-/"
-    # Publish on vX.Y.Z tags, like the GitHub workflow
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
-    # Publish on the default branch
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
     - when: never
 
@@ -60,7 +22,6 @@ workflow:
 .app_images_rules:
   rules:
     &app_images_rules # Test tags (ci-test-*): full pipeline without updating `latest`
-    - if: "$CI_COMMIT_TAG =~ /^ci-test-/"
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
       changes:
@@ -93,8 +54,6 @@ workflow:
       - APP: redis
         IMAGE_DIR: redis-client
         REPO: apps-redis-client
-      # Must be named exactly `redis` for the integrations-core redisdb
-      # auto-discovery, see .github/workflows/docker-publish.yml
       - APP: redis
         IMAGE_DIR: redis-server
         REPO: redis
@@ -205,10 +164,6 @@ docker_build_arm64:
       set -euo pipefail
       SRC_BASE_TAG="${SRC_REGISTRY}/${REPO}:v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
       export IMG_SOURCES="${SRC_BASE_TAG}-amd64,${SRC_BASE_TAG}-arm64"
-      # Tags mirroring the docker/metadata-action behaviour of the GitHub
-      # workflow: branch/tag name + latest, plus an immutable CI tag.
-      # `latest` is only published for production semver tags and on the
-      # default branch, never for ci-test-* tags.
       export IMG_TAGS="${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
       if [ -n "${CI_COMMIT_TAG:-}" ]; then
         export IMG_TAGS="${CI_COMMIT_TAG} ${IMG_TAGS}"

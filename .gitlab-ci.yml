@@ -5,8 +5,8 @@ stages:
 variables:
   CI_IMAGE_DOCKER_X64_SUFFIX: ""
   CI_IMAGE_DOCKER_ARM64_SUFFIX: ""
-  CI_IMAGE_DOCKER_X64: latest
-  CI_IMAGE_DOCKER_ARM64: latest
+  CI_IMAGE_DOCKER_X64: v140122430-fb04a759
+  CI_IMAGE_DOCKER_ARM64: v140122430-fb04a759
   DD_PKG_IMAGE: registry.ddbuild.io/agent-delivery/dd-pkg:latest
   SRC_REGISTRY: registry.ddbuild.io/ci/test-infra-definitions
   PUBLIC_IMAGES_PUBLISH_TIMEOUT: "1800"

@@ -15,13 +15,30 @@ workflow:
   rules:
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    # Other branches: build the images to validate them, but don't publish
+    - if: "$CI_COMMIT_BRANCH"
     - when: never
 
-# Same path filters as .github/workflows/docker-publish.yml
-# (the hidden job is only an anchor holder)
-.app_images_rules:
-  rules:
-    &app_images_rules # Test tags (ci-test-*): full pipeline without updating `latest`
+# Build rules: build the images on every branch (to validate the Dockerfiles)
+# and on tags. The path filters are the same as
+# .github/workflows/docker-publish.yml, so the default branch doesn't rebuild
+# all the images when nothing changed under apps/.
+.app_images_build_rules:
+  rules: &app_images_build_rules
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      changes:
+        - .gitlab-ci.yml
+        - .github/workflows/docker-publish.yml
+        - apps/*/images/**
+    # Non-default branches: build only, the images are not published
+    - if: "$CI_COMMIT_BRANCH != null && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH"
+    - when: never
+
+# Publish rules: publish to agent-qa only from vX.Y.Z tags and from the
+# default branch. Builds from other branches are never published.
+.app_images_publish_rules:
+  rules: &app_images_publish_rules
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
     - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
       changes:
@@ -100,7 +117,7 @@ workflow:
 .docker_build:
   <<: *app_images
   stage: container_build
-  rules: *app_images_rules
+  rules: *app_images_build_rules
   timeout: 30m
   retry: 2
   variables:
@@ -191,7 +208,7 @@ docker_build_arm64:
 publish_agent_qa:
   extends: .docker_publish_agent_qa
   <<: *app_images
-  rules: *app_images_rules
+  rules: *app_images_publish_rules
   # Worst case: 3 tags x 30min dd-pkg timeout
   timeout: 2h
   needs:

@@ -50,21 +50,21 @@ workflow:
     # Test tags (ci-test-*): used to try the full pipeline from a branch
     # without touching `latest`. They deliberately don't match the v*.*.*
     # glob of the GitHub workflow, so nothing is published to ghcr.io.
-    - if: '$CI_COMMIT_TAG =~ /^ci-test-/'
+    - if: "$CI_COMMIT_TAG =~ /^ci-test-/"
     # Publish on vX.Y.Z tags, like the GitHub workflow
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
     # Publish on the default branch
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
     - when: never
 
 # Same path filters as .github/workflows/docker-publish.yml
 # (the hidden job is only an anchor holder)
 .app_images_rules:
-  rules: &app_images_rules
-    # Test tags (ci-test-*): full pipeline without updating `latest`
-    - if: '$CI_COMMIT_TAG =~ /^ci-test-/'
+  rules:
+    &app_images_rules # Test tags (ci-test-*): full pipeline without updating `latest`
+    - if: "$CI_COMMIT_TAG =~ /^ci-test-/"
     - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
       changes:
         - .gitlab-ci.yml
         - .github/workflows/docker-publish.yml
@@ -181,14 +181,14 @@ workflow:
 docker_build_amd64:
   extends: .docker_build
   image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_x64:$CI_IMAGE_DOCKER_X64
-  tags: ["arch:amd64", "specific:true"]
+  tags: ["arch:amd64"]
   variables:
     ARCH: amd64
 
 docker_build_arm64:
   extends: .docker_build
   image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_arm64:$CI_IMAGE_DOCKER_ARM64
-  tags: ["arch:arm64", "specific:true"]
+  tags: ["arch:arm64"]
   variables:
     ARCH: arm64
 

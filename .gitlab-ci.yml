@@ -32,8 +32,13 @@ stages:
   - container_publish
 
 variables:
-  # CI images, pinned the same way as in fips-proxy/.gitlab-ci.yml.
-  # Kept in sync with datadog-agent's CI_IMAGE_* variables; update regularly.
+  # CI images, referenced exactly like in the datadog-agent repository
+  # (.gitlab/deploy/container_build/docker_linux.yml). The CI_IMAGE_* values
+  # are normally provided by CI variables (as in datadog-agent); the ones
+  # below are only fallbacks, as YAML-defined variables have the lowest
+  # precedence in GitLab and are overridden by project/group CI variables.
+  CI_IMAGE_DOCKER_X64_SUFFIX: ""
+  CI_IMAGE_DOCKER_ARM64_SUFFIX: ""
   CI_IMAGE_DOCKER_X64: v107034079-0ba6ff53
   CI_IMAGE_DOCKER_ARM64: v107034079-0ba6ff53
   # Image containing the dd-pkg tool (public-images repository)
@@ -180,14 +185,14 @@ workflow:
 
 docker_build_amd64:
   extends: .docker_build
-  image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_x64:$CI_IMAGE_DOCKER_X64
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_x64$CI_IMAGE_DOCKER_X64_SUFFIX:$CI_IMAGE_DOCKER_X64
   tags: ["arch:amd64"]
   variables:
     ARCH: amd64
 
 docker_build_arm64:
   extends: .docker_build
-  image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_arm64:$CI_IMAGE_DOCKER_ARM64
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_arm64$CI_IMAGE_DOCKER_ARM64_SUFFIX:$CI_IMAGE_DOCKER_ARM64
   tags: ["arch:arm64"]
   variables:
     ARCH: arm64

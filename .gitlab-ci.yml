@@ -1,0 +1,216 @@
+stages:
+  - container_build
+  - container_publish
+
+variables:
+  CI_IMAGE_DOCKER_X64_SUFFIX: ""
+  CI_IMAGE_DOCKER_ARM64_SUFFIX: ""
+  CI_IMAGE_DOCKER_X64: v140122430-fb04a759
+  CI_IMAGE_DOCKER_ARM64: v140122430-fb04a759
+  DD_PKG_IMAGE: registry.ddbuild.io/agent-delivery/dd-pkg:latest
+  SRC_REGISTRY: registry.ddbuild.io/ci/test-infra-definitions
+  PUBLIC_IMAGES_PUBLISH_TIMEOUT: "1800"
+
+workflow:
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+    # Other branches: build the images to validate them, but don't publish
+    - if: "$CI_COMMIT_BRANCH"
+    - when: never
+
+# Build rules: build the images on every branch (to validate the Dockerfiles)
+# and on tags. The path filters are the same as
+# .github/workflows/docker-publish.yml, so the default branch doesn't rebuild
+# all the images when nothing changed under apps/.
+.app_images_build_rules:
+  rules: &app_images_build_rules
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      changes:
+        - .gitlab-ci.yml
+        - .github/workflows/docker-publish.yml
+        - apps/*/images/**
+    # Non-default branches: build only, the images are not published
+    - if: "$CI_COMMIT_BRANCH != null && $CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH"
+    - when: never
+
+# Publish rules: publish to agent-qa only from vX.Y.Z tags and from the
+# default branch. Builds from other branches are never published.
+.app_images_publish_rules:
+  rules: &app_images_publish_rules
+    - if: '$CI_COMMIT_TAG =~ /^v[0-9]+\.[0-9]+\.[0-9]+$/'
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+      changes:
+        - .gitlab-ci.yml
+        - .github/workflows/docker-publish.yml
+        - apps/*/images/**
+    - when: never
+
+# Images built by this pipeline and by .github/workflows/docker-publish.yml.
+# REPO is the image name without registry, identical to the name published on
+# ghcr.io by the GitHub workflow.
+.app_images: &app_images
+  parallel:
+    matrix:
+      - APP: dogstatsd
+        IMAGE_DIR: dogstatsd
+        REPO: apps-dogstatsd
+      - APP: mutatedbyadmissioncontroller
+        IMAGE_DIR: mutated
+        REPO: apps-mutated
+      - APP: nginx
+        IMAGE_DIR: http-client
+        REPO: apps-http-client
+      - APP: nginx
+        IMAGE_DIR: nginx-server
+        REPO: apps-nginx-server
+      - APP: prometheus
+        IMAGE_DIR: prometheus
+        REPO: apps-prometheus
+      - APP: redis
+        IMAGE_DIR: redis-client
+        REPO: apps-redis-client
+      - APP: redis
+        IMAGE_DIR: redis-server
+        REPO: redis
+      - APP: cpustress
+        IMAGE_DIR: stress-ng
+        REPO: apps-stress-ng
+      - APP: tracegen
+        IMAGE_DIR: tracegen
+        REPO: apps-tracegen
+      - APP: npm-tools
+        IMAGE_DIR: go-httpbin
+        REPO: apps-go-httpbin
+      - APP: npm-tools
+        IMAGE_DIR: npm-tools
+        REPO: apps-npm-tools
+      - APP: cws
+        IMAGE_DIR: cws-centos7
+        REPO: apps-cws-centos7
+      - APP: logger
+        IMAGE_DIR: logger
+        REPO: apps-logger
+      - APP: jmxfetch
+        IMAGE_DIR: jmx-test-app
+        REPO: apps-jmx-test-app
+      - APP: fips
+        IMAGE_DIR: fips-server
+        REPO: apps-fips-server
+      - APP: otel
+        IMAGE_DIR: calendar-go
+        REPO: apps-calendar-go
+      - APP: gpu
+        IMAGE_DIR: cuda-basic
+        REPO: apps-cuda-basic
+      - APP: s3-proxy-nginx
+        IMAGE_DIR: s3-proxy-nginx
+        REPO: apps-s3-proxy-nginx
+      - APP: etcd
+        IMAGE_DIR: alpine
+        REPO: apps-alpine
+      - APP: churn
+        IMAGE_DIR: churn
+        REPO: apps-churn
+
+.docker_build:
+  <<: *app_images
+  stage: container_build
+  rules: *app_images_build_rules
+  timeout: 30m
+  retry: 2
+  variables:
+    ARCH: amd64
+  script:
+    - BUILD_CONTEXT="apps/${APP}/images/${IMAGE_DIR}"
+    - SOURCE_TAG="${SRC_REGISTRY}/${REPO}:v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}-${ARCH}"
+    - CACHE_TAG="${SRC_REGISTRY}/${REPO}:cache-${ARCH}"
+    - |
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        export IMAGE_VERSION="${CI_COMMIT_TAG}"
+      else
+        export IMAGE_VERSION="${CI_COMMIT_REF_SLUG}"
+      fi
+    - |
+      set -euo pipefail
+      # Labels mirroring the ones set by docker/metadata-action in
+      # .github/workflows/docker-publish.yml
+      docker buildx build --pull --platform "linux/${ARCH}" \
+        --cache-from "type=registry,ref=${CACHE_TAG}" \
+        --cache-to "type=registry,ref=${CACHE_TAG},mode=max" \
+        --label "org.opencontainers.image.created=$(date -u +%Y-%m-%dT%H:%M:%S.%3NZ)" \
+        --label "org.opencontainers.image.description=" \
+        --label "org.opencontainers.image.licenses=" \
+        --label "org.opencontainers.image.revision=${CI_COMMIT_SHA}" \
+        --label "org.opencontainers.image.source=https://github.com/DataDog/test-infra-definitions" \
+        --label "org.opencontainers.image.title=test-infra-definitions" \
+        --label "org.opencontainers.image.url=https://github.com/DataDog/test-infra-definitions" \
+        --label "org.opencontainers.image.version=${IMAGE_VERSION}" \
+        --output "type=image,push=true,oci-mediatypes=false,compression=gzip,force-compression=true" \
+        --tag "${SOURCE_TAG}" \
+        --file "${BUILD_CONTEXT}/Dockerfile" \
+        "${BUILD_CONTEXT}"
+
+docker_build_amd64:
+  extends: .docker_build
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_x64$CI_IMAGE_DOCKER_X64_SUFFIX:$CI_IMAGE_DOCKER_X64
+  tags: ["arch:amd64"]
+  variables:
+    ARCH: amd64
+
+docker_build_arm64:
+  extends: .docker_build
+  image: registry.ddbuild.io/ci/datadog-agent-buildimages/docker_arm64$CI_IMAGE_DOCKER_ARM64_SUFFIX:$CI_IMAGE_DOCKER_ARM64
+  tags: ["arch:arm64"]
+  variables:
+    ARCH: arm64
+
+# Merge the per-arch images into multi-arch manifests and publish them to the
+# agent-qa ECR registry with dd-pkg (public-images repository).
+.docker_publish_agent_qa:
+  image: $DD_PKG_IMAGE
+  tags: ["arch:amd64"]
+  stage: container_publish
+  dependencies: []
+  variables:
+    IMG_REGISTRIES: agent-qa
+    IMG_SIGNING: "false"
+  before_script:
+    - |
+      set -euo pipefail
+      SRC_BASE_TAG="${SRC_REGISTRY}/${REPO}:v${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
+      export IMG_SOURCES="${SRC_BASE_TAG}-amd64,${SRC_BASE_TAG}-arm64"
+      export IMG_TAGS="${CI_PIPELINE_ID}-${CI_COMMIT_SHORT_SHA}"
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        export IMG_TAGS="${CI_COMMIT_TAG} ${IMG_TAGS}"
+      else
+        export IMG_TAGS="${CI_COMMIT_REF_SLUG} ${IMG_TAGS}"
+      fi
+      if [ "${CI_COMMIT_BRANCH:-}" = "${CI_DEFAULT_BRANCH}" ] || [[ "${CI_COMMIT_TAG:-}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        export IMG_TAGS="${IMG_TAGS} latest"
+      fi
+  script:
+    - |
+      set -euo pipefail
+      dd-pkg version
+      for TAG in ${IMG_TAGS}; do
+        echo ">>> Publishing ${REPO}:${TAG} to ${IMG_REGISTRIES}"
+        dd-pkg publish-image \
+          --timeout "${PUBLIC_IMAGES_PUBLISH_TIMEOUT}" \
+          --poll-interval 30 \
+          --signing "${IMG_SIGNING}" \
+          --registries "${IMG_REGISTRIES}" \
+          --sources "${IMG_SOURCES}" \
+          --destinations "${REPO}:${TAG}"
+      done
+
+publish_agent_qa:
+  extends: .docker_publish_agent_qa
+  <<: *app_images
+  rules: *app_images_publish_rules
+  # Worst case: 3 tags x 30min dd-pkg timeout
+  timeout: 2h
+  needs:
+    - docker_build_amd64
+    - docker_build_arm64

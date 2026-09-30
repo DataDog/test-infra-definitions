@@ -38,6 +38,8 @@ func main() {
 	defer stop()
 
 	dir := flag.String("manifests-dir", ".", "directory containing YAML manifests")
+	qps := flag.Float64("qps", float64(rest.DefaultQPS), "maximum queries per second to the Kubernetes API server")
+	burst := flag.Int("burst", rest.DefaultBurst, "maximum burst of queries to the Kubernetes API server")
 	flag.Parse()
 
 	config, err := rest.InClusterConfig()
@@ -51,6 +53,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	config.QPS = float32(*qps)
+	config.Burst = *burst
 	client := dynamic.NewForConfigOrDie(config)
 
 	// runCtx is cancelled on a termination signal, or as soon as one object handler fails so

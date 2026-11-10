@@ -8,6 +8,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 ENV CGO_ENABLED=0
+RUN go test ./...
 RUN go build -v -o /usr/local/bin/app ./...
 
 FROM scratch
